@@ -1,5 +1,7 @@
 # Pongdang
 
+[![CI and deploy](https://github.com/facio313/Pongdang/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/facio313/Pongdang/actions/workflows/ci.yml)
+
 빈 React 페이지에서 시작하는 최소 스캐폴드입니다.
 
 - Frontend: React 19, Vite 8, TypeScript, Node.js 24
