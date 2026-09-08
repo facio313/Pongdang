@@ -80,6 +80,7 @@ uv run pytest
 - 두 브랜치 대상 PR에서도 검사를 실행합니다. PR과 `dev`에서는 배포하지 않습니다.
 
 운영 주소: https://bonifacio.work/pongdang/
+포트폴리오 메인 페이지의 Multtara 다음에 있는 Pongdang 카드에서도 접속할 수 있습니다.
 
 GitHub Actions의 `production` 환경과 저장소의 `DEPLOY_KEY` secret을 사용합니다.
 전용 SSH 키는 `deploy pongdang <40자리 SHA>` 명령만 허용합니다.
