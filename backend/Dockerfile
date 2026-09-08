@@ -10,7 +10,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 RUN useradd --uid 10001 --create-home app
-COPY app ./app
+COPY --chown=app:app app ./app
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers"]

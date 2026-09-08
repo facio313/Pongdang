@@ -2,9 +2,6 @@ name: CI and deploy
 
 'on':
   push:
-    branches:
-      - main
-      - dev
   pull_request:
     branches:
       - main
@@ -76,8 +73,31 @@ jobs:
       - run: uv run --frozen ruff format --check .
       - run: uv run --frozen pytest
 
-  deploy:
+  smoke:
     needs: [frontend, backend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and start the complete stack
+        run: docker compose --project-name pongdang-ci up -d --build --wait --wait-timeout 180
+      - name: Verify the page and database readiness
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:5188/ | grep -q '<title>Pongdang</title>'
+          curl --fail --silent --show-error http://127.0.0.1:5188/api/ready
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --project-name pongdang-ci logs --no-color --tail=80
+      - name: Remove the CI stack
+        if: always()
+        run: docker compose --project-name pongdang-ci down --volumes
+
+  deploy:
+    needs: [smoke]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30

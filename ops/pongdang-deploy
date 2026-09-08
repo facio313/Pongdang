@@ -35,7 +35,7 @@ fi
 
 if [[ ! -d "$release" ]]; then
   staging="$(mktemp -d "$state/releases/.staging.XXXXXX")"
-  git --git-dir="$repository" archive "$sha" | tar -x -C "$staging"
+  git --git-dir="$repository" archive "$sha" | tar -x --same-permissions --no-same-owner -C "$staging"
   mv "$staging" "$release"
 fi
 
