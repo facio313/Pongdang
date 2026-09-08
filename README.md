@@ -79,6 +79,14 @@ uv run pytest
 - `main`: 운영 브랜치. 동일한 검사를 통과하면 이 서버에 SSH로 배포합니다.
 - 두 브랜치 대상 PR에서도 검사를 실행합니다. PR과 `dev`에서는 배포하지 않습니다.
 
+CI는 lint·타입 검사·테스트 뒤 전체 Docker Compose 스택의 빌드·기동까지 검증합니다.
+초기 설정 시 GitHub의 push 이벤트가 실행을 생성하지 않는 현상이 확인되어,
+서버의 `pongdang-ci-watch.timer`가 1분마다 `main`·`dev`의 최신 커밋을 확인합니다.
+해당 브랜치·커밋에 CI 실행이 없을 때만 같은 워크플로를 시작하므로,
+일반 push CI와 중복 실행을 최소화하면서 자동 배포 누락을 보완합니다.
+실패한 CI는 자동 재시도하지 않으며, 수정 커밋을 푸시하거나 Actions에서 재실행합니다.
+보완 장치는 `cks` 계정의 GitHub CLI 인증을 사용합니다.
+
 운영 주소: https://bonifacio.work/pongdang/
 포트폴리오 메인 페이지의 Multtara 다음에 있는 Pongdang 카드에서도 접속할 수 있습니다.
 
@@ -96,6 +104,7 @@ GitHub Actions의 `production` 환경과 저장소의 `DEPLOY_KEY` secret을 사
 - 현재/이전 배포: 같은 디렉터리의 `current`, `previous` 심볼릭 링크
 - SSH 명령: `/usr/local/libexec/pongdang-deploy` (`ops/pongdang-deploy` 설치본)
 - Nginx 경로 설정: `/etc/nginx/snippets/pongdang-location.conf`
+- 누락 CI 확인: `/usr/local/libexec/pongdang-ci-watch`, `pongdang-ci-watch.timer`
 
 운영에서는 `APP_BASE_PATH=/pongdang/`, `API_ROOT_PATH=/pongdang`을 설정합니다.
 웹 포트는 `127.0.0.1:5188`에만 바인딩하고 DB·API 포트는 호스트에 공개하지 않습니다.

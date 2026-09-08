@@ -1,0 +1,15 @@
+[Unit]
+Description=Dispatch missing Pongdang CI runs
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=cks
+Group=cks
+ExecStart=/usr/local/libexec/pongdang-ci-watch
+TimeoutStartSec=50
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true

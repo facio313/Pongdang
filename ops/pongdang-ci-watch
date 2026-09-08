@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Fallback for missing GitHub push events. It only dispatches the normal CI;
+# validation and deployment remain owned by .github/workflows/ci.yml.
+set -Eeuo pipefail
+readonly repository=facio313/Pongdang
+
+for branch in main dev; do
+  sha="$(gh api "repos/$repository/git/ref/heads/$branch" --jq .object.sha)"
+  [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+  count="$(gh api \
+    "repos/$repository/actions/workflows/ci.yml/runs?branch=$branch&head_sha=$sha&per_page=1" \
+    --jq .total_count)"
+  [[ "$count" =~ ^[0-9]+$ ]]
+  if [[ "$count" == 0 ]]; then
+    gh workflow run ci.yml --repo "$repository" --ref "$branch"
+    printf 'Dispatched missing Pongdang CI for %s at %s\n' "$branch" "$sha"
+  fi
+done

@@ -9,3 +9,4 @@
 - Run frontend lint/build and backend Ruff/tests for relevant changes.
 - Backend tests require PostgreSQL. Do not introduce business models or auth without a task.
 - `ops/` contains server configuration templates; deployment does not self-update the SSH gate.
+- The server timer dispatches CI only when the latest main/dev SHA has no run; it never bypasses CI or retries failed runs.
