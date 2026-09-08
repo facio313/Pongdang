@@ -1,0 +1,100 @@
+name: CI and deploy
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pongdang-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: frontend/.node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          APP_BASE_PATH: /pongdang/
+
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: pongdang_test
+          POSTGRES_USER: pongdang
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pongdang -d pongdang_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_DB: pongdang_test
+      POSTGRES_USER: pongdang
+      POSTGRES_PASSWORD: ci-only-password
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.16"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen ruff format --check .
+      - run: uv run --frozen pytest
+
+  deploy:
+    needs: [frontend, backend]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Deploy verified commit to server
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          key_file="$(mktemp)"
+          hosts_file="$(mktemp)"
+          trap 'rm -f "$key_file" "$hosts_file"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key_file"
+          chmod 600 "$key_file"
+          printf '%s\n' '[ssh.bonifacio.work]:22022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII91ovdQZMg9NpUyjjFSS0Ra0SEuYuAw4Uv3GTv6J92F' > "$hosts_file"
+          ssh -T -i "$key_file" \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$hosts_file" \
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+            -p 22022 cks@ssh.bonifacio.work "deploy pongdang $DEPLOY_SHA"

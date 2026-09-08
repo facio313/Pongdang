@@ -1,0 +1,5 @@
+# Optional DB port for running Vite and FastAPI directly on your workstation.
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"

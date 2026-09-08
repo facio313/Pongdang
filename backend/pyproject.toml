@@ -1,0 +1,23 @@
+[project]
+name = "pongdang-backend"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi>=0.141.1,<0.142",
+    "psycopg[binary]>=3.3.5,<4",
+    "pydantic-settings>=2.15.0,<3",
+    "uvicorn>=0.40,<1",
+]
+
+[dependency-groups]
+dev = ["httpx>=0.28,<1", "pytest>=9,<10", "ruff>=0.15,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

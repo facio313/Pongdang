@@ -1,0 +1,80 @@
+name: pongdang
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pongdang}
+      POSTGRES_USER: ${POSTGRES_USER:-pongdang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging: *logging
+
+  backend:
+    image: pongdang-backend:${RELEASE_SHA:-local}
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-pongdang}
+      POSTGRES_USER: ${POSTGRES_USER:-pongdang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      API_ROOT_PATH: ${API_ROOT_PATH:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=6)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 15s
+    logging: *logging
+
+  frontend:
+    image: pongdang-frontend:${RELEASE_SHA:-local}
+    build:
+      context: ./frontend
+      args:
+        APP_BASE_PATH: ${APP_BASE_PATH:-/}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-5188}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/ready"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 15s
+    logging: *logging
+
+volumes:
+  postgres_data:

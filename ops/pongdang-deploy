@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Install as root:root 0755 at /usr/local/libexec/pongdang-deploy.
+# The dedicated SSH key must force this command with the restrict option.
+set -Eeuo pipefail
+umask 077
+export PATH=/usr/local/bin:/usr/bin:/bin
+export DOCKER_HOST=unix:///run/user/1001/docker.sock
+
+readonly pattern='^deploy pongdang ([0-9a-f]{40})$'
+if [[ ! ${SSH_ORIGINAL_COMMAND:-} =~ $pattern ]]; then
+  echo 'Only deploy pongdang <commit-sha> is permitted.' >&2
+  exit 1
+fi
+readonly sha="${BASH_REMATCH[1]}"
+readonly state=/home/cks/.local/share/pongdang-deploy
+readonly env_file=/home/cks/.config/pongdang/production.env
+readonly repository="$state/repository.git"
+readonly release="$state/releases/$sha"
+
+[[ $(id -un) == cks ]]
+[[ -f "$env_file" && ! -L "$env_file" ]]
+mkdir -p "$state/releases"
+exec 9>"$state/deploy.lock"
+flock -w 1200 9
+
+if [[ ! -d "$repository" ]]; then
+  git init --bare "$repository"
+fi
+git --git-dir="$repository" fetch --no-tags https://github.com/facio313/Pongdang.git \
+  +refs/heads/main:refs/heads/main
+if [[ $(git --git-dir="$repository" rev-parse refs/heads/main) != "$sha" ]]; then
+  echo 'Deployment skipped: a newer main commit is available.'
+  exit 0
+fi
+
+if [[ ! -d "$release" ]]; then
+  staging="$(mktemp -d "$state/releases/.staging.XXXXXX")"
+  git --git-dir="$repository" archive "$sha" | tar -x -C "$staging"
+  mv "$staging" "$release"
+fi
+
+compose() {
+  local directory="$1"
+  shift
+  RELEASE_SHA="$(basename "$directory")" docker compose \
+    --project-name pongdang --env-file "$env_file" \
+    -f "$directory/compose.yaml" "$@"
+}
+
+compose "$release" config --quiet
+# Build before replacing running containers. Application images retain the SHA.
+compose "$release" build --pull
+previous="$(readlink -f "$state/current" || true)"
+if ! compose "$release" up -d --no-build --wait --wait-timeout 180 ||
+   ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:5188/api/ready; then
+  if [[ -n "$previous" && -f "$previous/compose.yaml" && "$previous" != "$release" ]]; then
+    echo 'New release failed; restoring the previous application images.' >&2
+    compose "$previous" up -d --no-build --wait --wait-timeout 180
+  fi
+  exit 1
+fi
+if [[ -n "$previous" && "$previous" != "$release" ]]; then
+  ln -sfn "$previous" "$state/previous"
+fi
+ln -sfn "$release" "$state/current"
+printf '\nDeployed Pongdang %s\n' "$sha"
