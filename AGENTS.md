@@ -1,6 +1,8 @@
 # Pongdang
 
 - Keep the application focused on Collector documentation and read-only data browsing.
+- Keep the UI plain and table-first: no brand ornaments, hero sections, or cards.
+  Default to data browsing with all allowed columns and 100-row bounded pages.
 - Frontend: React + Vite + TypeScript; backend: Python + FastAPI; DB: PostgreSQL.
 - Use Node.js 24 and Python 3.14. Commit dependency lockfiles with dependency changes.
 - `dev` is the integration branch; `main` is production and deploys automatically after CI.

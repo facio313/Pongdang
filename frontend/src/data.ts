@@ -67,9 +67,14 @@ export const number = (value: number | undefined) =>
   value === undefined ? "—" : value.toLocaleString("ko-KR");
 export function date(value?: string | null) {
   return value
-    ? new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "medium",
-        timeStyle: "short",
+    ? new Intl.DateTimeFormat("sv-SE", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
         timeZone: "Asia/Seoul",
       }).format(new Date(value))
     : "기록 없음";

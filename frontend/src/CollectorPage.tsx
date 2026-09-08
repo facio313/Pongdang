@@ -100,166 +100,119 @@ export function CollectorPage({
   summary?: Summary;
   openDataset: (key: string) => void;
 }) {
-  const count = (key: string) =>
-    summary?.datasets.find((item) => item.key === key)?.count;
   const heartbeat = summary?.heartbeat;
   return (
-    <>
-      <section className="page-heading">
-        <div>
-          <p className="eyebrow">COLLECTOR OVERVIEW</p>
-          <h1>Multtara Collector</h1>
-          <p className="lead">
-            외부 데이터를 수집하고, 근거를 보존하고, 물놀이 적합도를 계산하는
-            백그라운드 작업입니다.
-          </p>
-        </div>
-        <button
-          className="button primary"
-          onClick={() => openDataset("snapshots")}
-        >
-          저장 데이터 둘러보기 ↗
-        </button>
-      </section>
-      <div className="stats-grid">
-        <article className="stat">
-          <span>Collector 활동</span>
-          <strong className="status-value">
-            {heartbeat
-              ? (labels[heartbeat.effective_state] ?? heartbeat.effective_state)
-              : "확인할 수 없음"}
-          </strong>
-          <small>마지막 신호 {date(heartbeat?.last_seen_at)}</small>
-        </article>
-        {[
-          ["spots", "수집 대상 장소", "곳", "공식 자료 기반 장소 카탈로그"],
-          ["metrics", "저장된 관측 측정값", "건", "실제 수치·문자·논리 지표"],
-          [
-            "forecasts",
-            "일별 예측 평가 기록",
-            "건",
-            "제공 불가 평가를 포함한 건수",
-          ],
-        ].map(([key, title, unit, note]) => (
-          <button className="stat" key={key} onClick={() => openDataset(key)}>
-            <span>{title}</span>
-            <strong>
-              {number(count(key))}
-              <em>{unit}</em>
-            </strong>
-            <small>{note}</small>
-          </button>
-        ))}
-      </div>
+    <article className="collector-doc">
+      <h1>Multtara Collector 설명</h1>
+      <p>
+        외부 API를 주기적으로 호출해 관측·예보 근거를 cksDB에 저장하고, 물놀이
+        적합도와 날짜별 평가를 계산하는 백그라운드 작업입니다. 이 조회 페이지가
+        수집기를 실행하거나 외부 API를 새로 호출하지는 않습니다.
+      </p>
+      <p>
+        활동 신호:{" "}
+        {heartbeat
+          ? (labels[heartbeat.effective_state] ?? heartbeat.effective_state)
+          : "확인할 수 없음"}{" "}
+        · 마지막 신호: {date(heartbeat?.last_seen_at)} KST
+      </p>
       {heartbeat?.effective_state === "stale" && (
-        <div className="notice">
-          <span className="notice-icon">!</span>
-          <div>
-            <strong>최근 활동 신호가 없습니다.</strong>
-            <p>
-              DB의 마지막 상태는 {heartbeat.state}이지만 활동 신호가 15분보다
-              오래되었습니다. 현재 실행 중인지 확인할 수 없으며, 아래 수치는
-              저장된 이력입니다.
-            </p>
-          </div>
-        </div>
+        <p>
+          최근 활동 신호가 없습니다. DB에 저장된 상태는 {heartbeat.state}이지만
+          15분 이상 갱신되지 않아 현재 실행 중인지 확인할 수 없습니다.
+        </p>
       )}
-      <section className="panel flow-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">HOW IT WORKS</p>
-            <h2>수집에서 평가까지</h2>
-          </div>
-          <span className="tag">웹 요청과 별도로 실행</span>
-        </div>
-        <ol className="pipeline">
-          {[
-            ["외부 API 조회", "설정된 제공처를 주기에 맞춰 호출"],
-            ["지표 정규화", "관측·예보와 단위, 상태를 구분"],
-            ["수집 근거 보존", "출처·시각·유효 기간을 DB에 기록"],
-            ["적합도 평가", "필수 근거와 위험 조건을 먼저 확인"],
-            ["결과·이력 저장", "점수와 안전 상태, 실행 결과 보존"],
-          ].map(([title, desc], i) => (
-            <li key={title}>
-              <span className="step-number">0{i + 1}</span>
-              <h3>{title}</h3>
-              <p>{desc}</p>
-            </li>
-          ))}
+      <section>
+        <h2>처리 순서</h2>
+        <ol>
+          <li>설정된 외부 API를 조회합니다.</li>
+          <li>관측과 예보, 단위, 원본 상태를 구분해 정규화합니다.</li>
+          <li>
+            제공처·관측 시각·수집 시각·유효 기간과 근거 관계를 저장합니다.
+          </li>
+          <li>
+            유효한 근거와 위험 조건을 확인한 뒤 파생 지표와 적합도를 계산합니다.
+          </li>
+          <li>점수·안전 상태·제공 가능 여부와 작업 실행 이력을 저장합니다.</li>
         </ol>
-        <div className="flow-note">
-          원본이 없거나 오래되었으면 유효 기간을 임의로 늘리지 않습니다. 적합도
+        <p>
+          원본이 없거나 오래되었을 때 유효 기간을 임의로 늘리지 않습니다. 적합도
           점수, 안전 상태, 근거의 신뢰도는 서로 다른 값입니다.
+        </p>
+      </section>
+      <section>
+        <h2>API 제공처와 구현 범위</h2>
+        <p>연동 가능 여부와 현재 실제 저장된 데이터는 다릅니다.</p>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>제공처</th>
+                <th>데이터</th>
+                <th>수집 방식</th>
+                <th>상세</th>
+              </tr>
+            </thead>
+            <tbody>
+              {providers.map(([code, name, title, description, mode]) => (
+                <tr key={code}>
+                  <td>
+                    {name} · {code}
+                  </td>
+                  <td>{title}</td>
+                  <td>{mode}</td>
+                  <td>{description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
-      <section className="section-block">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">DATA SOURCES</p>
-            <h2>연결 가능한 데이터 제공처</h2>
-          </div>
-          <span className="muted">구현 범위와 현재 저장 여부는 다릅니다</span>
-        </div>
-        <div className="provider-grid">
-          {providers.map(([code, name, title, desc, mode]) => (
-            <article className="panel provider-card" key={code}>
-              <div className="provider-top">
-                <span className="provider-code">{code}</span>
-                <span className="tag">{mode}</span>
-              </div>
-              <h3>{name}</h3>
-              <strong className="provider-subtitle">{title}</strong>
-              <p>{desc}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="panel section-block">
-        <div className="section-heading padded">
-          <div>
-            <p className="eyebrow">SCHEDULE & HISTORY</p>
-            <h2>주기별 작업과 실행 이력</h2>
-          </div>
-          <button className="text-button" onClick={() => openDataset("runs")}>
-            전체 이력 보기 ↗
-          </button>
-        </div>
-        <p className="table-note">
-          소스 코드의 기본 주기이며 운영 설정으로 변경할 수 있습니다. 실행
-          기록이 없다는 사실만으로 키 미설정을 단정하지 않습니다.
+      <section>
+        <h2>기본 실행 주기와 마지막 기록</h2>
+        <p>
+          소스 코드의 기본 주기이며 운영 설정에 따라 달라질 수 있습니다. 실행
+          기록이 없다고 키 미설정으로 단정하지 않습니다.{" "}
+          <button onClick={() => openDataset("runs")}>실행 이력 조회</button>
         </p>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
                 <th>작업</th>
-                <th>기본 주기</th>
+                <th>명령 식별자</th>
+                <th>주기</th>
                 <th>실행 조건</th>
                 <th>마지막 결과</th>
-                <th>마지막 시작 · KST</th>
+                <th>시작 · KST</th>
+                <th>종료 · KST</th>
+                <th>오류 코드</th>
               </tr>
             </thead>
             <tbody>
               {tasks.map(([key, title, interval, condition]) => {
-                const latest = summary?.tasks.find(
-                  (task) => task.task_name === key,
+                const task = summary?.tasks.find(
+                  (item) => item.task_name === key,
                 );
                 return (
                   <tr key={key}>
+                    <td>{title}</td>
                     <td>
-                      <strong>{title}</strong>
-                      <code className="block-code">{key}</code>
+                      <code>{key}</code>
                     </td>
                     <td>{interval}</td>
                     <td>{condition}</td>
                     <td>
-                      <span className="pill">
-                        {latest
-                          ? (labels[latest.status] ?? latest.status)
-                          : "기록 없음"}
-                      </span>
+                      {task
+                        ? (labels[task.status] ?? task.status) +
+                          " (" +
+                          task.status +
+                          ")"
+                        : "기록 없음"}
                     </td>
-                    <td>{date(latest?.started_at)}</td>
+                    <td>{date(task?.started_at)}</td>
+                    <td>{date(task?.finished_at)}</td>
+                    <td>{task?.error_code || "—"}</td>
                   </tr>
                 );
               })}
@@ -267,53 +220,62 @@ export function CollectorPage({
           </table>
         </div>
       </section>
-      <section className="two-column section-block">
-        <article className="panel padded">
-          <h2>지금 DB에 기록된 제공처</h2>
-          <p className="muted">스냅샷의 실제 제공처와 원본 상태 집계입니다.</p>
-          <div className="source-list">
-            {summary?.providers.length ? (
-              summary.providers.map((source) => (
-                <div key={`${source.provider}-${source.state}`}>
-                  <div>
-                    <code>{source.provider}</code>
-                    <small>
-                      {labels[source.state] ?? source.state} ·{" "}
-                      {date(source.latest_at)}
-                    </small>
-                  </div>
-                  <strong>{number(source.count)}건</strong>
-                </div>
-              ))
-            ) : (
-              <p className="muted">
-                제공처 기록이 없거나 DB를 조회하지 못했습니다.
-              </p>
-            )}
-          </div>
-        </article>
-        <article className="panel padded">
-          <h2>기록을 읽을 때</h2>
-          <ul className="reading-notes">
-            <li>
-              <code>PONGDANG_FUSION</code>은 내부 융합 결과이며 외부 API
-              실측값과 다릅니다.
-            </li>
-            <li>
-              <code>unknown</code>은 판단 불가, <code>unavailable</code>은 근거
-              부족 등으로 제공할 수 없는 상태입니다.
-            </li>
-            <li>
-              <code>succeeded</code>는 명령이 끝났다는 뜻입니다. 새 데이터가
-              생겼거나 안전하다는 의미는 아닙니다.
-            </li>
-          </ul>
-        </article>
+      <section>
+        <h2>DB에 실제 기록된 제공처</h2>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>제공처</th>
+                <th>원본 상태</th>
+                <th>건수</th>
+                <th>최근 수집 · KST</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary?.providers.map((item) => (
+                <tr key={item.provider + item.state}>
+                  <td>
+                    <code>{item.provider}</code>
+                  </td>
+                  <td>
+                    {labels[item.state] ?? item.state} ({item.state})
+                  </td>
+                  <td className="numeric">{number(item.count)}</td>
+                  <td>{date(item.latest_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!summary?.providers.length && (
+          <p>제공처 기록이 없거나 DB를 조회하지 못했습니다.</p>
+        )}
       </section>
-      <p className="footnote">
+      <section>
+        <h2>데이터 해석 시 주의점</h2>
+        <ul>
+          <li>
+            PONGDANG_FUSION은 내부 융합 결과로 외부 API 실측값과 다릅니다.
+          </li>
+          <li>
+            unknown은 판단 불가, unavailable은 근거 부족 등으로 제공할 수 없는
+            상태입니다.
+          </li>
+          <li>
+            succeeded는 명령이 끝났다는 뜻입니다. 새 데이터가 생겼거나
+            안전하다는 의미는 아닙니다.
+          </li>
+          <li>
+            NULL, 관측값 0건, 제공 불가 평가 기록을 실제 관측이나 안전한 상태로
+            해석하지 않습니다.
+          </li>
+        </ul>
+      </section>
+      <p className="table-note">
         설명 기준: Multtara의 run_condition_pipeline, provider_config, 수집·평가
-        모델. DB 조회 시각 {date(summary?.queried_at)} · 모든 시각은 KST.
+        모델. DB 조회 시각 {date(summary?.queried_at)} KST.
       </p>
-    </>
+    </article>
   );
 }

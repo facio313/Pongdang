@@ -38,6 +38,11 @@ export function useResource<T>(path: string, revision = 0) {
     return () => controller.abort();
   }, [path, key]);
   return result?.key === key
-    ? { ...result, loading: false }
-    : { loading: true, data: undefined, error: undefined };
+    ? { ...result, previousData: result.data, loading: false }
+    : {
+        loading: true,
+        data: undefined,
+        previousData: result?.data,
+        error: undefined,
+      };
 }
