@@ -1,0 +1,865 @@
+[
+  {
+    "key": "spots",
+    "title": "장소 카탈로그",
+    "category": "catalog",
+    "source": "관광공사 TourAPI · 공식 장소 자료",
+    "description": "수집 대상 장소와 외부 API 식별자, 출처 및 검증 상태입니다.",
+    "table": "spots_waterspot",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "name",
+        "label": "장소명",
+        "type": "text"
+      },
+      {
+        "key": "region",
+        "label": "지역",
+        "type": "text"
+      },
+      {
+        "key": "type",
+        "label": "유형",
+        "type": "text"
+      },
+      {
+        "key": "catalog_source",
+        "label": "카탈로그 출처",
+        "type": "text"
+      },
+      {
+        "key": "catalog_verification",
+        "label": "검증 상태",
+        "type": "text"
+      },
+      {
+        "key": "tourapi_id",
+        "label": "TourAPI ID",
+        "type": "text"
+      },
+      {
+        "key": "khoa_beach_code",
+        "label": "KHOA 지점 코드",
+        "type": "text"
+      },
+      {
+        "key": "lat",
+        "label": "위도",
+        "type": "number"
+      },
+      {
+        "key": "lng",
+        "label": "경도",
+        "type": "number"
+      },
+      {
+        "key": "address",
+        "label": "주소",
+        "type": "text"
+      },
+      {
+        "key": "catalog_verified_at",
+        "label": "검증 시각",
+        "type": "datetime"
+      }
+    ],
+    "search": [
+      "name",
+      "region",
+      "catalog_source"
+    ],
+    "time": "catalog_verified_at"
+  },
+  {
+    "key": "snapshots",
+    "title": "관측 스냅샷",
+    "category": "collected",
+    "source": "기상청 KMA · 해양조사원 KHOA · 내부 융합",
+    "description": "제공처 응답을 정규화한 수집 단위입니다. missing 상태의 내부 융합 기록은 외부 API 실측값이 아닙니다.",
+    "table": "conditions_observationsnapshot",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "provider",
+        "label": "제공처",
+        "type": "text"
+      },
+      {
+        "key": "state",
+        "label": "원본 상태",
+        "type": "text"
+      },
+      {
+        "key": "observed_at",
+        "label": "관측 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "fetched_at",
+        "label": "수집 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "valid_until",
+        "label": "유효 종료",
+        "type": "datetime"
+      },
+      {
+        "key": "valid_from",
+        "label": "유효 시작",
+        "type": "datetime"
+      },
+      {
+        "key": "spatial_scope",
+        "label": "공간 범위",
+        "type": "text"
+      },
+      {
+        "key": "provider_record_id",
+        "label": "제공처 레코드 ID",
+        "type": "text"
+      },
+      {
+        "key": "ingestion_version",
+        "label": "수집 버전",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "provider",
+      "state",
+      "spatial_scope"
+    ],
+    "time": "fetched_at"
+  },
+  {
+    "key": "metrics",
+    "title": "관측 측정값",
+    "category": "collected",
+    "source": "기상청 KMA · 해양조사원 KHOA · 내부 파생",
+    "description": "온도·바람 등 정규화된 개별 지표입니다. 관측/예보/추정과 유효 상태를 각각 저장합니다.",
+    "table": "conditions_observationmetric",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "snapshot_id",
+        "label": "스냅샷 ID",
+        "type": "number"
+      },
+      {
+        "key": "name",
+        "label": "지표명",
+        "type": "text"
+      },
+      {
+        "key": "numeric_value",
+        "label": "수치",
+        "type": "number"
+      },
+      {
+        "key": "text_value",
+        "label": "문자 값",
+        "type": "text"
+      },
+      {
+        "key": "boolean_value",
+        "label": "논리 값",
+        "type": "boolean"
+      },
+      {
+        "key": "unit",
+        "label": "단위",
+        "type": "text"
+      },
+      {
+        "key": "mode",
+        "label": "관측 방식",
+        "type": "text"
+      },
+      {
+        "key": "state",
+        "label": "원본 상태",
+        "type": "text"
+      },
+      {
+        "key": "source",
+        "label": "출처",
+        "type": "text"
+      },
+      {
+        "key": "confidence",
+        "label": "신뢰도",
+        "type": "number"
+      },
+      {
+        "key": "observed_at",
+        "label": "관측 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "fetched_at",
+        "label": "수집 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "valid_until",
+        "label": "유효 종료",
+        "type": "datetime"
+      },
+      {
+        "key": "station_id",
+        "label": "관측소",
+        "type": "text"
+      },
+      {
+        "key": "spatial_scope",
+        "label": "공간 범위",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "name",
+      "source",
+      "state",
+      "mode"
+    ],
+    "time": "fetched_at"
+  },
+  {
+    "key": "scores",
+    "title": "Water Index 평가",
+    "category": "derived",
+    "source": "Multtara 평가 엔진",
+    "description": "원본 지표를 근거로 계산한 적합도·안전 상태·신뢰도입니다. unknown과 null은 안전 또는 0점을 의미하지 않습니다.",
+    "table": "conditions_conditionscore",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "activity",
+        "label": "활동",
+        "type": "text"
+      },
+      {
+        "key": "participant_profile",
+        "label": "참여자 유형",
+        "type": "text"
+      },
+      {
+        "key": "safety_status",
+        "label": "안전 상태",
+        "type": "text"
+      },
+      {
+        "key": "decision",
+        "label": "판정",
+        "type": "text"
+      },
+      {
+        "key": "score",
+        "label": "적합도",
+        "type": "number"
+      },
+      {
+        "key": "confidence",
+        "label": "신뢰도",
+        "type": "number"
+      },
+      {
+        "key": "coverage",
+        "label": "근거 충족도",
+        "type": "number"
+      },
+      {
+        "key": "evaluated_at",
+        "label": "평가 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "missing_metrics",
+        "label": "누락 지표",
+        "type": "json"
+      },
+      {
+        "key": "limitations",
+        "label": "한계",
+        "type": "json"
+      },
+      {
+        "key": "methodology_version",
+        "label": "평가 방법 버전",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "activity",
+      "safety_status",
+      "decision",
+      "participant_profile"
+    ],
+    "time": "evaluated_at"
+  },
+  {
+    "key": "forecasts",
+    "title": "일별 예측 평가",
+    "category": "derived",
+    "source": "Multtara 예측 평가 엔진",
+    "description": "특정 날짜·시각의 근거에 기반한 평가 기록입니다. unavailable은 실제 예측을 제공할 근거가 부족하다는 뜻입니다.",
+    "table": "forecasts_dailyforecast",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "forecast_date",
+        "label": "예측 날짜",
+        "type": "date"
+      },
+      {
+        "key": "activity",
+        "label": "활동",
+        "type": "text"
+      },
+      {
+        "key": "participant_profile",
+        "label": "참여자 유형",
+        "type": "text"
+      },
+      {
+        "key": "availability",
+        "label": "제공 가능 상태",
+        "type": "text"
+      },
+      {
+        "key": "safety_status",
+        "label": "안전 상태",
+        "type": "text"
+      },
+      {
+        "key": "score",
+        "label": "적합도",
+        "type": "number"
+      },
+      {
+        "key": "confidence",
+        "label": "신뢰도",
+        "type": "number"
+      },
+      {
+        "key": "unavailable_reason",
+        "label": "제공 불가 사유",
+        "type": "text"
+      },
+      {
+        "key": "target_at",
+        "label": "대상 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "valid_until",
+        "label": "유효 종료",
+        "type": "datetime"
+      },
+      {
+        "key": "evaluated_at",
+        "label": "평가 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "missing_metrics",
+        "label": "누락 지표",
+        "type": "json"
+      },
+      {
+        "key": "limitations",
+        "label": "한계",
+        "type": "json"
+      }
+    ],
+    "search": [
+      "activity",
+      "availability",
+      "safety_status",
+      "unavailable_reason"
+    ],
+    "time": "evaluated_at"
+  },
+  {
+    "key": "runs",
+    "title": "Collector 실행 이력",
+    "category": "operations",
+    "source": "run_condition_pipeline",
+    "description": "작업별 시작·종료·성공·실패 이력입니다. 작업 성공은 외부 데이터 수집 성공이나 안전 판정과 별개입니다.",
+    "table": "conditions_ingestionrun",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "task_name",
+        "label": "작업명",
+        "type": "text"
+      },
+      {
+        "key": "status",
+        "label": "실행 결과",
+        "type": "text"
+      },
+      {
+        "key": "started_at",
+        "label": "시작 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "finished_at",
+        "label": "종료 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "error_code",
+        "label": "오류 코드",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "task_name",
+      "status",
+      "error_code"
+    ],
+    "time": "started_at"
+  },
+  {
+    "key": "heartbeat",
+    "title": "Collector 활동 신호",
+    "category": "operations",
+    "source": "run_condition_pipeline",
+    "description": "DB에 남긴 마지막 활동 신호입니다. 과거 running 값만으로 현재 실행 중이라고 판단하지 않습니다.",
+    "table": "conditions_pipelineheartbeat",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "key",
+        "label": "파이프라인",
+        "type": "text"
+      },
+      {
+        "key": "state",
+        "label": "원본 상태",
+        "type": "text"
+      },
+      {
+        "key": "current_tasks",
+        "label": "실행 작업",
+        "type": "json"
+      },
+      {
+        "key": "last_seen_at",
+        "label": "마지막 활동",
+        "type": "datetime"
+      },
+      {
+        "key": "updated_at",
+        "label": "갱신 시각",
+        "type": "datetime"
+      }
+    ],
+    "search": [
+      "key",
+      "state"
+    ],
+    "time": "last_seen_at"
+  },
+  {
+    "key": "lineage",
+    "title": "파생 지표 근거 연결",
+    "category": "derived",
+    "source": "Multtara 파생 지표 계산",
+    "description": "파생 지표가 어떤 원본 측정값을 사용했는지 연결합니다.",
+    "table": "conditions_observationmetriclineage",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "derived_metric_id",
+        "label": "파생 지표 ID",
+        "type": "number"
+      },
+      {
+        "key": "source_metric_id",
+        "label": "원본 지표 ID",
+        "type": "number"
+      },
+      {
+        "key": "relation",
+        "label": "관계",
+        "type": "text"
+      },
+      {
+        "key": "priority",
+        "label": "우선순위",
+        "type": "number"
+      },
+      {
+        "key": "created_at",
+        "label": "생성 시각",
+        "type": "datetime"
+      }
+    ],
+    "search": [
+      "relation"
+    ],
+    "time": "created_at"
+  },
+  {
+    "key": "calibrations",
+    "title": "하천 유량 보정",
+    "category": "catalog",
+    "source": "검증된 운영자 입력",
+    "description": "지점별 유량 적합도 계산에 필요한 검증된 기준값입니다. API 자동 수집값과 구분합니다.",
+    "table": "conditions_hydrauliccalibration",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "station_id",
+        "label": "관측소",
+        "type": "text"
+      },
+      {
+        "key": "version",
+        "label": "버전",
+        "type": "text"
+      },
+      {
+        "key": "authority",
+        "label": "검증 기관",
+        "type": "text"
+      },
+      {
+        "key": "verified",
+        "label": "검증 여부",
+        "type": "boolean"
+      },
+      {
+        "key": "active",
+        "label": "사용 여부",
+        "type": "boolean"
+      },
+      {
+        "key": "q_min",
+        "label": "최소 유량",
+        "type": "number"
+      },
+      {
+        "key": "q_opt_low",
+        "label": "적정 하한",
+        "type": "number"
+      },
+      {
+        "key": "q_opt_high",
+        "label": "적정 상한",
+        "type": "number"
+      },
+      {
+        "key": "q_max",
+        "label": "최대 유량",
+        "type": "number"
+      },
+      {
+        "key": "updated_at",
+        "label": "갱신 시각",
+        "type": "datetime"
+      }
+    ],
+    "search": [
+      "station_id",
+      "authority",
+      "version"
+    ],
+    "time": "updated_at"
+  },
+  {
+    "key": "route-snapshots",
+    "title": "경로 조회 스냅샷",
+    "category": "collected",
+    "source": "설정된 Valhalla 경로 API · 운영자 가져오기",
+    "description": "이동 수단별 경로 행렬의 출처와 유효 기간입니다. 제공처 설정이 있어야 주기 갱신합니다.",
+    "table": "trips_routematrixsnapshot",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "provider",
+        "label": "제공처",
+        "type": "text"
+      },
+      {
+        "key": "transport",
+        "label": "이동 수단",
+        "type": "text"
+      },
+      {
+        "key": "state",
+        "label": "원본 상태",
+        "type": "text"
+      },
+      {
+        "key": "observed_at",
+        "label": "관측 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "fetched_at",
+        "label": "수집 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "valid_until",
+        "label": "유효 종료",
+        "type": "datetime"
+      },
+      {
+        "key": "provider_record_id",
+        "label": "제공처 레코드 ID",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "provider",
+      "transport",
+      "state"
+    ],
+    "time": "fetched_at"
+  },
+  {
+    "key": "route-entries",
+    "title": "구간별 이동 시간",
+    "category": "collected",
+    "source": "경로 행렬 결과",
+    "description": "장소 사이의 이동 시간과 거리입니다. 경로 스냅샷 ID로 출처를 연결합니다.",
+    "table": "trips_routematrixentry",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "snapshot_id",
+        "label": "스냅샷 ID",
+        "type": "number"
+      },
+      {
+        "key": "origin_spot_id",
+        "label": "출발 장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "destination_spot_id",
+        "label": "도착 장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "duration_seconds",
+        "label": "이동 시간(초)",
+        "type": "number"
+      },
+      {
+        "key": "distance_metres",
+        "label": "거리(m)",
+        "type": "number"
+      }
+    ],
+    "search": [],
+    "time": null
+  },
+  {
+    "key": "facilities",
+    "title": "주변 시설",
+    "category": "catalog",
+    "source": "장소 보조 카탈로그",
+    "description": "장소 주변 시설의 위치와 분류입니다. 테이블 존재와 실제 데이터 수집 여부는 별개입니다.",
+    "table": "spots_nearbyfacility",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "name",
+        "label": "시설명",
+        "type": "text"
+      },
+      {
+        "key": "type",
+        "label": "유형",
+        "type": "text"
+      },
+      {
+        "key": "tag",
+        "label": "태그",
+        "type": "text"
+      },
+      {
+        "key": "lat",
+        "label": "위도",
+        "type": "number"
+      },
+      {
+        "key": "lng",
+        "label": "경도",
+        "type": "number"
+      },
+      {
+        "key": "distance_min",
+        "label": "이동 시간(분)",
+        "type": "number"
+      }
+    ],
+    "search": [
+      "name",
+      "type",
+      "tag"
+    ],
+    "time": null
+  },
+  {
+    "key": "catch-guides",
+    "title": "채집 안내",
+    "category": "catalog",
+    "source": "장소 보조 카탈로그",
+    "description": "채집 종과 제한 기간 등을 담는 보조 자료입니다.",
+    "table": "spots_catchguide",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "species",
+        "label": "대상 종",
+        "type": "text"
+      },
+      {
+        "key": "banned_species",
+        "label": "금지 종",
+        "type": "text"
+      },
+      {
+        "key": "best_time",
+        "label": "안내 시간",
+        "type": "text"
+      },
+      {
+        "key": "season_restriction",
+        "label": "기간 제한",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "species",
+      "season_restriction"
+    ],
+    "time": null
+  },
+  {
+    "key": "hot-springs",
+    "title": "온천 상세",
+    "category": "catalog",
+    "source": "장소 보조 카탈로그",
+    "description": "온천 성분과 기존 카탈로그 설명입니다. 효능 설명은 의학적 판단 자료가 아닙니다.",
+    "table": "spots_hotspringdetail",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "minerals",
+        "label": "성분",
+        "type": "text"
+      },
+      {
+        "key": "benefits",
+        "label": "카탈로그 설명",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "minerals",
+      "benefits"
+    ],
+    "time": null
+  }
+]

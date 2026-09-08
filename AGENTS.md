@@ -1,6 +1,6 @@
 # Pongdang
 
-- Keep the scaffold minimal. The initial page intentionally renders no content.
+- Keep the application focused on Collector documentation and read-only data browsing.
 - Frontend: React + Vite + TypeScript; backend: Python + FastAPI; DB: PostgreSQL.
 - Use Node.js 24 and Python 3.14. Commit dependency lockfiles with dependency changes.
 - `dev` is the integration branch; `main` is production and deploys automatically after CI.
@@ -10,3 +10,9 @@
 - Backend tests require PostgreSQL. Do not introduce business models or auth without a task.
 - `ops/` contains server configuration templates; deployment does not self-update the SSH gate.
 - The server timer dispatches CI only when the latest main/dev SHA has no run; it never bypasses CI or retries failed runs.
+- `backend/app/collector_catalog.json` is the allowlist of source tables and
+  columns. Match database column grants when changing it. Never expose arbitrary
+  SQL, user/session tables, credentials, raw provider responses, or legacy forecasts.
+- Source reads use `multtara_explorer` on cksDB, with bounded read-only queries.
+  Heartbeats older than 900 seconds are stale even when the stored state is running.
+  Missing metrics, unavailable forecasts, and unknown safety are not live data or safety guarantees.

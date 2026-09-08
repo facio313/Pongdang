@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import psycopg
 from fastapi import FastAPI, HTTPException
 
+from app.collector import create_collector_router
 from app.config import Settings
 from app.database import check_database
 
@@ -40,4 +41,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail="Database unavailable") from exc
         return {"status": "ok"}
 
+    app.include_router(create_collector_router(settings))
     return app

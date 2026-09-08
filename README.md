@@ -2,15 +2,21 @@
 
 [![CI and deploy](https://github.com/facio313/Pongdang/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/facio313/Pongdang/actions/workflows/ci.yml)
 
-빈 React 페이지에서 시작하는 최소 스캐폴드입니다.
+Multtara Collector의 역할과 cksDB에 저장된 수집 자료를 확인하는 읽기 전용 데이터 워크스페이스입니다.
+
+- [Collector 소개](https://bonifacio.work/pongdang/#collector): 수집 흐름, 제공처, 기본 주기, 마지막 실행과 활동 신호
+- [데이터 조회](https://bonifacio.work/pongdang/#data): 14개 데이터셋, 검색, 열 필터, 정렬, 페이지 이동, 열 선택, 행 상세
+
+원본 스냅샷·측정값과 내부 평가 결과를 구분합니다. `missing`, `unknown`,
+`unavailable`, null을 실시간 관측이나 안전한 상태로 바꾸어 표시하지 않습니다.
+DB 활동 신호가 900초를 넘으면 기록된 `running`과 별도로 오래된 신호로 표시합니다.
 
 - Frontend: React 19, Vite 8, TypeScript, Node.js 24
 - Backend: Python 3.14, FastAPI, psycopg, uv
 - Database: PostgreSQL 18
 - Runtime: Docker Compose, Nginx
 
-`frontend/`에는 앱 진입점만, `backend/app/`에는 설정과 DB 연결·상태 API만 있습니다.
-라우팅, 인증, 상태 관리, ORM, 예제 데이터는 기능을 만들 때 추가합니다.
+`frontend/`는 두 화면과 표 조회 UI, `backend/app/`는 상태 API와 읽기 전용 조회 API입니다.
 의존성은 `package-lock.json`과 `uv.lock`으로 고정합니다.
 
 ## 로컬 실행
@@ -70,7 +76,9 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-백엔드 테스트는 `backend/.env`에 지정된 PostgreSQL 연결을 사용합니다.
+백엔드 테스트는 별도로 준비한 `pongdang_test` PostgreSQL DB에서 실행합니다.
+Collector 테스트는 이 폐기 가능한 테스트 DB에만 합성 테이블을 생성하고 정리합니다.
+운영 DB나 기존 개발 데이터가 들어 있는 DB로 테스트를 실행하지 마세요.
 `GET /api/health`는 프로세스 상태, `GET /api/ready`는 실제 DB 연결을 확인합니다.
 
 ## 브랜치와 자동 배포
@@ -89,6 +97,29 @@ CI는 lint·타입 검사·테스트 뒤 전체 Docker Compose 스택의 빌드�
 
 운영 주소: https://bonifacio.work/pongdang/
 포트폴리오 메인 페이지의 Multtara 다음에 있는 Pongdang 카드에서도 접속할 수 있습니다.
+
+## Collector DB 연결
+
+Pongdang의 자체 PostgreSQL과 조회 원본인 cksDB의 Multtara `pongdang` DB는 별개입니다.
+서버의 보호된 환경 파일에 `COLLECTOR_DB_HOST=cksDB`, `COLLECTOR_DB_NAME=pongdang`,
+`COLLECTOR_DB_USER=multtara_explorer`, `COLLECTOR_DB_PASSWORD`를 설정합니다.
+배포 스크립트는 이 설정이 있으면 `compose.collector.yaml`을 추가로 적용합니다.
+cksDB와 Pongdang backend만 전용 내부 네트워크 `cksDB-pongdang-explorer`를 공유합니다.
+cksDB를 재시작하지 않고 네트워크를 연결했으며 cksDB Compose에도 구성을 보존했습니다.
+
+전용 계정은 `backend/app/collector_catalog.json`의 테이블·열만 SELECT 할 수 있습니다.
+회원·세션·비밀정보·원문 응답·레거시 예측 테이블은 조회 대상이 아닙니다.
+테이블을 늘릴 때는 카탈로그와 `ops/collector-reader.sql`의 열 권한을 함께 검토합니다.
+권한 적용 전에 설치된 cksDB Multtara 도구로 검증된 백업을 만들고,
+`MULTTARA_EXPLORER_PASSWORD` 환경변수를 전달해 해당 SQL을 `pongdang` DB에만 적용합니다.
+원래 Multtara 앱 계정이나 수집 API 키는 공유하지 않습니다.
+
+조회 API는 `/api/collector/catalog`, `/summary`, `/datasets/{key}`입니다.
+검색·필터 값은 바인딩하고 테이블·열·정렬은 허용 목록으로 제한합니다.
+DB 트랜잭션은 읽기 전용, 쿼리 제한 3초, 동시 연결 4개, 페이지 최대 100행입니다.
+현황 집계는 30초 동안 캐시하며 조회 시각을 함께 반환합니다.
+원본 DB 연결이 없거나 실패하면 503과 안내 화면을 표시하며 가짜 데이터를 만들지 않습니다.
+이 페이지는 수집기를 시작·정지하거나 외부 API를 새로 호출하지 않습니다.
 
 GitHub Actions의 `production` 환경과 저장소의 `DEPLOY_KEY` secret을 사용합니다.
 전용 SSH 키는 `deploy pongdang <40자리 SHA>` 명령만 허용합니다.

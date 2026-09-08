@@ -33,6 +33,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pongdang}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       API_ROOT_PATH: ${API_ROOT_PATH:-}
+      COLLECTOR_DB_HOST: ${COLLECTOR_DB_HOST:-}
+      COLLECTOR_DB_PORT: ${COLLECTOR_DB_PORT:-5432}
+      COLLECTOR_DB_NAME: ${COLLECTOR_DB_NAME:-pongdang}
+      COLLECTOR_DB_USER: ${COLLECTOR_DB_USER:-multtara_explorer}
+      COLLECTOR_DB_PASSWORD: ${COLLECTOR_DB_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

@@ -42,9 +42,14 @@ fi
 compose() {
   local directory="$1"
   shift
+  local files=(-f "$directory/compose.yaml")
+  if [[ -f "$directory/compose.collector.yaml" ]] &&
+     grep -q '^COLLECTOR_DB_HOST=.' "$env_file"; then
+    files+=(-f "$directory/compose.collector.yaml")
+  fi
   RELEASE_SHA="$(basename "$directory")" docker compose \
     --project-name pongdang --env-file "$env_file" \
-    -f "$directory/compose.yaml" "$@"
+    "${files[@]}" "$@"
 }
 
 compose "$release" config --quiet
