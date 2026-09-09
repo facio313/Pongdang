@@ -7,9 +7,9 @@ import { DataOrigin, type Origin } from "./DataOrigin";
 
 export default function App() {
   const [origin, setOrigin] = useState<Origin>(
-    new URLSearchParams(window.location.search).get("data") === "demo"
-      ? "demo"
-      : "collector",
+    new URLSearchParams(window.location.search).get("data") === "collector"
+      ? "collector"
+      : "demo",
   );
   return (
     <>
@@ -23,8 +23,7 @@ export default function App() {
               const next = event.target.value as Origin;
               setOrigin(next);
               const url = new URL(window.location.href);
-              if (next === "demo") url.searchParams.set("data", "demo");
-              else url.searchParams.delete("data");
+              url.searchParams.set("data", next);
               window.history.replaceState(null, "", url);
             }}
           >

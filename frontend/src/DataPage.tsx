@@ -1,7 +1,8 @@
-import { Fragment, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 import type { Cell, Column, Dataset, Row, RowsResult, Summary } from "./data";
 import { categories, text, number, date, labels } from "./data";
 import { useResource } from "./useResource";
+import { DataOrigin } from "./DataOrigin";
 
 function CellValue({
   value,
@@ -544,7 +545,8 @@ export function DataPage({
   const [category, setCategory] = useState("all");
   const [tableSearch, setTableSearch] = useState("");
   const [populatedOnly, setPopulatedOnly] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  const origin = useContext(DataOrigin);
+  const [showAll, setShowAll] = useState(origin === "demo");
   const [overviewOpen, setOverviewOpen] = useState(true);
   const counts = new Map(
     summary?.datasets.map((dataset) => [dataset.key, dataset]),

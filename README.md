@@ -4,7 +4,7 @@
 
 Multtara Collector의 역할과 cksDB에 저장된 수집 자료를 확인하는 읽기 전용 데이터 워크스페이스입니다.
 
-- [Collector 소개](https://bonifacio.work/pongdang/#collector): 수집 흐름, 제공처, 기본 주기, 마지막 실행과 활동 신호
+- [Collector 소개](https://bonifacio.work/pongdang/?data=collector#collector): 수집 흐름, 제공처, 기본 주기, 마지막 실행과 활동 신호
 - [데이터 조회](https://bonifacio.work/pongdang/#data): 기본 화면. 14개 테이블 현황과 건수·출처·최근 기록, 검색·열 필터·정렬·페이지 이동
 
 브랜드 장식이나 카드를 사용하지 않는 흰 배경의 표 중심 화면입니다.
@@ -107,7 +107,10 @@ CI는 lint·타입 검사·테스트 뒤 전체 Docker Compose 스택의 빌드�
 
 ## 더미 데이터
 
+일반 접속 시 더미 데이터를 기본으로 선택하고 데이터가 있는 14개 표를 모두 펼칩니다.
+각 표는 최대 100행씩 표시하며 나머지는 페이지 이동으로 조회합니다.
 상단 `데이터 구분`에서 실제 cksDB 저장 이력과 더미를 전환합니다.
+실제 데이터 선택은 `?data=collector`로 유지되어 새로고침해도 바뀌지 않습니다.
 [더미 바로 보기](https://bonifacio.work/pongdang/?data=demo#data)는 인증 후 이용합니다.
 더미는 **Pongdang 자체 PostgreSQL 18의 `pongdang_demo` 스키마**에 저장하며
 원본 cksDB에는 삽입·갱신하지 않습니다. 자동으로 실제 데이터의 빈칸을 대체하지 않습니다.
