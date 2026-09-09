@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { DataOrigin } from "./DataOrigin";
 
 export function useResource<T>(path: string, revision = 0) {
-  const key = `${path}:${revision}`;
+  const origin = useContext(DataOrigin);
+  const key = `${origin}:${path}:${revision}`;
   const [result, setResult] = useState<{
     key: string;
     data?: T;
@@ -12,7 +14,7 @@ export function useResource<T>(path: string, revision = 0) {
     async function load() {
       try {
         const response = await fetch(
-          `${import.meta.env.BASE_URL}api/collector/${path}`,
+          `${import.meta.env.BASE_URL}api/${origin}/${path}`,
           { signal: controller.signal, cache: "no-store" },
         );
         const payload = await response.json();
@@ -36,7 +38,7 @@ export function useResource<T>(path: string, revision = 0) {
     }
     void load();
     return () => controller.abort();
-  }, [path, key]);
+  }, [path, key, origin]);
   return result?.key === key
     ? { ...result, previousData: result.data, loading: false }
     : {

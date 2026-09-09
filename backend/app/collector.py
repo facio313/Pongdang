@@ -30,6 +30,18 @@ def clean_value(value: Any) -> Any:
 
 
 class CollectorReader:
+    schema = "public"
+    catalog = CATALOG
+    datasets = DATASETS
+    database_label = "cksDB / Multtara"
+    is_demo = False
+
+    def scoped_query(self, query: str) -> sql.Composed:
+        return sql.SQL(query).format(schema=sql.Identifier(self.schema))
+
+    def normalize_search(self, query: str) -> str:
+        return query
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.slots = asyncio.Semaphore(4)
@@ -80,22 +92,28 @@ class CollectorReader:
                 return self.cached_summary
             async with self.connection() as connection:
                 datasets = []
-                for dataset in CATALOG:
+                for dataset in self.catalog:
                     latest = (
                         sql.SQL("max({})").format(sql.Identifier(dataset["time"]))
                         if dataset["time"]
                         else sql.SQL("NULL")
                     )
                     query = sql.SQL(
-                        "SELECT count(*) AS count, {} AS latest_at FROM public.{}"
-                    ).format(latest, sql.Identifier(dataset["table"]))
+                        "SELECT count(*) AS count, {} AS latest_at FROM {}.{}"
+                    ).format(
+                        latest,
+                        sql.Identifier(self.schema),
+                        sql.Identifier(dataset["table"]),
+                    )
                     result = await (await connection.execute(query)).fetchone()
                     datasets.append({**dataset, **result})
                 heartbeat = await (
                     await connection.execute(
-                        "SELECT state,current_tasks,last_seen_at "
-                        "FROM public.conditions_pipelineheartbeat "
-                        "WHERE key='condition-pipeline'"
+                        self.scoped_query(
+                            "SELECT state,current_tasks,last_seen_at "
+                            "FROM {schema}.conditions_pipelineheartbeat "
+                            "WHERE key='condition-pipeline'"
+                        )
                     )
                 ).fetchone()
                 now = datetime.now(UTC)
@@ -108,32 +126,40 @@ class CollectorReader:
                     }
                 providers = await (
                     await connection.execute(
-                        "SELECT provider,state,count(*) AS count,"
-                        "max(fetched_at) AS latest_at "
-                        "FROM public.conditions_observationsnapshot "
-                        "GROUP BY provider,state "
-                        "ORDER BY provider,state"
+                        self.scoped_query(
+                            "SELECT provider,state,count(*) AS count,"
+                            "max(fetched_at) AS latest_at "
+                            "FROM {schema}.conditions_observationsnapshot "
+                            "GROUP BY provider,state "
+                            "ORDER BY provider,state"
+                        )
                     )
                 ).fetchall()
                 tasks = await (
                     await connection.execute(
-                        "SELECT DISTINCT ON (task_name) task_name,status,started_at,"
-                        "finished_at,error_code FROM public.conditions_ingestionrun "
-                        "ORDER BY task_name,started_at DESC,id DESC"
+                        self.scoped_query(
+                            "SELECT DISTINCT ON (task_name) "
+                            "task_name,status,started_at,finished_at,error_code "
+                            "FROM {schema}.conditions_ingestionrun "
+                            "ORDER BY task_name,started_at DESC,id DESC"
+                        )
                     )
                 ).fetchall()
                 forecasts = await (
                     await connection.execute(
-                        "SELECT availability,safety_status,count(*) AS count "
-                        "FROM public.forecasts_dailyforecast "
-                        "GROUP BY availability,safety_status "
-                        "ORDER BY availability,safety_status"
+                        self.scoped_query(
+                            "SELECT availability,safety_status,count(*) AS count "
+                            "FROM {schema}.forecasts_dailyforecast "
+                            "GROUP BY availability,safety_status "
+                            "ORDER BY availability,safety_status"
+                        )
                     )
                 ).fetchall()
                 result = clean_value(
                     {
                         "queried_at": now,
-                        "database": "cksDB / Multtara",
+                        "database": self.database_label,
+                        "is_demo": self.is_demo,
                         "datasets": datasets,
                         "heartbeat": heartbeat,
                         "providers": providers,
@@ -156,7 +182,7 @@ class CollectorReader:
         filter_column: str,
         filter_value: str,
     ) -> dict[str, Any]:
-        dataset = DATASETS.get(key)
+        dataset = self.datasets.get(key)
         if dataset is None:
             raise HTTPException(404, "조회할 수 없는 데이터셋입니다.")
         columns = {column["key"]: column for column in dataset["columns"]}
@@ -168,6 +194,7 @@ class CollectorReader:
             raise HTTPException(422, "지원하지 않는 필터 항목입니다.")
         predicates = []
         parameters: list[Any] = []
+        q = self.normalize_search(q)
         if q.strip():
             if not dataset["search"]:
                 raise HTTPException(
@@ -195,7 +222,7 @@ class CollectorReader:
             if predicates
             else sql.SQL("")
         )
-        table = sql.Identifier("public", dataset["table"])
+        table = sql.Identifier(self.schema, dataset["table"])
         async with self.connection() as connection:
             count = await (
                 await connection.execute(
@@ -222,6 +249,7 @@ class CollectorReader:
         return clean_value(
             {
                 "dataset": dataset,
+                "is_demo": self.is_demo,
                 "rows": rows,
                 "total": count["total"],
                 "page": page,
@@ -231,13 +259,18 @@ class CollectorReader:
         )
 
 
-def create_collector_router(settings: Settings) -> APIRouter:
-    router = APIRouter(prefix="/api/collector", tags=["collector"])
-    reader = CollectorReader(settings)
+def create_collector_router(
+    settings: Settings,
+    *,
+    reader: CollectorReader | None = None,
+    prefix: str = "/api/collector",
+) -> APIRouter:
+    router = APIRouter(prefix=prefix, tags=["collector"])
+    reader = reader or CollectorReader(settings)
 
     @router.get("/catalog")
     async def catalog() -> list[dict[str, Any]]:
-        return CATALOG
+        return reader.catalog
 
     @router.get("/summary")
     async def summary() -> dict[str, Any]:

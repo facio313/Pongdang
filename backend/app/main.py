@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from app.collector import create_collector_router
 from app.config import Settings
 from app.database import check_database
+from app.demo import create_demo_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -42,4 +43,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(create_collector_router(settings))
+    app.include_router(create_demo_router(settings))
     return app

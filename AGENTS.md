@@ -1,6 +1,14 @@
 # Pongdang
 
 - Keep the application focused on Collector documentation and read-only data browsing.
+- User-requested synthetic examples live only in the app PostgreSQL 18 schema
+  `pongdang_demo`, never the shared cksDB source tables. `/api/demo` is a separate
+  read-only API; the default `/api/collector` must never fall back to demo data.
+  Every demo record retains its scenario, reference place and synthetic notice.
+  `python -m app.seed_demo --confirm-demo-only` is an explicit atomic, idempotent
+  operation, never an app-startup or HTTP side effect. Keep safety unknown, scores
+  null and hydraulic calibration inactive/unverified; do not feed demo rows into
+  the Multtara collector or recommendation engine.
 - Keep the UI plain and table-first: no brand ornaments, hero sections, or cards.
   Default to data browsing with all allowed columns and 100-row bounded pages.
 - Frontend: React + Vite + TypeScript; backend: Python + FastAPI; DB: PostgreSQL.

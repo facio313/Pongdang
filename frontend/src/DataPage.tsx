@@ -570,7 +570,11 @@ export function DataPage({
   }
   return (
     <>
-      <h1>Multtara DB 조회</h1>
+      <h1>
+        {summary?.is_demo
+          ? "더미 데이터 조회 (실제 관측 아님)"
+          : "Multtara DB 조회"}
+      </h1>
       {summary?.heartbeat?.effective_state === "stale" && (
         <p>
           Collector 활동 신호가 오래되었습니다 (마지막:{" "}

@@ -123,6 +123,13 @@ details {
   align-items: center;
   gap: 4px;
 }
+.origin-selector {
+  padding: 6px 14px;
+  border-bottom: 1px solid #bbb;
+}
+.origin-selector strong {
+  font-size: 12px;
+}
 .muted {
   color: #555;
 }

@@ -105,7 +105,37 @@ CI는 lint·타입 검사·테스트 뒤 전체 Docker Compose 스택의 빌드�
 운영 주소: https://bonifacio.work/pongdang/
 포트폴리오 메인 페이지의 Multtara 다음에 있는 Pongdang 카드에서도 접속할 수 있습니다.
 
-## Collector DB 연결
+## 더미 데이터
+
+상단 `데이터 구분`에서 실제 cksDB 저장 이력과 더미를 전환합니다.
+[더미 바로 보기](https://bonifacio.work/pongdang/?data=demo#data)는 인증 후 이용합니다.
+더미는 **Pongdang 자체 PostgreSQL 18의 `pongdang_demo` 스키마**에 저장하며
+원본 cksDB에는 삽입·갱신하지 않습니다. 자동으로 실제 데이터의 빈칸을 대체하지 않습니다.
+
+- 기존 경포·안목·사천진해변의 ID·장소·좌표 참조와 별도 가상 계곡·온천·갯벌
+- 맑음, 고습, 비, 강풍·높은 파도, 유효 기간 경과, 일부 누락의 6개 세트
+- 기상·해양·수질·파생 측정값 672행, 스냅샷 132행, 경로 540행 등
+  14개 데이터셋 총 1,678행 (초기 참조 장소 3곳 기준)
+- 장소→스냅샷→측정값→파생 근거, 경로 출발·도착, 시설 등의 참조 무결성은
+  더미 스키마 내부 외래키로 검증합니다.
+- `_demo_set`, `_demo_spot`, `_demo_note`는 세트·연결 장소·합성 설명입니다.
+  세트 코드(clear/humid/rain/wind/stale/missing) 단독 검색은 해당 세트에만 매칭합니다.
+- 수질 등 미구현 연동은 합성 예시일 뿐 API 수집 구현을 뜻하지 않습니다.
+  좌표로 만든 이동 시간은 실제 경로 API 결과가 아니며 채취 안내는 법적 허용 정보가 아닙니다.
+  안전 상태는 unknown, 점수는 NULL, 유량 보정은 미검증·비활성 상태로 고정합니다.
+
+조회 API는 `/api/demo/catalog`, `/api/demo/summary`, `/api/demo/datasets/{key}`이며
+실제 데이터와 동일한 검색·필터·100행 제한·읽기 전용 트랜잭션을 사용합니다.
+응답에 `is_demo: true`, 제공처에 `PONGDANG_DEMO`가 표시됩니다.
+생성 내역은 `pongdang_demo.seed_manifest`에 보존합니다.
+
+시딩은 백업 후 올바른 앱 DB 연결을 확인한 운영자만 명시적으로 실행합니다.
+배포된 backend 컨테이너 안에서 `python -m app.seed_demo --confirm-demo-only`를 실행합니다.
+HTTP 요청이나 앱 시작 때 자동 생성하지 않으며, 같은 버전 재실행은 기존 세트를
+덮어쓰거나 중복 생성하지 않습니다. 기존의 다른 스키마/시드가 있으면 중단합니다.
+잘못된 관계나 제약 조건 위반은 스키마 생성을 포함해 전체 트랜잭션을 취소합니다.
+
+## 실제 Collector DB 연결
 
 Pongdang의 자체 PostgreSQL과 조회 원본인 cksDB의 Multtara `pongdang` DB는 별개입니다.
 서버의 보호된 환경 파일에 `COLLECTOR_DB_HOST=cksDB`, `COLLECTOR_DB_NAME=pongdang`,
@@ -146,5 +176,5 @@ GitHub Actions의 `production` 환경과 저장소의 `DEPLOY_KEY` secret을 사
 
 운영에서는 `APP_BASE_PATH=/pongdang/`, `API_ROOT_PATH=/pongdang`을 설정합니다.
 웹 포트는 `127.0.0.1:5188`에만 바인딩하고 DB·API 포트는 호스트에 공개하지 않습니다.
-새 페이지는 공개이며 인증은 아직 없습니다. 운영 스크립트와 Nginx 설정 변경은
+페이지는 중앙 SSO의 Pongdang 접근 권한으로 보호됩니다. 운영 스크립트와 Nginx 설정 변경은
 검토 후 서버 설치본에도 별도로 반영해야 합니다.
