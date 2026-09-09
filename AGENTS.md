@@ -8,6 +8,7 @@
 - `dev` is the integration branch; `main` is production and deploys automatically after CI.
 - Never commit secrets or `.env` files. Keep production DB and API ports private.
 - Production URL prefix is `/pongdang/`; preserve matching Vite base and FastAPI root path.
+- Production Nginx uses Bonifacio's SSO auth-request broker for `/pongdang/`. The central catalog owns `access-pongdang`; an enabled account needs that grant or implicit chief-admin access. Keep the loopback origin private and install the source `ops/nginx-location.conf` when changing the edge. Pongdang remains a read-only viewer without independent accounts.
 - Run frontend lint/build and backend Ruff/tests for relevant changes.
 - Backend tests require PostgreSQL. Do not introduce business models or auth without a task.
 - `ops/` contains server configuration templates; deployment does not self-update the SSH gate.
