@@ -88,6 +88,7 @@ jobs:
         run: docker compose --project-name pongdang-ci up -d --build --wait --wait-timeout 180
       - name: Verify the page and database readiness
         run: |
+          docker inspect --format '{{.Name}}' pongdang-ci-db pongdang-ci-backend pongdang-ci-frontend
           curl --fail --silent --show-error http://127.0.0.1:5188/ | grep -q '<title>Pongdang</title>'
           curl --fail --silent --show-error http://127.0.0.1:5188/api/ready
       - name: Verify independent schema and demo seed without any legacy database

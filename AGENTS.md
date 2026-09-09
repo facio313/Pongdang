@@ -4,6 +4,11 @@
   never import its modules, require its repository, connect to its database,
   attach its Docker networks or reuse its credentials in this application.
 - The standalone Compose stack is frontend, backend and PostgreSQL 18. Both
+  container names and their project prefix are explicit: production uses
+  `pongdang-frontend`, `pongdang-backend`, `pongdang-db` without numeric suffixes.
+  Use `COMPOSE_PROJECT_NAME` interpolation so isolated CI projects do not collide.
+  Keep the existing `postgres_data` volume and service DNS names unchanged.
+  Both
   `pongdang_data` (collection) and `pongdang_demo` (synthetic examples) live in
   the app database. Keep schema changes additive and explicit via `app.schema`.
 - `/api/data` reads Pongdang collection records only; `/api/demo` reads synthetic

@@ -9,6 +9,11 @@ React 19 / Vite 8 / TypeScript / Node.js 24, Python 3.14 / FastAPI, PostgreSQL 1
 
 ## 독립 구성
 
+운영 컨테이너 이름은 `pongdang-frontend`, `pongdang-backend`, `pongdang-db`입니다.
+숫자 접미사는 사용하지 않습니다. 별도 Compose 프로젝트는 지정한 프로젝트명을
+접두사로 사용하므로 CI의 `pongdang-ci-*`와 운영 컨테이너가 충돌하지 않습니다.
+서비스 간 주소 `backend`, `db`와 기존 PostgreSQL 볼륨은 그대로 유지합니다.
+
 ```text
 frontend → backend → db (PostgreSQL 18 / pongdang)
                     ├── pongdang_data: 수집용, 초기에는 비어 있음

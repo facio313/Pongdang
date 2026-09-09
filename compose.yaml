@@ -8,6 +8,7 @@ x-logging: &logging
 
 services:
   db:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-db
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
@@ -24,6 +25,7 @@ services:
     logging: *logging
 
   backend:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-backend
     image: pongdang-backend:${RELEASE_SHA:-local}
     build: ./backend
     restart: unless-stopped
@@ -51,6 +53,7 @@ services:
     logging: *logging
 
   frontend:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-frontend
     image: pongdang-frontend:${RELEASE_SHA:-local}
     build:
       context: ./frontend
