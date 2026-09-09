@@ -133,17 +133,17 @@ def test_demo_queries_are_read_only_and_isolated_from_live(demo_settings):
             ).fetchone()
 
     assert asyncio.run(transaction_mode())["transaction_read_only"] == "on"
-    settings = demo_settings.model_copy(update={"collector_db_host": ""})
+    settings = demo_settings
     with TestClient(create_app(settings)) as client:
         summary = client.get("/api/demo/summary").json()
         assert summary["is_demo"] is True
         assert summary["heartbeat"] is None
         assert summary["demo_manifest"]["version"] == "collector-demo-v1"
         assert all(dataset["count"] > 0 for dataset in summary["datasets"])
-        assert client.get("/api/collector/summary").status_code == 503
+        assert client.get("/api/collector/summary").status_code == 404
         assert all(
             "_demo_set" not in [c["key"] for c in d["columns"]]
-            for d in client.get("/api/collector/catalog").json()
+            for d in client.get("/api/data/catalog").json()
         )
         for dataset in DEMO_CATALOG:
             response = client.get(

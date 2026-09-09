@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.collector import CATALOG
+from app.data_reader import CATALOG
 
 SCHEMA = "pongdang_demo"
 VERSION = "collector-demo-v1"
@@ -438,7 +438,7 @@ def build_demo(reference_spots: list[dict], anchor: datetime) -> dict[str, Any]:
             "scenarios": [{"key": s[0], "label": s[1]} for s in SCENARIOS],
             "counts": {key: len(value) for key, value in rows.items()},
             "limitations": [
-                "원본 cksDB는 변경하지 않음",
+                "Pongdang 운영 스키마는 변경하지 않음",
                 "기존 장소 참조와 가상 장소를 구분",
                 "수질 API 연동·수집기 실행·시설 실재·법적 채취 허용을 증명하지 않음",
             ],

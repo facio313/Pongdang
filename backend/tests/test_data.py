@@ -5,61 +5,27 @@ from unittest.mock import AsyncMock, patch
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
-from psycopg import sql
 
-from app.collector import CATALOG, CollectorReader
 from app.config import Settings
+from app.data_reader import DataReader
 from app.main import create_app
+from app.schema import initialize
 
 
 @pytest.fixture(scope="module")
-def collector_settings():
+def data_settings():
     settings = Settings()
     if settings.postgres_db != "pongdang_test":
         pytest.fail("Collector fixtures require the disposable pongdang_test database")
-    settings = settings.model_copy(
-        update={
-            "collector_db_host": settings.postgres_host,
-            "collector_db_port": settings.postgres_port,
-            "collector_db_name": settings.postgres_db,
-            "collector_db_user": settings.postgres_user,
-            "collector_db_password": settings.postgres_password,
-        }
-    )
-    # Only disposable CI PostgreSQL receives these synthetic query fixtures.
-    types = {
-        "text": "text",
-        "number": "double precision",
-        "boolean": "boolean",
-        "json": "jsonb",
-        "datetime": "timestamptz",
-        "date": "date",
-    }
+    initialize(settings)
     with psycopg.connect(
         host=settings.postgres_host,
         port=settings.postgres_port,
         dbname=settings.postgres_db,
         user=settings.postgres_user,
         password=settings.postgres_password.get_secret_value(),
+        options="-c search_path=pongdang_data",
     ) as connection:
-        for dataset in CATALOG:
-            columns = [
-                sql.SQL("{} {}").format(
-                    sql.Identifier(column["key"]),
-                    sql.SQL(
-                        "bigint PRIMARY KEY"
-                        if column["key"] == "id"
-                        else types[column["type"]]
-                    ),
-                )
-                for column in dataset["columns"]
-            ]
-            connection.execute(
-                sql.SQL("CREATE TABLE {} ({})").format(
-                    sql.Identifier(dataset["table"]),
-                    sql.SQL(", ").join(columns),
-                )
-            )
         connection.execute(
             "INSERT INTO spots_waterspot (id,name,region,catalog_source) VALUES "
             "(1,'테스트 해변','강릉','KHOA'),(2,'100% 테스트','속초','TourAPI')"
@@ -86,32 +52,28 @@ def collector_settings():
         dbname=settings.postgres_db,
         user=settings.postgres_user,
         password=settings.postgres_password.get_secret_value(),
+        options="-c search_path=pongdang_data",
     ) as connection:
-        for dataset in CATALOG:
-            connection.execute(
-                sql.SQL("DROP TABLE {}").format(
-                    sql.Identifier(dataset["table"]),
-                )
-            )
+        connection.execute("DROP SCHEMA pongdang_data CASCADE")
 
 
 @pytest.fixture
-def client(collector_settings):
-    with TestClient(create_app(collector_settings)) as client:
+def client(data_settings):
+    with TestClient(create_app(data_settings)) as client:
         yield client
 
 
 def test_pagination_filter_search_and_null_values(client):
-    first = client.get("/api/collector/datasets/spots?page_size=1").json()
-    second = client.get("/api/collector/datasets/spots?page_size=1&page=2").json()
+    first = client.get("/api/data/datasets/spots?page_size=1").json()
+    second = client.get("/api/data/datasets/spots?page_size=1&page=2").json()
     assert first["total"] == 2
     assert first["rows"][0]["id"] == 2
     assert second["rows"][0]["id"] == 1
-    result = client.get("/api/collector/datasets/spots", params={"q": "%"}).json()
+    result = client.get("/api/data/datasets/spots", params={"q": "%"}).json()
     assert result["total"] == 1  # Percent is literal, not a SQL wildcard.
     assert result["rows"][0]["name"] == "100% 테스트"
     filtered = client.get(
-        "/api/collector/datasets/spots",
+        "/api/data/datasets/spots",
         params={
             "filter_column": "region",
             "filter_value": "강릉",
@@ -119,13 +81,13 @@ def test_pagination_filter_search_and_null_values(client):
     ).json()
     assert filtered["rows"][0]["id"] == 1
     injected = client.get(
-        "/api/collector/datasets/spots",
+        "/api/data/datasets/spots",
         params={
             "q": "' OR 1=1 --",
         },
     ).json()
     assert injected["total"] == 0
-    forecast = client.get("/api/collector/datasets/forecasts").json()["rows"][0]
+    forecast = client.get("/api/data/datasets/forecasts").json()["rows"][0]
     assert forecast["score"] is None
     assert forecast["availability"] == "unavailable"
 
@@ -143,22 +105,19 @@ def test_pagination_filter_search_and_null_values(client):
     ],
 )
 def test_rejects_unbounded_or_unapproved_query(client, path):
-    assert client.get(f"/api/collector/datasets/{path}").status_code == 422
+    assert client.get(f"/api/data/datasets/{path}").status_code == 422
 
 
 def test_unapproved_table_and_mutation_are_unavailable(client):
-    assert client.get("/api/collector/datasets/users_user").status_code == 404
+    assert client.get("/api/data/datasets/users_user").status_code == 404
+    assert client.get("/api/data/datasets/forecasts_waterforecast").status_code == 404
     assert (
-        client.get("/api/collector/datasets/forecasts_waterforecast").status_code == 404
-    )
-    assert (
-        client.post("/api/collector/datasets/spots", json={"name": "x"}).status_code
-        == 405
+        client.post("/api/data/datasets/spots", json={"name": "x"}).status_code == 405
     )
 
 
 def test_summary_does_not_treat_stale_running_as_live_or_missing_as_observed(client):
-    result = client.get("/api/collector/summary")
+    result = client.get("/api/data/summary")
     assert result.status_code == 200
     summary = result.json()
     assert summary["heartbeat"]["effective_state"] == "stale"
@@ -171,9 +130,9 @@ def test_summary_does_not_treat_stale_running_as_live_or_missing_as_observed(cli
     )
 
 
-def test_source_queries_use_read_only_transactions(collector_settings):
+def test_source_queries_use_read_only_transactions(data_settings):
     async def check():
-        async with CollectorReader(collector_settings).connection() as connection:
+        async with DataReader(data_settings).connection() as connection:
             row = await (
                 await connection.execute("SHOW transaction_read_only")
             ).fetchone()
@@ -184,18 +143,18 @@ def test_source_queries_use_read_only_transactions(collector_settings):
 
 def test_connection_error_does_not_leak_credentials(client):
     with patch(
-        "app.collector.psycopg.AsyncConnection.connect",
+        "app.data_reader.psycopg.AsyncConnection.connect",
         new=AsyncMock(
             side_effect=psycopg.OperationalError("private credential marker"),
         ),
     ):
-        response = client.get("/api/collector/datasets/spots")
+        response = client.get("/api/data/datasets/spots")
         assert response.status_code == 503
         assert "private" not in response.text
 
 
-def test_catalog_remains_available_without_source_configuration():
-    settings = Settings().model_copy(update={"collector_db_host": ""})
-    with TestClient(create_app(settings)) as client:
-        assert len(client.get("/api/collector/catalog").json()) == 14
-        assert client.get("/api/collector/summary").status_code == 503
+def test_legacy_api_is_not_mounted(data_settings):
+    with TestClient(create_app(data_settings)) as client:
+        assert len(client.get("/api/data/catalog").json()) == 14
+        assert client.get("/api/collector/catalog").status_code == 404
+        assert client.get("/api/collector/summary").status_code == 404

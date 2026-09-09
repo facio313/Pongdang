@@ -1,11 +1,11 @@
 """Read-only access to synthetic tables on Pongdang's own database."""
 
-from app.collector import CollectorReader, create_collector_router
 from app.config import Settings
+from app.data_reader import DataReader, create_data_router
 from app.demo_data import DEMO_CATALOG, DEMO_DATASETS, SCENARIOS, SCHEMA
 
 
-class DemoReader(CollectorReader):
+class DemoReader(DataReader):
     schema = SCHEMA
     catalog = DEMO_CATALOG
     datasets = DEMO_DATASETS
@@ -16,19 +16,6 @@ class DemoReader(CollectorReader):
         # A scenario code must not accidentally match humidity's metric name.
         scenarios = {item[0]: item[0] + " · " + item[1] for item in SCENARIOS}
         return scenarios.get(query.strip().lower(), query)
-
-    def __init__(self, settings: Settings):
-        super().__init__(
-            settings.model_copy(
-                update={
-                    "collector_db_host": settings.postgres_host,
-                    "collector_db_port": settings.postgres_port,
-                    "collector_db_name": settings.postgres_db,
-                    "collector_db_user": settings.postgres_user,
-                    "collector_db_password": settings.postgres_password,
-                }
-            )
-        )
 
     async def summary(self):
         result = await super().summary()
@@ -42,6 +29,4 @@ class DemoReader(CollectorReader):
 
 
 def create_demo_router(settings: Settings):
-    return create_collector_router(
-        settings, reader=DemoReader(settings), prefix="/api/demo"
-    )
+    return create_data_router(settings, reader=DemoReader(settings), prefix="/api/demo")

@@ -90,6 +90,13 @@ jobs:
         run: |
           curl --fail --silent --show-error http://127.0.0.1:5188/ | grep -q '<title>Pongdang</title>'
           curl --fail --silent --show-error http://127.0.0.1:5188/api/ready
+      - name: Verify independent schema and demo seed without any legacy database
+        run: |
+          docker compose --project-name pongdang-ci exec -T backend python -m app.schema --initialize
+          docker compose --project-name pongdang-ci exec -T backend python -m app.seed_demo --confirm-demo-only
+          curl --fail --silent --show-error http://127.0.0.1:5188/api/data/summary
+          curl --fail --silent --show-error http://127.0.0.1:5188/api/demo/summary
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/collector/summary)" = 404
       - name: Show container logs on failure
         if: failure()
         run: docker compose --project-name pongdang-ci logs --no-color --tail=80

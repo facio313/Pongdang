@@ -1,7 +1,6 @@
 """Explicit, atomic, idempotent seeding; never run by an HTTP request/startup."""
 
 import argparse
-import asyncio
 import json
 from datetime import UTC, datetime
 
@@ -9,7 +8,6 @@ import psycopg
 from psycopg import sql
 from psycopg.types.json import Jsonb
 
-from app.collector import CollectorReader
 from app.config import Settings
 from app.demo_data import DEMO_CATALOG, SCHEMA, VERSION, build_demo
 
@@ -155,14 +153,15 @@ def write_demo(settings: Settings, bundle: dict) -> dict:
     return {"created": True, "manifest": bundle["manifest"]}
 
 
-async def seed_from_source(settings: Settings):
-    source = await CollectorReader(settings).rows(
-        "spots", 1, 100, "", "id", "asc", "", ""
-    )
-    if source["total"] > 100:
-        raise ValueError("Choose an explicit bounded reference catalog before seeding")
+def seed_local_examples(settings: Settings):
+    # Checked-in reference coordinates: no legacy DB or external API is needed.
+    reference_spots = [
+        {"id": 1, "name": "경포해변", "type": "beach", "lat": 37.803, "lng": 128.91},
+        {"id": 2, "name": "안목해변", "type": "beach", "lat": 37.7719, "lng": 128.9487},
+        {"id": 3, "name": "사천진해변", "type": "beach", "lat": 37.836, "lng": 128.878},
+    ]
     anchor = datetime.now(UTC).replace(microsecond=0)
-    return write_demo(settings, build_demo(source["rows"], anchor))
+    return write_demo(settings, build_demo(reference_spots, anchor))
 
 
 def main():
@@ -170,7 +169,7 @@ def main():
     parser.add_argument("--confirm-demo-only", action="store_true", required=True)
     parser.parse_args()
     try:
-        result = asyncio.run(seed_from_source(Settings()))
+        result = seed_local_examples(Settings())
     except Exception:
         # Do not leak DSNs, credentials or provider details in operational output.
         raise SystemExit(
