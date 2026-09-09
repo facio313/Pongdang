@@ -3,13 +3,16 @@ import type { Cell, Column, Dataset, Row, RowsResult, Summary } from "./data";
 import { categories, text, number, date, labels } from "./data";
 import { useResource } from "./useResource";
 import { DataOrigin } from "./DataOrigin";
+import { codeName, isCodeField } from "./codeNames";
 
 function CellValue({
   value,
   column,
+  datasetKey,
 }: {
   value: Cell | undefined;
   column: Column;
+  datasetKey: string;
 }) {
   if (value === null || value === undefined)
     return (
@@ -20,7 +23,7 @@ function CellValue({
   if (typeof value === "object")
     return <pre>{JSON.stringify(value, null, 2)}</pre>;
   if (value === "") return <span className="null-value">빈 문자열 ("")</span>;
-  const label = [
+  const label = codeName(datasetKey, column.key, String(value)) ?? ([
     "state",
     "status",
     "safety_status",
@@ -28,12 +31,12 @@ function CellValue({
     "availability",
   ].includes(column.key)
     ? labels[String(value)]
-    : undefined;
+    : undefined);
   if (label)
     return (
       <>
         <span className="status-value">{label}</span>
-        <small>{String(value)}</small>
+        <small><code>{String(value)}</code></small>
       </>
     );
   return <>{text(value, column.type)}</>;
@@ -65,7 +68,7 @@ function RowDetails({ dataset, row }: { dataset: Dataset; row: Row }) {
                 <small>{column.type}</small>
               </th>
               <td>
-                <CellValue value={row[column.key]} column={column} />
+                <CellValue value={row[column.key]} column={column} datasetKey={dataset.key} />
               </td>
               <td>
                 <pre>
@@ -160,6 +163,8 @@ function DatasetTable({
       <p className="table-note">
         출처: {dataset.source} · NULL = 값 없음 · 상태와 유효 기간은 저장 당시
         기준입니다.
+        {dataset.columns.some((column) => isCodeField(dataset.key, column.key)) &&
+          " 코드 필드는 한글 코드명과 DB 원본 코드를 함께 표시합니다. 검색·필터는 원본 코드 기준이며, 미등록 코드는 뜻을 추정하지 않습니다."}
       </p>
       <form
         className="toolbar"
@@ -361,6 +366,7 @@ function DatasetTable({
                           : "↑"
                         : "↕"}
                       <code>{column.key}</code>
+                      {isCodeField(dataset.key, column.key) && <small>코드명 / 원본 코드</small>}
                     </button>
                   </th>
                 ))}
@@ -404,6 +410,7 @@ function DatasetTable({
                             <CellValue
                               value={row[column.key]}
                               column={column}
+                              datasetKey={dataset.key}
                             />
                           </div>
                         </td>
