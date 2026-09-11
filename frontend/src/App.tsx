@@ -4,6 +4,32 @@ import { DataPage } from "./DataPage";
 import { date, type Dataset, type Summary } from "./data";
 import { useResource } from "./useResource";
 import { DataOrigin, type Origin } from "./DataOrigin";
+import { WaterIndexHubPage } from "./WaterIndexHubPage";
+import { WaterIndexMapPage } from "./WaterIndexMapPage";
+import { WaterForecastPage } from "./WaterForecastPage";
+import { LivecamHubPage } from "./LivecamHubPage";
+import { TideTimerPage } from "./TideTimerPage";
+import { FirstSwimPage } from "./FirstSwimPage";
+import { WaterQualityPage } from "./WaterQualityPage";
+
+const previewPages = {
+  "water-index": { label: "Water Index", render: () => <WaterIndexHubPage /> },
+  "water-index-map": { label: "지도 배치", render: () => <WaterIndexMapPage /> },
+  "water-forecast": { label: "Water Forecast", render: () => <WaterForecastPage /> },
+  livecam: { label: "라이브캠", render: () => <LivecamHubPage /> },
+  tide: { label: "물때 타이머", render: () => <TideTimerPage /> },
+  "first-swim": { label: "첫 입수", render: () => <FirstSwimPage /> },
+  "water-quality": { label: "수질 교차검증", render: () => <WaterQualityPage /> },
+} as const;
+
+type PreviewKey = keyof typeof previewPages;
+
+function pageFromHash() {
+  const key = window.location.hash.replace(/^#/, "");
+  if (key === "info" || key === "collector") return "info";
+  if (key in previewPages) return key;
+  return "data";
+}
 
 export default function App() {
   const [origin, setOrigin] = useState<Origin>(
@@ -45,9 +71,7 @@ export default function App() {
 }
 
 function Workspace({ origin }: { origin: Origin }) {
-  const [page, setPage] = useState(
-    ["#info", "#collector"].includes(window.location.hash) ? "info" : "data",
-  );
+  const [page, setPage] = useState(pageFromHash);
   const [selectedKey, setSelectedKey] = useState(
     origin === "demo" ? "metrics" : "spots",
   );
@@ -56,10 +80,7 @@ function Workspace({ origin }: { origin: Origin }) {
   const summaryData = summary.data ?? summary.previousData;
   const catalog = useResource<Dataset[]>("catalog");
   useEffect(() => {
-    const change = () => {
-      if (["#info", "#collector"].includes(window.location.hash)) setPage("info");
-      else if (["", "#data"].includes(window.location.hash)) setPage("data");
-    };
+    const change = () => setPage(pageFromHash());
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
@@ -84,10 +105,23 @@ function Workspace({ origin }: { origin: Origin }) {
           >
             데이터 정보
           </a>
+          {Object.entries(previewPages).map(([key, item]) => (
+            <a
+              key={key}
+              href={"#" + key}
+              aria-current={page === key ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          ))}
           <a href="/">포트폴리오</a>
         </nav>
       </header>
       <main id="main-content" tabIndex={-1}>
+        {page in previewPages ? (
+          previewPages[page as PreviewKey].render()
+        ) : (
+        <>
         <div className="toolbar">
           <span>
             {summary.data
@@ -162,6 +196,8 @@ function Workspace({ origin }: { origin: Origin }) {
             selectDataset={setSelectedKey}
             revision={revision}
           />
+        )}
+        </>
         )}
       </main>
     </>

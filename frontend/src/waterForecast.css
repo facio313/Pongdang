@@ -1,0 +1,182 @@
+/* Group A: Water Forecast. Scoped under .water-forecast. */
+
+.water-forecast h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.water-forecast h1 small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #3d5468;
+}
+.wf-lede {
+  max-width: 68ch;
+  color: #2b3d4e;
+  font-size: 13px;
+}
+
+.wf-panel {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15, 40, 70, 0.12);
+  padding: 18px 20px;
+  max-width: 900px;
+}
+
+.wf-datebar {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  height: 150px;
+  margin-bottom: 18px;
+}
+.wf-daycol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 2px 6px;
+  cursor: pointer;
+  color: inherit;
+}
+.wf-daycol.is-selected {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(20, 80, 127, 0.28);
+}
+.wf-icon {
+  color: #3d5468;
+}
+.wf-icon-none {
+  font-size: 12px;
+  color: #5b6673;
+}
+.wf-day-bar-track {
+  flex: 1;
+  width: 12px;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(27, 39, 51, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.wf-day-bar-fill {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  transition: height 0.2s;
+}
+.wf-day-score {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.wf-day-label {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.wf-day-date {
+  font-size: 9.5px;
+  color: #3d5468;
+}
+
+.wf-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(27, 39, 51, 0.08);
+}
+.wf-hero-ring {
+  flex: 0 0 auto;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wf-hero-ring-inner {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #fdfefe;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+.wf-hero-ring-num {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wf-hero-ring-label {
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.wf-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+.wf-hero-sentence {
+  font-size: 16px;
+  font-weight: 700;
+}
+.wf-hero-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.wf-chip {
+  font-size: 11px;
+  color: #2b3d4e;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.wf-hero-acts {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(27, 39, 51, 0.08);
+}
+.wf-hero-act {
+  flex: 1;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wf-hero-act-name {
+  font-size: 10.5px;
+  color: #3d5468;
+}
+.wf-hero-act-score {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.wf-hero-act-label {
+  font-size: 9.5px;
+  color: #3d5468;
+}
+
+.wf-note {
+  font-size: 11px;
+  color: #33475a;
+  margin: 14px 0 0;
+}

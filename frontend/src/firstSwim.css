@@ -1,0 +1,106 @@
+/* Group A: first-swim-of-the-year alert. Scoped under .first-swim. */
+
+.first-swim h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.first-swim h1 small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #3d5468;
+}
+.fs-lede {
+  max-width: 68ch;
+  color: #2b3d4e;
+  font-size: 13px;
+}
+
+.fs-panel {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15, 40, 70, 0.12);
+  padding: 18px 20px;
+  max-width: 620px;
+}
+
+.fs-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.fs-col {
+  padding: 4px 2px;
+}
+.fs-col + .fs-col {
+  border-left: 1px solid rgba(27, 39, 51, 0.1);
+  padding-left: 20px;
+}
+.fs-col-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3d5468;
+  margin-bottom: 8px;
+}
+
+.fs-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(224, 167, 42, 0.2);
+  color: #a16207;
+  margin-bottom: 10px;
+}
+.fs-big-date {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.fs-sub {
+  font-size: 12px;
+  color: #3d5468;
+  margin-top: 5px;
+}
+.fs-sub b {
+  color: #a16207;
+}
+
+.fs-year-select {
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 80, 127, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  color: #1b2733;
+  cursor: pointer;
+}
+.fs-compare {
+  margin-top: 12px;
+}
+.fs-compare-delta {
+  font-size: 18px;
+  font-weight: 800;
+}
+.fs-compare-delta.is-faster {
+  color: #0891b2;
+}
+.fs-compare-delta.is-slower {
+  color: #a16207;
+}
+.fs-compare-dates {
+  font-size: 11.5px;
+  color: #3d5468;
+  margin-top: 5px;
+}
+
+.fs-note {
+  font-size: 11px;
+  color: #33475a;
+  margin: 14px 0 0;
+}

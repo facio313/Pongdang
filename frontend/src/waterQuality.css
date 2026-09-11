@@ -1,0 +1,132 @@
+/* Group A: water-quality cross-validation. Scoped under .water-quality. */
+
+.water-quality h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.water-quality h1 small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #3d5468;
+}
+.wq-lede {
+  max-width: 68ch;
+  color: #2b3d4e;
+  font-size: 13px;
+}
+.wq-warning {
+  display: flex;
+  gap: 8px;
+  background: #fff4e5;
+  border: 1px solid #e0b070;
+  border-radius: 10px;
+  padding: 9px 13px;
+  color: #6b3d00;
+  font-size: 12px;
+  max-width: 78ch;
+}
+
+.wq-panel {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(15, 40, 70, 0.12);
+  padding: 18px 20px;
+}
+
+.wq-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.wq-chip-button {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: #1b2733;
+  font-size: 13px;
+}
+.wq-chip-button.is-on {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #14507f;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(15, 40, 70, 0.14);
+}
+
+.wq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.wq-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.wq-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wq-name {
+  font-weight: 700;
+  font-size: 13px;
+}
+.wq-method {
+  font-size: 10.5px;
+  color: #1b2733;
+  background: #eef1f4;
+  border: 1px solid #c4ccd4;
+  border-radius: 6px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.wq-value-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+.wq-ring {
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+}
+.wq-value-num {
+  font-size: 21px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.wq-value-unit {
+  font-size: 12px;
+  color: #3d5468;
+  margin-left: 2px;
+}
+.wq-conf-label {
+  font-size: 10.5px;
+  color: #3d5468;
+  margin-top: 1px;
+}
+.wq-conf-num {
+  font-weight: 700;
+  color: #33475a;
+}
+.wq-meta {
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(27, 39, 51, 0.08);
+  font-size: 11px;
+  color: #3d5468;
+}
+.wq-note {
+  font-size: 11px;
+  color: #33475a;
+  margin: 14px 0 0;
+}
