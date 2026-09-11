@@ -582,7 +582,7 @@ export function DataPage({
       <h1>
         {summary?.is_demo
           ? "더미 데이터 조회 (실제 관측 아님)"
-          : "Multtara DB 조회"}
+          : "Pongdang 수집 데이터 조회"}
       </h1>
       {summary?.heartbeat?.effective_state === "stale" && (
         <p>

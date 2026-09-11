@@ -15,7 +15,7 @@ from psycopg.rows import dict_row
 
 from app.config import Settings
 
-CATALOG = json.loads(Path(__file__).with_name("collector_catalog.json").read_text())
+CATALOG = json.loads(Path(__file__).with_name("data_catalog.json").read_text())
 DATASETS = {item["key"]: item for item in CATALOG}
 
 
@@ -29,11 +29,11 @@ def clean_value(value: Any) -> Any:
     return value
 
 
-class CollectorReader:
-    schema = "public"
+class DataReader:
+    schema = "pongdang_data"
     catalog = CATALOG
     datasets = DATASETS
-    database_label = "cksDB / Multtara"
+    database_label = "Pongdang / pongdang_data"
     is_demo = False
 
     def scoped_query(self, query: str) -> sql.Composed:
@@ -52,8 +52,6 @@ class CollectorReader:
     @asynccontextmanager
     async def connection(self) -> AsyncIterator[psycopg.AsyncConnection]:
         settings = self.settings
-        if not settings.collector_db_host or not settings.collector_db_password:
-            raise HTTPException(503, "수집 데이터 DB 연결이 설정되지 않았습니다.")
         acquired = False
         try:
             async with asyncio.timeout(1):
@@ -61,11 +59,11 @@ class CollectorReader:
                 acquired = True
             async with asyncio.timeout(12):
                 async with await psycopg.AsyncConnection.connect(
-                    host=settings.collector_db_host,
-                    port=settings.collector_db_port,
-                    dbname=settings.collector_db_name,
-                    user=settings.collector_db_user,
-                    password=settings.collector_db_password.get_secret_value(),
+                    host=settings.postgres_host,
+                    port=settings.postgres_port,
+                    dbname=settings.postgres_db,
+                    user=settings.postgres_user,
+                    password=settings.postgres_password.get_secret_value(),
                     connect_timeout=3,
                     options=(
                         "-c default_transaction_read_only=on "
@@ -259,14 +257,14 @@ class CollectorReader:
         )
 
 
-def create_collector_router(
+def create_data_router(
     settings: Settings,
     *,
-    reader: CollectorReader | None = None,
-    prefix: str = "/api/collector",
+    reader: DataReader | None = None,
+    prefix: str = "/api/data",
 ) -> APIRouter:
-    router = APIRouter(prefix=prefix, tags=["collector"])
-    reader = reader or CollectorReader(settings)
+    router = APIRouter(prefix=prefix, tags=["data"])
+    reader = reader or DataReader(settings)
 
     @router.get("/catalog")
     async def catalog() -> list[dict[str, Any]]:

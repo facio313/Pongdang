@@ -3,8 +3,8 @@
     "key": "spots",
     "title": "장소 카탈로그",
     "category": "catalog",
-    "source": "관광공사 TourAPI · 공식 장소 자료",
-    "description": "수집 대상 장소와 외부 API 식별자, 출처 및 검증 상태입니다.",
+    "source": "Pongdang 장소 자료 · 제공처 API 미선정",
+    "description": "Pongdang이 관리하는 장소와 외부 API 식별자, 출처 및 검증 상태입니다. 제공처는 향후 교체할 수 있습니다.",
     "table": "spots_waterspot",
     "columns": [
       {
@@ -79,7 +79,7 @@
     "key": "snapshots",
     "title": "관측 스냅샷",
     "category": "collected",
-    "source": "기상청 KMA · 해양조사원 KHOA · 내부 융합",
+    "source": "Pongdang 공통 수집 · 제공처 API 미설정",
     "description": "제공처 응답을 정규화한 수집 단위입니다. missing 상태의 내부 융합 기록은 외부 API 실측값이 아닙니다.",
     "table": "conditions_observationsnapshot",
     "columns": [
@@ -150,7 +150,7 @@
     "key": "metrics",
     "title": "관측 측정값",
     "category": "collected",
-    "source": "기상청 KMA · 해양조사원 KHOA · 내부 파생",
+    "source": "Pongdang 정규화 지표 · 제공처 API 미설정",
     "description": "온도·바람 등 정규화된 개별 지표입니다. 관측/예보/추정과 유효 상태를 각각 저장합니다.",
     "table": "conditions_observationmetric",
     "columns": [
@@ -247,7 +247,7 @@
     "key": "scores",
     "title": "Water Index 평가",
     "category": "derived",
-    "source": "Multtara 평가 엔진",
+    "source": "Pongdang 평가 구조 · 계산기 미구현",
     "description": "원본 지표를 근거로 계산한 적합도·안전 상태·신뢰도입니다. unknown과 null은 안전 또는 0점을 의미하지 않습니다.",
     "table": "conditions_conditionscore",
     "columns": [
@@ -329,7 +329,7 @@
     "key": "forecasts",
     "title": "일별 예측 평가",
     "category": "derived",
-    "source": "Multtara 예측 평가 엔진",
+    "source": "Pongdang 날짜별 평가 구조 · 계산기 미구현",
     "description": "특정 날짜·시각의 근거에 기반한 평가 기록입니다. unavailable은 실제 예측을 제공할 근거가 부족하다는 뜻입니다.",
     "table": "forecasts_dailyforecast",
     "columns": [
@@ -421,7 +421,7 @@
     "key": "runs",
     "title": "Collector 실행 이력",
     "category": "operations",
-    "source": "run_condition_pipeline",
+    "source": "Pongdang 수집 실행 이력",
     "description": "작업별 시작·종료·성공·실패 이력입니다. 작업 성공은 외부 데이터 수집 성공이나 안전 판정과 별개입니다.",
     "table": "conditions_ingestionrun",
     "columns": [
@@ -467,7 +467,7 @@
     "key": "heartbeat",
     "title": "Collector 활동 신호",
     "category": "operations",
-    "source": "run_condition_pipeline",
+    "source": "Pongdang 활동 상태 · 예약 수집 미설정",
     "description": "DB에 남긴 마지막 활동 신호입니다. 과거 running 값만으로 현재 실행 중이라고 판단하지 않습니다.",
     "table": "conditions_pipelineheartbeat",
     "columns": [
@@ -512,7 +512,7 @@
     "key": "lineage",
     "title": "파생 지표 근거 연결",
     "category": "derived",
-    "source": "Multtara 파생 지표 계산",
+    "source": "Pongdang 파생 근거 구조 · 계산기 미구현",
     "description": "파생 지표가 어떤 원본 측정값을 사용했는지 연결합니다.",
     "table": "conditions_observationmetriclineage",
     "columns": [
@@ -632,8 +632,8 @@
     "key": "route-snapshots",
     "title": "경로 조회 스냅샷",
     "category": "collected",
-    "source": "설정된 Valhalla 경로 API · 운영자 가져오기",
-    "description": "이동 수단별 경로 행렬의 출처와 유효 기간입니다. 제공처 설정이 있어야 주기 갱신합니다.",
+    "source": "Pongdang 경로 구조 · 제공처 API 미설정",
+    "description": "이동 수단별 경로 행렬의 출처와 유효 기간입니다. 경로 수집과 예약 갱신은 미설정입니다.",
     "table": "trips_routematrixsnapshot",
     "columns": [
       {

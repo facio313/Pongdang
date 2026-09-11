@@ -8,8 +8,13 @@ x-logging: &logging
 
 services:
   db:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-db
     image: postgres:18-alpine
     restart: unless-stopped
+    mem_limit: 1g
+    memswap_limit: 2g
+    cpus: 1.5
+    pids_limit: 256
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-pongdang}
       POSTGRES_USER: ${POSTGRES_USER:-pongdang}
@@ -24,20 +29,20 @@ services:
     logging: *logging
 
   backend:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-backend
     image: pongdang-backend:${RELEASE_SHA:-local}
     build: ./backend
     restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 1g
+    cpus: 1
+    pids_limit: 128
     environment:
       POSTGRES_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-pongdang}
       POSTGRES_USER: ${POSTGRES_USER:-pongdang}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       API_ROOT_PATH: ${API_ROOT_PATH:-}
-      COLLECTOR_DB_HOST: ${COLLECTOR_DB_HOST:-}
-      COLLECTOR_DB_PORT: ${COLLECTOR_DB_PORT:-5432}
-      COLLECTOR_DB_NAME: ${COLLECTOR_DB_NAME:-pongdang}
-      COLLECTOR_DB_USER: ${COLLECTOR_DB_USER:-multtara_explorer}
-      COLLECTOR_DB_PASSWORD: ${COLLECTOR_DB_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -56,12 +61,17 @@ services:
     logging: *logging
 
   frontend:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-frontend
     image: pongdang-frontend:${RELEASE_SHA:-local}
     build:
       context: ./frontend
       args:
         APP_BASE_PATH: ${APP_BASE_PATH:-/}
     restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
     ports:
       - "127.0.0.1:${HTTP_PORT:-5188}:8080"
     depends_on:

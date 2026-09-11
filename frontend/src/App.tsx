@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CollectorPage } from "./CollectorPage";
+import { DataInfoPage } from "./DataInfoPage";
 import { DataPage } from "./DataPage";
 import { date, type Dataset, type Summary } from "./data";
 import { useResource } from "./useResource";
@@ -26,15 +26,15 @@ type PreviewKey = keyof typeof previewPages;
 
 function pageFromHash() {
   const key = window.location.hash.replace(/^#/, "");
-  if (key === "collector") return "collector";
+  if (key === "info" || key === "collector") return "info";
   if (key in previewPages) return key;
   return "data";
 }
 
 export default function App() {
   const [origin, setOrigin] = useState<Origin>(
-    new URLSearchParams(window.location.search).get("data") === "collector"
-      ? "collector"
+    ["data", "collector"].includes(new URLSearchParams(window.location.search).get("data") ?? "")
+      ? "data"
       : "demo",
   );
   return (
@@ -53,14 +53,14 @@ export default function App() {
               window.history.replaceState(null, "", url);
             }}
           >
-            <option value="collector">실제 cksDB 저장 데이터</option>
+            <option value="data">Pongdang 수집 데이터</option>
             <option value="demo">더미 데이터 · 실제 관측 아님</option>
           </select>
         </label>
         <strong>
           {origin === "demo"
             ? "합성 더미 전용: 실제 관측·예보·시설·안전 판단에 사용 금지"
-            : "실제 저장 이력만 표시 · 더미와 분리"}
+            : "Pongdang 자체 DB · 제공처 API 미설정 · 더미와 분리"}
         </strong>
       </div>
       <DataOrigin.Provider value={origin}>
@@ -100,10 +100,10 @@ function Workspace({ origin }: { origin: Origin }) {
             데이터 조회
           </a>
           <a
-            href="#collector"
-            aria-current={page === "collector" ? "page" : undefined}
+            href="#info"
+            aria-current={page === "info" ? "page" : undefined}
           >
-            Collector 설명
+            데이터 정보
           </a>
           {Object.entries(previewPages).map(([key, item]) => (
             <a
@@ -127,14 +127,14 @@ function Workspace({ origin }: { origin: Origin }) {
             {summary.data
               ? origin === "demo"
                 ? "더미 DB 연결됨"
-                : "cksDB 연결됨"
+                : "Pongdang DB 연결됨"
               : summary.loading
                 ? "DB 연결 확인 중"
                 : "DB 조회 불가"}{" "}
             ·{" "}
             {origin === "demo"
               ? "Pongdang 자체 DB / pongdang_demo"
-              : "Multtara"}{" "}
+              : "Pongdang 자체 DB / pongdang_data"}{" "}
             · 읽기 전용 · KST
           </span>
           <span>현황 조회: {date(summaryData?.queried_at)}</span>
@@ -186,8 +186,8 @@ function Workspace({ origin }: { origin: Origin }) {
             </p>
           </details>
         )}
-        {page === "collector" ? (
-          <CollectorPage summary={summaryData} openDataset={openDataset} />
+        {page === "info" ? (
+          <DataInfoPage catalog={catalog.data ?? []} openDataset={openDataset} />
         ) : (
           <DataPage
             catalog={catalog.data ?? []}

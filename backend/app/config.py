@@ -11,8 +11,3 @@ class Settings(BaseSettings):
     postgres_user: str = "pongdang"
     postgres_password: SecretStr = Field(min_length=1)
     api_root_path: str = ""
-    collector_db_host: str = ""
-    collector_db_port: int = Field(default=5432, ge=1, le=65535)
-    collector_db_name: str = "pongdang"
-    collector_db_user: str = "multtara_explorer"
-    collector_db_password: SecretStr | None = None
