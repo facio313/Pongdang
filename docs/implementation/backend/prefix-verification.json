@@ -1,0 +1,8 @@
+{
+  "/pongdang/api/ready": 200,
+  "/pongdang/api/data/water-twin?page_size=1": 200,
+  "/pongdang/api/data/water-temperature?spot_id=2": 200,
+  "/pongdang/api/openapi.json": 200,
+  "/pongdang/api/demo/summary": 404,
+  "/pongdang/api/collector/summary": 404
+}

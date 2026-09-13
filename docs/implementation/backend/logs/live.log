@@ -1,0 +1,11 @@
+/private/tmp/pongdang-runtime-20260914/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+{"job": "kma_short_forecast", "status": "received", "readings": 78, "inserted": 79, "fetched_at": "2026-09-13T19:24:12.649541+00:00"}
+{"job": "khoa_water_temperature", "status": "received", "readings": 26, "inserted": 27, "fetched_at": "2026-09-13T19:24:12.736996+00:00"}
+{"job": "khoa_tide_extrema", "status": "received", "readings": 20, "inserted": 21, "fetched_at": "2026-09-13T19:24:12.868583+00:00"}
+forecast_projection: succeeded; received=98; inserted=98; error=-
+water_index_evaluation: succeeded; received=1800; inserted=1800; error=-
+livecam_checks: no_data; received=0; inserted=0; error=-
+condition_notifications: no_data; received=0; inserted=0; error=-
+quality_comparison: succeeded; received=3; inserted=3; error=-
+Saved sanitized normalized verification report

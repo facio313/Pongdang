@@ -110,3 +110,9 @@
   color: #33475a;
   margin: 14px 0 0;
 }
+
+.lc-featured.is-empty {
+  color: #33475a;
+  background: #eef2f6;
+  justify-content: center;
+}

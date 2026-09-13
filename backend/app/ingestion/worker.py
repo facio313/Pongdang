@@ -10,10 +10,11 @@ from psycopg.types.json import Jsonb
 from app.config import Settings
 from app.ingestion.http import ProviderError
 from app.ingestion.storage import store_batch
-from app.schema import connect, initialize
+from app.schema import connect
 
 
 def registered_jobs(settings):
+    from app.feature_jobs import feature_jobs
     from app.ingestion.marine import marine_jobs
     from app.ingestion.places import place_jobs
     from app.ingestion.water import water_jobs
@@ -24,6 +25,7 @@ def registered_jobs(settings):
         + marine_jobs(settings)
         + water_jobs(settings)
         + place_jobs(settings)
+        + feature_jobs(settings)
     )
 
 
@@ -98,22 +100,31 @@ def run_due(settings, jobs, *, force=False):
                 heartbeat(settings, tasks=[job.name])
                 state, error, received, inserted = "succeeded", "", 0, 0
                 try:
-                    batch = job.fetch()
-                    received = (
-                        len(batch.readings)
-                        + len(batch.stations)
-                        + len(batch.places)
-                        + len(batch.warnings)
-                    )
-                    inserted = store_batch(settings, batch)
-                    has_data = bool(batch.readings or batch.places or batch.warnings)
-                    if batch.catalog_only and batch.stations:
-                        has_data = True
-                    if not has_data:
-                        state = "no_data"
-                    elif batch.coverage == "bounded":
-                        state = "partial"
-                        error = "BOUNDED_CATALOG"
+                    if job.process is not None:
+                        result = job.process()
+                        received, inserted = result["received"], result["inserted"]
+                        state, error = result["state"], result.get("error", "")
+                        if state not in {"succeeded", "partial", "no_data", "failed"}:
+                            raise ValueError("Unknown domain job result")
+                    else:
+                        batch = job.fetch()
+                        received = (
+                            len(batch.readings)
+                            + len(batch.stations)
+                            + len(batch.places)
+                            + len(batch.warnings)
+                        )
+                        inserted = store_batch(settings, batch)
+                        has_data = bool(
+                            batch.readings or batch.places or batch.warnings
+                        )
+                        if batch.catalog_only and batch.stations:
+                            has_data = True
+                        if not has_data:
+                            state = "no_data"
+                        elif batch.coverage == "bounded":
+                            state = "partial"
+                            error = "BOUNDED_CATALOG"
                 except ProviderError as exc:
                     state, error = "failed", exc.code
                 except Exception:
@@ -188,7 +199,6 @@ def main():
     parser.add_argument("--job", action="append", help="Exact registered job name")
     args = parser.parse_args()
     settings = Settings()
-    initialize(settings)
     jobs = registered_jobs(settings)
     if args.job:
         unknown = set(args.job) - {j.name for j in jobs}

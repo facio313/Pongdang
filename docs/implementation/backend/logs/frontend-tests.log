@@ -1,0 +1,32 @@
+
+> pongdang-frontend@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ metric codes have Korean names without changing the original value (1.075542ms)
+✔ dictionaries are scoped to dataset and field (0.099541ms)
+✔ unknown, empty and prototype keys never acquire invented meanings (0.083166ms)
+✔ unregistered provider and task codes do not acquire invented meanings (0.069666ms)
+✔ missing temperature stays missing and zero stays a real zero (58.546375ms)
+✔ unreleased scores and unknown contracts cannot become visible scores (0.116833ms)
+✔ missing issue times never become the current time (0.1245ms)
+✔ features retain the deployment base, bounded parameters and cancellation signal (13.614459ms)
+✔ an API failure never produces an empty success result (0.277084ms)
+✔ authenticated or signed camera URLs are rejected (0.094167ms)
+✔ explicit missing historical metadata and unevaluated diagnostics retain their reasons (0.280042ms)
+✔ source selection default resolves to collection data (0.896833ms)
+✔ source selection demo resolves to collection data (0.145ms)
+✔ source selection collector resolves to collection data (0.08275ms)
+✔ source selection data resolves to collection data (0.090291ms)
+✔ source selection unexpected resolves to collection data (0.161208ms)
+✔ data is the default while existing feature navigation remains accessible (0.150916ms)
+✔ collection reads preserve base path, abort signal and empty results (30.906042ms)
+✔ failed data reads never request a fallback endpoint (0.6025ms)
+✔ a late response cannot survive cancellation even when the transport ignores it (0.192708ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 196.529916

@@ -397,47 +397,52 @@ def _store_read_manifest(c, manifest, now):
     )
 
 
+def store_bundle_on_connection(c, bundle: StorageBundle, now: datetime) -> int:
+    """Store a validated bundle inside a caller-owned atomic producer transaction."""
+    inserted = 0
+    for target in bundle.targets:
+        inserted += _target(c, target)
+    for manifest in bundle.input_manifests:
+        from app.water_index.models import EvaluationRequest, InputDTO
+        from app.water_index.registry import provenance_manifest
+
+        if len(manifest.inputs) > MAX_ITEMS:
+            raise ValueError("Input manifest exceeds the contract limit")
+        for item in manifest.inputs:
+            InputDTO.model_validate(item)
+        if len({i["input_id"] for i in manifest.inputs}) != len(manifest.inputs):
+            raise ValueError("Duplicate input identity")
+        payload = asdict(manifest)
+        if manifest.evaluation_request is not None:
+            request = EvaluationRequest.model_validate(manifest.evaluation_request)
+            if request.input_manifest_id != manifest.manifest_id:
+                raise ValueError("Request snapshot references another manifest")
+            if request.evaluated_at > now or request.as_of > now:
+                raise ValueError("Request snapshot cannot be from the future")
+            if manifest.provenance != provenance_manifest():
+                raise ValueError("Request provenance is not the bundled registry")
+            payload["evaluation_request"] = request.model_dump(mode="json")
+        inserted += _append(
+            c,
+            "water_index_input_manifest",
+            "manifest_id",
+            manifest.manifest_id,
+            payload,
+            {},
+        )
+    for assessment in bundle.assessments:
+        inserted += _store_assessment(c, assessment, now)
+    for manifest in bundle.read_manifests:
+        inserted += _store_read_manifest(c, manifest, now)
+    return inserted
+
+
 def store_bundle(settings: Settings, bundle: StorageBundle) -> int:
     """Atomically store explicit trusted outputs; duplicates never refresh age."""
-    inserted = 0
     with connect(settings) as c:
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-water-index'))")
         now = c.execute("SELECT clock_timestamp()").fetchone()[0]
-        for target in bundle.targets:
-            inserted += _target(c, target)
-        for manifest in bundle.input_manifests:
-            from app.water_index.models import EvaluationRequest, InputDTO
-            from app.water_index.registry import provenance_manifest
-
-            if len(manifest.inputs) > MAX_ITEMS:
-                raise ValueError("Input manifest exceeds the contract limit")
-            for item in manifest.inputs:
-                InputDTO.model_validate(item)
-            if len({i["input_id"] for i in manifest.inputs}) != len(manifest.inputs):
-                raise ValueError("Duplicate input identity")
-            payload = asdict(manifest)
-            if manifest.evaluation_request is not None:
-                request = EvaluationRequest.model_validate(manifest.evaluation_request)
-                if request.input_manifest_id != manifest.manifest_id:
-                    raise ValueError("Request snapshot references another manifest")
-                if request.evaluated_at > now or request.as_of > now:
-                    raise ValueError("Request snapshot cannot be from the future")
-                if manifest.provenance != provenance_manifest():
-                    raise ValueError("Request provenance is not the bundled registry")
-                payload["evaluation_request"] = request.model_dump(mode="json")
-            inserted += _append(
-                c,
-                "water_index_input_manifest",
-                "manifest_id",
-                manifest.manifest_id,
-                payload,
-                {},
-            )
-        for assessment in bundle.assessments:
-            inserted += _store_assessment(c, assessment, now)
-        for manifest in bundle.read_manifests:
-            inserted += _store_read_manifest(c, manifest, now)
-    return inserted
+        return store_bundle_on_connection(c, bundle, now)
 
 
 def _overlaps(target, start, end):
@@ -550,6 +555,29 @@ async def read_projection(
             )
         return {"rows": [], "total": 0, "coverage": _empty_coverage()}
     mid, metadata = manifest["manifest_id"], manifest["payload"]
+    # A stored evaluation remains immutable, but its current publication cannot
+    # outlive a correction of the reviewed station relationship. This also covers
+    # activities/periods removed so completely that the producer has no new group.
+    changed_mapping = await (
+        await connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM "
+            "pongdang_data.water_index_read_manifest r "
+            "CROSS JOIN LATERAL jsonb_each_text(r.payload->'selections') selected "
+            "JOIN pongdang_data.water_index_assessment a "
+            "ON a.assessment_id=selected.value "
+            "CROSS JOIN LATERAL jsonb_array_elements(a.payload->'inputs') i "
+            "JOIN pongdang_data.water_index_station_mapping old "
+            "ON old.mapping_id=i->>'mapping_evidence_ref' "
+            "JOIN pongdang_data.water_index_station_mapping newer "
+            "ON newer.supersedes_id=old.mapping_id "
+            "WHERE r.manifest_id=%s AND newer.available_at<=%s) AS changed",
+            [mid, cutoff],
+        )
+    ).fetchone()
+    if changed_mapping["changed"]:
+        coverage = _empty_coverage()
+        coverage["reason_codes"] = ["station_mapping_changed"]
+        return {"rows": [], "total": 0, "coverage": coverage}
     source = (
         " FROM pongdang_data.water_index_read_manifest m "
         "CROSS JOIN LATERAL jsonb_each_text(m.payload->'selections') s "

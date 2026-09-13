@@ -236,3 +236,46 @@ def test_missing_numeric_preserves_evidence_and_nonfinite_never_serializes():
         assert v.missing
     assert value("tide_level", -99).numeric_value == -99
     assert not value("official_activity_grade", "매우나쁨").missing
+
+
+def test_tide_time_correction_uses_stable_official_event_slot():
+    outputs = []
+    for time in ("2025-08-20 11:00", "2025-08-20 11:04", "2025-08-20 11:00"):
+        client = FakeClient(
+            [
+                response([row(predcDt=time, predcTdlvVl=34, extrSe=1)]),
+                *[response([]) for _ in range(6)],
+            ]
+        )
+        outputs.append(
+            MarineProvider(settings(), client, lambda: NOW)
+            .fetch("tide_extrema")
+            .readings[0]
+        )
+    assert outputs[0].source_id == outputs[1].source_id == outputs[2].source_id
+    assert outputs[0].observed_at != outputs[1].observed_at
+    assert outputs[0] == outputs[2]
+
+
+def test_two_official_afternoon_lows_remain_two_distinct_ordered_events():
+    # Minimal isolated regression for an actual provider code boundary: both low
+    # tides can occur after noon, so AM/PM code alone is not an event identifier.
+    client = FakeClient(
+        [
+            response(
+                [
+                    row(predcDt="2025-08-20 23:51", predcTdlvVl=25, extrSe=4),
+                    row(predcDt="2025-08-20 12:44", predcTdlvVl=30, extrSe=4),
+                ]
+            ),
+            *[response([]) for _ in range(6)],
+        ]
+    )
+    batch = MarineProvider(settings(), client, lambda: NOW).fetch("tide_extrema")
+    assert len(batch.readings) == 2
+    assert batch.adapter_version == "tide-event-slots.2"
+    assert batch.readings[0].source_id.startswith("derived:")
+    assert batch.readings[0].source_id.endswith(":low:1")
+    assert batch.readings[1].source_id.endswith(":low:2")
+    assert batch.readings[0].observed_at < batch.readings[1].observed_at
+    assert [r.values[1].text_value for r in batch.readings] == ["4", "4"]

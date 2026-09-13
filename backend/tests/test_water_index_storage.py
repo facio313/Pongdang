@@ -104,6 +104,7 @@ def read(db, target, *, as_of=None, historical=False, **options):
 def test_additive_upgrade_preserves_source_rows(db, old_version):
     with connect(db) as c:
         for table in (
+            "water_index_production_run",
             "water_index_read_manifest",
             "water_index_assessment",
             "water_index_input_manifest",

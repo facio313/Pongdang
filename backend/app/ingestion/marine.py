@@ -231,6 +231,7 @@ class MarineProvider:
         return SourceBatch(
             provider="khoa_" + kind,
             fetched_at=fetched,
+            adapter_version="tide-event-slots.2" if kind == "tide_extrema" else "1",
             stations=list({r.station.source_id: r.station for r in readings}.values()),
             readings=readings,
         )
@@ -307,15 +308,25 @@ class MarineProvider:
             rows = self._rows(
                 "tide_extrema", {"obsCode": code, "reqDate": date}, budget
             )
-            for row in rows:
+            occurrences = {}
+            for row in sorted(rows, key=lambda item: source_time(item.get("predcDt"))):
                 target = source_time(row.get("predcDt"))
                 station = self._station(row, code, "tide_station")
+                raw_code = str(row.get("extrSe", ""))
+                kind = {"1": "high", "2": "low", "3": "high", "4": "low"}.get(raw_code)
+                local_day = target.astimezone(KST).date()
+                key = (station.source_id, local_day, kind)
+                occurrences[key] = occurrences.get(key, 0) + 1
+                # Actual official responses may have two code=4 lows on one day.
+                # Preserve that code but identify the chronological high/low slot.
+                source_id = (
+                    f"derived:{station.source_id}:{local_day}:extremum:{kind}:{occurrences[key]}"
+                    if kind
+                    else f"{station.source_id}:{target.isoformat()}:{raw_code}"
+                )
                 readings.append(
                     Reading(
-                        source_id=(
-                            f"{station.source_id}:{target.isoformat()}:"
-                            f"{row.get('extrSe', '')}"
-                        ),
+                        source_id=source_id,
                         station=station,
                         observed_at=target,
                         valid_until=target + timedelta(minutes=1),

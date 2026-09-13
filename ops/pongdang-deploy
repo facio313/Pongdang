@@ -51,10 +51,10 @@ compose "$release" config --quiet
 # Build before replacing running containers. Application images retain the SHA.
 compose "$release" build --pull
 # Initialize only the application's own additive schema, before replacing apps.
-# This never seeds demos, touches a shared DB or starts a provider scheduler.
+# Only Pongdang's collection schema and retired synthetic schema are affected.
 if [[ -f "$release/backend/app/schema.py" ]]; then
   compose "$release" up -d --no-build --wait db
-  compose "$release" run --rm --no-deps backend python -m app.schema --initialize
+  compose "$release" run --rm --no-deps backend python -m app.schema --initialize --remove-demo
 fi
 previous="$(readlink -f "$state/current" || true)"
 if ! compose "$release" up -d --no-build --wait --wait-timeout 180 ||

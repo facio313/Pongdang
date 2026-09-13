@@ -1,8 +1,7 @@
-import { Fragment, useContext, useState } from "react";
+import { Fragment, useState } from "react";
 import type { Cell, Column, Dataset, Row, RowsResult, Summary } from "./data";
 import { categories, text, number, date, labels } from "./data";
 import { useResource } from "./useResource";
-import { DataOrigin } from "./DataOrigin";
 import { codeName, isCodeField } from "./codeNames";
 
 function CellValue({
@@ -89,7 +88,7 @@ function RowDetails({ dataset, row }: { dataset: Dataset; row: Row }) {
   );
 }
 
-function DatasetTable({
+export function DatasetTable({
   dataset,
   revision,
 }: {
@@ -161,8 +160,7 @@ function DatasetTable({
       </div>
       <p>{dataset.description}</p>
       <p className="table-note">
-        출처: {dataset.source} · NULL = 값 없음 · 상태와 유효 기간은 저장 당시
-        기준입니다.
+        출처: {dataset.source} · NULL = 값 없음 · 관측·예보의 유효 기간 경과는 조회 시점에 반영합니다. 이전 수정본은 이력으로 보존합니다.
         {dataset.columns.some((column) => isCodeField(dataset.key, column.key)) &&
           " 코드 필드는 한글 코드명과 DB 원본 코드를 함께 표시합니다. 검색·필터는 원본 코드 기준이며, 미등록 코드는 뜻을 추정하지 않습니다."}
       </p>
@@ -552,8 +550,7 @@ export function DataPage({
   const [category, setCategory] = useState("all");
   const [tableSearch, setTableSearch] = useState("");
   const [populatedOnly, setPopulatedOnly] = useState(false);
-  const origin = useContext(DataOrigin);
-  const [showAll, setShowAll] = useState(origin === "demo");
+  const [showAll, setShowAll] = useState(true);
   const [overviewOpen, setOverviewOpen] = useState(true);
   const counts = new Map(
     summary?.datasets.map((dataset) => [dataset.key, dataset]),
@@ -579,14 +576,10 @@ export function DataPage({
   }
   return (
     <>
-      <h1>
-        {summary?.is_demo
-          ? "더미 데이터 조회 (실제 관측 아님)"
-          : "Pongdang 수집 데이터 조회"}
-      </h1>
+      <h1>Pongdang 수집 데이터 조회</h1>
       {summary?.heartbeat?.effective_state === "stale" && (
         <p>
-          Collector 활동 신호가 오래되었습니다 (마지막:{" "}
+          수집기 활동 신호가 오래되었습니다 (마지막:{" "}
           {date(summary.heartbeat.last_seen_at)} KST). 저장 이력이며 현재 가동
           여부를 뜻하지 않습니다.
         </p>
@@ -736,8 +729,9 @@ export function DataPage({
           ))}
         </p>
       )}
-      {!catalog.length && <p>데이터셋 목록을 불러오는 중입니다.</p>}
-      {showAll && !shown.length && (
+      {!catalog.length && <p>표시할 데이터셋 목록이 없습니다.</p>}
+      {showAll && !summary && <p>현황을 확인한 뒤 데이터가 있는 표를 펼칩니다. 테이블명을 눌러 개별 조회할 수 있습니다.</p>}
+      {showAll && summary && !shown.length && (
         <p>선택한 범위에 데이터가 있는 테이블이 없습니다.</p>
       )}
       {shown.map((dataset) => (

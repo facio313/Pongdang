@@ -131,6 +131,7 @@ class InputDTO(Window):
     aggregation: Aggregation = Field(default_factory=Aggregation)
     spatial_scope: Text | None = None
     mapping_version: Identifier | None = None
+    mapping_evidence_ref: Identifier | None = None
     quality_flags: Codes = ()
     used_by: Codes = ()
 

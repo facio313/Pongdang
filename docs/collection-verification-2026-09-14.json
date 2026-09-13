@@ -1,0 +1,517 @@
+{
+  "checked_at": "2026-09-14T00:53:11.240146+09:00",
+  "environment": "local PostgreSQL 18 / pongdang",
+  "schema_version": 3,
+  "demo_schema_absent": true,
+  "table_counts": {
+    "spots_waterspot": 1044,
+    "collection_station": 469,
+    "conditions_observationsnapshot": 487,
+    "conditions_observationmetric": 4421,
+    "collection_warning": 4,
+    "collection_place": 575
+  },
+  "jobs": [
+    {
+      "task_name": "hrfco_waterlevel",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:44:56.673420+09:00",
+      "next_run_at": "2026-09-14 00:54:56.673420+09:00",
+      "records_received": 12.0,
+      "records_inserted": 6.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kakao_places",
+      "state": "partial",
+      "interval_seconds": 86400.0,
+      "finished_at": "2026-09-14 00:38:04.398788+09:00",
+      "next_run_at": "2026-09-15 00:38:04.398788+09:00",
+      "records_received": 75.0,
+      "records_inserted": 0.0,
+      "last_error": "BOUNDED_CATALOG"
+    },
+    {
+      "task_name": "khoa_beach",
+      "state": "succeeded",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:32:57.360304+09:00",
+      "next_run_at": "2026-09-14 01:32:57.360304+09:00",
+      "records_received": 27.0,
+      "records_inserted": 27.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_buoy_recent",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:24.535343+09:00",
+      "next_run_at": "2026-09-14 00:53:24.535343+09:00",
+      "records_received": 5.0,
+      "records_inserted": 1.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_mudflat",
+      "state": "no_data",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:32:57.952882+09:00",
+      "next_run_at": "2026-09-14 01:32:57.952882+09:00",
+      "records_received": 0.0,
+      "records_inserted": 0.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_rip_current",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:24.204045+09:00",
+      "next_run_at": "2026-09-14 00:53:24.204045+09:00",
+      "records_received": 8.0,
+      "records_inserted": 2.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_surfing",
+      "state": "succeeded",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:32:57.763212+09:00",
+      "next_run_at": "2026-09-14 01:32:57.763212+09:00",
+      "records_received": 50.0,
+      "records_inserted": 50.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_tide_extrema",
+      "state": "succeeded",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:32:59.666547+09:00",
+      "next_run_at": "2026-09-14 01:32:59.666547+09:00",
+      "records_received": 21.0,
+      "records_inserted": 21.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_tide_level",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:24.932925+09:00",
+      "next_run_at": "2026-09-14 00:53:24.932925+09:00",
+      "records_received": 150.0,
+      "records_inserted": 2.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_tide_recent",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:24.384578+09:00",
+      "next_run_at": "2026-09-14 00:53:24.384578+09:00",
+      "records_received": 5.0,
+      "records_inserted": 1.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_water_temperature",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:24.689222+09:00",
+      "next_run_at": "2026-09-14 00:53:24.689222+09:00",
+      "records_received": 5.0,
+      "records_inserted": 1.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "khoa_waves",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:43:25.081987+09:00",
+      "next_run_at": "2026-09-14 00:53:25.081987+09:00",
+      "records_received": 5.0,
+      "records_inserted": 1.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_aws",
+      "state": "failed",
+      "interval_seconds": 300.0,
+      "finished_at": "2026-09-14 00:46:27.703208+09:00",
+      "next_run_at": "2026-09-14 00:56:27.703208+09:00",
+      "records_received": 0.0,
+      "records_inserted": 0.0,
+      "last_error": "INCOMPLETE_HUB_RESPONSE"
+    },
+    {
+      "task_name": "kma_buoy",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:51:04.302224+09:00",
+      "next_run_at": "2026-09-14 01:01:04.302224+09:00",
+      "records_received": 3.0,
+      "records_inserted": 0.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_mid_forecast",
+      "state": "succeeded",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:26:01.122742+09:00",
+      "next_run_at": "2026-09-14 01:26:01.122742+09:00",
+      "records_received": 2.0,
+      "records_inserted": 2.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_nowcast",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:51:02.717540+09:00",
+      "next_run_at": "2026-09-14 01:01:02.717540+09:00",
+      "records_received": 2.0,
+      "records_inserted": 0.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_short_forecast",
+      "state": "succeeded",
+      "interval_seconds": 3600.0,
+      "finished_at": "2026-09-14 00:26:01.037261+09:00",
+      "next_run_at": "2026-09-14 01:26:01.037261+09:00",
+      "records_received": 82.0,
+      "records_inserted": 82.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_ultra_forecast",
+      "state": "succeeded",
+      "interval_seconds": 1800.0,
+      "finished_at": "2026-09-14 00:25:59.662411+09:00",
+      "next_run_at": "2026-09-14 00:55:59.662411+09:00",
+      "records_received": 7.0,
+      "records_inserted": 7.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "kma_warnings",
+      "state": "succeeded",
+      "interval_seconds": 600.0,
+      "finished_at": "2026-09-14 00:51:02.932117+09:00",
+      "next_run_at": "2026-09-14 01:01:02.932117+09:00",
+      "records_received": 4.0,
+      "records_inserted": 0.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "koem_catalog",
+      "state": "succeeded",
+      "interval_seconds": 86400.0,
+      "finished_at": "2026-09-14 00:34:25.477776+09:00",
+      "next_run_at": "2026-09-15 00:34:25.477776+09:00",
+      "records_received": 425.0,
+      "records_inserted": 425.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "koem_water_quality",
+      "state": "succeeded",
+      "interval_seconds": 86400.0,
+      "finished_at": "2026-09-14 00:35:38.985145+09:00",
+      "next_run_at": "2026-09-15 00:35:38.985145+09:00",
+      "records_received": 122.0,
+      "records_inserted": 108.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "nier_water_quality",
+      "state": "succeeded",
+      "interval_seconds": 86400.0,
+      "finished_at": "2026-09-14 00:33:03.960241+09:00",
+      "next_run_at": "2026-09-15 00:33:03.960241+09:00",
+      "records_received": 12.0,
+      "records_inserted": 12.0,
+      "last_error": ""
+    },
+    {
+      "task_name": "tourism_places",
+      "state": "partial",
+      "interval_seconds": 86400.0,
+      "finished_at": "2026-09-14 00:38:05.971009+09:00",
+      "next_run_at": "2026-09-15 00:38:05.971009+09:00",
+      "records_received": 500.0,
+      "records_inserted": 0.0,
+      "last_error": "BOUNDED_CATALOG"
+    }
+  ],
+  "heartbeat": {
+    "state": "idle",
+    "last_seen_at": "2026-09-14 00:53:05.867146+09:00",
+    "age_seconds": "5.317752"
+  },
+  "launch_agent_running": true,
+  "installed_source_matches_checkout": true,
+  "installed_source_files": 19,
+  "secret_scan_files": 92,
+  "secret_scan_skipped_unchanged_dataless": [
+    "ops/pongdang-ci-watch",
+    "ops/pongdang-ci-watch.service",
+    "ops/pongdang-ci-watch.timer"
+  ],
+  "source_time_ranges": [
+    {
+      "provider": "hrfco_waterlevel",
+      "oldest": "2026-09-14 00:30:00+09:00",
+      "newest": "2026-09-14 00:40:00+09:00",
+      "count": 12
+    },
+    {
+      "provider": "khoa_beach",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-19 00:00:00+09:00",
+      "count": 24
+    },
+    {
+      "provider": "khoa_buoy_recent",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-14 00:30:00+09:00",
+      "count": 4
+    },
+    {
+      "provider": "khoa_rip_current",
+      "oldest": "2026-09-14 00:05:00+09:00",
+      "newest": "2026-09-14 00:35:00+09:00",
+      "count": 7
+    },
+    {
+      "provider": "khoa_surfing",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-19 00:00:00+09:00",
+      "count": 48
+    },
+    {
+      "provider": "khoa_tide_extrema",
+      "oldest": "2026-09-14 04:30:00+09:00",
+      "newest": "2026-09-20 17:17:00+09:00",
+      "count": 20
+    },
+    {
+      "provider": "khoa_tide_level",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-14 23:50:00+09:00",
+      "count": 150
+    },
+    {
+      "provider": "khoa_tide_recent",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-14 00:30:00+09:00",
+      "count": 4
+    },
+    {
+      "provider": "khoa_water_temperature",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-14 00:30:00+09:00",
+      "count": 4
+    },
+    {
+      "provider": "khoa_waves",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-14 00:30:00+09:00",
+      "count": 4
+    },
+    {
+      "provider": "kma_aws",
+      "oldest": "2026-09-14 00:23:00+09:00",
+      "newest": "2026-09-14 00:37:00+09:00",
+      "count": 2
+    },
+    {
+      "provider": "kma_buoy",
+      "oldest": "2026-09-13 23:30:00+09:00",
+      "newest": "2026-09-14 00:00:00+09:00",
+      "count": 4
+    },
+    {
+      "provider": "kma_mid_forecast",
+      "oldest": "2026-09-13 18:00:00+09:00",
+      "newest": "2026-09-13 18:00:00+09:00",
+      "count": 1
+    },
+    {
+      "provider": "kma_nowcast",
+      "oldest": "2026-09-13 23:00:00+09:00",
+      "newest": "2026-09-13 23:00:00+09:00",
+      "count": 2
+    },
+    {
+      "provider": "kma_short_forecast",
+      "oldest": "2026-09-14 00:00:00+09:00",
+      "newest": "2026-09-18 00:00:00+09:00",
+      "count": 81
+    },
+    {
+      "provider": "kma_ultra_forecast",
+      "oldest": "2026-09-13 23:00:00+09:00",
+      "newest": "2026-09-14 04:00:00+09:00",
+      "count": 6
+    },
+    {
+      "provider": "koem_water_quality",
+      "oldest": "2025-02-16 00:00:00+09:00",
+      "newest": "2025-11-20 00:00:00+09:00",
+      "count": 108
+    },
+    {
+      "provider": "nier_water_quality",
+      "oldest": "2026-07-06 00:00:00+09:00",
+      "newest": "2026-07-14 00:00:00+09:00",
+      "count": 6
+    }
+  ],
+  "revision_states": [
+    {
+      "provider": "hrfco_waterlevel",
+      "state": "recorded",
+      "count": 12
+    },
+    {
+      "provider": "khoa_beach",
+      "state": "recorded",
+      "count": 24
+    },
+    {
+      "provider": "khoa_buoy_recent",
+      "state": "recorded",
+      "count": 3
+    },
+    {
+      "provider": "khoa_buoy_recent",
+      "state": "stale",
+      "count": 1
+    },
+    {
+      "provider": "khoa_rip_current",
+      "state": "recorded",
+      "count": 7
+    },
+    {
+      "provider": "khoa_surfing",
+      "state": "recorded",
+      "count": 48
+    },
+    {
+      "provider": "khoa_tide_extrema",
+      "state": "recorded",
+      "count": 20
+    },
+    {
+      "provider": "khoa_tide_level",
+      "state": "recorded",
+      "count": 145
+    },
+    {
+      "provider": "khoa_tide_level",
+      "state": "stale",
+      "count": 4
+    },
+    {
+      "provider": "khoa_tide_level",
+      "state": "superseded",
+      "count": 1
+    },
+    {
+      "provider": "khoa_tide_recent",
+      "state": "recorded",
+      "count": 3
+    },
+    {
+      "provider": "khoa_tide_recent",
+      "state": "stale",
+      "count": 1
+    },
+    {
+      "provider": "khoa_water_temperature",
+      "state": "recorded",
+      "count": 3
+    },
+    {
+      "provider": "khoa_water_temperature",
+      "state": "stale",
+      "count": 1
+    },
+    {
+      "provider": "khoa_waves",
+      "state": "recorded",
+      "count": 3
+    },
+    {
+      "provider": "khoa_waves",
+      "state": "stale",
+      "count": 1
+    },
+    {
+      "provider": "kma_aws",
+      "state": "recorded",
+      "count": 2
+    },
+    {
+      "provider": "kma_buoy",
+      "state": "recorded",
+      "count": 2
+    },
+    {
+      "provider": "kma_buoy",
+      "state": "superseded",
+      "count": 2
+    },
+    {
+      "provider": "kma_mid_forecast",
+      "state": "recorded",
+      "count": 1
+    },
+    {
+      "provider": "kma_nowcast",
+      "state": "recorded",
+      "count": 1
+    },
+    {
+      "provider": "kma_nowcast",
+      "state": "superseded",
+      "count": 1
+    },
+    {
+      "provider": "kma_short_forecast",
+      "state": "recorded",
+      "count": 81
+    },
+    {
+      "provider": "kma_ultra_forecast",
+      "state": "recorded",
+      "count": 5
+    },
+    {
+      "provider": "kma_ultra_forecast",
+      "state": "stale",
+      "count": 1
+    },
+    {
+      "provider": "koem_water_quality",
+      "state": "stale",
+      "count": 108
+    },
+    {
+      "provider": "nier_water_quality",
+      "state": "stale",
+      "count": 6
+    }
+  ],
+  "verification": {
+    "backend_tests": 104,
+    "frontend_tests": 12,
+    "backend_ruff": "passed",
+    "frontend_lint_build": "passed",
+    "compose_yaml": "parsed; dependencies checked",
+    "docker_execution": "not run: Docker unavailable on this Mac",
+    "browser": "real DB tables, job states, old demo URL normalization verified"
+  },
+  "production_deployed": false
+}

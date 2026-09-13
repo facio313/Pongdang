@@ -11,7 +11,7 @@ from app.data_reader import CATALOG
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 4
+VERSION = 5
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -53,9 +53,14 @@ def initialize(settings: Settings) -> bool:
             if row in {(1,), (2,)}:
                 migrate_collection(connection)
                 migrate_water_index(connection)
+                migrate_features(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
+                migrate_features(connection)
+                return True
+            if row == (4,):
+                migrate_features(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -107,7 +112,30 @@ def initialize(settings: Settings) -> bool:
         )
         migrate_collection(connection)
         migrate_water_index(connection)
+        migrate_features(connection)
     return True
+
+
+def migrate_features(connection):
+    """Explicit v4 -> v5 additive feature tables; never run during HTTP/startup."""
+    from app.ai.service import migrate_ai
+    from app.forecast.migrations import migrate_forecast
+    from app.livecams.service import migrate_livecams
+    from app.notifications.migrations import migrate as migrate_notifications
+    from app.quality.migrations import migrate as migrate_quality
+    from app.tides.storage import migrate_tides
+    from app.water_index.producer import migrate_assessment_producer
+    from app.water_index.sources import migrate_assessment_sources
+
+    migrate_assessment_sources(connection)
+    migrate_assessment_producer(connection)
+    migrate_forecast(connection)
+    migrate_tides(connection)
+    migrate_livecams(connection)
+    migrate_notifications(connection)
+    migrate_quality(connection)
+    migrate_ai(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=5 WHERE id=1")
 
 
 def migrate_collection(connection):

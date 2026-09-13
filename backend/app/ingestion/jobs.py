@@ -8,5 +8,6 @@ from app.ingestion.models import SourceBatch
 class Job:
     name: str
     interval_seconds: int
-    fetch: Callable[[], SourceBatch]
+    fetch: Callable[[], SourceBatch] | None = None
     enabled: bool = True
+    process: Callable[[], dict] | None = None

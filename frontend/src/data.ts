@@ -25,17 +25,7 @@ export interface Dataset {
   latest_at?: string | null;
 }
 export interface Summary {
-  is_demo?: boolean;
   database?: string;
-  demo_manifest?: {
-    version: string;
-    created_at: string;
-    notice: string;
-    scenarios: { key: string; label: string }[];
-    reference_spots: { id: number; name: string }[];
-    counts: Record<string, number>;
-    limitations: string[];
-  };
   queried_at: string;
   datasets: Dataset[];
   heartbeat: {
@@ -97,15 +87,20 @@ export function text(value: Cell | undefined, type?: string): string {
   return String(value);
 }
 export const labels: Record<string, string> = {
-  demo: "합성 더미 (실제 수집 아님)",
   stale: "활동 신호 오래됨",
   running: "실행 중",
+  idle: "대기 중",
+  pending: "실행 대기",
   starting: "시작 중",
   stopped: "중지 기록",
   degraded: "일부 작업 실패",
   succeeded: "성공",
   failed: "실패",
   skipped: "건너뜀",
+  no_data: "정상 응답 · 대상 자료 없음",
+  disabled: "비활성화",
+  superseded: "이전 수정본 (이력 보존)",
+  recorded: "수집 기록",
   unknown: "판단 불가",
   missing: "근거 없음",
   unavailable: "제공 불가",

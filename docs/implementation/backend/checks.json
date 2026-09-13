@@ -1,0 +1,98 @@
+{
+  "checked_at": "2026-09-13T19:26:38.964924+00:00",
+  "backend": {
+    "python": "3.14.4",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "formatted_files": 92,
+    "tests_passed": 413,
+    "tests_failed": 0,
+    "tests_skipped": 0,
+    "warnings": [
+      "Starlette TestClient httpx deprecation",
+      "AnyIO BlockingPortal alias deprecation"
+    ],
+    "runtime": "/tmp/pongdang-runtime-20260914",
+    "dependency_lock": "backend/uv.lock; installed versions match; win32-only colorama/tzdata excluded on macOS"
+  },
+  "frontend": {
+    "node": "24.20.0",
+    "lint": "passed",
+    "tests_passed": 20,
+    "tests_failed": 0,
+    "build": "passed",
+    "base_path": "/pongdang/",
+    "validation_source": "/tmp/pongdang-goal-frontend",
+    "copied_inputs": 37,
+    "source_hash_match": true,
+    "package_lock_unchanged": true
+  },
+  "database": {
+    "postgres_major": 18,
+    "host": "127.0.0.1",
+    "port": 55439,
+    "database": "pongdang_test",
+    "isolation": "dedicated disposable cluster; production and existing collector database unused",
+    "schema_version": 5,
+    "v4_to_v5_preserves_existing_evidence": "passed",
+    "migration_second_run": "already initialized"
+  },
+  "worker": {
+    "feature_jobs": 5,
+    "idempotent_forced_projection": {
+      "forecast_projection_inserted": 0,
+      "water_index_evaluation_inserted": 0
+    },
+    "second_process_not_due_jobs": 0,
+    "health_exit_code": 0,
+    "restart_lock_due_backoff_tests": "passed"
+  },
+  "official_data": {
+    "report": "live-verification.json",
+    "fresh_calls": 3,
+    "records": {
+      "kma_short_forecast": 78,
+      "khoa_water_temperature": 26,
+      "khoa_tide_extrema": 20
+    },
+    "http_checks": 18,
+    "http_all_200": true,
+    "test_only_persistence": true,
+    "first_failed_tide_capture_retained": "live-verification-first.json"
+  },
+  "frontend_browser": {
+    "actual_local_backend": true,
+    "checked_pages": [
+      "water-index",
+      "water-index-map",
+      "water-forecast",
+      "livecam",
+      "tide",
+      "first-swim",
+      "water-quality"
+    ],
+    "final_dom_recheck": [
+      "water-forecast",
+      "water-index-map"
+    ],
+    "menu_links": 10,
+    "horizontal_overflow": false,
+    "new_ui_added": false,
+    "preserved_css_count": 8
+  },
+  "prefix_http": "prefix-verification.json",
+  "openapi": {
+    "paths": 22,
+    "schemas": 66,
+    "file": "openapi.json"
+  },
+  "not_run": {
+    "standalone_compose_smoke": "Docker executable/runtime unavailable; existing CI smoke retained",
+    "production_deploy": "outside authorized goal scope",
+    "real_notifications": "explicitly prohibited during development",
+    "real_llm_calls": "provider/model/pricing activation absent",
+    "numeric_water_index_validation": "numeric environment model unimplemented; parameters/evidence and scientific validation incomplete",
+    "live_video_validation": "no reviewed real camera; HEAD reachability does not prove live"
+  },
+  "source_audit": "source-verification.json"
+}
