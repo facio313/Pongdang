@@ -1,0 +1,13 @@
+{
+  "query_id": "sw-o16",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=67092&menuSeq=971",
+  "lineno": 585,
+  "note": "원문 전문 미재배포. 관련 위치는 주장 CSV에 기록.",
+  "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=67092&menuSeq=971",
+  "title": "이안류/해양레저 서비스 안내",
+  "access_status": "full_text_checked",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인"
+}

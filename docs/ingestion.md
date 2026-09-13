@@ -1,57 +1,84 @@
-# Pongdang 수집 개발 안내
+# 실제 API 수집과 저장
 
-## 현재 범위
+## 실행 구조
 
-구현된 것은 공급자 중립 공통 수집 계약과 저장 경로다. 기존 API 어댑터·스케줄러·평가
-엔진을 이전한 상태가 아니다. API 교체 계획에 따라 제공처와 주기는 추후 선정한다.
-실제 API 호출은 현재 없으며, JSON 가져오기는 운영자가 검증한 정규화 근거를 저장하는
-도구다. 임의 JSON을 공식 관측으로 검증하거나 보증하는 기능이 아니다.
+`app.ingestion.worker`는 FastAPI와 별도 프로세스다. `weather_jobs`, `marine_jobs`,
+`water_jobs`, `place_jobs`가 공식 제공처의 동기 어댑터를 등록한다. 앱 시작이나
+HTTP 조회가 외부 수집·시드·쓰기 작업을 실행하지 않는다.
 
-`Provider.fetch() -> Batch`를 구현하면 `collect(settings, provider)`가 다음 단계를 처리한다.
+- 기상 실황·특보·부이: 5~10분
+- 초단기예보: 30분, 단기·중기예보: 1시간
+- 해양 최신 관측 및 이안류: 제공처별 짧은 주기
+- 해양 예측·수질·관측소·장소 카탈로그: 각 작업의 등록 주기
 
-1. 공통 계약 검증: 제한된 크기·필드·유한 수치·타임존·중복 레코드/지표
-2. 자체 PostgreSQL의 실제 장소 ID 참조 확인
-3. 스냅샷 → 지표 → 배치 중복 방지 기록 → 성공 이력을 한 트랜잭션에 저장
-4. `/api/data`에서 동일 조회 UI로 표시
+정확한 현재 간격은 `/api/data/datasets/collection-jobs`의 `interval_seconds`와
+`next_run_at`이 기준이다. 누락된 키는 `disabled`로 남으며 값을 생성하지 않는다.
+일반 갱신 실패는 지수 백오프(최대24시간)하고 다른 작업을 계속 실행한다.
+매 작업은 공식 HTTPS 주소·응답크기·요청 수를 제한하며 인증값/원본 응답/예외본문을
+로그나 조회 테이블에 남기지 않는다.
 
-API 주소·인증·요청 타임아웃·페이지 수·할당량·원본 응답 해석은 어댑터 책임이다.
-어댑터는 SQL/UI에 의존하지 않는다. 응답 전체나 인증 정보를 공통 레코드에 넣지 않는다.
-자동 재시도/주기 실행은 기본 제공하지 않는다. 제공처 선정 후 상한과 정책을 함께 결정한다.
-실패는 호출자에게 반환하며 성공 이력이나 유효 기간을 갱신하지 않는다.
-현재 실패 로그/스케줄러 상태 저장은 미구현이다.
+## 자료와 테이블
 
-## 데이터 계약
-
-| 객체 | 필수 내용 |
+| 테이블 | 의미 |
 |---|---|
-| Batch | provider, batch_key, adapter_version, observations (1~100개) |
-| Observation | record_id, spot_id, observed_at, fetched_at, valid_until, spatial_scope, metrics (1~100개) |
-| Metric | name, numeric_value 또는 NULL, unit, mode (observation/forecast) |
+| `spots_waterspot` | 실제 제공처 장소 및 관측 지점의 공통 참조 |
+| `collection_station` | 원본 관측소 ID, 이름, 좌표, 기준면과 제공처 |
+| `conditions_observationsnapshot` | 관측 또는 예보 대상시각·발표시각·원본 ID·수집 버전 |
+| `conditions_observationmetric` | 숫자/문자 지표, 단위, 원본 결측 상태, 유효기간 |
+| `collection_warning` | 공식 기상특보 발표 이력. 현재 발효 상태와 구분 |
+| `collection_place` | 관광·장소 API의 원본 ID, 분류, 좌표, 주소 |
+| `collection_job` | 작업별 상태, 다음 실행, 실패 횟수, 수신·신규 저장 수 |
+| `conditions_ingestionrun` | 실행별 성공·실패·빈 응답 이력 |
+| `conditions_pipelineheartbeat` | 실행기의 최근 활동 시각 |
 
-`numeric_value=NULL`은 누락이다. 값이 있고 만료되지 않았으면 `recorded`, 만료됐으면
-`stale`로 저장한다. `recorded`는 저장됐다는 뜻이며 안전함이나 검증된 실시간 관측이라는
-보장이 아니다. 조회자는 보존된 유효 종료 시각도 확인해야 한다.
-실측 시각은 수집 시각보다 미래일 수 없고 예보는 대상 시각과 원본의 의미를 보존한다.
-원본 유효 기간을 가져온 시각 기준으로 임의 연장하지 않는다.
+`SourceBatch`는 정규화된 공개 자료만 담는다. 숫자 결측과 정상 문자 자료를 구별하고
+단위나 발표시각이 제공되지 않으면 NULL/빈 단위를 보존한다. 예보 목표시각을
+발표시각으로 꾸미거나 가져온 시각으로 관측 유효기간을 늘리지 않는다.
 
-`provider + batch_key`가 같고 내용도 같으면 재처리는 아무것도 변경하지 않는다.
-같은 키에 다른 내용이 들어오면 거부한다. 동일 제공처 레코드/장소도 중복 삽입하지 않는다.
-점수·안전 상태·예보 결과·시설 정보는 이 도구가 생성하지 않는다.
-더미 제공처는 거부하며 실험 데이터는 `pongdang_demo`에만 넣는다.
+스냅샷의 원본 ID와 내용 해시로 중복을 막는다. 동일 자료를 다시 받아도 원래의
+수집·만료시각을 유지한다. 제공처가 같은 ID의 내용을 고친 경우 새 버전을 추가하고
+이전 버전은 `superseded`로 남긴다. 관측소/장소 카탈로그는 원본 ID로 갱신한다.
+각 배치는 한 트랜잭션에 저장되어 실패하면 부분 삽입되지 않는다.
 
-## 명시적 실행
+메타데이터만 있고 실제 관측이 없으면 `no_data`다. 관측소 목록 자체를 가져오는
+전용 카탈로그 작업만 메타데이터 수신을 자료 수신으로 취급한다.
+카카오 검색 최대75개, 관광정보 최대500개 등 조회 범위 제한은 `partial`이다.
+`records_received`에는 관측소 등 메타데이터도 포함되므로 관측 행 수와 다를 수 있다.
+만료 자료는 조회 시 `stale`로 표시한다. 저장 성공은 안전 판정이 아니다.
 
-먼저 `python -m app.schema --initialize`로 자체 DB에 빈 스키마를 준비한다.
-실제 장소 카탈로그 등록은 API 선정 시 구현해야 한다. 현재 자동 장소 복사나
-레거시 데이터 이관은 하지 않으며 관측의 spot_id가 없으면 전체 배치를 거부한다.
+## 주기 실행과 재시작
 
-검증된 입력 JSON을 준비한 운영자만 아래 명령을 실행한다. 파일 크기 상한은 1 MB다.
-HTTP 업로드 API나 외부 URL을 읽는 기능은 제공하지 않는다.
+다음 시각과 연속 실패 횟수는 DB에 보존된다. 재시작해도 모든 API를 다시 호출하지
+않는다. 작업별 PostgreSQL session advisory lock으로 여러 worker의 중복 실행을
+방지한다. 한 작업의 실패가 다른 작업의 저장을 중단시키지 않는다.
 
 ```bash
 cd backend
-uv run python -m app.ingestion --file /absolute/path/observations.json --confirm-live-import
+uv run python -m app.schema --initialize --remove-demo
+uv run python -m app.ingestion.worker
+# 특정 작업만 즉시 재확인
+uv run python -m app.ingestion.worker --once --force --job kma_aws
+# 최근 heartbeat 확인
+uv run python -m app.ingestion.health
 ```
 
-테스트 예시는 `backend/tests/test_ingestion.py`에 있으며 폐기 가능한 테스트 DB에서만
-사용한다. 운영 DB에 테스트·더미 관측을 가져오지 않는다.
+기존 공급자 중립 `Batch` JSON의 명시적 운영자 가져오기 도구는 유지한다.
+그 도구와 달리 실제 수집기는 `SourceBatch`와 `store_batch`를 사용한다.
+
+## DB 이전과 더미 제거
+
+스키마 v1/v2→v3 이전은 실제 자료를 보존하며 관측소·특보·장소·작업 테이블과 출처 열을
+추가한다. `--remove-demo`는 명시적으로 `pongdang_demo`만 제거하며 재실행 가능하다.
+더미 생성 모듈과 더미 API는 은퇴했다. 수집 실패 시 합성 데이터 대체는 없다.
+다른 스키마·공유 DB·안전 평가 데이터는 생성하거나 변경하지 않는다.
+
+## 제공처 문서
+
+- [기상청 단기예보](https://www.data.go.kr/data/15084084/openapi.do)
+- [기상청 특보](https://www.data.go.kr/data/15000415/openapi.do)
+- [기상청 API허브](https://apihub.kma.go.kr/)
+- [국립해양조사원 관측부이](https://www.data.go.kr/data/15155516/openapi.do)
+- [해양환경공단 관측](https://www.data.go.kr/data/15059973/openapi.do)
+- [카카오 로컬 API](https://developers.kakao.com/docs/ko/local/dev-guide)
+
+승인되지 않은 추가 API 목록과 실호출 확인 기록은 `api-recheck3-2026-09-14.md`에 있다.

@@ -1,0 +1,195 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q04",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "갯벌 체험 조석 안전 고립 연구",
+      "returned_count": "15"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn13search0",
+      "return_order": 1,
+      "query_id": "ac-q04",
+      "title": "갯벌 - 한국민족문화대백과사전",
+      "url": "https://encykorea.aks.ac.kr/Article/E0080761",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search1",
+      "return_order": 2,
+      "query_id": "ac-q04",
+      "title": "주말새 갯벌 고립·표류 잇따라…\"대조기 기간 안전 주의\" | 연합뉴스",
+      "url": "https://www.yna.co.kr/amp/view/AKR20260831091100063",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search12",
+      "return_order": 3,
+      "query_id": "ac-q04",
+      "title": "석사학위논문   해양안전 체험교육 개선  방안에 관한 연구  - 해양경찰교육원을 중심으로",
+      "url": "https://dspace.hansung.ac.kr/bitstream/2024.oak/10632/2/TH_N1A3A3_%ED%95%B4%EC%96%91%EC%95%88%EC%A0%84%20%EC%B2%B4%ED%97%98%EA%B5%90%EC%9C%A1%20%EA%B0%9C%EC%84%A0%20%EB%B0%A9%EC%95%88%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%97%B0%EA%B5%AC%20.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search2",
+      "return_order": 4,
+      "query_id": "ac-q04",
+      "title": "조석 가이드 - 조석의 원리, 조석표 읽기, 갯벌 안전 | TideTimes Global",
+      "url": "https://tidetimesglobal.com/ko/guide/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search13",
+      "return_order": 5,
+      "query_id": "ac-q04",
+      "title": "※ 갯벌 체험활동 안전 점검 체크 리스트",
+      "url": "https://sjeec.or.kr/migration/2023/03/29/1062731775_K7uxsCwe_1a6d8ed861d14116d471611e66d3038776738a87.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search3",
+      "return_order": 6,
+      "query_id": "ac-q04",
+      "title": "인천해양경찰서",
+      "url": "https://kcg.go.kr/inchoncgs/na/ntt/selectNttInfo.do?nttSn=68060",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S07",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search4",
+      "return_order": 7,
+      "query_id": "ac-q04",
+      "title": "갯벌·갯바위 안전 수칙 — 물때를 모르면 위험합니다 | 물때in",
+      "url": "https://ofkorea.kr/guide/safety",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search5",
+      "return_order": 8,
+      "query_id": "ac-q04",
+      "title": "인천해양경찰서",
+      "url": "https://www.kcg.go.kr/inchoncgs/na/ntt/selectNttInfo.do?nttSn=69789",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search6",
+      "return_order": 9,
+      "query_id": "ac-q04",
+      "title": "인천해양경찰서",
+      "url": "https://www.kcg.go.kr/inchoncgs/na/ntt/selectNttInfo.do?nttSn=71130",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search7",
+      "return_order": 10,
+      "query_id": "ac-q04",
+      "title": "물때표 보는 법 및 조석 정보 완벽 해석 (낚시·해루질·갯벌체험 필수 지식) - 므브프 블로그",
+      "url": "https://mvpworld.kr/%EB%AC%BC%EB%95%8C%ED%91%9C-%EB%B3%B4%EB%8A%94-%EB%B2%95-%EB%B0%8F-%EC%A1%B0%EC%84%9D-%EC%A0%95%EB%B3%B4-%EC%99%84%EB%B2%BD-%ED%95%B4%EC%84%9D-%EB%82%9A%EC%8B%9C%C2%B7%ED%95%B4%EB%A3%A8%EC%A7%88/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search8",
+      "return_order": 11,
+      "query_id": "ac-q04",
+      "title": "하전마을 갯벌체험 시간 | 물때표·체험지수",
+      "url": "https://info.koreacharts.com/mudflat/10018/contents.html?date=2026-09-03",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search9",
+      "return_order": 12,
+      "query_id": "ac-q04",
+      "title": "경기도 어촌 체험 마을 안전 가이드, 바닷가 안전사고 예방 파수꾼",
+      "url": "https://gnews.gg.go.kr/briefing/brief_gongbo_view.do?BS_CODE=S017&number=58085&subject_Code=null",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search10",
+      "return_order": 13,
+      "query_id": "ac-q04",
+      "title": "하전마을 갯벌체험 시간 | 물때표·체험지수",
+      "url": "https://info.koreacharts.com/mudflat/10018/contents.html?date=2026-08-31",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search11",
+      "return_order": 14,
+      "query_id": "ac-q04",
+      "title": "전국 주요 갯벌체험지 포인트 18곳 | 갯벌체험지수·체험시간 정보",
+      "url": "https://info.koreacharts.com/mudflat.html",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn13search14",
+      "return_order": 15,
+      "query_id": "ac-q04",
+      "title": "[ 2-4 ] 갯벌 체험 활동 안전관리 강화",
+      "url": "https://eaaflyway.net/wp-content/uploads/2021/11/%EC%A0%9C1%EC%B0%A8-%EA%B0%AF%EB%B2%8C-%EB%93%B1%EC%9D%98-%EA%B4%80%EB%A6%AC-%EB%B0%8F-%EB%B3%B5%EC%9B%90-%EA%B8%B0%EB%B3%B8%EA%B3%84%ED%9A%8D2021_2025.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

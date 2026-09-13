@@ -1,0 +1,372 @@
+[
+  {
+    "query_id": "ac-o01",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.mdpi.com/2073-4433/12/3/293",
+    "study_id": "AC-S02",
+    "access_status": "fetch_failed",
+    "note": "429; 후속 Exa로 복구",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o02",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://site-media.americanwhitewater.org/Document_516.pdf",
+    "study_id": "AC-S03",
+    "access_status": "full_text_checked",
+    "note": "PDF pp121–127; 방법·평가결과",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o03",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.sciencedirect.com/science/article/pii/S0306456519300750",
+    "study_id": "AC-S04",
+    "access_status": "fetch_failed",
+    "note": "Internal Error",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o04",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/24736778/",
+    "study_id": "AC-S01",
+    "access_status": "empty_response",
+    "note": "0 lines; Plymouth 초록으로 보완",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o05",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.kcg.go.kr/inchoncgs/na/ntt/selectNttInfo.do?nttSn=69789",
+    "study_id": "",
+    "access_status": "fetch_failed",
+    "note": "Internal Error; 다른 발령문 조회",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o06",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.mdpi.com/2073-4433/12/3/293/htm",
+    "study_id": "AC-S02",
+    "access_status": "fetch_failed",
+    "note": "tool non-retryable URL error",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o07",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://researchportal.plymouth.ac.uk/en/publications/the-effect-of-wave-conditions-and-surfer-ability-on-performance-a/",
+    "study_id": "AC-S01",
+    "access_status": "abstract_only",
+    "note": "공식 연구기관 초록·서지 확인; 본문 링크 없음",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o08",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.sciencedirect.com/science/article/abs/pii/S0306456519300750",
+    "study_id": "AC-S04",
+    "access_status": "fetch_failed",
+    "note": "403 Forbidden",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o09",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://kcg.go.kr/inchoncgs/na/ntt/selectNttInfo.do?nttSn=68060",
+    "study_id": "AC-S07",
+    "access_status": "full_text_checked",
+    "note": "2026.03.27 발령문 본문; 적용기간·안전수칙",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o10",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://site-media.americanwhitewater.org/Document_516.pdf",
+    "study_id": "AC-S03",
+    "access_status": "full_text_checked",
+    "note": "open lineno500; pp125–131 평가·토의; n128 본문을 채택",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o11",
+    "date": "2026-09-14",
+    "source": "web.screenshot",
+    "url": "https://site-media.americanwhitewater.org/Document_516.pdf",
+    "study_id": "AC-S03",
+    "access_status": "fetch_failed",
+    "note": "screenshot pageno4 Internal Error",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o12",
+    "date": "2026-09-14",
+    "source": "web.screenshot",
+    "url": "https://site-media.americanwhitewater.org/Document_516.pdf",
+    "study_id": "AC-S03",
+    "access_status": "fetch_failed",
+    "note": "screenshot pageno6 Internal Error",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o13",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.tesisenred.net/bitstream/handle/10803/687266/TESI%20Anna%20Boqu%C3%A9%20Ciurana.pdf?isAllowed=y&sequence=1",
+    "study_id": "AC-S02",
+    "access_status": "empty_response",
+    "note": "원문대신 image1줄; 동일논문 재수록 후보",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o14",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/view/9793",
+    "study_id": "AC-S06",
+    "access_status": "abstract_only",
+    "note": "출판사 초록과 원문링크 확인",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o15",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/31128663/",
+    "study_id": "AC-S04",
+    "access_status": "empty_response",
+    "note": "0 lines; Waseda 초록으로 보완",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o16",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/9737754/",
+    "study_id": "AC-S05",
+    "access_status": "abstract_only",
+    "note": "Methods/Results/Conclusions 및 서지; 전문미확보",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o17",
+    "date": "2026-09-14",
+    "source": "Exa.web_fetch (root assistance)",
+    "url": "https://www.mdpi.com/2073-4433/12/3/293",
+    "study_id": "AC-S02",
+    "access_status": "full_text_checked",
+    "note": "부모가 Exa fetch(maxCharacters75000) 실행; 본 에이전트가 캐시 §2–3.3 실제열람",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o18",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/view/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "pdf_wrapper_only",
+    "note": "PDF다운로드 링크 확인",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o19",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/download/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "full_text_checked",
+    "note": "§2방법·§3결과; 총응답/유효응답 구분",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o20",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/download/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "full_text_checked",
+    "note": "find 4.1.; Table3후반 결과",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o20b",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/download/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "full_text_checked",
+    "note": "find 24%; Table1 고난도 귀환문항",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o20c",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/download/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "full_text_checked",
+    "note": "find experienced tidal cut off; §3.3 자기보고사건",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o21",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.cogitatiopress.com/oceanandsociety/article/download/9793/4313",
+    "study_id": "AC-S06",
+    "access_status": "full_text_checked",
+    "note": "open lineno600; Table3 및 §4; 2022각주/2023윤리승인 불일치 발견",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o22",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/27887836/",
+    "study_id": "AC-S08",
+    "access_status": "abstract_only",
+    "note": "수심·현지가이드곡선·일내변동 재구성",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o23",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.sciencedirect.com/science/article/abs/pii/S0048969716324895",
+    "study_id": "AC-S08",
+    "access_status": "fetch_failed",
+    "note": "403 Forbidden",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o24",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://waseda.elsevierpure.com/en/publications/thermal-and-cardiovascular-responses-and-thermal-sensation-during/",
+    "study_id": "AC-S04",
+    "access_status": "abstract_only",
+    "note": "두 방온도×동일물온도 실험 초록 및 서지",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o25",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://iris.unitn.it/handle/11572/177725",
+    "study_id": "AC-S08",
+    "access_status": "metadata_only",
+    "note": "파일은 Solo gestori archivio/All rights reserved; 전문 미열람",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o26",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.research-collection.ethz.ch/handle/20.500.11850/125471",
+    "study_id": "AC-S08",
+    "access_status": "fetch_failed",
+    "note": "400 Timeout fetching",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o27",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.mdpi.com/2071-1050/14/14/8496",
+    "study_id": "AC-S09",
+    "access_status": "fetch_failed",
+    "note": "429 Too Many Requests",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o28",
+    "date": "2026-09-14",
+    "source": "Exa.web_fetch (root assistance)",
+    "url": "https://www.mdpi.com/2071-1050/14/14/8496",
+    "study_id": "AC-S09",
+    "access_status": "full_text_checked",
+    "note": "부모 Exa fetch(maxCharacters75000); 본 에이전트 §3–6/식1–2/Table2–3 실제열람; units용어검색",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o29",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://www.jstor.org/stable/25736206",
+    "study_id": "",
+    "access_status": "empty_response",
+    "note": "Hutt2001 원문추적; Google Tag Manager1줄; 효과미추출",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o30",
+    "date": "2026-09-14",
+    "source": "web.open/click",
+    "url": "https://ref.coastalrestorationtrust.org.nz/documents/classification-of-surf-breaks-in-relation-to-surfing-skill/",
+    "study_id": "",
+    "access_status": "metadata_only",
+    "note": "Hutt 저자/제목/연도/쪽수 확인; not available electronically",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o31",
+    "date": "2026-09-14",
+    "source": "web.open",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/22661009/",
+    "study_id": "AC-S10",
+    "access_status": "abstract_only",
+    "note": "PubMed 초록/서지; 3해변 하루3회·수개월 관측",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o32",
+    "date": "2026-09-14",
+    "source": "web.open",
+    "url": "https://link.springer.com/article/10.1007/s00484-012-0556-4",
+    "study_id": "AC-S10",
+    "access_status": "abstract_only",
+    "note": "출판사 구독콘텐츠 미리보기; 원문방법/결과 접근불가",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o33",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://link.springer.com/article/10.1007/s00484-012-0556-4",
+    "study_id": "AC-S10",
+    "access_status": "abstract_only",
+    "note": "find Access this article; 구독벽 확인",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o34",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://link.springer.com/article/10.1007/s00484-012-0556-4",
+    "study_id": "AC-S10",
+    "access_status": "abstract_only",
+    "note": "find Abstract; 노출변수·방문객관측 결과 확인",
+    "returned_count": 1
+  },
+  {
+    "query_id": "ac-o35",
+    "date": "2026-09-14",
+    "source": "web.find",
+    "url": "https://link.springer.com/article/10.1007/s00484-012-0556-4",
+    "study_id": "AC-S10",
+    "access_status": "abstract_only",
+    "note": "find Methods; 방법본문 없이 초록·서지·Notes만 반환",
+    "returned_count": 1
+  }
+]

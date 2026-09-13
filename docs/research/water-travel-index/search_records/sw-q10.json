@@ -1,0 +1,207 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q10",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"The determinants of thermal comfort in cool water\"",
+      "returned_count": "16"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25440756/",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water - Guéritée - 2015 - Scandinavian Journal of Medicine & Science in Sports - Wiley Online Library",
+      "url": "https://onlinelibrary.wiley.com/doi/full/10.1111/sms.12360",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water - University of Portsmouth",
+      "url": "https://researchportal.port.ac.uk/en/publications/the-determinants-of-thermal-comfort-in-cool-water/",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water - Guéritée - 2015 - Scandinavian Journal of Medicine & Science in Sports - Wiley Online Library",
+      "url": "https://onlinelibrary.wiley.com/doi/abs/10.1111/sms.12360",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q10",
+      "title": "Running Head: Thermal comfort in cool water",
+      "url": "https://researchportal.port.ac.uk/files/1938122/The_determinants_of_thermal_comfort_in_cool_water.pdf",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water | Request PDF",
+      "url": "https://www.researchgate.net/publication/269041296_The_determinants_of_thermal_comfort_in_cool_water",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water - Fingerprint - University of Portsmouth",
+      "url": "https://researchportal.port.ac.uk/en/publications/the-determinants-of-thermal-comfort-in-cool-water/fingerprints/",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q10",
+      "title": "Environmental Thermal Neurophysiology: The determinants of thermal comfort in cool water",
+      "url": "https://environmental-exercise-physiology.blogspot.com/2015/01/the-determinants-of-thermal-comfort-in.html",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q10",
+      "title": "Julien GUÉRITÉE | PhD | Research profile",
+      "url": "https://www.researchgate.net/profile/Julien-Gueritee",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q10",
+      "title": "The determinants of thermal comfort in cool water",
+      "url": "https://openalex.org/W1896976935",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S02",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q10",
+      "title": "Search Results - \"Tipton P\" :: Library Catalog",
+      "url": "https://iris.sena.edu.co/EDS/Search?dfApplied=1&filter%5B%5D=EXPAND%3A%22fulltext%22&filter%5B%5D=SubjectEDS%3A%22skin+temperature%22&lookfor=%22Tipton+P%22&type=AU",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q10",
+      "title": "Thermal comfort zone of the hands, feet and head in males and females - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0031938417302202",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q10",
+      "title": "Jim House - Maritime and Coastguard Agency | LinkedIn",
+      "url": "https://uk.linkedin.com/in/jim-house-93884917",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q10",
+      "title": "Thermal comfort during and following",
+      "url": "https://researchportal.port.ac.uk/files/5924262/Thermal_comfort_during_and_following_water_immersion_in_humans_PhD_Thesis_Julien_Gu_rit_e.pdf",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q10",
+      "title": "(Microsoft Word - Thermal comfort during and following water immersion in humans - PhD Thesis - Julien Gu\\351rit\\351e)",
+      "url": "https://fileserver-az.core.ac.uk/download/pdf/77050170.pdf",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q10",
+      "title": "Published papers on Thermology or Temperature Measurement between 2014 and 2015",
+      "url": "https://www.eurothermology.org/TI_Volumes/Volume%205.1.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

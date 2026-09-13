@@ -1,0 +1,13 @@
+{
+  "query_id": "sw-o23",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://kscejournal.or.kr/jksce/XmlViewer/f450647",
+  "discovery": "parent agent/ac-q14",
+  "note": "원문 전문 미재배포.",
+  "url": "https://kscejournal.or.kr/jksce/XmlViewer/f450647",
+  "title": "국립해양조사원 이안류 위험지수의 통계적 평가 연구",
+  "access_status": "partial_text_checked",
+  "decision": "continue_reading",
+  "review_note": "순차방법/결과/토의열람sw-o23–25"
+}

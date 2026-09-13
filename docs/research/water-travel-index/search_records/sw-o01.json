@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o01",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://pure.port.ac.uk/ws/portalfiles/portal/2221257/Thermal_comfort_following_immersion.pdf",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://pure.port.ac.uk/ws/portalfiles/portal/2221257/Thermal_comfort_following_immersion.pdf",
+  "title": "Thermal comfort following immersion",
+  "access_status": "full_text_checked",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인"
+}

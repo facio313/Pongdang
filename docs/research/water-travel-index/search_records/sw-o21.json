@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o21",
+  "date": "2026-09-14",
+  "source": "web.open/click",
+  "query": "{\"open\":[{\"ref_id\":\"https://researchportal.port.ac.uk/en/publications/the-determinants-of-thermal-comfort-in-cool-water/\"}]}",
+  "note": "원문 전문 미재배포. 확인 위치는 근거 CSV에 기록.",
+  "url": "https://researchportal.port.ac.uk/en/publications/the-determinants-of-thermal-comfort-in-cool-water/",
+  "title": "The determinants of thermal comfort in cool water",
+  "access_status": "bibliographic_verified",
+  "decision": "metadata_verification",
+  "review_note": "원고와DOI/저널/연도대조"
+}

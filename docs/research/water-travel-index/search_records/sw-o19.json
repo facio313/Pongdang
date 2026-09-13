@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o19",
+  "date": "2026-09-14",
+  "source": "web.open/click",
+  "query": "{\"click\":[{\"ref_id\":\"turn57view0\",\"id\":16}]}",
+  "note": "원문 전문 미재배포. 확인 위치는 근거 CSV에 기록.",
+  "url": "https://www.weather.go.kr/w/hazard/safety-guide/lightning.do",
+  "title": "국민행동요령-낙뢰",
+  "access_status": "full_text_checked",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인"
+}

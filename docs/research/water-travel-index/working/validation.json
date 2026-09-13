@@ -1,0 +1,27 @@
+{
+  "checked_at_kst": "2026-09-14T02:12:16.857204+09:00",
+  "passed": true,
+  "issues": [],
+  "evidence_rows": 47,
+  "evidence_columns": 31,
+  "distinct_studies": 36,
+  "bib_entries": 39,
+  "bibliography_trace_only_entries": 3,
+  "log_rows": 909,
+  "record_types": {
+    "search_return": 800,
+    "retrieval_attempt": 95,
+    "metadata_lookup": 14
+  },
+  "checked_local_document_links": 33,
+  "baseline_files_checked": 97,
+  "changed_preexisting_files": [],
+  "branch": "feature/api",
+  "head": "d07cd23279808e74c1998d849c240a48e06d06d2",
+  "status_new_outside_research": [],
+  "status_missing_from_baseline": [],
+  "legacy_reviewed_files_checked": 27,
+  "legacy_changed_files": [],
+  "checks": "CSV structure/ID uniqueness; evidence-search joins; Bib study IDs/DOI joins; metadata file/return IDs; local document links; pre-existing file hashes/Git status; reviewed legacy file hashes",
+  "not_performed": "No product tests/build/lint, API/DB access, deployment or statistical meta-analysis. No independent duplicate study screening. No claim that external URLs remain permanently accessible."
+}

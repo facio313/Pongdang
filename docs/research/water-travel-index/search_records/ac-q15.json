@@ -1,0 +1,219 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q15",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"10.3390/su14148496\"",
+      "returned_count": "17"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn71search0",
+      "return_order": 1,
+      "query_id": "ac-q15",
+      "title": "Exploring the Climatic Potential of Somo’s Surf Spot for Tourist Destination Management",
+      "url": "https://www.mdpi.com/2071-1050/14/14/8496",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S09",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search1",
+      "return_order": 2,
+      "query_id": "ac-q15",
+      "title": "(PDF) Sustainability and Climate Services: Critique, Integration, and Reimagination",
+      "url": "https://www.researchgate.net/publication/372606311_Sustainability_and_Climate_Services_Critique_Integration_and_Reimagination",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search2",
+      "return_order": 3,
+      "query_id": "ac-q15",
+      "title": "Exploring the Climatic Potential of Somo's Surf Spot for Tourist Destination Management - Universitat Rovira i Virgili",
+      "url": "https://iris.urv.cat/es/ipublic/item/9280430",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S09",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search12",
+      "return_order": 4,
+      "query_id": "ac-q15",
+      "title": "[Sustainability] Sustainability and Climate Services Critique, Integration, and Reimagination.-reprint2.pdf",
+      "url": "https://mdpi-res.com/bookfiles/book/7510/Sustainability_and_Climate_Services_Critique_Integration_and_Reimagination.pdf?v=1780189673",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search3",
+      "return_order": 5,
+      "query_id": "ac-q15",
+      "title": "Sustainability | Special Issue : Sustainability and Climate Services: Critique, Integration, and Reimagination",
+      "url": "https://www.mdpi.com/journal/sustainability/special_issues/climate_service",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search4",
+      "return_order": 6,
+      "query_id": "ac-q15",
+      "title": "Full article: Climate change perceptions and experiences from tourists visiting popular destinations in South Africa",
+      "url": "https://www.tandfonline.com/doi/abs/10.1080/23311886.2024.2407024",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search5",
+      "return_order": 7,
+      "query_id": "ac-q15",
+      "title": "Exploring the Climatic Potential of Somo's Surf Spot for Tourist Destination Management",
+      "url": "https://repositori.urv.cat/estatic/PC0011/ca_imarina9280430.html",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S09",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search6",
+      "return_order": 8,
+      "query_id": "ac-q15",
+      "title": "Exploring the Climatic Potential ... preview & related info | Mendeley",
+      "url": "https://www.mendeley.com/catalogue/f10643b0-9ef2-3e41-976f-d9d8cd009ca4/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search13",
+      "return_order": 9,
+      "query_id": "ac-q15",
+      "title": "UNIVERSITAT ROVIRA I VIRGILI",
+      "url": "https://repositori.urv.cat/repositori/getDocument/TDX%3A4207?ds=Memoria&mime=application%2Fpdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search14",
+      "return_order": 10,
+      "query_id": "ac-q15",
+      "title": "[Sustainability] Sustainability and Climate Services Critique, Integration, and Reimagination.-reprint2.pdf",
+      "url": "https://mdpi-res.com/bookfiles/book/7510/Sustainability_and_Climate_Services_Critique_Integration_and_Reimagination.pdf?v=1708985117",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search7",
+      "return_order": 11,
+      "query_id": "ac-q15",
+      "title": "Información de la publicación",
+      "url": "https://web.unican.es/portal-investigador/en/publications/publication-detail?pi=ART16971",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search8",
+      "return_order": 12,
+      "query_id": "ac-q15",
+      "title": "Climate and Surfing | Encyclopedia MDPI",
+      "url": "https://encyclopedia.pub/entry/25479",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search9",
+      "return_order": 13,
+      "query_id": "ac-q15",
+      "title": "Journal articles: 'Spa climatic resort' – Grafiati",
+      "url": "https://www.grafiati.com/en/literature-selections/spa-climatic-resort/journal/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search15",
+      "return_order": 14,
+      "query_id": "ac-q15",
+      "title": "Special Issue Reprint",
+      "url": "https://mdpi-res.com/bookfiles/book/7510/Sustainability_and_Climate_Services_Critique_Integration_and_Reimagination.pdf?v=1748912770",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search16",
+      "return_order": 15,
+      "query_id": "ac-q15",
+      "title": "PROPUESTA DE",
+      "url": "https://accioclimatica.bibliotecadigital.gencat.cat/bitstream/handle/20.500.14343/1361/2025_Propuesta_Presupuestos_Carbono_Catalu%C3%B1a_2021_2035_SPA.pdf?isAllowed=y&sequence=4",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search10",
+      "return_order": 16,
+      "query_id": "ac-q15",
+      "title": "Climate and Surfing | Encyclopedia MDPI",
+      "url": "https://encyclopedia.pub/entry/history/show/61525",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn71search11",
+      "return_order": 17,
+      "query_id": "ac-q15",
+      "title": "Indicators for Assessing Sustainability in Mediterranean Tourism Destinations: A Systematic Review",
+      "url": "https://ouci.dntb.gov.ua/en/works/4YmrWNEq/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

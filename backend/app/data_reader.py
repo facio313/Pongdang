@@ -125,11 +125,13 @@ class DataReader:
                 providers = await (
                     await connection.execute(
                         self.scoped_query(
-                            "SELECT provider,state,count(*) AS count,"
+                            "SELECT provider,CASE WHEN state='recorded' "
+                            "AND valid_until<=now() THEN 'stale' ELSE state END AS "
+                            "state,"
+                            "count(*) AS count,"
                             "max(fetched_at) AS latest_at "
                             "FROM {schema}.conditions_observationsnapshot "
-                            "GROUP BY provider,state "
-                            "ORDER BY provider,state"
+                            "GROUP BY 1,2 ORDER BY 1,2"
                         )
                     )
                 ).fetchall()
@@ -221,6 +223,20 @@ class DataReader:
             else sql.SQL("")
         )
         table = sql.Identifier(self.schema, dataset["table"])
+        if key in {"snapshots", "metrics"}:
+            # Compute expiry at read time, including filtering and ordering.
+            projected = [
+                sql.SQL(
+                    "CASE WHEN state='recorded' AND valid_until<=now() "
+                    "THEN 'stale' ELSE state END AS state"
+                )
+                if name == "state"
+                else sql.Identifier(name)
+                for name in columns
+            ]
+            table = sql.SQL("(SELECT {} FROM {}) AS evidence").format(
+                sql.SQL(",").join(projected), table
+            )
         async with self.connection() as connection:
             count = await (
                 await connection.execute(

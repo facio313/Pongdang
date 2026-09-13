@@ -1,0 +1,183 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q07",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"rafting\" \"streamflow\" \"survey\" \"satisfaction\" study discharge",
+      "returned_count": "14"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn23search0",
+      "return_order": 1,
+      "query_id": "ac-q07",
+      "title": "Introduction - Grand Canyon Monitoring and Research Center",
+      "url": "https://www.yumpu.com/en/document/view/42885704/introduction-grand-canyon-monitoring-and-research-center",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search1",
+      "return_order": 2,
+      "query_id": "ac-q07",
+      "title": "ASSESSING THE DIRECT EFFECTS OF STREAMFLOW ON RECREATION: A LITERATURE REVIEW | Request PDF",
+      "url": "https://www.researchgate.net/publication/227613660_ASSESSING_THE_DIRECT_EFFECTS_OF_STREAMFLOW_ON_RECREATION_A_LITERATURE_REVIEW",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search2",
+      "return_order": 3,
+      "query_id": "ac-q07",
+      "title": "West Fork Tuckasegee River Hydroelectric Projects FERC # 2686 - forestry",
+      "url": "https://doczz.net/doc/709502/west-fork-tuckasegee-river-hydroelectric-projects-ferc-%23-...",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search12",
+      "return_order": 4,
+      "query_id": "ac-q07",
+      "title": "White Paper",
+      "url": "https://files.cfc.umt.edu/cesu/NPS/UMT/2005/Duffield_White%20Paper_CO%20river.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search3",
+      "return_order": 5,
+      "query_id": "ac-q07",
+      "title": "Timeline | River Recreation Research Database",
+      "url": "https://www.lib.uidaho.edu/digital/rrrd/timeline.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search4",
+      "return_order": 6,
+      "query_id": "ac-q07",
+      "title": "(PDF) Evaluating Instream Flows for Recreation: Applying the Structural Norm Approach to Biophysical Conditions",
+      "url": "https://www.researchgate.net/publication/248982266_Evaluating_Instream_Flows_for_Recreation_Applying_the_Structural_Norm_Approach_to_Biophysical_Conditions",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search5",
+      "return_order": 7,
+      "query_id": "ac-q07",
+      "title": "(PDF) Assessing and Evaluating Recreational Uses of Water Resources: Implications for an Integrated Management Framework",
+      "url": "https://www.researchgate.net/publication/237419118_Assessing_and_Evaluating_Recreational_Uses_of_Water_Resources_Implications_for_an_Integrated_Management_Framework",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search6",
+      "return_order": 8,
+      "query_id": "ac-q07",
+      "title": "(PDF) National Estimates of the Recreational Value of Stream Flows",
+      "url": "https://www.researchgate.net/publication/240489151_National_Estimates_of_the_Recreational_Value_of_Stream_Flows",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search7",
+      "return_order": 9,
+      "query_id": "ac-q07",
+      "title": "(PDF) Whose river is it? An assessment of livelihood and cultural water flow requirements for the Karnali basin",
+      "url": "https://www.researchgate.net/publication/344507184_Whose_river_is_it_An_assessment_of_livelihood_and_cultural_water_flow_requirements_for_the_Karnali_basin",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search8",
+      "return_order": 10,
+      "query_id": "ac-q07",
+      "title": "Glen Canyon Dam Flow Options Assessment | PDF | National Environmental Policy Act | Colorado River",
+      "url": "https://www.scribd.com/document/628652350/Glen-Canyon-Dam-Smallmouth-Bass-Flow-Options-Draft-Environmental-Assessment",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search9",
+      "return_order": 11,
+      "query_id": "ac-q07",
+      "title": "Agricultural Cooperative Management and Policy | PDF",
+      "url": "https://www.scribd.com/document/680247716/10-1007-978-3-319-06635-6",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search10",
+      "return_order": 12,
+      "query_id": "ac-q07",
+      "title": "Ecosystem Service Valuation of the Colorado River Basin: A",
+      "url": "https://paperzz.com/doc/8643050/ecosystem-service-valuation-of-the-colorado-river-basin--a",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search11",
+      "return_order": 13,
+      "query_id": "ac-q07",
+      "title": "Estimating The Non-Market Benefits of Climate Change Adaptation of River Ecosystem Services, A Choice Experiment Application in The Aoos Basin, Greece, D. Andreopoulos | PDF | Climate Change | Utility",
+      "url": "https://www.scribd.com/document/824725511/Estimating-the-non-market-benefits-of-climate-change-adaptation-of-river-ecosystem-services-A-choice-experiment-application-in-the-Aoos-basin-Greece",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn23search13",
+      "return_order": 14,
+      "query_id": "ac-q07",
+      "title": "WATER AND ITS RELATIONSHIP",
+      "url": "https://nwccog.org/wp-content/uploads/2015/03/QQStudy_Report_Jan-2012.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

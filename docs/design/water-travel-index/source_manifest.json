@@ -1,0 +1,57 @@
+{
+  "recorded_at_kst": "2026-09-14T02:43:00.465289+09:00",
+  "contract_version": "water-assessment.v1-draft",
+  "model_version": "0.1.0-draft",
+  "ruleset_version": "safety-support.0.1.0-draft",
+  "parameter_set_version": "params.0.1.0-draft",
+  "evidence_version": "water-evidence.2026-09-14.1",
+  "evidence_files": {
+    "docs/research/water-travel-index/legacy_audit.md": "a6233fd97dd174bef14c7e4ac8986976aadf9a9b569c4a4306bc98c0459d4191",
+    "docs/research/water-travel-index/research_protocol.md": "0ac3a06d5f44f3444b2b5aa87901699441f750c6c9046cece07491418f63206c",
+    "docs/research/water-travel-index/search_log.csv": "8fee4a84b5699344f95a8a8b36777a1d6bf3e01f4a66ff4cc0acc1692e852607",
+    "docs/research/water-travel-index/evidence_matrix.csv": "4c77a9e4fe0cdc809a321fefe75e0b63753c14d63785a83e32ab0bbb448c60c6",
+    "docs/research/water-travel-index/synthesis.md": "9915e9e655319738cde019ba480a849a5d6ca399d083bb38644e0e180bc0d641",
+    "docs/research/water-travel-index/references.bib": "4f28bbf43401f514e53942ca89fa624017573a3c5360933c4cbc5221fe3df9a6"
+  },
+  "design_files": {
+    "docs/design/water-travel-index/README.md": "65e068c85c798e577d1f07852c31fc94173c7091c64bcd849914f5ef7b452173",
+    "docs/design/water-travel-index/canonical_contract.md": "3a92c6eeac7a113a02718be166e3886618f8d5af2b7656309745a3d498372be0",
+    "docs/design/water-travel-index/model_spec.md": "177933e8ee19a37a6ea8def66b3e4791d7f6d4b2515f103b2c31b63098e59b93",
+    "docs/design/water-travel-index/parameter_register.md": "095b7639f3d8661901c690511df5cb338b0d3834c406f741dc71859be596ab40",
+    "docs/design/water-travel-index/parameter_evidence.csv": "8a2c552eface74e9678f0af897b448b956ce181e65048ea66b2b33abf117a092",
+    "docs/design/water-travel-index/api_contract.md": "201ee95576cfe98d4624dab106c5fdb0bd77135d3147d23c1a3653c50425cc62",
+    "docs/design/water-travel-index/frontend_integration.md": "c96e4dbaf98cb2c4b39d8a31fbc781d77fa184e941d3a80d5f623b10baa0aae3",
+    "docs/design/water-travel-index/api_examples.json": "558c1b8a2a517b5fa62e67a52b7a874f9f650bb13f5697b4f12771e090b4c501",
+    "docs/design/water-travel-index/validation_plan.md": "5c9f7bcb530c4eee710572498bf35e4af56127f06fd447e4e2117de40170e80a",
+    "docs/design/water-travel-index/validate_artifacts.py": "96d138747994d7a789afa565d00ef70681a685144547c160c977711a834aff2e"
+  },
+  "reviewed_source_files": {
+    "AGENTS.md": "4ee90896e2bbc90ca25612eb28ef52766e5d479a3f98c6af7dace710a903dabb",
+    "frontend/src/WaterForecastPage.tsx": "a1ce13afe361503bdb5309990f96df2b1f8e5f9908729a91b928a7c50f075678",
+    "frontend/src/WaterIndexHubPage.tsx": "198d811de0cc7860fc935300f027169c5523bb35d82345bb45345fe601c11b28",
+    "frontend/src/WaterIndexMapPage.tsx": "52ddace9b9df9f9307a587b63c59b37f7f358af5d213e523d520abd332310487",
+    "frontend/src/FirstSwimPage.tsx": "e4fe5bf7b0357a46797851096b89d4351c746110fd5d2bbfce0d8672ee31ba25",
+    "frontend/src/TideTimerPage.tsx": "7639258fa9fdd0236f64ab95f9b291c729e1c0f552e8fd67df697296bdb1fcad",
+    "frontend/src/WaterQualityPage.tsx": "3602c86db478ac015855fcfc0337903ca3ced70eadd368e7ebcad7fcb8c3f95f",
+    "frontend/src/FeatureData.tsx": "5d2c3d18bb666f09fc9190103e6042b1714b7a0fe985a19e45905426b2a27b6b",
+    "frontend/src/data.ts": "4799610bafb06f93e7b5cafae83d7258a26aa33ab063cb95b066ab215d8698cb",
+    "frontend/src/api.ts": "f3e8fcbbad7dcd3cd87e94259870569428b6057d23d0ef2e8d80f5e7f21179de",
+    "frontend/src/useResource.ts": "696a7baefb64e8b747081576b4d3908f89ac8b987bfbbfd8a1ffbbb73898846f",
+    "frontend/src/codeNames.ts": "c497421392ac8bb067506242937dc0a913ed38cfd50cea321ac2bfeed76d7e91",
+    "frontend/src/navigation.ts": "f6e304bf64024e78ca24fd30bc2e4e58f8ec33b5cb984b201d3faaeda2397e7e",
+    "backend/app/data_reader.py": "3e717fc6e17b35aa05bb47164b2fda3c974415ce6d6ac0d9491b7b5ee2c4031e",
+    "backend/app/data_catalog.json": "51c11ba92dbc94b1645b1cbd099df5f011919aa637ee0b297a48cc38c38897c1",
+    "backend/app/ingestion/models.py": "a98d2a661c6b8c59ba5100084a97411ef26b9b4d4cd4b39f1d68ebfb8c2a430e",
+    "backend/app/ingestion/storage.py": "4e766a09076e086c7d4d700de251a5742e75483f5d430650387f593795cecd46",
+    "backend/app/schema.py": "c1e2946485a5fb5abb7698602b89b630a471eb9758cec5e7aab32ccf8f09dac0",
+    "backend/app/main.py": "2ed7bea683d122230f9a3f56c1f7655815f221538cf82a015f3a9ddf8ddd52b7",
+    "backend/tests/test_data.py": "fa75c2d39e85c3218109b3e6844b73c31c322ace34d4c450f1c7dcd77c1a4cfd",
+    "backend/tests/test_collection.py": "2d0c8ece9a3187e18d5e79d7e3f88b06c0e61cf3efd1175e7271a29db7a9d69d"
+  },
+  "notes": [
+    "A local working-tree snapshot including pre-existing uncommitted changes, not only the HEAD tree.",
+    "The reviewed-source list identifies the principal files used for the design by the root and delegated authors; it is not a claim that every baseline file was scientifically reviewed.",
+    "Evidence version identifies the six frozen research artifacts, not a newly searched or empirically validated model.",
+    "The design manifest excludes itself and the generated validation report to avoid circular hashes. No network, credential, DB, or runtime dependency is introduced."
+  ]
+}

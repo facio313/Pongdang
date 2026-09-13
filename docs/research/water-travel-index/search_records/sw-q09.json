@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q09",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"낙뢰\" \"수영\" site.mois.go.kr",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q09",
+      "title": "<이달의 재난> 6월 | 행정안전부 동영상뉴스",
+      "url": "https://www.mois.go.kr/video/bbs/type019/commonSelectBoardArticle.do%3Bjsessionid%3D0HAOj9rUUE7xtgrmNjavbY%2BX.node30?bbsId=BBSMSTR_000000000255&nttId=54420&searchCode1=",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q09",
+      "title": "<303331335FB0E6B1E2B5B5B1B3C0B0C3BB5F3230323620C7D0B1B3C3BCC0B020BEF7B9ABB8C5B4BABEF35FB3BBC1F62E687770>",
+      "url": "https://www.goe.go.kr/resource/goe/na/bbs_2675/2026/03/409f5247-b2fd-460a-b3a2-fe8cc603e159.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q09",
+      "title": "<C6ED2DBEEEB9AEB1D4B9FCC7D8BCB35FB1B9BEEEBFF8C3D6C1BE5F76657232302DBCF6C1A4BABB2E687770>",
+      "url": "https://www.korean.go.kr/common/download.do%3Bfront%3D828B12E5DCF952A3A46E9A401F3661C7?c_file_name=0528a905-2eb3-4c5a-978c-f424dd6a6c47_0.pdf&file_path=reportData&o_file_name=%ED%95%9C%EA%B8%80%EB%A7%9E%EC%B6%A4%EB%B2%95+%ED%91%9C%EC%A4%80%EC%96%B4%EA%B7%9C%EC%A0%95+%ED%95%B4%EC%84%A4.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q09",
+      "title": "7월 가정연계교육자료",
+      "url": "https://www.goegh.kr/upload/maeyang-m/na/bbs_1563/2025/07/AF50558A-0733-568A-EAC6-BADC0ED60AA6.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q09",
+      "title": "제3장 낙뢰\n\n● 선생님, 꼭 알아두세요.\n\n낙뢰발생 시 야외 행동요령  \n✓ 낙뢰는 나무",
+      "url": "https://www.goe.go.kr/resource/old/BBSMSTR_000000030062/BBS_201502260350259611.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q09",
+      "title": "제3장 낙뢰\n\n● 선생님, 꼭 알아두세요.\n\n### 낙뢰발생 시 야외 행동요령\n✓ 낙뢰는",
+      "url": "https://www.goe.go.kr/resource/old/BBSMSTR_000000030062/BBS_201502260350262182.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q09",
+      "title": "<C6ED2DBEEEB9AEB1D4B9FCC7D8BCB35FB1B9BEEEBFF8C3D6C1BE5F76657232302DBCF6C1A4BABB2E687770>",
+      "url": "https://www.korean.go.kr/common/download.do%3Bfront%3D43024E0AE588A9C2E9347AE66847A415?c_file_name=0528a905-2eb3-4c5a-978c-f424dd6a6c47_0.pdf&file_path=reportData&o_file_name=%ED%95%9C%EA%B8%80%EB%A7%9E%EC%B6%A4%EB%B2%95+%ED%91%9C%EC%A4%80%EC%96%B4%EA%B7%9C%EC%A0%95+%ED%95%B4%EC%84%A4.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q09",
+      "title": "전기 안전",
+      "url": "https://okmodern.wordpress.com/2018/04/12/d/",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q09",
+      "title": "홍수·태풍·폭염·산사태…7월엔 자연재해 주의하세요 | 연합뉴스",
+      "url": "https://www.yna.co.kr/view/AKR20180628058800004",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q09",
+      "title": "[과학에세이] 번개, 벼락, 그리고 낙뢰 /이일수 : 국제신문",
+      "url": "https://www.kookje.co.kr/news2011/asp/newsbody.asp?code=1700&key=20110802.22030200753",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q09",
+      "title": "같은 의미를 가진 남한말과 북한말 ㄴ",
+      "url": "https://itstorydata.tistory.com/1682",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q09",
+      "title": "재난대응요령 >여가활동 >여가활동사고 > 당진시 재난안전대책본부",
+      "url": "https://www.dangjin.go.kr/safe/sub03_09_01.do",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q09",
+      "title": "[잡학사전] “수영장에 벼락이 떨어지면, 수영 중인 사람은 감전될까?” - 이지스쿨 뉴스",
+      "url": "https://www.easyschool.ai.kr/news/445895",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q09",
+      "title": "물놀이 전후 스트레칭 알고 계시죠? - 정책포커스 | 뉴스 | 대한민국 정책브리핑",
+      "url": "https://m.korea.kr/news/policyFocusView.do?cardYn=&cateId=&cateIds=&dataValue=&exceptNewsId=&nCateIds=&nSectIds=&newsId=148798064&pageIndex=1&pkgId=49500556&pkgSubId=&pkgSubs=&repCode=&repText=&sectId=&sectIds=&srchWord=",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q09",
+      "title": "물놀이 전후 스트레칭 알고 계시죠? - 정책뉴스 | 뉴스 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/news/policyNewsView.do?newsId=148798064",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q09",
+      "title": "상세 | 정책플러스 | 정책/뉴스 : K-공감 : 나에게 든든한 정책주간지",
+      "url": "https://gonggam.korea.kr/newsContentView.es?code_cd=&content=NC002&mid=a12503000000&news_id=EBC6D40108864203E0540021F662AC5F&section_id=NCCD_CULTURE",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q09",
+      "title": "7월 태풍 몰려온다…낙뢰·산사태까지? | 한국경제TV",
+      "url": "https://www.wowtv.co.kr/NewsCenter/News/Read?articleId=A201806280553",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q09",
+      "title": "KTV 국민방송",
+      "url": "https://www.ktv.go.kr/content/view?content_id=604358",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

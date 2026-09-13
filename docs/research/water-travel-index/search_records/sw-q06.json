@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q06",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "site.weather.go.kr \"낙뢰\" \"물\" \"대피\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q06",
+      "title": "낙뢰 - 자연재난 - 대국민행동요령 - 재난/안전 - 분야별정보 - 남양주시청",
+      "url": "https://www.nyj.go.kr/www/contents.do?key=3197",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q06",
+      "title": "●      머리글 │",
+      "url": "https://fmb.or.kr/data/file/missio/1893477146_UyTWKVcf_cfa04c4478c75149d10f24407e2b5cfe18e1a00d.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q06",
+      "title": "2026학년도 천안캠퍼스",
+      "url": "https://ee.smu.ac.kr/kor/intro/safetySe.do?articleNo=726565&attachNo=555029&mode=download",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q06",
+      "title": "낙뢰 국민행동요령 포스터 | 행정안전부>",
+      "url": "https://www.mois.go.kr/frt/bbs/type002/commonSelectBoardArticle.do%3Bjsessionid%3D7xod3HwEEJuwhLRSnMZW2mU%2B.node40?bbsId=BBSMSTR_000000000530&nttId=117734",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q06",
+      "title": "자연재난 행동요령 : 고령군",
+      "url": "https://www.goryeong.go.kr/kor/contents.do?IDX=437",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q06",
+      "title": "2026학년도 서울캠퍼스",
+      "url": "https://www.smu.ac.kr/kor/intro/safetySe.do?articleNo=726572&attachNo=555028&mode=download",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q06",
+      "title": "낙뢰  \n이렇게 행동하세요!\n\n국민안전재난포털\n\n30 - 30 안전 규칙 : 번개가 친 후",
+      "url": "https://gsmh.es.jne.kr/data/attach_data/jangsung/dy-nammyeon_es/k2board/na/bbs_60396/ntt_1800664692/doc_a98av17e1%3D0cve1%3D47v6b%3Dbev37%3Dae76v2352va673_v2004.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q06",
+      "title": "중도일보 - 당진시, 낙뢰 국민행동요령 준수 당부",
+      "url": "https://www.joongdo.co.kr/web/view.php?key=20260827010008128",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q06",
+      "title": "[이원태-안전] “번개 친 후 30초 내 천둥 울리면 즉시 대피” ‘양양 낙뢰 비극’ 골퍼들 ‘날벼락’ 확률 커져",
+      "url": "https://www.geconomy.co.kr/news/article.html?no=278301",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q06",
+      "title": "<table id=\"e1\">",
+      "url": "https://www.younghoon.es.kr/younghoon_m/school-infor/minutes-of-the-meeting.do?articleNo=30174&attachNo=30351&mode=fileDownload",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q06",
+      "title": "천둥이 들리면 얼마나 기다려야 할까: 낙뢰 30-30 규칙과 장소별 대피 7단계 | 오늘의 건강",
+      "url": "https://health.oneuldon.com/articles/lightning-30-30-safety-2026-08-29",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q06",
+      "title": "2024학년도\n[영훈국제중학교운영위원회 13기]\n제2회 학교운영위원회\n■ 일시 : 2024",
+      "url": "https://www.kmr.or.kr/younghoon_m/school-infor/minutes-of-the-meeting.do?articleNo=30174&attachNo=30351&mode=fileDownload",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q06",
+      "title": "“18홀에 물 10병 마신 적도”···건강 챙기고, 스코어도 잡는 ‘땡볕 라운드’ 요령",
+      "url": "https://v.daum.net/v/YDWy1TwMhg",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q06",
+      "title": "낙뢰 행동요령 판단표｜천둥·30-30 규칙·실내·야외·자동차 대피",
+      "url": "https://ginov.tistory.com/63",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q06",
+      "title": "여름철 낙뢰 사고, 6~8월에 90% 집중…'30-30 안전 수칙 꼭 기억하세요' | 오늘의 스토리",
+      "url": "https://picks.my/ko_v2s/s/detail/30385/content.html",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q06",
+      "title": "[기고] 장마철, 전기 감전·물 웅덩이·간판 등 날아다니는 물건 조심",
+      "url": "https://m.kukinews.com/article/view/kuk202406180032",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q06",
+      "title": "당진시, 낙뢰 국민 행동요령 준수 당부 : 네이트 뉴스",
+      "url": "https://news.nate.com/view/20260827n22239",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q06",
+      "title": "낙뢰 안전수칙, 번개 뒤 30초와 마지막 천둥 뒤 30분 기억하기 - EveryHealth",
+      "url": "https://everyhealth.co.kr/lightning-safety-30-30-rule-outdoor-shelter-check/",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

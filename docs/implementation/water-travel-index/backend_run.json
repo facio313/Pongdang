@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/tmp/pongdang-be-check-i7qimhac/.venv/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "--basetemp=/tmp/pongdang-wi-final-tests-zxiwmv_x",
+    "--junitxml=/Users/cksmacbook/Desktop/Develop/Project/Pongdang/docs/implementation/water-travel-index/backend_junit.xml"
+  ],
+  "exit_code": 0,
+  "pytest_basetemp": "/tmp/pongdang-wi-final-tests-zxiwmv_x",
+  "postgres_host": "/tmp/pongdang-wi-_wxxrn69/socket",
+  "postgres_port": 55488,
+  "postgres_db": "pongdang_test",
+  "postgres_version": "18.3",
+  "python_version": "3.14.4",
+  "lockfile_unchanged": true
+}

@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q16",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"10.1016/j.scitotenv.2016.11.049\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn72search0",
+      "return_order": 1,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27887836/",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S08",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search1",
+      "return_order": 2,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0048969716324895",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S08",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search2",
+      "return_order": 3,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River",
+      "url": "https://openalex.org/W2551758401",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search3",
+      "return_order": 4,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River | Request PDF",
+      "url": "https://www.researchgate.net/publication/310772978_Modelling_white-water_rafting_suitability_in_a_hydropower_regulated_Alpine_River",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search4",
+      "return_order": 5,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River",
+      "url": "https://hero.epa.gov/reference/8032671/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search5",
+      "return_order": 6,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River",
+      "url": "https://iris.unitn.it/handle/11572/177725",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S08",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search6",
+      "return_order": 7,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River. (2017) | Mauro Carolli | 24 Citations",
+      "url": "https://scispace.com/papers/modelling-white-water-rafting-suitability-in-a-hydropower-4p3p5x29h0",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search7",
+      "return_order": 8,
+      "query_id": "ac-q16",
+      "title": "Journal Articles – PLANES",
+      "url": "https://planes.dicam.unitn.it/papers/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search8",
+      "return_order": 9,
+      "query_id": "ac-q16",
+      "title": "Modelling white-water rafting suitability in a hydropower regulated Alpine River",
+      "url": "https://www.research-collection.ethz.ch/handle/20.500.11850/125471",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S08",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search12",
+      "return_order": 10,
+      "query_id": "ac-q16",
+      "title": "Jahresbericht 2016",
+      "url": "https://ethz.ch/content/dam/ethz/special-interest/baug/vaw/vaw-dam/documents/das-institut/jahresberichte/2010-2019/jahresbericht-2016.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search9",
+      "return_order": 11,
+      "query_id": "ac-q16",
+      "title": "ORCID",
+      "url": "https://orcid.org/0000-0003-2807-7387",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search10",
+      "return_order": 12,
+      "query_id": "ac-q16",
+      "title": "ORCID",
+      "url": "https://orcid.org/0000-0001-9625-8441",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search13",
+      "return_order": 13,
+      "query_id": "ac-q16",
+      "title": "Curriculum vitae",
+      "url": "https://www.igb-berlin.de/sites/default/files/media-files/CVEng.pdf",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search11",
+      "return_order": 14,
+      "query_id": "ac-q16",
+      "title": "Guido Zolezzi | University of Trento | 106 Publications | 378 Citations | Related Authors",
+      "url": "https://scispace.com/authors/guido-zolezzi-3sfdam0nm3?papers_page=16",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search14",
+      "return_order": 15,
+      "query_id": "ac-q16",
+      "title": "This is the peer reviewed version of the following article:",
+      "url": "https://digitalcollection.zhaw.ch/bitstream/11475/26619/3/2023_Alp-etal_An-international-network-on-hydropeaking-research-practice-policy_RRA_AAM.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search15",
+      "return_order": 16,
+      "query_id": "ac-q16",
+      "title": "Science of the Total Environment 912 (2024) 169385",
+      "url": "https://oulurepo.oulu.fi/bitstream/handle/10024/47614/nbnfioulu-202402021560.pdf?isAllowed=y&sequence=1",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search16",
+      "return_order": 17,
+      "query_id": "ac-q16",
+      "title": "Received: 7 February 2022",
+      "url": "https://www.danielhayes.at/_files/ugd/c09f97_f3fab6172f264102a1d43c8005285532.pdf?index=true",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn72search17",
+      "return_order": 18,
+      "query_id": "ac-q16",
+      "title": "Demonstration of Sustainable",
+      "url": "https://www.rehydro.eu/wp-content/uploads/2024/12/D10.1-Project-Management-Plan-1.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

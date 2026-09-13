@@ -1,0 +1,146 @@
+[
+  {
+    "path": "AGENTS.md",
+    "sha256": "4ee90896e2bbc90ca25612eb28ef52766e5d479a3f98c6af7dace710a903dabb",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/src/WaterForecastPage.tsx",
+    "sha256": "a1ce13afe361503bdb5309990f96df2b1f8e5f9908729a91b928a7c50f075678",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/src/WaterIndexHubPage.tsx",
+    "sha256": "198d811de0cc7860fc935300f027169c5523bb35d82345bb45345fe601c11b28",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/src/FeatureData.tsx",
+    "sha256": "5d2c3d18bb666f09fc9190103e6042b1714b7a0fe985a19e45905426b2a27b6b",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/src/codeNames.ts",
+    "sha256": "c497421392ac8bb067506242937dc0a913ed38cfd50cea321ac2bfeed76d7e91",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/src/api.ts",
+    "sha256": "f3e8fcbbad7dcd3cd87e94259870569428b6057d23d0ef2e8d80f5e7f21179de",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "frontend/tests/independence.test.mjs",
+    "sha256": "5ffacb0c0efa663a280d0310692418d42631ae3a0db5aeeb7553ed208f8129dd",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/schema.py",
+    "sha256": "c1e2946485a5fb5abb7698602b89b630a471eb9758cec5e7aab32ccf8f09dac0",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/main.py",
+    "sha256": "2ed7bea683d122230f9a3f56c1f7655815f221538cf82a015f3a9ddf8ddd52b7",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/data_catalog.json",
+    "sha256": "51c11ba92dbc94b1645b1cbd099df5f011919aa637ee0b297a48cc38c38897c1",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/data_reader.py",
+    "sha256": "3e717fc6e17b35aa05bb47164b2fda3c974415ce6d6ac0d9491b7b5ee2c4031e",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/models.py",
+    "sha256": "a98d2a661c6b8c59ba5100084a97411ef26b9b4d4cd4b39f1d68ebfb8c2a430e",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/__init__.py",
+    "sha256": "251f5251fa4aab0ec6c15b61cb36f92b77a94aef41b208dd40dea7d0d6752aca",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/weather.py",
+    "sha256": "154be35f7e7ae367e3e792570d7fba706f61dabc839c24b7c8e3d44cbca863e1",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/marine.py",
+    "sha256": "a7d287643ffc91d3b6659a11d94fea2ba37ab153f521d1dd4bff0d04e85f34cc",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/water.py",
+    "sha256": "d14efeef5740479fbff5113e47b14928dc7010881c89193afd4fac039416d084",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/places.py",
+    "sha256": "bf6194687f67b56c297e4c786064082bd09aa47091c66d2fcca6696fc64e52cb",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/app/ingestion/storage.py",
+    "sha256": "4e766a09076e086c7d4d700de251a5742e75483f5d430650387f593795cecd46",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/tests/test_data.py",
+    "sha256": "fa75c2d39e85c3218109b3e6844b73c31c322ace34d4c450f1c7dcd77c1a4cfd",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/tests/test_ingestion.py",
+    "sha256": "48eeb57d229bf6c5e8171b8be070c203177b1cdc25b2be0f8c0ba0c07b18cb22",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/tests/test_collection.py",
+    "sha256": "2d0c8ece9a3187e18d5e79d7e3f88b06c0e61cf3efd1175e7271a29db7a9d69d",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/tests/test_weather.py",
+    "sha256": "b5244ba39ddbcaad9b52f17e035c3e2a1a98e224dc1fbe3bd7a2604ace4fd6e0",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "backend/tests/test_marine.py",
+    "sha256": "165fbd02b565c49a1650144eb6d13bf24fe6b324e21986a0f6d5683202729f68",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  },
+  {
+    "path": "docs/ingestion.md",
+    "sha256": "1860e9030d159a831bd8c71b1a33b88fdb6f5d147ba6d830c3c56c94b86acca3",
+    "read_scope": "relevant definitions and tests; no execution",
+    "version": "working_tree_at_start"
+  }
+]

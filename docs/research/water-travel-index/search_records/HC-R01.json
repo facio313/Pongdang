@@ -1,0 +1,10 @@
+{
+  "id": "HC-R01",
+  "source": "web.open",
+  "url": "https://www.mdpi.com/2073-4433/11/4/412",
+  "date": "2026-09-14",
+  "result": {
+    "status": "fulfilled",
+    "value": "Internal Error ()\nciteturn16view0 [wordlim: 200] Source: open({\"ref_id\":\"https://www.mdpi.com/2073-4433/11/4/412\",\"lineno\":null}); Total lines: 1\nL0: Failed to fetch https://www.mdpi.com/2073-4433/11/4/412: (429) Too Many Requests\n"
+  }
+}

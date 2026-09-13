@@ -5,32 +5,31 @@
   attach its Docker networks or reuse its credentials in this application.
 - The standalone Compose stack is frontend, backend and PostgreSQL 18. Both
   container names and their project prefix are explicit: production uses
-  `pongdang-frontend`, `pongdang-backend`, `pongdang-db` without numeric suffixes.
+  `pongdang-frontend`, `pongdang-backend`, `pongdang-db`, `pongdang-collector`
+  plus the one-shot `pongdang-initialize`, without numeric suffixes.
   Use `COMPOSE_PROJECT_NAME` interpolation so isolated CI projects do not collide.
   Keep the existing `postgres_data` volume and service DNS names unchanged.
-  Both
-  `pongdang_data` (collection) and `pongdang_demo` (synthetic examples) live in
-  the app database. Keep schema changes additive and explicit via `app.schema`.
-- `/api/data` reads Pongdang collection records only; `/api/demo` reads synthetic
-  examples only. The retired `/api/collector` must return 404, not proxy a legacy DB.
-  Never fill a missing collection result with demo rows.
-- `app.ingestion` owns the provider-independent normalized batch contract and
-  atomic, idempotent storage. API adapters implement `Provider.fetch` and remain
-  independent of SQL/UI. No upstream provider or recurring scheduler is enabled
-  yet; do not claim the JSON import facility is an active API integration.
-  Credentials, network timeouts/quotas and mapping belong in future server-only
-  adapters. Never introduce an HTTP SQL/import endpoint or arbitrary URL fetcher.
+  `pongdang_data` is the real collection schema. The user retired synthetic
+  examples; `app.schema --remove-demo` removes only `pongdang_demo`. Keep real
+  collection migrations additive and explicit via `app.schema`.
+- `/api/data` reads real Pongdang collection records only. Retired `/api/demo`
+  and `/api/collector` return 404. Never substitute synthetic data for missing reads.
+- `app.ingestion` owns normalized evidence and atomic idempotent storage.
+  `models.SourceBatch` is the live adapter contract; `worker` runs separately
+  from FastAPI, with per-job DB locks, persisted due times, backoff and heartbeat.
+  Approved official HTTPS endpoints and server-only credentials are required.
+  New provider revisions preserve prior evidence as `superseded`; missing values
+  and unknown provider issue times remain explicit. Never expose raw responses,
+  arbitrary SQL, import endpoints or authenticated upstream URLs.
 - Provider record IDs, timezones, fetch/observation/expiry times, units and missing
   values must be preserved. Conflicting evidence must not overwrite a batch;
   failed fetches must not create success records or extend existing validity.
-- `app.seed_demo --confirm-demo-only` is an explicit, atomic, idempotent operation
-  using local reference coordinates. Never seed on HTTP requests or app startup.
-  Keep existing demo schema/version and records intact. Synthetic rows retain
-  their scenarios/notices; safety stays unknown, scores NULL, calibration inactive.
+- Synthetic examples and their generation modules are retired at the user's
+  request. Never seed on startup or HTTP requests. Scores and safety must remain
+  unknown unless separately implemented and validated; collection is not scoring.
 - Keep the UI plain and table-first, with data browsing and data information.
-  Default to clearly labeled demo data, populated tables expanded, all allowlisted
-  columns and bounded 100-row pages. `?data=data` selects independent collection.
-  Legacy URL selection `?data=collector` maps to this local selection only.
+  All routes use real `/api/data`, all allowed columns, and bounded 100-row pages.
+  Old demo/collector URL selections normalize to the real collection view.
 - Frontend: React + Vite + TypeScript, Node.js 24. Backend: Python 3.14 + FastAPI.
   Commit dependency lockfiles with dependency changes.
 - `dev` is integration; `main` deploys automatically after CI. Never bypass CI.
@@ -43,12 +42,12 @@
   of legacy Multtara. No new user/account system is introduced by this separation.
 - Run frontend lint/tests/build and backend Ruff/tests. Database tests must use
   a disposable `pongdang_test` database, never production. CI verifies initialization
-  and demo seeding with only the standalone stack and no shared database.
+  and collection worker health with only the standalone stack and no shared database.
 - `ops/` contains installation templates; deployment does not self-update its SSH
   gate. Install reviewed changes to the host script separately.
 - `backend/app/data_catalog.json` is the table/column/query allowlist. Existing
   table identifiers and optional provider-specific columns are retained for demo
-  compatibility, not as dependencies on a legacy service or fixed future API.
+  history, not as dependencies on a legacy service or a safety scoring engine.
 - SQL reads remain bounded and read-only. Do not expose credentials, user/session
   tables, unfiltered provider payloads or arbitrary SQL. A stale heartbeat is not
   a running collector, and missing/unknown data never implies safe conditions.

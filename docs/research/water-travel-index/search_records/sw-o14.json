@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o14",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://iris.unipa.it/handle/10447/60372",
+  "note": "원문 전문 미재배포. 관련 위치는 주장 CSV에 기록.",
+  "url": "https://iris.unipa.it/handle/10447/60372",
+  "title": "Effects of three different water temperatures on dehydration in competitive swimmers",
+  "access_status": "access_failed",
+  "decision": "access_failed",
+  "review_note": "HTTP403"
+}

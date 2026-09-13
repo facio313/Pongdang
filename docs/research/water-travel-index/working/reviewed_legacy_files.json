@@ -1,0 +1,221 @@
+{
+  "reviewed_at_kst": "2026-09-14T01:36:35.040589+09:00",
+  "repository_path": "/Users/cksmacbook/Desktop/Develop/Project/Multtara",
+  "branch": "main",
+  "head": "b160cf1c07cc0f299f9d83839557a1e987c47be4",
+  "remote_fetched": false,
+  "other_branch_content_reviewed": false,
+  "runtime_or_db_access": false,
+  "files": [
+    {
+      "repository": "facio313/Multtara",
+      "path": "AGENTS.md",
+      "review_scope": "1-352 full instruction read",
+      "sha256": "431b2edcd697666f5840555b16f6fcf13903a3325ef33b98e7eff2e19f3c2ee6",
+      "bytes": 21602
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "docs/water-index-methodology.md",
+      "review_scope": "1-319 full methodology read; linked external sources not visited in this audit",
+      "sha256": "a1cda93ab1df0c99a022bed76baee13b2acc841f8c7a1da97d27cd063b2b44df",
+      "bytes": 20339
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/hci.py",
+      "review_scope": "1-99 full",
+      "sha256": "8f888970e517f9696a949cedb3b93da3476a3dcaf5004bdaec9e7aaf4b5ebd99",
+      "bytes": 2856
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/curves.py",
+      "review_scope": "1-52 full",
+      "sha256": "dba4931061f4afa2fdae76e860b754f9109609f7dedf2cd77d1e088ba4829443",
+      "bytes": 1852
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/domain.py",
+      "review_scope": "1-299 full",
+      "sha256": "8a3a47bce64c4d4cb51bf5b3fb8eb44231b1bcda44580d9e2bf7cf7be9596f80",
+      "bytes": 9685
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/profiles.py",
+      "review_scope": "1-187 full",
+      "sha256": "bfeff3a77509f346220bfdc366979de919f20b5268e64c4b67e3accc760d590c",
+      "bytes": 7902
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/engine.py",
+      "review_scope": "1-770 full",
+      "sha256": "21dafde883f72d3af130efa2d4ea14ed8025858e1b40c18622ba240e32a15c19",
+      "bytes": 33810
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/surf_skill.py",
+      "review_scope": "1-155 full",
+      "sha256": "8a656b772d25b5177bae205ec408f284d11e47b2ada87a297718089466ab48fc",
+      "bytes": 4840
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/onsen.py",
+      "review_scope": "1-215 full",
+      "sha256": "53aea52bbd9f498cd199e115ed646c735eb86f2e4adc94175c96a44830fbd197",
+      "bytes": 7955
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/apps/conditions/models.py",
+      "review_scope": "class inventory; 32-155,366-438,490-568 detailed selected schema",
+      "sha256": "8f4610805f3db1601e22438f6309415a6dbfb18840374b9ddbde8c46ff2676b1",
+      "bytes": 34787
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/apps/conditions/test_water_index.py",
+      "review_scope": "test-name inventory; 228-252,375-397,496-515 selected test bodies",
+      "sha256": "0ecc9e390a9bf9e0c545c81605a1f1d106bda3c3f1115859fb0e3956c528adad",
+      "bytes": 26813
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/apps/conditions/tests.py",
+      "review_scope": "test-name inventory only; no execution",
+      "sha256": "256b92b2a3b82abe338aa3e4b1487b6567986b948f3e552352e64a4d1450cd77",
+      "bytes": 39890
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/apps/spots/models.py",
+      "review_scope": "1-241 full",
+      "sha256": "dff3faff8d2c0d46cd4674f6cc21791815624cba49ffaf67f6160b066c9100cc",
+      "bytes": 9685
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/daily_forecasts.py",
+      "review_scope": "selected activity/environment/reference-time lines; no full semantic audit",
+      "sha256": "78e6fbb59e1af30ed7a473c4b54553a1ebe603db321407513b5eb61f2ee96a6d",
+      "bytes": 24123
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/kma_adapter.py",
+      "review_scope": "1-220 detailed read",
+      "sha256": "d5405e1d8579a0693ba1a5051217aec83adc2d2997eb8aef4439447805c6894a",
+      "bytes": 7800
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/khoa_adapter.py",
+      "review_scope": "metric/time function-name inventory; 65-110,135-160,455-495 detailed read",
+      "sha256": "bae4f0c85189f56c55599d3522d978bfafd02e54158aa506c04cb2b048d106c7",
+      "bytes": 19720
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/derived.py",
+      "review_scope": "1-280,295-395,475-640,660-810 detailed read; full file raw read returned truncated",
+      "sha256": "e16682b65f12616e07b7e432fbb1c3e4b5775a10f682279984181dd7d17c435f",
+      "bytes": 30514
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/fusion.py",
+      "review_scope": "1-219,380-440 detailed read",
+      "sha256": "eeae0f9090b1244e47ac813fa29bb163fc11ac7f688347f325c0a2c128724d7b",
+      "bytes": 27573
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/recommendation/catalog.py",
+      "review_scope": "1-260 selected read",
+      "sha256": "e1da7dd4aaeb0fa748e06c963e15bd3abbcaafbc8ac1841f53d275068cde50e5",
+      "bytes": 18422
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/recommendation/scoring.py",
+      "review_scope": "selected function/weight/preference lines only",
+      "sha256": "e0632ae7225b162ed7b1e73c9b4f0b32f3cf066e4f84d6ac9def187914665d4c",
+      "bytes": 6305
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/tests/test_derived.py",
+      "review_scope": "test-name inventory; 238-310,370-420 detailed selected HCI test bodies",
+      "sha256": "81ca6c9edafe453e903be2addbb80b097ab00686c2106bbdb0261b561093fba9",
+      "bytes": 30432
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/tests/test_khoa_adapter.py",
+      "review_scope": "test-name inventory only",
+      "sha256": "dc7415ef04494eb0dcd1f2a1ddce53308a286e62769cf1b0005954480a8f2bd8",
+      "bytes": 24645
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/tests/test_kma_adapter.py",
+      "review_scope": "test-name inventory only",
+      "sha256": "d97554c46d2d578a5784bace61c66906f8286683af247548317ae366da8adb6d",
+      "bytes": 6850
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/tests/test_fusion.py",
+      "review_scope": "test-name inventory only",
+      "sha256": "9be5f645bad255d6989373ebcc38269fff8be52d4499f7ee3908ba4ca16d9d48",
+      "bytes": 25938
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/apps/forecasts/test_daily.py",
+      "review_scope": "test-name inventory only",
+      "sha256": "44d4b99d996e330e49405174dcf4f7b600b42cca973bb52bb4c19005b702ce0d",
+      "bytes": 35597
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/ingestion/marine.py",
+      "review_scope": "Only SUPPORTED_ACTIVITIES matching lines from bounded keyword search",
+      "sha256": "3d40f0b65a6711cfac0454945b6c0b1f570134cc1ac4ac09373c236419688ad8",
+      "bytes": 13371
+    },
+    {
+      "repository": "facio313/Multtara",
+      "path": "backend/services/water_index/__init__.py",
+      "review_scope": "Only HCI/support export matching lines from keyword search",
+      "sha256": "41313cf50d6f89510678e1d205acc372ad6af2a86daca0ad7849b133a78f4c7b",
+      "bytes": 2576
+    }
+  ],
+  "status_note": "Initial whole git status --short eventually completed code 0 with empty output after a long delay. Whole tracked status and scoped tracked status likewise returned code 0 and empty output. No tracked/untracked changes reported at observation; no legacy files modified.",
+  "worktrees_observed": [
+    {
+      "path": "Multtara",
+      "branch": "main",
+      "head": "b160cf1c07cc0f299f9d83839557a1e987c47be4",
+      "code_reviewed": true
+    },
+    {
+      "path": "Multtara/worktrees/codex",
+      "branch": "codex",
+      "head": "b160cf1c07cc0f299f9d83839557a1e987c47be4",
+      "code_reviewed": false
+    },
+    {
+      "path": "Multtara/worktrees/cursor",
+      "branch": "cursor",
+      "head": "96248d61cf952d86708522008dc1d5fb8a685ae3",
+      "code_reviewed": false
+    }
+  ]
+}

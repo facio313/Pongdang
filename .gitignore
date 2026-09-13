@@ -11,3 +11,6 @@ __pycache__/
 .coverage
 .DS_Store
 *.tsbuildinfo
+
+# Local workbook contains provider API credentials.
+/docs/pongdang-api-keys.xlsx

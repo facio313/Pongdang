@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q05",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "래프팅 유량 만족도 온천 수온 외기온 열쾌적성 연구",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn15search0",
+      "return_order": 1,
+      "query_id": "ac-q05",
+      "title": "라프텔 멤버십 구독 및 요금 – 라프텔 고객센터",
+      "url": "https://help.laftel.net/hc/ko/articles/12373459822991-%EB%9D%BC%ED%94%84%ED%85%94-%EB%A9%A4%EB%B2%84%EC%8B%AD-%EA%B5%AC%EB%8F%85-%EB%B0%8F-%EC%9A%94%EA%B8%88",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search1",
+      "return_order": 2,
+      "query_id": "ac-q05",
+      "title": "FAQ(자주묻는 질문) | 레일플래닛",
+      "url": "https://www.railplanet.kr/bbs/faq.php?fm_id=2",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search2",
+      "return_order": 3,
+      "query_id": "ac-q05",
+      "title": "FAQ(자주묻는 질문) | 레일플래닛",
+      "url": "https://www.railplanet.kr/bbs/faq.php?device=pc&fm_id=4",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15academia12",
+      "return_order": 4,
+      "query_id": "ac-q05",
+      "title": "Observation of Reactor Electron Antineutrino Disappearance in the RENO Experiment",
+      "url": "https://arxiv.org/abs/1204.0626",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search3",
+      "return_order": 5,
+      "query_id": "ac-q05",
+      "title": "매장 찾기 | 랄프 로렌®",
+      "url": "https://www.ralphlauren.co.kr/stores",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search4",
+      "return_order": 6,
+      "query_id": "ac-q05",
+      "title": "FAQ - 레페토 - 공식 온라인 스토어",
+      "url": "https://www.repetto.kr/customer/faq.asp",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search5",
+      "return_order": 7,
+      "query_id": "ac-q05",
+      "title": "리프패럿",
+      "url": "https://www.lipparrot.co.kr/board/view.php?bdId=notice&sno=27",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search6",
+      "return_order": 8,
+      "query_id": "ac-q05",
+      "title": "리프패럿",
+      "url": "https://www.lipparrot.co.kr/board/list.php?bdId=goodsqa",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15youtube13",
+      "return_order": 9,
+      "query_id": "ac-q05",
+      "title": "NOWZ (나우즈) '자유롭게 날아 (Feat. 우기 (YUQI))' Official Music Video - YouTube",
+      "url": "https://www.youtube.com/watch?v=nqBnrY6GrtY",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search7",
+      "return_order": 10,
+      "query_id": "ac-q05",
+      "title": "1:1문의 - 이용안내 | 레일플래닛",
+      "url": "https://www.railplanet.kr/page/qna/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15academia14",
+      "return_order": 11,
+      "query_id": "ac-q05",
+      "title": "Enhanced electrocatalytic activity via phase transitions in strongly correlated SrRuO3 thin films",
+      "url": "https://arxiv.org/abs/1705.04425",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search8",
+      "return_order": 12,
+      "query_id": "ac-q05",
+      "title": "고객 지원부 | 랄프 로렌",
+      "url": "https://www.ralphlauren.co.kr/customerservice",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search9",
+      "return_order": 13,
+      "query_id": "ac-q05",
+      "title": "FAQ(자주묻는 질문) | 레일플래닛",
+      "url": "https://www.railplanet.kr/bbs/faq.php?fm_id=1",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search10",
+      "return_order": 14,
+      "query_id": "ac-q05",
+      "title": "영업 시간 | LaLaport EXPOCITY",
+      "url": "https://mitsui-shopping-park.com/ko/lalaport/expocity/hour/index.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15search11",
+      "return_order": 15,
+      "query_id": "ac-q05",
+      "title": "AFTER THE RAIN | LAPLON 라플론",
+      "url": "https://laplon.kr/parfum/?idx=12",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15youtube15",
+      "return_order": 16,
+      "query_id": "ac-q05",
+      "title": "[GOING SEVENTEEN] EP.28 EGO #2 - YouTube",
+      "url": "https://www.youtube.com/watch?v=lxZThmDvOSs",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15academia16",
+      "return_order": 17,
+      "query_id": "ac-q05",
+      "title": "O-vacancy as the origin of negative bias illumination stress instability in amorphous In-Ga-Zn-O thin film transistors",
+      "url": "https://arxiv.org/abs/1006.4913",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn15academia17",
+      "return_order": 18,
+      "query_id": "ac-q05",
+      "title": "Co3O4 Nanocrystals on Graphene as a Synergistic Catalyst for Oxygen Reduction Reaction",
+      "url": "https://arxiv.org/abs/1108.2331",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

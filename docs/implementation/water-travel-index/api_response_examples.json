@@ -1,0 +1,637 @@
+{
+  "documentation_only": true,
+  "synthetic_integration_cases": true,
+  "not_production_data": true,
+  "not_seed_or_fallback": true,
+  "examples": {
+    "unpublished": {
+      "contract_version": "water-assessment.v1-draft",
+      "as_of": "2026-09-13T18:12:48.234678Z",
+      "queried_at": "2026-09-13T18:12:48.234678Z",
+      "query": {
+        "spot_id": 1201,
+        "activity": "swim",
+        "profile_id": "general",
+        "mode": "forecast",
+        "from": "2026-09-13T19:12:47.213521Z",
+        "until": "2026-09-13T20:12:47.213521Z"
+      },
+      "coverage": {
+        "status": "unknown",
+        "supported_windows": [],
+        "uncovered_windows": [],
+        "missing_targets": [],
+        "reason_codes": [
+          "target_manifest_unavailable"
+        ]
+      },
+      "rows": [],
+      "total": 0,
+      "page": 1,
+      "page_size": 25
+    },
+    "official_restriction": {
+      "contract_version": "water-assessment.v1-draft",
+      "as_of": "2026-09-13T18:12:48.244779Z",
+      "queried_at": "2026-09-13T18:12:48.244779Z",
+      "query": {
+        "spot_id": 1201,
+        "activity": "swim",
+        "profile_id": "general",
+        "mode": "forecast",
+        "from": "2026-09-13T19:12:47.213521Z",
+        "until": "2026-09-13T20:12:47.213521Z"
+      },
+      "coverage": {
+        "status": "available",
+        "supported_windows": [
+          {
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z"
+          }
+        ],
+        "uncovered_windows": [],
+        "missing_targets": [],
+        "reason_codes": []
+      },
+      "rows": [
+        {
+          "valid_from": "2026-09-13T18:12:47.213521Z",
+          "valid_until": "2026-09-13T21:12:47.213521Z",
+          "contract_version": "water-assessment.v1-draft",
+          "target_id": "integration-target-1201-swim",
+          "assessment_id": "assessment:1f3fff09a341e0b0dab488bc04dc45f7378a243cb652a81e36b865a9ac37906e",
+          "input_manifest_id": "inputs:1f3fff09a341e0b0dab488bc04dc45f7378a243cb652a81e36b865a9ac37906e",
+          "spot_id": 1201,
+          "activity": "swim",
+          "context": {
+            "profile_id": "general",
+            "equipment_profile_id": null,
+            "skill_profile_id": null,
+            "exposure_duration_minutes": null
+          },
+          "target": {
+            "kind": "interval",
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z",
+            "timezone": "Asia/Seoul"
+          },
+          "as_of": "2026-09-13T18:12:47.213521Z",
+          "evaluated_at": "2026-09-13T18:12:47.213521Z",
+          "queried_at": "2026-09-13T18:12:48.244779Z",
+          "mode": "none",
+          "score": null,
+          "availability": "partial",
+          "assessment_status": "withheld",
+          "reason_codes": [
+            "model_unimplemented",
+            "official_restriction",
+            "parameter_unresolved",
+            "required_safety_check_missing"
+          ],
+          "safety_status": "restricted",
+          "support": {
+            "valid_from": "2026-09-13T18:12:47.213521Z",
+            "valid_until": "2026-09-13T21:12:47.213521Z",
+            "status": "supported",
+            "reason_codes": [],
+            "evidence_refs": [
+              "fixture-support"
+            ],
+            "source_evidence": [
+              {
+                "valid_from": "2026-09-13T18:12:47.213521Z",
+                "valid_until": "2026-09-13T21:12:47.213521Z",
+                "evidence_ref": "fixture-support",
+                "provider": "TEST_OFFICIAL",
+                "provider_record_id": "fixture-original-record",
+                "spot_id": 1201,
+                "activity": "swim",
+                "authority": "Synthetic authority for software verification only",
+                "authoritative": true,
+                "source_status": "active",
+                "state": "current",
+                "fetched_at": "2026-09-13T18:12:47.213521Z",
+                "issued_at": "2026-09-13T18:11:47.213521Z",
+                "input_refs": [],
+                "status": "supported",
+                "scope": "explicit fixture area",
+                "mapping_version": "fixture-area-v1"
+              }
+            ]
+          },
+          "safety": {
+            "valid_from": "2026-09-13T18:12:47.213521Z",
+            "valid_until": "2026-09-13T21:12:47.213521Z",
+            "status": "restricted",
+            "required_checks_complete": false,
+            "checked_rule_ids": [
+              "fixture-official-control"
+            ],
+            "missing_check_ids": [
+              "PAR_SWIM_SAFETY_REQUIRED_CHECKS"
+            ],
+            "warnings": [],
+            "restrictions": [
+              {
+                "valid_from": "2026-09-13T18:12:47.213521Z",
+                "valid_until": "2026-09-13T21:12:47.213521Z",
+                "evidence_ref": "fixture-restriction",
+                "provider": "TEST_OFFICIAL",
+                "provider_record_id": "fixture-original-record",
+                "spot_id": 1201,
+                "activity": "swim",
+                "authority": "Synthetic authority for software verification only",
+                "authoritative": true,
+                "source_status": "active",
+                "state": "current",
+                "fetched_at": "2026-09-13T18:12:47.213521Z",
+                "issued_at": "2026-09-13T18:11:47.213521Z",
+                "input_refs": [],
+                "check_id": "fixture-operation",
+                "rule_id": "fixture-official-control",
+                "effect": "restricted",
+                "scope": "explicit fixture area",
+                "parameter_ids": [
+                  "PAR_SAFETY_NON_COMPENSATION"
+                ],
+                "evidence_ids": [],
+                "evidence_refs": [
+                  "fixture-restriction"
+                ]
+              }
+            ],
+            "reason_codes": [
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ]
+          },
+          "environment": {
+            "valid_from": null,
+            "valid_until": null,
+            "status": "withheld",
+            "score": null,
+            "score_scale": null,
+            "score_semantics": null,
+            "components": [],
+            "reason_codes": [
+              "model_unimplemented",
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ]
+          },
+          "preference": {
+            "status": "not_modelled",
+            "score": null,
+            "ranking": null,
+            "comparison_scope": null,
+            "reason_codes": [
+              "preference_not_modelled"
+            ]
+          },
+          "recommendation": {
+            "status": "do_not_proceed",
+            "message_code": "ACTIVITY_RESTRICTED",
+            "reason_codes": [
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ],
+            "activity": "swim",
+            "action_codes": [
+              "FOLLOW_OFFICIAL_RESTRICTION"
+            ],
+            "ranking": null
+          },
+          "data_quality": {
+            "status": "unknown",
+            "required_total": null,
+            "required_usable": null,
+            "optional_total": null,
+            "optional_usable": null,
+            "missing_input_ids": [],
+            "stale_input_ids": [],
+            "conflicting_input_ids": [],
+            "unknown_issue_input_ids": [],
+            "by_layer": {
+              "support": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              },
+              "safety": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              },
+              "environment": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              }
+            }
+          },
+          "model": {
+            "model_id": "pongdang-water-assessment",
+            "model_version": "0.1.0-draft",
+            "ruleset_version": "safety-support.0.1.0-draft",
+            "parameter_set_version": "params.0.1.0-draft",
+            "evidence_version": "water-evidence.2026-09-14.1",
+            "status": "unimplemented",
+            "validation_status": "not_evaluated",
+            "evidence_level": "insufficient",
+            "validated_scope": null,
+            "gate_results": {
+              "G_SUPPORT": "pending",
+              "G_FE_RELEASE": "pending",
+              "G_OPERATIONS": "pending",
+              "G_INPUT_CONTRACT": "pending",
+              "G_PARAMETER_TRACE": "pending",
+              "G_RULE_VERIFICATION": "pending",
+              "G_EXTERNAL_VALIDATION": "pending"
+            }
+          },
+          "inputs": []
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25
+    },
+    "support": {
+      "contract_version": "water-assessment.v1-draft",
+      "as_of": "2026-09-13T18:12:48.249737Z",
+      "queried_at": "2026-09-13T18:12:48.249737Z",
+      "query": {
+        "spot_id": 1201,
+        "activity": "swim",
+        "profile_id": "general",
+        "mode": "forecast",
+        "from": "2026-09-13T19:12:47.213521Z",
+        "until": "2026-09-13T20:12:47.213521Z"
+      },
+      "coverage": {
+        "status": "available",
+        "supported_windows": [
+          {
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z"
+          }
+        ],
+        "uncovered_windows": [],
+        "missing_targets": [],
+        "reason_codes": []
+      },
+      "rows": [
+        {
+          "target_id": "support-source-key",
+          "spot_id": 1201,
+          "activity": "swim",
+          "target": {
+            "kind": "interval",
+            "start_at": "2026-09-13T18:12:47.213521Z",
+            "end_at": "2026-09-13T21:12:47.213521Z",
+            "timezone": "Asia/Seoul"
+          },
+          "support": {
+            "valid_from": "2026-09-13T18:12:47.213521Z",
+            "valid_until": "2026-09-13T21:12:47.213521Z",
+            "status": "supported",
+            "reason_codes": [],
+            "evidence_refs": [
+              "fixture-support"
+            ],
+            "source_evidence": [
+              {
+                "valid_from": "2026-09-13T18:12:47.213521Z",
+                "valid_until": "2026-09-13T21:12:47.213521Z",
+                "evidence_ref": "fixture-support",
+                "provider": "TEST_OFFICIAL",
+                "provider_record_id": "fixture-original-record",
+                "spot_id": 1201,
+                "activity": "swim",
+                "authority": "Synthetic authority for software verification only",
+                "authoritative": true,
+                "source_status": "active",
+                "state": "current",
+                "fetched_at": "2026-09-13T18:12:47.213521Z",
+                "issued_at": "2026-09-13T18:11:47.213521Z",
+                "input_refs": [],
+                "status": "supported",
+                "scope": "explicit fixture area",
+                "mapping_version": "fixture-area-v1"
+              }
+            ]
+          }
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25
+    },
+    "outside_forecast_horizon": {
+      "contract_version": "water-assessment.v1-draft",
+      "as_of": "2026-09-13T18:12:48.253673Z",
+      "queried_at": "2026-09-13T18:12:48.253673Z",
+      "query": {
+        "spot_id": 1201,
+        "activity": "swim",
+        "profile_id": "general",
+        "mode": "forecast",
+        "from": "2026-09-13T20:12:47.213521Z",
+        "until": "2026-09-13T21:12:47.213521Z"
+      },
+      "coverage": {
+        "status": "unavailable",
+        "supported_windows": [
+          {
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z"
+          }
+        ],
+        "uncovered_windows": [
+          {
+            "start_at": "2026-09-13T20:12:47.213521Z",
+            "end_at": "2026-09-13T21:12:47.213521Z"
+          }
+        ],
+        "missing_targets": [],
+        "reason_codes": [
+          "outside_forecast_horizon"
+        ]
+      },
+      "rows": [],
+      "total": 0,
+      "page": 1,
+      "page_size": 25
+    },
+    "historical_replay": {
+      "contract_version": "water-assessment.v1-draft",
+      "as_of": "2026-09-13T18:12:48.244779Z",
+      "queried_at": "2026-09-13T18:12:48.261096Z",
+      "query": {
+        "spot_id": 1201,
+        "activity": "swim",
+        "profile_id": "general",
+        "mode": "forecast",
+        "from": "2026-09-13T19:12:47.213521Z",
+        "until": "2026-09-13T20:12:47.213521Z"
+      },
+      "coverage": {
+        "status": "available",
+        "supported_windows": [
+          {
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z"
+          }
+        ],
+        "uncovered_windows": [],
+        "missing_targets": [],
+        "reason_codes": []
+      },
+      "rows": [
+        {
+          "valid_from": "2026-09-13T18:12:47.213521Z",
+          "valid_until": "2026-09-13T21:12:47.213521Z",
+          "contract_version": "water-assessment.v1-draft",
+          "target_id": "integration-target-1201-swim",
+          "assessment_id": "assessment:1f3fff09a341e0b0dab488bc04dc45f7378a243cb652a81e36b865a9ac37906e",
+          "input_manifest_id": "inputs:1f3fff09a341e0b0dab488bc04dc45f7378a243cb652a81e36b865a9ac37906e",
+          "spot_id": 1201,
+          "activity": "swim",
+          "context": {
+            "profile_id": "general",
+            "equipment_profile_id": null,
+            "skill_profile_id": null,
+            "exposure_duration_minutes": null
+          },
+          "target": {
+            "kind": "interval",
+            "start_at": "2026-09-13T19:12:47.213521Z",
+            "end_at": "2026-09-13T20:12:47.213521Z",
+            "timezone": "Asia/Seoul"
+          },
+          "as_of": "2026-09-13T18:12:47.213521Z",
+          "evaluated_at": "2026-09-13T18:12:47.213521Z",
+          "queried_at": "2026-09-13T18:12:48.261096Z",
+          "mode": "none",
+          "score": null,
+          "availability": "partial",
+          "assessment_status": "withheld",
+          "reason_codes": [
+            "model_unimplemented",
+            "official_restriction",
+            "parameter_unresolved",
+            "required_safety_check_missing"
+          ],
+          "safety_status": "restricted",
+          "support": {
+            "valid_from": "2026-09-13T18:12:47.213521Z",
+            "valid_until": "2026-09-13T21:12:47.213521Z",
+            "status": "supported",
+            "reason_codes": [],
+            "evidence_refs": [
+              "fixture-support"
+            ],
+            "source_evidence": [
+              {
+                "valid_from": "2026-09-13T18:12:47.213521Z",
+                "valid_until": "2026-09-13T21:12:47.213521Z",
+                "evidence_ref": "fixture-support",
+                "provider": "TEST_OFFICIAL",
+                "provider_record_id": "fixture-original-record",
+                "spot_id": 1201,
+                "activity": "swim",
+                "authority": "Synthetic authority for software verification only",
+                "authoritative": true,
+                "source_status": "active",
+                "state": "current",
+                "fetched_at": "2026-09-13T18:12:47.213521Z",
+                "issued_at": "2026-09-13T18:11:47.213521Z",
+                "input_refs": [],
+                "status": "supported",
+                "scope": "explicit fixture area",
+                "mapping_version": "fixture-area-v1"
+              }
+            ]
+          },
+          "safety": {
+            "valid_from": "2026-09-13T18:12:47.213521Z",
+            "valid_until": "2026-09-13T21:12:47.213521Z",
+            "status": "restricted",
+            "required_checks_complete": false,
+            "checked_rule_ids": [
+              "fixture-official-control"
+            ],
+            "missing_check_ids": [
+              "PAR_SWIM_SAFETY_REQUIRED_CHECKS"
+            ],
+            "warnings": [],
+            "restrictions": [
+              {
+                "valid_from": "2026-09-13T18:12:47.213521Z",
+                "valid_until": "2026-09-13T21:12:47.213521Z",
+                "evidence_ref": "fixture-restriction",
+                "provider": "TEST_OFFICIAL",
+                "provider_record_id": "fixture-original-record",
+                "spot_id": 1201,
+                "activity": "swim",
+                "authority": "Synthetic authority for software verification only",
+                "authoritative": true,
+                "source_status": "active",
+                "state": "current",
+                "fetched_at": "2026-09-13T18:12:47.213521Z",
+                "issued_at": "2026-09-13T18:11:47.213521Z",
+                "input_refs": [],
+                "check_id": "fixture-operation",
+                "rule_id": "fixture-official-control",
+                "effect": "restricted",
+                "scope": "explicit fixture area",
+                "parameter_ids": [
+                  "PAR_SAFETY_NON_COMPENSATION"
+                ],
+                "evidence_ids": [],
+                "evidence_refs": [
+                  "fixture-restriction"
+                ]
+              }
+            ],
+            "reason_codes": [
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ]
+          },
+          "environment": {
+            "valid_from": null,
+            "valid_until": null,
+            "status": "withheld",
+            "score": null,
+            "score_scale": null,
+            "score_semantics": null,
+            "components": [],
+            "reason_codes": [
+              "model_unimplemented",
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ]
+          },
+          "preference": {
+            "status": "not_modelled",
+            "score": null,
+            "ranking": null,
+            "comparison_scope": null,
+            "reason_codes": [
+              "preference_not_modelled"
+            ]
+          },
+          "recommendation": {
+            "status": "do_not_proceed",
+            "message_code": "ACTIVITY_RESTRICTED",
+            "reason_codes": [
+              "official_restriction",
+              "parameter_unresolved",
+              "required_safety_check_missing"
+            ],
+            "activity": "swim",
+            "action_codes": [
+              "FOLLOW_OFFICIAL_RESTRICTION"
+            ],
+            "ranking": null
+          },
+          "data_quality": {
+            "status": "unknown",
+            "required_total": null,
+            "required_usable": null,
+            "optional_total": null,
+            "optional_usable": null,
+            "missing_input_ids": [],
+            "stale_input_ids": [],
+            "conflicting_input_ids": [],
+            "unknown_issue_input_ids": [],
+            "by_layer": {
+              "support": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              },
+              "safety": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              },
+              "environment": {
+                "status": "unknown",
+                "required_total": null,
+                "required_usable": null,
+                "optional_total": null,
+                "optional_usable": null,
+                "missing_input_ids": [],
+                "stale_input_ids": [],
+                "conflicting_input_ids": [],
+                "unknown_issue_input_ids": []
+              }
+            }
+          },
+          "model": {
+            "model_id": "pongdang-water-assessment",
+            "model_version": "0.1.0-draft",
+            "ruleset_version": "safety-support.0.1.0-draft",
+            "parameter_set_version": "params.0.1.0-draft",
+            "evidence_version": "water-evidence.2026-09-14.1",
+            "status": "unimplemented",
+            "validation_status": "not_evaluated",
+            "evidence_level": "insufficient",
+            "validated_scope": null,
+            "gate_results": {
+              "G_SUPPORT": "pending",
+              "G_FE_RELEASE": "pending",
+              "G_OPERATIONS": "pending",
+              "G_INPUT_CONTRACT": "pending",
+              "G_PARAMETER_TRACE": "pending",
+              "G_RULE_VERIFICATION": "pending",
+              "G_EXTERNAL_VALIDATION": "pending"
+            }
+          },
+          "inputs": []
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25
+    }
+  }
+}

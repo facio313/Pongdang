@@ -1,0 +1,243 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q13",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "site.cdc.gov hot tubs 104°F 40°C children 5 older adults",
+      "returned_count": "19"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q13",
+      "title": "What You Can Do to Stay Healthy in Hot Tubs | Healthy Swimming | CDC",
+      "url": "https://www.cdc.gov/healthy-swimming/safety/what-you-can-do-to-stay-healthy-in-hot-tubs.html",
+      "decision": "selected_study_record",
+      "exclusion_reason": "현재CDC원문후속확인",
+      "study_id": "SW-S10",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q13",
+      "title": "untitled",
+      "url": "https://www.cdc.gov/model-aquatic-health-code/media/pdfs/2023-MAHC-Annex-Track-Changes-p.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q13",
+      "title": "Controlling Legionella in Hot Tubs | Control Legionella | CDC",
+      "url": "https://www.cdc.gov/control-legionella/php/toolkit/hot-tub-module.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q13",
+      "title": "The 2018 Model Aquatic Health Code (MAHC) Annex",
+      "url": "https://www.cdc.gov/model-aquatic-health-code/media/pdfs/2018-MAHC-Annex-Clean-508.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q13",
+      "title": "2016 MAHC ANNEX FINAL",
+      "url": "https://www.cdc.gov/model-aquatic-health-code/media/pdfs/2016-MAHC-ANNEX-FINAL.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q13",
+      "title": "D. Water | Infection Control | CDC",
+      "url": "https://www.cdc.gov/infection-control/hcp/environmental-control/water.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q13",
+      "title": "2016 MAHC ANNEX with Changes Highlighted",
+      "url": "https://stacks.cdc.gov/view/cdc/40374/cdc_40374_DS1.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q13",
+      "title": "Outbreaks Associated with Treated Recreational Water — United States, 2015–2019 | MMWR",
+      "url": "https://www.cdc.gov/mmwr/volumes/70/wr/mm7020a1.htm",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q13",
+      "title": "Controlling Legionella in Hot Tubs",
+      "url": "https://beta.cdc.gov/control-legionella/media/pdfs/Control-Toolkit-Hot-Tubs.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q13",
+      "title": "Controlling Legionella in Hot Tubs",
+      "url": "https://cdc.gov/control-legionella/media/pdfs/Control-Toolkit-Hot-Tubs.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q13",
+      "title": "About Protecting Yourself from Legionella in Hot Tubs | Healthy Swimming | CDC",
+      "url": "https://www.cdc.gov/healthy-swimming/prevention/preventing-legionella-from-hot-tubs.html",
+      "decision": "selected_study_record",
+      "exclusion_reason": "고령위험의결과영역을감염으로한정하여확인",
+      "study_id": "SW-S11",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q13",
+      "title": "Nontuberculous Mycobacterial Disease Following Hot Tub Exposure - Volume 7, Number 6—December 2001 - Emerging Infectious Diseases journal - CDC",
+      "url": "https://wwwnc.cdc.gov/eid/article/7/6/01-0623",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q13",
+      "title": "Restored CDC | Operating and Managing Public Pools, Hot Tubs and Splash Pads | Healthy Swimming | CDC",
+      "url": "https://www.restoredcdc.org/www.cdc.gov/healthy-swimming/toolkit/operating-public-pools-hot-tubs-and-splash-pads.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q13",
+      "title": "Potential Association of Legionnaires’ Disease with Hot Spring Water, Hot Springs National Park and Hot Springs, Arkansas, USA, 2018–2019 - Volume 28, Number 1—January 2022 - Emerging Infectious Diseases journal - CDC",
+      "url": "https://wwwnc.cdc.gov/eid/article/28/1/21-1090_article",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q13",
+      "title": "Public Hot Tub Operators | Control Legionella | CDC",
+      "url": "https://www.cdc.gov/control-legionella/php/hospitality/considerations-for-public-hot-tub-operators.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q13",
+      "title": "Vacation Rental Owners and Managers | Control Legionella | CDC",
+      "url": "https://www.cdc.gov/control-legionella/php/hospitality/considerations-for-vacation-rental-owners-and-managers.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q13",
+      "title": "Preventing Hot Tub Rash | Healthy Swimming | CDC",
+      "url": "https://www.cdc.gov/healthy-swimming/prevention/preventing-hot-tub-rash.html",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q13",
+      "title": "Guidelines for Environmental Infection Control in Health-Care Facilities: Recommendations of CDC and the Healthcare Infection Control Practices Advisory Committee (HICPAC)",
+      "url": "https://beta.cdc.gov/Mmwr/preview/mmwrhtml/rr5210a1.htm",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-19",
+      "return_order": 19,
+      "query_id": "sw-q13",
+      "title": "Hot tub",
+      "url": "https://en.wikipedia.org/wiki/Hot_tub",
+      "decision": "exclude",
+      "exclusion_reason": "한정hot-tub온도/대상기준의선정CDC원페이지로집중;이결과원문미검토",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

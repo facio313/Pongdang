@@ -1,0 +1,1722 @@
+{
+  "artifact_type": "api_contract_examples",
+  "contract_version": "water-assessment.v1-draft",
+  "documentation_only": true,
+  "not_actual_records": true,
+  "not_seed_or_runtime_fixture": true,
+  "implementation_status": "not_implemented",
+  "notice": "모든 ID·시각·값·통제·프로필·지원기간은 명세 설명용 가정이며 실제 API/DB/제공처에서 받은 자료가 아니다. 앱 fallback·DB seed·오프라인 평가 데이터로도 사용하지 않는다. contract-fixture-only는 설명용 표기이며 테스트 fixture 생성 지시가 아니다.",
+  "numeric_example_notice": "API-EX04의72는 숫자/null·게이트 형태를 설명하는 임의 값이다. 연구 수치·산식 재현·검증된 모델 출력이 아니며 공개 registry에 등록하거나 요청으로 활성화할 수 없다.",
+  "example_constants_are_not_parameters": true,
+  "examples": [
+    {
+      "example_id": "API-EX01",
+      "description": "기본 모델 미구현과 필수 안전 확인 미완료. null은 정상 응답이다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "available",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": []
+        },
+        "rows": [
+          {
+            "assessment_id": "contract-fixture-only:default-null",
+            "input_manifest_id": null,
+            "spot_id": 999001,
+            "activity": "swim",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": "2026-09-14T09:00:00+09:00",
+            "evaluated_at": null,
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": null,
+            "valid_until": null,
+            "mode": "none",
+            "score": null,
+            "availability": "unavailable",
+            "assessment_status": "withheld",
+            "reason_codes": [
+              "required_safety_check_missing",
+              "model_unimplemented"
+            ],
+            "safety_status": "unknown",
+            "support": {
+              "status": "supported",
+              "reason_codes": [],
+              "evidence_refs": [
+                "contract-fixture-only:support-record"
+              ],
+              "valid_from": "2026-09-14T10:00:00+09:00",
+              "valid_until": "2026-09-14T11:00:00+09:00"
+            },
+            "safety": {
+              "status": "unknown",
+              "required_checks_complete": false,
+              "checked_rule_ids": [],
+              "missing_check_ids": [
+                "contract-fixture-only:safety-checklist-unapproved"
+              ],
+              "warnings": [],
+              "restrictions": [],
+              "valid_from": null,
+              "valid_until": null,
+              "reason_codes": [
+                "required_safety_check_missing"
+              ]
+            },
+            "environment": {
+              "status": "withheld",
+              "score": null,
+              "score_scale": null,
+              "score_semantics": null,
+              "components": [],
+              "reason_codes": [
+                "required_safety_check_missing",
+                "model_unimplemented"
+              ],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "check_required",
+              "message_code": "CHECK_ACTIVITY_CONDITIONS",
+              "reason_codes": [
+                "required_safety_check_missing"
+              ],
+              "activity": "swim",
+              "action_codes": [
+                "CHECK_OFFICIAL_INFORMATION"
+              ],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "unknown",
+              "required_total": null,
+              "required_usable": null,
+              "optional_total": null,
+              "optional_usable": null,
+              "missing_input_ids": [],
+              "stale_input_ids": [],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "pongdang-water-assessment",
+              "model_version": "0.1.0-draft",
+              "ruleset_version": "safety-support.0.1.0-draft",
+              "parameter_set_version": "params.0.1.0-draft",
+              "evidence_version": "water-evidence.2026-09-14.1",
+              "status": "unimplemented",
+              "validation_status": "not_evaluated",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pending",
+                "G_INPUT_CONTRACT": "pending",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "pending",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [],
+            "target_id": "contract-fixture-only:target:api-ex01"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "평가값 없음",
+        "활동 조건 확인 필요",
+        "점수0·추천·안전으로 표시하지 않음"
+      ]
+    },
+    {
+      "example_id": "API-EX02",
+      "description": "유리하게 보일 수 있는 외기 수치와 공식 통제가 함께 있는 가정. 환경 적정성을 검증했다는 뜻은 아니다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "available",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": []
+        },
+        "rows": [
+          {
+            "assessment_id": "contract-fixture-only:official-restriction",
+            "input_manifest_id": null,
+            "spot_id": 999001,
+            "activity": "swim",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": "2026-09-14T09:00:00+09:00",
+            "evaluated_at": null,
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": null,
+            "valid_until": null,
+            "mode": "none",
+            "score": null,
+            "availability": "partial",
+            "assessment_status": "withheld",
+            "reason_codes": [
+              "official_restriction"
+            ],
+            "safety_status": "restricted",
+            "support": {
+              "status": "supported",
+              "reason_codes": [],
+              "evidence_refs": [
+                "contract-fixture-only:support-record"
+              ],
+              "valid_from": "2026-09-14T10:00:00+09:00",
+              "valid_until": "2026-09-14T11:00:00+09:00"
+            },
+            "safety": {
+              "status": "restricted",
+              "required_checks_complete": false,
+              "checked_rule_ids": [
+                "contract-fixture-only:official-restriction-check"
+              ],
+              "missing_check_ids": [
+                "contract-fixture-only:safety-checklist-unapproved"
+              ],
+              "warnings": [],
+              "restrictions": [
+                {
+                  "restriction_id": "contract-fixture-only:closure",
+                  "source_type": "official_control",
+                  "provider": "CONTRACT_FIXTURE_ONLY",
+                  "source_id": "contract-fixture-only:closure-notice",
+                  "public_url": null,
+                  "title": "명세 가정: 해당 시간·활동의 공식 통제",
+                  "issued_at": "2026-09-14T08:00:00+09:00",
+                  "fetched_at": "2026-09-14T08:20:00+09:00",
+                  "valid_from": "2026-09-14T10:00:00+09:00",
+                  "valid_until": "2026-09-14T11:00:00+09:00",
+                  "spot_id": 999001,
+                  "activities": [
+                    "swim"
+                  ],
+                  "scope_status": "contract-fixture-only:confirmed"
+                }
+              ],
+              "valid_from": "2026-09-14T10:00:00+09:00",
+              "valid_until": "2026-09-14T11:00:00+09:00",
+              "reason_codes": [
+                "official_restriction"
+              ]
+            },
+            "environment": {
+              "status": "withheld",
+              "score": null,
+              "score_scale": null,
+              "score_semantics": null,
+              "components": [],
+              "reason_codes": [
+                "official_restriction"
+              ],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "do_not_proceed",
+              "message_code": "ACTIVITY_RESTRICTED",
+              "reason_codes": [
+                "official_restriction"
+              ],
+              "activity": "swim",
+              "action_codes": [
+                "FOLLOW_OFFICIAL_RESTRICTION"
+              ],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "unknown",
+              "required_total": null,
+              "required_usable": null,
+              "optional_total": null,
+              "optional_usable": null,
+              "missing_input_ids": [],
+              "stale_input_ids": [],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "pongdang-water-assessment",
+              "model_version": "0.1.0-draft",
+              "ruleset_version": "safety-support.0.1.0-draft",
+              "parameter_set_version": "params.0.1.0-draft",
+              "evidence_version": "water-evidence.2026-09-14.1",
+              "status": "unimplemented",
+              "validation_status": "not_evaluated",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pending",
+                "G_INPUT_CONTRACT": "pending",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "pending",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [
+              {
+                "input_id": "contract-fixture-only:input:air_temperature",
+                "snapshot_id": 999010,
+                "metric_id": 999101,
+                "spot_id": 999002,
+                "snapshot_station_id": 999020,
+                "provider": "CONTRACT_FIXTURE_ONLY",
+                "provider_record_id": "contract-fixture-only:illustrative-reading-digest",
+                "source_record_id": "contract-fixture-only:provider-record",
+                "station_id": "contract-fixture-only:station",
+                "name": "air_temperature",
+                "numeric_value": 26,
+                "text_value": null,
+                "boolean_value": null,
+                "unit": "°C",
+                "mode": "forecast",
+                "state": "recorded",
+                "observed_at": "2026-09-14T10:00:00+09:00",
+                "issued_at": "2026-09-14T08:00:00+09:00",
+                "fetched_at": "2026-09-14T08:30:00+09:00",
+                "valid_from": "2026-09-14T10:00:00+09:00",
+                "valid_until": "2026-09-14T11:00:00+09:00",
+                "time_role": "forecast_target_start",
+                "aggregation": {
+                  "start_at": null,
+                  "end_at": null,
+                  "method": null
+                },
+                "spatial_scope": "contract-fixture-only:point",
+                "mapping_version": null,
+                "quality_flags": [
+                  "not_real_data",
+                  "aggregation_unknown",
+                  "mapping_unapproved"
+                ],
+                "used_by": []
+              },
+              {
+                "input_id": "contract-fixture-only:input:wind_speed",
+                "snapshot_id": 999010,
+                "metric_id": 999102,
+                "spot_id": 999002,
+                "snapshot_station_id": 999020,
+                "provider": "CONTRACT_FIXTURE_ONLY",
+                "provider_record_id": "contract-fixture-only:illustrative-reading-digest",
+                "source_record_id": "contract-fixture-only:provider-record",
+                "station_id": "contract-fixture-only:station",
+                "name": "wind_speed",
+                "numeric_value": 2,
+                "text_value": null,
+                "boolean_value": null,
+                "unit": "m/s",
+                "mode": "forecast",
+                "state": "recorded",
+                "observed_at": "2026-09-14T10:00:00+09:00",
+                "issued_at": "2026-09-14T08:00:00+09:00",
+                "fetched_at": "2026-09-14T08:30:00+09:00",
+                "valid_from": "2026-09-14T10:00:00+09:00",
+                "valid_until": "2026-09-14T11:00:00+09:00",
+                "time_role": "forecast_target_start",
+                "aggregation": {
+                  "start_at": null,
+                  "end_at": null,
+                  "method": null
+                },
+                "spatial_scope": "contract-fixture-only:point",
+                "mapping_version": null,
+                "quality_flags": [
+                  "not_real_data",
+                  "aggregation_unknown",
+                  "mapping_unapproved"
+                ],
+                "used_by": []
+              }
+            ],
+            "target_id": "contract-fixture-only:target:api-ex02"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "공식 통제 우선",
+        "환경 숫자는 원본 참고값",
+        "공개 점수null·추천 없음"
+      ]
+    },
+    {
+      "example_id": "API-EX03",
+      "description": "자료 지원 target manifest는 보존되었지만 저장 평가가 없는 결손 사례. target_id는 유지하고 assessment_id/as_of/evaluated_at은null이다. 참고 입력의 결측·노후와 집계 기간 미상을 따로 표시한다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "partial",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [
+            {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul",
+              "target_id": "contract-fixture-only:target:api-ex03"
+            }
+          ],
+          "reason_codes": [
+            "input_missing",
+            "input_stale"
+          ]
+        },
+        "rows": [
+          {
+            "assessment_id": null,
+            "input_manifest_id": null,
+            "spot_id": 999001,
+            "activity": "swim",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": null,
+            "evaluated_at": null,
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": null,
+            "valid_until": null,
+            "mode": "none",
+            "score": null,
+            "availability": "partial",
+            "assessment_status": "withheld",
+            "reason_codes": [
+              "required_safety_check_missing",
+              "input_missing",
+              "input_stale"
+            ],
+            "safety_status": "unknown",
+            "support": {
+              "status": "supported",
+              "reason_codes": [],
+              "evidence_refs": [
+                "contract-fixture-only:support-record"
+              ],
+              "valid_from": "2026-09-14T10:00:00+09:00",
+              "valid_until": "2026-09-14T11:00:00+09:00"
+            },
+            "safety": {
+              "status": "unknown",
+              "required_checks_complete": false,
+              "checked_rule_ids": [],
+              "missing_check_ids": [
+                "contract-fixture-only:safety-checklist-unapproved"
+              ],
+              "warnings": [],
+              "restrictions": [],
+              "valid_from": null,
+              "valid_until": null,
+              "reason_codes": [
+                "required_safety_check_missing"
+              ]
+            },
+            "environment": {
+              "status": "withheld",
+              "score": null,
+              "score_scale": null,
+              "score_semantics": null,
+              "components": [],
+              "reason_codes": [
+                "input_missing",
+                "input_stale"
+              ],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "check_required",
+              "message_code": "CHECK_ACTIVITY_CONDITIONS",
+              "reason_codes": [
+                "required_safety_check_missing"
+              ],
+              "activity": "swim",
+              "action_codes": [
+                "CHECK_OFFICIAL_INFORMATION"
+              ],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "unknown",
+              "required_total": null,
+              "required_usable": null,
+              "optional_total": null,
+              "optional_usable": null,
+              "missing_input_ids": [
+                "contract-fixture-only:input:water_temperature"
+              ],
+              "stale_input_ids": [
+                "contract-fixture-only:input:air_temperature"
+              ],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "sufficient",
+                  "required_total": 1,
+                  "required_usable": 1,
+                  "optional_total": 0,
+                  "optional_usable": 0,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [
+                    "contract-fixture-only:safety-requirements-unapproved"
+                  ],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "insufficient",
+                  "required_total": 2,
+                  "required_usable": 0,
+                  "optional_total": 0,
+                  "optional_usable": 0,
+                  "missing_input_ids": [
+                    "contract-fixture-only:input:water_temperature"
+                  ],
+                  "stale_input_ids": [
+                    "contract-fixture-only:input:air_temperature"
+                  ],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "pongdang-water-assessment",
+              "model_version": "0.1.0-draft",
+              "ruleset_version": "safety-support.0.1.0-draft",
+              "parameter_set_version": "params.0.1.0-draft",
+              "evidence_version": "water-evidence.2026-09-14.1",
+              "status": "unimplemented",
+              "validation_status": "not_evaluated",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pending",
+                "G_INPUT_CONTRACT": "pending",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "pending",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [
+              {
+                "input_id": "contract-fixture-only:input:water_temperature",
+                "snapshot_id": 999010,
+                "metric_id": 999103,
+                "spot_id": 999002,
+                "snapshot_station_id": 999020,
+                "provider": "CONTRACT_FIXTURE_ONLY",
+                "provider_record_id": "contract-fixture-only:illustrative-reading-digest",
+                "source_record_id": "contract-fixture-only:provider-record",
+                "station_id": "contract-fixture-only:station",
+                "name": "water_temperature",
+                "numeric_value": null,
+                "text_value": null,
+                "boolean_value": null,
+                "unit": "°C",
+                "mode": "forecast",
+                "state": "missing",
+                "observed_at": "2026-09-14T10:00:00+09:00",
+                "issued_at": "2026-09-14T08:00:00+09:00",
+                "fetched_at": "2026-09-14T08:30:00+09:00",
+                "valid_from": "2026-09-14T10:00:00+09:00",
+                "valid_until": "2026-09-14T11:00:00+09:00",
+                "time_role": "forecast_target_start",
+                "aggregation": {
+                  "start_at": null,
+                  "end_at": null,
+                  "method": null
+                },
+                "spatial_scope": "contract-fixture-only:point",
+                "mapping_version": null,
+                "quality_flags": [
+                  "not_real_data",
+                  "aggregation_unknown",
+                  "mapping_unapproved",
+                  "input_missing"
+                ],
+                "used_by": []
+              },
+              {
+                "input_id": "contract-fixture-only:input:air_temperature",
+                "snapshot_id": 999010,
+                "metric_id": 999104,
+                "spot_id": 999002,
+                "snapshot_station_id": 999020,
+                "provider": "CONTRACT_FIXTURE_ONLY",
+                "provider_record_id": "contract-fixture-only:illustrative-reading-digest",
+                "source_record_id": "contract-fixture-only:provider-record",
+                "station_id": "contract-fixture-only:station",
+                "name": "air_temperature",
+                "numeric_value": 24,
+                "text_value": null,
+                "boolean_value": null,
+                "unit": "°C",
+                "mode": "observation",
+                "state": "stale",
+                "observed_at": "2026-09-13T08:00:00+09:00",
+                "issued_at": null,
+                "fetched_at": "2026-09-13T08:10:00+09:00",
+                "valid_from": "2026-09-13T08:00:00+09:00",
+                "valid_until": "2026-09-13T09:00:00+09:00",
+                "time_role": "observation_time",
+                "aggregation": {
+                  "start_at": null,
+                  "end_at": null,
+                  "method": null
+                },
+                "spatial_scope": "contract-fixture-only:point",
+                "mapping_version": null,
+                "quality_flags": [
+                  "not_real_data",
+                  "aggregation_unknown",
+                  "mapping_unapproved",
+                  "input_stale"
+                ],
+                "used_by": []
+              }
+            ],
+            "target_id": "contract-fixture-only:target:api-ex03"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "target행을 숨기지 않음",
+        "수온null·오래된 기온 각각 표시",
+        "남은 값 재가중 또는 유효기간 연장 없음",
+        "저장 평가 기준 시각 없음",
+        "target_id와 모델/문맥 튜플로 결손 행 식별"
+      ]
+    },
+    {
+      "example_id": "API-EX04",
+      "description": "숫자 점수 DTO와 gate 표시의 문서용 오프라인 사례. 72는 가정 숫자이고 실행 가능한 모델의 결과가 아니다. 공개 allowlist로 요청할 수 없다. 저장 평가 cutoff08:50·생성08:55를 조회 cutoff09:00으로 바꾸지 않는 사례다.",
+      "documentation_only": true,
+      "offline_only": true,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "relax",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "observation",
+          "from": "2026-09-14T08:00:00+09:00",
+          "until": "2026-09-14T09:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "relax",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "observation",
+          "from": "2026-09-14T08:00:00+09:00",
+          "until": "2026-09-14T09:00:00+09:00"
+        },
+        "coverage": {
+          "status": "available",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T08:00:00+09:00",
+              "end_at": "2026-09-14T09:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": []
+        },
+        "rows": [
+          {
+            "assessment_id": "contract-fixture-only:offline-numeric",
+            "input_manifest_id": "contract-fixture-only:manifest:offline-numeric",
+            "spot_id": 999001,
+            "activity": "relax",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "instant",
+              "start_at": "2026-09-14T08:40:00+09:00",
+              "end_at": null,
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": "2026-09-14T08:50:00+09:00",
+            "evaluated_at": "2026-09-14T08:55:00+09:00",
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": "2026-09-14T08:40:00+09:00",
+            "valid_until": "2026-09-14T10:00:00+09:00",
+            "mode": "observation",
+            "score": 72,
+            "availability": "available",
+            "assessment_status": "evaluated",
+            "reason_codes": [
+              "experimental_index_only"
+            ],
+            "safety_status": "no_known_restriction",
+            "support": {
+              "status": "supported",
+              "reason_codes": [],
+              "evidence_refs": [
+                "contract-fixture-only:support-record"
+              ],
+              "valid_from": "2026-09-14T08:40:00+09:00",
+              "valid_until": "2026-09-14T10:00:00+09:00"
+            },
+            "safety": {
+              "status": "no_known_restriction",
+              "required_checks_complete": true,
+              "checked_rule_ids": [
+                "contract-fixture-only:approved-required-check"
+              ],
+              "missing_check_ids": [],
+              "warnings": [],
+              "restrictions": [],
+              "valid_from": "2026-09-14T08:40:00+09:00",
+              "valid_until": "2026-09-14T10:00:00+09:00",
+              "reason_codes": []
+            },
+            "environment": {
+              "status": "evaluated",
+              "score": 72,
+              "score_scale": "index_0_100",
+              "score_semantics": "contract-fixture-only: 임의의 스키마 설명 숫자; 실제 산식·연구 결과·만족·참여·안전 확률이 아님",
+              "components": [
+                {
+                  "input_refs": [
+                    "contract-fixture-only:input:air_temperature"
+                  ],
+                  "parameter_ids": [],
+                  "evidence_ids": [],
+                  "explanation_codes": [
+                    "CONTRACT_EXAMPLE_NO_SCIENTIFIC_CLAIM"
+                  ],
+                  "contribution": null,
+                  "contribution_unit": null,
+                  "direction": "not_scored"
+                }
+              ],
+              "reason_codes": [
+                "experimental_index_only"
+              ],
+              "valid_from": "2026-09-14T08:40:00+09:00",
+              "valid_until": "2026-09-14T10:00:00+09:00"
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "information_only",
+              "message_code": "EXPERIMENTAL_INDEX_INFORMATION",
+              "reason_codes": [
+                "experimental_index_only"
+              ],
+              "activity": "relax",
+              "action_codes": [],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "sufficient",
+              "required_total": 3,
+              "required_usable": 3,
+              "optional_total": 0,
+              "optional_usable": 0,
+              "missing_input_ids": [],
+              "stale_input_ids": [],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "sufficient",
+                  "required_total": 1,
+                  "required_usable": 1,
+                  "optional_total": 0,
+                  "optional_usable": 0,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "sufficient",
+                  "required_total": 1,
+                  "required_usable": 1,
+                  "optional_total": 0,
+                  "optional_usable": 0,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "sufficient",
+                  "required_total": 1,
+                  "required_usable": 1,
+                  "optional_total": 0,
+                  "optional_usable": 0,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "contract-fixture-only",
+              "model_version": "contract-fixture-only.offline.1",
+              "ruleset_version": "contract-fixture-only.rules.1",
+              "parameter_set_version": "contract-fixture-only.params.1",
+              "evidence_version": "contract-fixture-only.no-evidence",
+              "status": "experimental",
+              "validation_status": "internal_only",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pass",
+                "G_INPUT_CONTRACT": "pass",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "fail",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [
+              {
+                "input_id": "contract-fixture-only:input:air_temperature",
+                "snapshot_id": 999010,
+                "metric_id": 999105,
+                "spot_id": 999002,
+                "snapshot_station_id": 999020,
+                "provider": "CONTRACT_FIXTURE_ONLY",
+                "provider_record_id": "contract-fixture-only:illustrative-reading-digest",
+                "source_record_id": "contract-fixture-only:provider-record",
+                "station_id": "contract-fixture-only:station",
+                "name": "air_temperature",
+                "numeric_value": 25,
+                "text_value": null,
+                "boolean_value": null,
+                "unit": "°C",
+                "mode": "observation",
+                "state": "recorded",
+                "observed_at": "2026-09-14T08:40:00+09:00",
+                "issued_at": null,
+                "fetched_at": "2026-09-14T08:45:00+09:00",
+                "valid_from": "2026-09-14T08:40:00+09:00",
+                "valid_until": "2026-09-14T10:00:00+09:00",
+                "time_role": "observation_time",
+                "aggregation": {
+                  "start_at": "2026-09-14T08:00:00+09:00",
+                  "end_at": "2026-09-14T08:40:00+09:00",
+                  "method": "contract-fixture-only:interval_mean"
+                },
+                "spatial_scope": "contract-fixture-only:point",
+                "mapping_version": "contract-fixture-only:approved-mapping",
+                "quality_flags": [
+                  "not_real_data"
+                ],
+                "used_by": [
+                  "environment"
+                ]
+              }
+            ],
+            "target_id": "contract-fixture-only:target:api-ex04"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "공개 UI 수신 시 계약 위반으로 차단; 오프라인 문서/검증에서만 표현",
+        "실험 상태·검증 범위 없음·공개 출시 게이트실패",
+        "72%안전·활동 간 순위로 표시 금지",
+        "평가 정보 기준08:50·평가 생성08:55·조회 기준09:00 구분"
+      ]
+    },
+    {
+      "example_id": "API-EX05",
+      "description": "요청 구간 전체가 가정의 보존된 forecast horizon 밖. 지원기간을 임의31일로 늘리지 않는다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-20T10:00:00+09:00",
+          "until": "2026-09-20T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-20T10:00:00+09:00",
+          "until": "2026-09-20T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "unavailable",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [
+            {
+              "start_at": "2026-09-20T10:00:00+09:00",
+              "end_at": "2026-09-20T11:00:00+09:00"
+            }
+          ],
+          "missing_targets": [],
+          "reason_codes": [
+            "outside_forecast_horizon"
+          ]
+        },
+        "rows": [],
+        "total": 0,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "지원 범위 밖",
+        "실제확인기간 9월14일10–11시만 설명",
+        "행 생성·마지막예보 복제 없음"
+      ]
+    },
+    {
+      "example_id": "API-EX06",
+      "description": "알려진 장소가 알려진 활동을 지원하지 않는다는 명시 근거가 있는 가정. 임시 통제와 구분한다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "rafting",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "rafting",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "available",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": []
+        },
+        "rows": [
+          {
+            "assessment_id": "contract-fixture-only:unsupported",
+            "input_manifest_id": null,
+            "spot_id": 999001,
+            "activity": "rafting",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": "2026-09-14T09:00:00+09:00",
+            "evaluated_at": null,
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": null,
+            "valid_until": null,
+            "mode": "none",
+            "score": null,
+            "availability": "unsupported",
+            "assessment_status": "unsupported",
+            "reason_codes": [
+              "activity_unsupported"
+            ],
+            "safety_status": "not_assessed",
+            "support": {
+              "status": "unsupported",
+              "reason_codes": [
+                "activity_unsupported"
+              ],
+              "evidence_refs": [
+                "contract-fixture-only:support-record"
+              ],
+              "valid_from": "2026-09-14T10:00:00+09:00",
+              "valid_until": "2026-09-14T11:00:00+09:00"
+            },
+            "safety": {
+              "status": "not_assessed",
+              "required_checks_complete": false,
+              "checked_rule_ids": [],
+              "missing_check_ids": [],
+              "warnings": [],
+              "restrictions": [],
+              "valid_from": null,
+              "valid_until": null,
+              "reason_codes": [
+                "activity_unsupported"
+              ]
+            },
+            "environment": {
+              "status": "not_applicable",
+              "score": null,
+              "score_scale": null,
+              "score_semantics": null,
+              "components": [],
+              "reason_codes": [
+                "activity_unsupported"
+              ],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "not_supported",
+              "message_code": "ACTIVITY_NOT_SUPPORTED",
+              "reason_codes": [
+                "activity_unsupported"
+              ],
+              "activity": "rafting",
+              "action_codes": [],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "unknown",
+              "required_total": null,
+              "required_usable": null,
+              "optional_total": null,
+              "optional_usable": null,
+              "missing_input_ids": [],
+              "stale_input_ids": [],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "pongdang-water-assessment",
+              "model_version": "0.1.0-draft",
+              "ruleset_version": "safety-support.0.1.0-draft",
+              "parameter_set_version": "params.0.1.0-draft",
+              "evidence_version": "water-evidence.2026-09-14.1",
+              "status": "unimplemented",
+              "validation_status": "not_evaluated",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pending",
+                "G_INPUT_CONTRACT": "pending",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "pending",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [],
+            "target_id": "contract-fixture-only:target:api-ex06"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "활동 미지원",
+        "점수null·안전평가 미수행",
+        "404장소없음이나일시폐쇄와 구분"
+      ]
+    },
+    {
+      "example_id": "API-EX07",
+      "description": "장소 카탈로그가 있어도 활동 지원 근거가 없는 가정.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "available",
+          "supported_windows": [
+            {
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00"
+            }
+          ],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": []
+        },
+        "rows": [
+          {
+            "assessment_id": "contract-fixture-only:support-unknown",
+            "input_manifest_id": null,
+            "spot_id": 999001,
+            "activity": "swim",
+            "context": {
+              "profile_id": "contract-fixture-only:adult-profile",
+              "equipment_profile_id": null,
+              "skill_profile_id": null,
+              "exposure_duration_minutes": null
+            },
+            "target": {
+              "kind": "interval",
+              "start_at": "2026-09-14T10:00:00+09:00",
+              "end_at": "2026-09-14T11:00:00+09:00",
+              "timezone": "Asia/Seoul"
+            },
+            "as_of": "2026-09-14T09:00:00+09:00",
+            "evaluated_at": null,
+            "queried_at": "2026-09-14T09:00:02+09:00",
+            "valid_from": null,
+            "valid_until": null,
+            "mode": "none",
+            "score": null,
+            "availability": "unknown",
+            "assessment_status": "support_unknown",
+            "reason_codes": [
+              "activity_support_unknown"
+            ],
+            "safety_status": "not_assessed",
+            "support": {
+              "status": "unknown",
+              "reason_codes": [
+                "activity_support_unknown"
+              ],
+              "evidence_refs": [],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "safety": {
+              "status": "not_assessed",
+              "required_checks_complete": false,
+              "checked_rule_ids": [],
+              "missing_check_ids": [],
+              "warnings": [],
+              "restrictions": [],
+              "valid_from": null,
+              "valid_until": null,
+              "reason_codes": [
+                "activity_support_unknown"
+              ]
+            },
+            "environment": {
+              "status": "not_applicable",
+              "score": null,
+              "score_scale": null,
+              "score_semantics": null,
+              "components": [],
+              "reason_codes": [
+                "activity_support_unknown"
+              ],
+              "valid_from": null,
+              "valid_until": null
+            },
+            "preference": {
+              "status": "not_modelled",
+              "score": null,
+              "ranking": null,
+              "comparison_scope": null,
+              "reason_codes": [
+                "preference_not_modelled"
+              ]
+            },
+            "recommendation": {
+              "status": "check_required",
+              "message_code": "CHECK_ACTIVITY_SUPPORT",
+              "reason_codes": [
+                "activity_support_unknown"
+              ],
+              "activity": "swim",
+              "action_codes": [
+                "CHECK_PLACE_ACTIVITY_SUPPORT"
+              ],
+              "ranking": null
+            },
+            "data_quality": {
+              "status": "unknown",
+              "required_total": null,
+              "required_usable": null,
+              "optional_total": null,
+              "optional_usable": null,
+              "missing_input_ids": [],
+              "stale_input_ids": [],
+              "conflicting_input_ids": [],
+              "unknown_issue_input_ids": [],
+              "by_layer": {
+                "support": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "safety": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                },
+                "environment": {
+                  "status": "unknown",
+                  "required_total": null,
+                  "required_usable": null,
+                  "optional_total": null,
+                  "optional_usable": null,
+                  "missing_input_ids": [],
+                  "stale_input_ids": [],
+                  "conflicting_input_ids": [],
+                  "unknown_issue_input_ids": []
+                }
+              }
+            },
+            "model": {
+              "model_id": "pongdang-water-assessment",
+              "model_version": "0.1.0-draft",
+              "ruleset_version": "safety-support.0.1.0-draft",
+              "parameter_set_version": "params.0.1.0-draft",
+              "evidence_version": "water-evidence.2026-09-14.1",
+              "status": "unimplemented",
+              "validation_status": "not_evaluated",
+              "evidence_level": "insufficient",
+              "validated_scope": null,
+              "gate_results": {
+                "G_SUPPORT": "pending",
+                "G_INPUT_CONTRACT": "pending",
+                "G_PARAMETER_TRACE": "pending",
+                "G_RULE_VERIFICATION": "pending",
+                "G_EXTERNAL_VALIDATION": "pending",
+                "G_FE_RELEASE": "pending",
+                "G_OPERATIONS": "pending"
+              }
+            },
+            "inputs": [],
+            "target_id": "contract-fixture-only:target:api-ex07"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "활동 지원 여부 미확인",
+        "장소명·type에서지원추정금지",
+        "점수null"
+      ]
+    },
+    {
+      "example_id": "API-EX08",
+      "description": "과거 as_of의 불변 평가·입력 manifest가 없는 요청. 정상 null과 다른 오류다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-08-01T10:00:00+09:00",
+          "until": "2026-08-01T11:00:00+09:00",
+          "as_of": "2026-08-01T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 422,
+      "response": {
+        "detail": "요청한 기준 시각의 평가 및 입력 이력을 재현할 수 없습니다.",
+        "error_code": "history_not_reproducible",
+        "contract_version": "water-assessment.v1-draft",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "context": {
+          "requested_as_of": "2026-08-01T09:00:00+09:00"
+        }
+      },
+      "expected_display": [
+        "이력 재현 불가",
+        "최신자료로과거응답대체금지"
+      ]
+    },
+    {
+      "example_id": "API-EX09",
+      "description": "기대 target manifest 자체가 없어서 기간 내부 결측인지도 판단할 수 없는 가정.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "contract_version": "water-assessment.v1-draft",
+        "as_of": "2026-09-14T09:00:00+09:00",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00"
+        },
+        "coverage": {
+          "status": "unknown",
+          "supported_windows": [],
+          "uncovered_windows": [],
+          "missing_targets": [],
+          "reason_codes": [
+            "target_manifest_unavailable"
+          ]
+        },
+        "rows": [],
+        "total": 0,
+        "page": 1,
+        "page_size": 25
+      },
+      "expected_display": [
+        "지원범위미확인",
+        "빈rows를안전이나수집완료로해석금지",
+        "매시빈평가행생성금지"
+      ]
+    },
+    {
+      "example_id": "API-EX10",
+      "description": "저장 투영 조회 실패. 실데이터 없음과 구별한다.",
+      "documentation_only": true,
+      "offline_only": false,
+      "request": {
+        "method": "GET",
+        "logical_path": "/api/data/water-index/assessments",
+        "query": {
+          "spot_id": 999001,
+          "activity": "swim",
+          "profile_id": "contract-fixture-only:adult-profile",
+          "mode": "forecast",
+          "from": "2026-09-14T10:00:00+09:00",
+          "until": "2026-09-14T11:00:00+09:00",
+          "as_of": "2026-09-14T09:00:00+09:00",
+          "page": 1,
+          "page_size": 25
+        }
+      },
+      "http_status": 503,
+      "response": {
+        "detail": "저장된 평가 자료를 조회할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        "error_code": "assessment_store_unavailable",
+        "contract_version": "water-assessment.v1-draft",
+        "queried_at": "2026-09-14T09:00:02+09:00",
+        "context": {}
+      },
+      "expected_display": [
+        "조회 실패",
+        "문서예시·이전점수로성공처리금지"
+      ]
+    }
+  ],
+  "time_semantics_notice": "envelope.as_of는 조회 cutoff, row.as_of는 저장된 평가의 불변 cutoff이다. non-null row.as_of는 envelope.as_of 이하이며 같을 필요가 없다. 평가 레코드가 없는 고정 target은 row.as_of/evaluated_at/assessment_id가null이고 target_id로 식별한다.",
+  "identity_notice": "target_id는 문서 가정의 불변 target manifest 키다. target_id·모델ID/버전·파라미터버전·context당 한 행이며 GET에서 ID를 생성하거나 저장하지 않는다. support route의 키는 별도 지원 근거·유효기간 키다."
+}

@@ -1,0 +1,45 @@
+{
+  "checked_at_kst": "2026-09-14T02:43:51.589594+09:00",
+  "scope": "documentation_static_integrity_only",
+  "product_tests_run": false,
+  "api_or_database_called": false,
+  "model_executed_or_empirically_validated": false,
+  "branch": "feature/api",
+  "head": "d07cd23279808e74c1998d849c240a48e06d06d2",
+  "protected_existing_files": 216,
+  "parameter_rows": 166,
+  "parameter_columns": 20,
+  "parameter_status_counts": {
+    "retired_or_not_adopted": 74,
+    "adopted_design_constraint": 25,
+    "experimental_offline": 4,
+    "unresolved": 60,
+    "draft_operational_policy": 3
+  },
+  "evidence_ids_available": 47,
+  "documentation_examples": 10,
+  "documentation_assessment_rows": 6,
+  "offline_numeric_examples": 1,
+  "planned_implementation_verification_cases": 44,
+  "checks_by_category": {
+    "source_preservation": 219,
+    "parameter_schema": 2386,
+    "evidence_links": 560,
+    "parameter_references": 123,
+    "document_links": 66,
+    "example_schema": 37,
+    "example_bounds": 243,
+    "example_times": 76,
+    "example_states": 103,
+    "version_manifest": 37,
+    "document_schema": 1
+  },
+  "errors": [],
+  "passed": true,
+  "limitations": [
+    "Narrative scientific accuracy, original studies, and completeness of the future implementation are not proved by these checks.",
+    "Example state checks cover provided documentation cases; they do not replace all planned implementation tests.",
+    "Hash preservation covers the recorded existing tracked/untracked files; ignored secrets are not read or inventoried.",
+    "No model, product API, database, browser, application test suite, user study, or statistical validation was run."
+  ]
+}

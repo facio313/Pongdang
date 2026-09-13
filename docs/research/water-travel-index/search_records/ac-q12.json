@@ -1,0 +1,219 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q12",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"Which Meteorological and Climatological Information Is Requested\" pdf",
+      "returned_count": "17"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn43search12",
+      "return_order": 1,
+      "query_id": "ac-q12",
+      "title": "DEVELOPING CLIMATE SERVICES FOR SURFING ACTIVITY",
+      "url": "https://www.tesisenred.net/bitstream/handle/10803/687266/TESI%20Anna%20Boqu%C3%A9%20Ciurana.pdf?isAllowed=y&sequence=1",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search13",
+      "return_order": 2,
+      "query_id": "ac-q12",
+      "title": "REFERÈNCIES",
+      "url": "https://canviclimatic.gencat.cat/web/.content/03_AMBITS/Comite_Experts_CC/Publicacions/CECC_2025_Proposta-de-pressupostos-de-carboni-per-a-Catalunya.-Periode-2021-2035_informe.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search14",
+      "return_order": 3,
+      "query_id": "ac-q12",
+      "title": "CARBON BUDGET",
+      "url": "https://accioclimatica.bibliotecadigital.gencat.cat/bitstream/handle/20.500.14343/1361/2025_Carbon_budget_proposal_Catalonia_%202021_2035_ENG.pdf?isAllowed=y&sequence=5",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search15",
+      "return_order": 4,
+      "query_id": "ac-q12",
+      "title": "PROPUESTA DE",
+      "url": "https://accioclimatica.bibliotecadigital.gencat.cat/bitstream/handle/20.500.14343/1361/2025_Propuesta_Presupuestos_Carbono_Catalu%C3%B1a_2021_2035_SPA.pdf?isAllowed=y&sequence=4",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search16",
+      "return_order": 5,
+      "query_id": "ac-q12",
+      "title": "PowerPoint Presentation",
+      "url": "https://pric.unive.it/fileadmin/user_upload/WeCENT/documenti/LVelea-EMS2022.pdf",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search0",
+      "return_order": 6,
+      "query_id": "ac-q12",
+      "title": "Anna Boqué Ciurana",
+      "url": "https://researchid.co/annaboque",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search1",
+      "return_order": 7,
+      "query_id": "ac-q12",
+      "title": "Climate Data Online FAQ | Climate Data Online (CDO) | National Climatic Data Center (NCDC)",
+      "url": "https://www.ncdc.noaa.gov/cdo-web/faq",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search2",
+      "return_order": 8,
+      "query_id": "ac-q12",
+      "title": "Anna Boqué-Ciurana – Engineering & Technology /… | AD Scientific Index",
+      "url": "https://adscientificindex.com/scientist/anna-boque-ciurana/6169155/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search3",
+      "return_order": 9,
+      "query_id": "ac-q12",
+      "title": "Co-created climatologies for sea leisure activities and adaptation strategies in the central-western Mediterranean: Advancing sustainability and enhancing recreational experiences - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0964569125004983",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search4",
+      "return_order": 10,
+      "query_id": "ac-q12",
+      "title": "Which Meteorological and Climatological Information Is Requested for Better Surfing Experiences? A Survey-Based Analysis - Universitat Rovira i Virgili",
+      "url": "https://iris.urv.cat/en/ipublic/item/9187103",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S02",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search5",
+      "return_order": 11,
+      "query_id": "ac-q12",
+      "title": "Which Meteorological and Climatological Information Is Requested for Better Surfing Experiences? A Survey-Based Analysis - Universitat Rovira i Virgili",
+      "url": "https://iris.urv.cat/cat/ipublic/item/9187103",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S02",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search6",
+      "return_order": 12,
+      "query_id": "ac-q12",
+      "title": "Enric Aguilar at University Institute on Sustainability - Research Interests, Publications & Academic Profile | ApplyKite",
+      "url": "https://www.applykite.com/professors/enric-aguilar-d16f73cd-112d-4bb4-b7ad-03c7ef6bc028",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search7",
+      "return_order": 13,
+      "query_id": "ac-q12",
+      "title": "Which Meteorological and Climatological Information Is Requested for Better Surfing Experiences? A Survey-Based Analysis",
+      "url": "https://repositori.urv.cat/estatic/PC0011/ca_imarina9187103.html",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S02",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search8",
+      "return_order": 14,
+      "query_id": "ac-q12",
+      "title": "Which Meteorological and Climatological Information Is Requested for Better Surfing Experiences? A Survey-Based Analysis",
+      "url": "https://repositori.urv.cat/estatic/PC0011/en_imarina9187103.html",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S02",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search9",
+      "return_order": 15,
+      "query_id": "ac-q12",
+      "title": "Which Meteorological and Climatological Information Is Requested for Better Surfing Experiences? A Survey-Based Analysis",
+      "url": "https://agris.fao.org/search/en/providers/122436/records/690c7d4ce36ca62843600b06",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search10",
+      "return_order": 16,
+      "query_id": "ac-q12",
+      "title": "港史文本 - HK In Texts: Hong Kong Yearbook - Annual Report for the Year 1972",
+      "url": "https://www.histsyn.com/2023/01/EYB1972.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn43search11",
+      "return_order": 17,
+      "query_id": "ac-q12",
+      "title": "Climate and weather-related factors limiting outdoor activities and impacting tourism: Case studies in Slovenia",
+      "url": "https://ouci.dntb.gov.ua/works/732VxRQ9/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o20",
+  "date": "2026-09-14",
+  "source": "web.open/click",
+  "query": "{\"open\":[{\"ref_id\":\"turn17view0\",\"lineno\":1940}]}",
+  "note": "원문 전문 미재배포. 확인 위치는 근거 CSV에 기록.",
+  "url": "https://academic.oup.com/aje/article/186/7/866/3813104",
+  "title": "Acute Illness Among Surfers",
+  "access_status": "access_failed",
+  "decision": "access_failed",
+  "review_note": "redirect_safety_error"
+}

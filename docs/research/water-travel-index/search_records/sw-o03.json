@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o03",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://pubmed.ncbi.nlm.nih.gov/2793907/",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://pubmed.ncbi.nlm.nih.gov/2793907/",
+  "title": "Core temperature response to immersed bicycle ergometer exercise",
+  "access_status": "access_failed",
+  "decision": "access_failed",
+  "review_note": "HTTP429"
+}

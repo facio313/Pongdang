@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q07",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"Development of a data-driven weather index for beach parks tourism\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "HC-Q07",
+      "title": "Development of a data-driven weather index for beach parks tourism.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31522261/",
+      "decision": "duplicate_url",
+      "exclusion_reason": "이미 반환된 URL; 독립 논문/표본으로 합산하지 않음",
+      "study_id": "HC-S06",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "HC-Q07",
+      "title": "Development of a data-driven weather index for beach parks tourism | Request PDF",
+      "url": "https://www.researchgate.net/publication/335823162_Development_of_a_data-driven_weather_index_for_beach_parks_tourism",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S06",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "HC-Q07",
+      "title": "Development of a data-driven weather index for beach parks tourism.",
+      "url": "https://scimatic.org/biblio/47420",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S06",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "HC-Q07",
+      "title": "Development of a data-driven weather index for beach parks tourism - University of Surrey",
+      "url": "https://openresearch.surrey.ac.uk/esploro/outputs/journalArticle/Development-of-a-data-driven-weather-index/99817744502346?institution=44SUR_INST&recordUsage=false&skipUsageReporting=true",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S06",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "HC-Q07",
+      "title": "Search Results | Scholarly Articles, Journals, and E-Books | EBSCOhost",
+      "url": "https://openurl.ebsco.com/results?bquery=AU+Andrey%2C+Jean&link_origin=&searchDescription=Andrey%2C+Jean&sid=ebsco%3Aocu%3Arecord",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "HC-Q07",
+      "title": "Full article: Weather and the business of visitor attractions: an organisational analysis using multi-level modelling",
+      "url": "https://doi.org/10.1080/13683500.2026.2644448",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "HC-Q07",
+      "title": "Tourism climatology: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33416950/",
+      "decision": "duplicate_url",
+      "exclusion_reason": "이미 반환된 URL; 독립 논문/표본으로 합산하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "HC-Q07",
+      "title": "Development of a data-driven weather index for beach parks tourism",
+      "url": "https://openalex.org/W2972528523",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S06",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "HC-Q07",
+      "title": "Search Results | Scholarly Articles, Journals, and E-Books | EBSCOhost",
+      "url": "https://openurl.ebsco.com/results?bquery=AU+Matthews%2C+Lindsay&link_origin=&searchDescription=Matthews%2C+Lindsay&sid=ebsco%3Aocu%3Arecord",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "HC-Q07",
+      "title": "Search Results | Scholarly Articles, Journals, and E-Books | EBSCOhost",
+      "url": "https://openurl.ebsco.com/results?bquery=DE+%22WIND+forecasting%22&link_origin=&searchDescription=WIND+forecasting&sid=ebsco%3Aocu%3Arecord",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "HC-Q07",
+      "title": "Artificial Intelligence Algorithms in Ice and Snow Tourism Promotion from Digital Technology - Wu - 2022 - Wireless Communications and Mobile Computing - Wiley Online Library",
+      "url": "https://onlinelibrary.wiley.com/doi/10.1155/2022/1806611",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "HC-Q07",
+      "title": "Search Results - \"Tourism\" :: Library Catalog",
+      "url": "https://iris.sena.edu.co/EDS/Search?dfApplied=1&filter%5B%5D=EXPAND%3A%22fulltext%22&filter%5B%5D=Journal%3A%22international+journal+of+biometeorology%22&lookfor=%22Tourism%22&type=SU",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "HC-Q07",
+      "title": "Weather, climate change and business models: perspectives on future sustainability from heritage tou",
+      "url": "https://www.tandfonline.com/doi/pdf/10.1080/09669582.2025.2557299",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "HC-Q07",
+      "title": "How weather conditions affect guest arrivals and duration of stay: An alpine destination case",
+      "url": "https://researchonline.ljmu.ac.uk/id/eprint/27962/1/Journal%20of%20Tourism%20Research%20-%202021%20-%20Bausch%20-%20How%20weather%20conditions%20affect%20guest%20arrivals%20and%20duration%20of%20stay%20%20An%20alpine.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "HC-Q07",
+      "title": "International Journal of Contemporary Tourism Research, 2022, 7(1), 9-24",
+      "url": "https://dergipark.org.tr/tr/download/article-file/2976675",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "HC-Q07",
+      "title": "Curricula Vitae – Future Cities 6",
+      "url": "https://uwaterloo.ca/secretariat/sites/default/files/uploads/documents/the-cvs-link-to-page-x.pdf",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "HC-Q07",
+      "title": "Evaluating the climatic suitability for camping in South Africa: an application of the Camping Clima",
+      "url": "https://wiredspace.wits.ac.za/bitstreams/3c37a250-d6df-472f-b55f-1be1cbf23bfa/download",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "HC-Q07",
+      "title": "Microsoft Word - m7721_final.doc",
+      "url": "https://research.lpubatangas.edu.ph/wp-content/uploads/2021/10/m7721_ijrsm_final.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

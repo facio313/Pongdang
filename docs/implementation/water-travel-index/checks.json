@@ -1,0 +1,129 @@
+{
+  "implementation_status": "implemented_with_unimplemented_numeric_model",
+  "branch": "feature/api",
+  "head": "d07cd23279808e74c1998d849c240a48e06d06d2",
+  "backend": {
+    "tests": 240,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": 2,
+    "warning_scope": "Existing dependency deprecations: Starlette httpx client and AnyIO BlockingPortal alias; no dependency change made.",
+    "by_file": {
+      "tests.test_collection": 12,
+      "tests.test_data": 13,
+      "tests.test_demo": 6,
+      "tests.test_health": 2,
+      "tests.test_independence": 2,
+      "tests.test_ingestion": 4,
+      "tests.test_marine": 15,
+      "tests.test_places_http": 7,
+      "tests.test_water": 13,
+      "tests.test_water_index_api": 45,
+      "tests.test_water_index_engine": 65,
+      "tests.test_water_index_integration": 1,
+      "tests.test_water_index_service": 12,
+      "tests.test_water_index_storage": 13,
+      "tests.test_weather": 30
+    },
+    "log": "backend_test_results.txt",
+    "junit": "backend_junit.xml",
+    "run": "backend_run.json",
+    "ruff_check": "passed",
+    "ruff_format_check": "43 files already formatted"
+  },
+  "frontend": {
+    "node": "24.19.0",
+    "tests": 12,
+    "failures": 0,
+    "lint": "passed",
+    "build": "passed",
+    "app_base_path": "/pongdang/",
+    "commands": [
+      "npm test",
+      "npm ci --ignore-scripts --no-audit --no-fund (isolated copy)",
+      "npm run lint (isolated copy)",
+      "APP_BASE_PATH=/pongdang/ npm run build (isolated copy)"
+    ],
+    "environment_note": "Repository npm test passed. Initial lint/build stalled on compressed,dataless dependency files. Those two task-owned processes were stopped. The unchanged frontend source/lockfile was copied to a temporary directory and npm ci installed fresh dependencies for successful lint/build; the user development server and working-tree frontend files were not changed."
+  },
+  "preservation": {
+    "baseline_files": 229,
+    "modified_existing_files": [
+      "backend/app/main.py",
+      "backend/app/schema.py",
+      "backend/tests/test_collection.py"
+    ],
+    "unchanged_existing_files": 226,
+    "frontend_design_research_changed": false,
+    "dependencies_or_lockfiles_changed": false
+  },
+  "operational_actions": {
+    "production_database_access": false,
+    "production_deployment": false,
+    "git_push": false,
+    "automatic_model_activation": false,
+    "runtime_llm": false,
+    "live_provider_fetch_for_evaluation": false,
+    "test_database": "isolated pongdang_test on PostgreSQL18.3 with TCP disabled",
+    "test_database_stopped": true
+  },
+  "evidence_boundary": {
+    "synthetic_tests_are_preference_validation": false,
+    "korean_field_validation_run": false,
+    "numeric_model_active": false,
+    "parameter_registry_rows": 166,
+    "evidence_ids": 47,
+    "public_score": null,
+    "public_preference_ranking": null
+  },
+  "change_files": {
+    "new_runtime": [
+      "backend/app/water_index/__init__.py",
+      "backend/app/water_index/adapters.py",
+      "backend/app/water_index/api.py",
+      "backend/app/water_index/engine.py",
+      "backend/app/water_index/migrations.py",
+      "backend/app/water_index/models.py",
+      "backend/app/water_index/parameters.json",
+      "backend/app/water_index/registry.py",
+      "backend/app/water_index/service.py",
+      "backend/app/water_index/storage.py",
+      "backend/app/water_index/units.py"
+    ],
+    "new_tests": [
+      "backend/tests/test_water_index_api.py",
+      "backend/tests/test_water_index_engine.py",
+      "backend/tests/test_water_index_integration.py",
+      "backend/tests/test_water_index_service.py",
+      "backend/tests/test_water_index_storage.py"
+    ],
+    "modified_existing": [
+      "backend/app/main.py",
+      "backend/app/schema.py",
+      "backend/tests/test_collection.py"
+    ]
+  },
+  "documentation_links": "passed",
+  "implementation_file_sha256": {
+    "backend/app/water_index/__init__.py": "237ee58c2d5f339e2b31290fbaad5201d52df463d7c7a46f6ee0bfc840751895",
+    "backend/app/water_index/adapters.py": "0d78f2b89010de2d8b64940872ad16e9118f4f3057a63f3324d01ceeb2b0c073",
+    "backend/app/water_index/api.py": "ffcd7ae1fe171f48d05972079e948a72a1e30c61c11e18489851fac74aa2384c",
+    "backend/app/water_index/engine.py": "662737c234b30159ee099114b8e68aca29d244d76b5c91439b1516c4948646f6",
+    "backend/app/water_index/migrations.py": "6a70dd9885b32729f2149c15b4d083c8f05036acc0c328dead90cd53e7784ae4",
+    "backend/app/water_index/models.py": "b5b4368fcd797f338f76b3487a4f2b5287fc46500856c768428c3bdec7c2bf3b",
+    "backend/app/water_index/parameters.json": "7be278a87035474ba46be0d5447d602fb1305b226fda3dc745f26a06104357c2",
+    "backend/app/water_index/registry.py": "7922133c68013855f2da6feff7149d1f81a3fb5ced1645ee5dc208633ff57946",
+    "backend/app/water_index/service.py": "13e35904aca6557bffc382d3de99445c6271b37d0f1ed7f5ceafeec2c7b3c5b4",
+    "backend/app/water_index/storage.py": "f84a189360be626b3da69c8de66cd0a7efba0556c72673215b4af221ba40069f",
+    "backend/app/water_index/units.py": "81a9ca3aa2dc52fdab48e34f690dd98840747f315d207f330b9755766872be7a",
+    "backend/tests/test_water_index_api.py": "1c73d4d2588b4b1e7ea402b8a3ed05a4698ca5662d02685be12c0d8399218f46",
+    "backend/tests/test_water_index_engine.py": "f2b6ea44d0b2043966aaed53a7a62bdb49d1266383cf802204503d478b6a2aba",
+    "backend/tests/test_water_index_integration.py": "449031cf4236d5382d923e3c2ad82bc6adad5020170da0c0150b81d0847d6165",
+    "backend/tests/test_water_index_service.py": "f41145bb979b543d7fc976cabbffd5080683da9d1b16024d1b400b9a58f4fd8d",
+    "backend/tests/test_water_index_storage.py": "a40bfcd67f65cabc6a10bbddd98d0b424147de668c7491df5a2f447a396fddd4",
+    "backend/app/main.py": "8b784ba54c160eb0f4c398ea4107bff3f7d00596cb3ea6cc03ec88ae7d91d1b7",
+    "backend/app/schema.py": "2999bcdaa80d245db86f806466546f1e1f63c9d9a1987b7633cb17495667b44c",
+    "backend/tests/test_collection.py": "d0a4ae8eb96ab5fb708fa20985c6e5396b42ffd490c5119686e32fbfcad52452"
+  }
+}

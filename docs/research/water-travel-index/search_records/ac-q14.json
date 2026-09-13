@@ -1,0 +1,51 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q14",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"10.12652/Ksce.2026.46.1.0061\"",
+      "returned_count": "3"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn70search0",
+      "return_order": 1,
+      "query_id": "ac-q14",
+      "title": "JKSCE - KSCE JOURNAL OF CIVIL AND ENVIRONMENTAL ENGINEERING RESEARCH",
+      "url": "https://kscejournal.or.kr/jksce/XmlViewer/f450647",
+      "decision": "handoff",
+      "exclusion_reason": "해변/입수 안전 담당 총괄로 전달; AC 범위 중복추출하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn70search1",
+      "return_order": 2,
+      "query_id": "ac-q14",
+      "title": "국립해양조사원 이안류 위험지수의 통계적 평가 연구",
+      "url": "https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART003301317",
+      "decision": "handoff",
+      "exclusion_reason": "해변/입수 안전 담당 총괄로 전달; AC 범위 중복추출하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn70search2",
+      "return_order": 3,
+      "query_id": "ac-q14",
+      "title": "국립해양조사원 이안류 위험지수의 통계적 평가 연구 - AURIC",
+      "url": "https://auric.or.kr/User/Rdoc/DocRdoc.aspx?dn=450647&returnVal=RD_R",
+      "decision": "handoff",
+      "exclusion_reason": "해변/입수 안전 담당 총괄로 전달; AC 범위 중복추출하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

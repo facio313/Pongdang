@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o06",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://ftp.sccwrp.org/pub/download/DOCUMENTS/JournalArticles/986_Acute_IllnessAmongSurfersSeawaterDry-Wet-Weather.pdf",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://ftp.sccwrp.org/pub/download/DOCUMENTS/JournalArticles/986_Acute_IllnessAmongSurfersSeawaterDry-Wet-Weather.pdf",
+  "title": "Acute Illness Among Surfers",
+  "access_status": "full_text_checked",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인"
+}

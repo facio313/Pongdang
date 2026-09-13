@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o28",
+  "date": "2026-09-14",
+  "source": "web.click",
+  "query": "WHO9241546808 download link67",
+  "note": "WHO공식PDF열람시도; 전문 미재배포",
+  "title": "WHO2006 full PDF",
+  "url": "https://iris.who.int/server/api/core/bitstreams/14e5fc6d-26bf-4c35-ba8d-a167a2d2e928/content",
+  "access_status": "access_failed",
+  "decision": "access_failed",
+  "review_note": "HTTP403;WHO온도원문확인했다고주장안함"
+}

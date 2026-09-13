@@ -1,0 +1,14 @@
+{
+  "query_id": "sw-o22",
+  "date": "2026-09-14",
+  "source": "python.urllib primary PDF retry",
+  "query": "https://www.busan.go.kr/humanframe/theme/ihe/assets/file/20250513busan_research_59.pdf",
+  "url": "https://www.busan.go.kr/humanframe/theme/ihe/assets/file/20250513busan_research_59.pdf",
+  "status": 200,
+  "content_type": "application/pdf",
+  "access_status": "full_text_checked",
+  "title": "해수욕장 수질 및 백사장 토양오염 조사2025",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인",
+  "reviewed_locations": "PDF1–3쪽표1/2·시각확인;7쪽결론(본문텍스트)"
+}

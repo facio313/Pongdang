@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q17",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"Classification of surf breaks in relation to surfing skill\" Hutt 2001",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn79search0",
+      "return_order": 1,
+      "query_id": "ac-q17",
+      "title": "Classification of surf breaks in relation to surfing skill • Coastal Dune Ecosystem Reference Database",
+      "url": "https://ref.coastalrestorationtrust.org.nz/documents/classification-of-surf-breaks-in-relation-to-surfing-skill/",
+      "decision": "bibliographic_trace",
+      "exclusion_reason": "원조 임계값 추적; 공개 원문 미확보, 효과 근거 미추출",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search1",
+      "return_order": 2,
+      "query_id": "ac-q17",
+      "title": "Classification of Surf Breaks in Relation to Surfing Skill. In: K. Black (ed) Natural and Artificial Reefs for Surfing and Coastal Protection. | Request PDF",
+      "url": "https://www.researchgate.net/publication/277019083_Classification_of_Surf_Breaks_in_Relation_to_Surfing_Skill_In_K_Black_ed_Natural_and_Artificial_Reefs_for_Surfing_and_Coastal_Protection",
+      "decision": "bibliographic_trace",
+      "exclusion_reason": "원조 임계값 추적; 공개 원문 미확보, 효과 근거 미추출",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search12",
+      "return_order": 3,
+      "query_id": "ac-q17",
+      "title": "Waikato Region Surf Breaks",
+      "url": "https://www.waikatoregion.govt.nz/assets/WRC/WRC-2019/TR201719.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search13",
+      "return_order": 4,
+      "query_id": "ac-q17",
+      "title": "Regional significance criteria for the assessment of surf breaks",
+      "url": "https://www.trc.govt.nz/assets/Documents/Plans-policies/CoastalPlan/Proposed2018/Background/SignificanceCriteria-w.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search14",
+      "return_order": 5,
+      "query_id": "ac-q17",
+      "title": "Planning approaches for the  management of surf breaks in New Zealand",
+      "url": "https://www.surfbreak.org.nz/wp-content/uploads/2014/01/Planning-approaches-for-the-management-of-Surf-Breaks-in-New-Zealand_Skellern-et-al-2013.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search2",
+      "return_order": 6,
+      "query_id": "ac-q17",
+      "title": "(Open Access) The Science of Surfing Waves and Surfing Breaks - A Review (2003) | B. E. Scarfe | 48 Citations",
+      "url": "https://scispace.com/papers/the-science-of-surfing-waves-and-surfing-breaks-a-review-2k2kyup5pn",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search3",
+      "return_order": 7,
+      "query_id": "ac-q17",
+      "title": "Science of Surfing Waves and Breaks | PDF | Physical Oceanography | Earth Sciences",
+      "url": "https://www.scribd.com/document/269801/Isbn-0-473-09801-6-Scarfe-Surfscience",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search4",
+      "return_order": 8,
+      "query_id": "ac-q17",
+      "title": "Expected Distribution of Surfing Days in the Iberian Peninsula | MDPI",
+      "url": "https://www.mdpi.com/2077-1312/8/8/599",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search15",
+      "return_order": 9,
+      "query_id": "ac-q17",
+      "title": "The Science of Surfing Waves and Surfing Breaks - A Review",
+      "url": "https://escholarship.org/content/qt6h72j1fz/qt6h72j1fz_noSplash_e9acf23aaf1f89711020355d7c3f66eb.pdf?t=lnpkzx",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search5",
+      "return_order": 10,
+      "query_id": "ac-q17",
+      "title": "Sustainable Management of Surfing Breaks: Case Studies and Recommendations",
+      "url": "https://bioone.org/journals/journal-of-coastal-research/volume-24/issue-9/08-0999.1/Sustainable-Management-of-Surfing-Breaks-Case-Studies-and-Recommendations/10.2112/08-0999.1.full",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search6",
+      "return_order": 11,
+      "query_id": "ac-q17",
+      "title": "衝浪活動整體條件評估與分級研究__臺灣博碩士論文知識加值系統",
+      "url": "https://ndltd.ncl.edu.tw/cgi-bin/gs32/gsweb.cgi/login?o=dnclcdr&s=id%3D%22109NKUS0571004%22.&searchmode=basic",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search16",
+      "return_order": 12,
+      "query_id": "ac-q17",
+      "title": "Surfing breaks are made up of a complex array of interlinked reef components",
+      "url": "https://ref.coastalrestorationtrust.org.nz/site/assets/files/7962/scarfe_etal_transtasmansurveyorpaper2002.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search17",
+      "return_order": 13,
+      "query_id": "ac-q17",
+      "title": "The Development of Tools and Guidelines for Surfing Resource Management",
+      "url": "https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/76fd797b-da04-4da8-918b-a70bfbd1b193/content",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search7",
+      "return_order": 14,
+      "query_id": "ac-q17",
+      "title": "US20190329115A1 - Wave Energy and Rip Current Control System for Surf Pools - Google Patents",
+      "url": "https://patents.google.com/patent/US20190329115A1/en",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search8",
+      "return_order": 15,
+      "query_id": "ac-q17",
+      "title": "Lifetime prevalence of exostoses in New Zealand surfers | Journal of Primary Health Care | ConnectSci",
+      "url": "https://connectsci.au/hc/article/11/1/47/34930/Lifetime-prevalence-of-exostoses-in-New-Zealand",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search9",
+      "return_order": 16,
+      "query_id": "ac-q17",
+      "title": "Investigations of Offshore Wave Preconditioning | JSTOR",
+      "url": "https://www.jstor.org/stable/26851745",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search10",
+      "return_order": 17,
+      "query_id": "ac-q17",
+      "title": "Frontiers | The effects of a land-based warm-up and accompanying passive heat retention on core body temperature, hormones, and subsequent performance in elite surfers",
+      "url": "https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2024.1458268/full",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn79search11",
+      "return_order": 18,
+      "query_id": "ac-q17",
+      "title": "Wave and Flow Response to an Artificial Surf Reef: Laboratory Measurements | Journal of Hydraulic Engineering | Vol 136, No 5",
+      "url": "https://ascelibrary.org/doi/10.1061/%28ASCE%29HY.1943-7900.0000177",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

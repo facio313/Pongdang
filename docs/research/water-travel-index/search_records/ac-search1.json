@@ -1,0 +1,365 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-search1",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "[{\"q\": \"surfers wave height period wind preference skill discrete choice study\"}, {\"q\": \"whitewater rafting flow discharge preference satisfaction Shelby Whittaker study\"}, {\"q\": \"hot spring bathing water ambient temperature thermal comfort experiment\"}, {\"q\": \"tidal flat recreation visitor tidal stranding safety study\"}]",
+      "returned_count": "28"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn4search0",
+      "return_order": 1,
+      "query_id": "ac-search1",
+      "title": "Using surveys to document effects of streamflows on whitewater rafting | River Recreation Research Database",
+      "url": "https://www.lib.uidaho.edu/digital/rrrd/items/rrrd160.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search1",
+      "return_order": 2,
+      "query_id": "ac-search1",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0306456519300750",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search2",
+      "return_order": 3,
+      "query_id": "ac-search1",
+      "title": "Setting Preferences of High and Low Use River Recreationists: How Different are They? | Environmental Management | Springer Nature Link",
+      "url": "https://link.springer.com/article/10.1007/s00267-016-0754-7",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search3",
+      "return_order": 4,
+      "query_id": "ac-search1",
+      "title": "The relationship between white-water rafting experience formation and customer reaction: a flow theory perspective - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0261517710000488",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search4",
+      "return_order": 5,
+      "query_id": "ac-search1",
+      "title": "Effects of bath water and bathroom temperatures on human thermoregulatory function and thermal perception during half-body bathing in winter - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S1572347X05800291/pdf?md5=abb3208b82a136f937003273a909118a&pid=1-s2.0-S1572347X05800291-main.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search12",
+      "return_order": 6,
+      "query_id": "ac-search1",
+      "title": "Ice House Reach Whitewater Boating Flow Study Technical Report, September 2004",
+      "url": "https://www.smud.org/vi/-/media/Documents/Corporate/Environmental-Leadership/Hydro/hydro-rel-rpt-IHWWBoatFlow.ashx",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search5",
+      "return_order": 7,
+      "query_id": "ac-search1",
+      "title": "(PDF) Evaluating Instream Flows for Recreation: Applying the Structural Norm Approach to Biophysical Conditions",
+      "url": "https://www.researchgate.net/publication/248982266_Evaluating_Instream_Flows_for_Recreation_Applying_the_Structural_Norm_Approach_to_Biophysical_Conditions",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search6",
+      "return_order": 8,
+      "query_id": "ac-search1",
+      "title": "Comparison of low-concentration carbon dioxide-enriched and tap water immersion on body temperature after passive heating - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8600816/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search7",
+      "return_order": 9,
+      "query_id": "ac-search1",
+      "title": "(PDF) Assessing and Evaluating Recreational Uses of Water Resources: Implications for an Integrated Management Framework",
+      "url": "https://www.researchgate.net/publication/237419118_Assessing_and_Evaluating_Recreational_Uses_of_Water_Resources_Implications_for_an_Integrated_Management_Framework",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search8",
+      "return_order": 10,
+      "query_id": "ac-search1",
+      "title": "The tragedy of the waves - ScienceDirect",
+      "url": "https://www.sciencedirect.com/org/science/article/abs/pii/S2042678X16000226",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search9",
+      "return_order": 11,
+      "query_id": "ac-search1",
+      "title": "(PDF) Quantifying the impacts of water abstraction on kayaking and rafting values in the Rangitata River, Canterbury, New Zealand",
+      "url": "https://www.researchgate.net/publication/350133691_Quantifying_the_impacts_of_water_abstraction_on_kayaking_and_rafting_values_in_the_Rangitata_River_Canterbury_New_Zealand",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search10",
+      "return_order": 12,
+      "query_id": "ac-search1",
+      "title": "Comparison of responses of men to immersion in circulating water at 40.0 and 41.5 degrees C.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/9737754/",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S05",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search11",
+      "return_order": 13,
+      "query_id": "ac-search1",
+      "title": "Heat Reacclimation Using Exercise or Hot Water Immersion - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8208095/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search13",
+      "return_order": 14,
+      "query_id": "ac-search1",
+      "title": "Flow-Recreation Study",
+      "url": "https://site-media.americanwhitewater.org/Document_521.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search14",
+      "return_order": 15,
+      "query_id": "ac-search1",
+      "title": "Defining\t\r  Recreational\t\r  Flow\t\r  Needs\t\r  on\t\r  the\t\r  North\t\r  Fork\t\r  of\t\r  the\t\r  Virgin\t\r  River,\t\r  Utah",
+      "url": "https://site-media.americanwhitewater.org/Document_1265.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search15",
+      "return_order": 16,
+      "query_id": "ac-search1",
+      "title": "This is the Pre-Published Version.",
+      "url": "https://ira.lib.polyu.edu.hk/bitstream/10397/116558/1/Wong_Experimental_Study_Human.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search16",
+      "return_order": 17,
+      "query_id": "ac-search1",
+      "title": "Journal of the Human-Environment System",
+      "url": "https://www.jstage.jst.go.jp/article/jhes/3/1/3_3_1_027/_pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search17",
+      "return_order": 18,
+      "query_id": "ac-search1",
+      "title": "Doug Whittaker, Bo Shelby, & John Gangemi",
+      "url": "https://npshistory.com/publications/rtca/nri/flows-recreation.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4reddit18",
+      "return_order": 19,
+      "query_id": "ac-search1",
+      "title": "[request] I am pouring 150 l of water at flow rate 12 l/minute into a bathtub. The water has 65C. What is the final temperature once the bath is full?",
+      "url": "https://www.reddit.com/r/theydidthemath/comments/17ju9v4",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4academia19",
+      "return_order": 20,
+      "query_id": "ac-search1",
+      "title": "Mapping tidal flat topography using time-series Sentinel-2 images and ICESat-2 data: A case study in Cixi City",
+      "url": "https://arxiv.org/abs/2309.15878",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search20",
+      "return_order": 21,
+      "query_id": "ac-search1",
+      "title": "Surfing",
+      "url": "https://en.wikipedia.org/wiki/Surfing",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search21",
+      "return_order": 22,
+      "query_id": "ac-search1",
+      "title": "Chena Hot Springs (thermal mineral springs)",
+      "url": "https://en.wikipedia.org/wiki/Chena_Hot_Springs_%28thermal_mineral_springs%29",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4reddit22",
+      "return_order": 23,
+      "query_id": "ac-search1",
+      "title": "ELI5: Why is 38° perfect for bathing but too hot for air temperature?",
+      "url": "https://www.reddit.com/r/explainlikeimfive/comments/1hmo7wn",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search23",
+      "return_order": 24,
+      "query_id": "ac-search1",
+      "title": "Summer Lake Hot Springs",
+      "url": "https://en.wikipedia.org/wiki/Summer_Lake_Hot_Springs",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search24",
+      "return_order": 25,
+      "query_id": "ac-search1",
+      "title": "List of hot springs",
+      "url": "https://en.wikipedia.org/wiki/List_of_hot_springs",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search25",
+      "return_order": 26,
+      "query_id": "ac-search1",
+      "title": "Hot spring",
+      "url": "https://en.wikipedia.org/wiki/Hot_spring",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4reddit26",
+      "return_order": 27,
+      "query_id": "ac-search1",
+      "title": "Why can I stay in a sauna longer than a hot spring?",
+      "url": "https://www.reddit.com/r/thermodynamics/comments/1kmvffn",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn4search27",
+      "return_order": 28,
+      "query_id": "ac-search1",
+      "title": "Lussier Hot Springs",
+      "url": "https://en.wikipedia.org/wiki/Lussier_Hot_Springs",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ],
+  "original_query_specification": [
+    {
+      "q": "surfers wave height period wind preference skill discrete choice study"
+    },
+    {
+      "q": "whitewater rafting flow discharge preference satisfaction Shelby Whittaker study"
+    },
+    {
+      "q": "hot spring bathing water ambient temperature thermal comfort experiment"
+    },
+    {
+      "q": "tidal flat recreation visitor tidal stranding safety study"
+    }
+  ]
+}

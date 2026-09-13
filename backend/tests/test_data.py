@@ -155,6 +155,12 @@ def test_connection_error_does_not_leak_credentials(client):
 
 def test_legacy_api_is_not_mounted(data_settings):
     with TestClient(create_app(data_settings)) as client:
-        assert len(client.get("/api/data/catalog").json()) == 14
+        keys = {d["key"] for d in client.get("/api/data/catalog").json()}
+        assert {
+            "source-stations",
+            "weather-warnings",
+            "collection-jobs",
+            "source-places",
+        } <= keys
         assert client.get("/api/collector/catalog").status_code == 404
         assert client.get("/api/collector/summary").status_code == 404

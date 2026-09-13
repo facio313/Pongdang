@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o18",
+  "date": "2026-09-14",
+  "source": "web.open/click",
+  "query": "{\"open\":[{\"ref_id\":\"https://www.em-consulte.com/article/667850/figures/effects-of-three-different-water-temperatures-on-d\"}]}",
+  "note": "원문 전문 미재배포. 확인 위치는 근거 CSV에 기록.",
+  "url": "https://www.em-consulte.com/article/667850/figures/effects-of-three-different-water-temperatures-on-d",
+  "title": "Effects of three different water temperatures on dehydration in competitive swimmers",
+  "access_status": "abstract_only",
+  "decision": "include_abstract_only",
+  "review_note": "출판사초록확인;원문유료벽"
+}

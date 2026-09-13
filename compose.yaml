@@ -46,6 +46,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      initialize:
+        condition: service_completed_successfully
     read_only: true
     tmpfs:
       - /tmp
@@ -89,6 +91,73 @@ services:
       timeout: 8s
       retries: 5
       start_period: 15s
+    logging: *logging
+
+  initialize:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-initialize
+    image: pongdang-backend:${RELEASE_SHA:-local}
+    build: ./backend
+    command: ["python", "-m", "app.schema", "--initialize", "--remove-demo"]
+    restart: "no"
+    mem_limit: 256m
+    memswap_limit: 512m
+    cpus: 0.5
+    pids_limit: 64
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-pongdang}
+      POSTGRES_USER: ${POSTGRES_USER:-pongdang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    logging: *logging
+
+  collector:
+    container_name: ${COMPOSE_PROJECT_NAME:-pongdang}-collector
+    image: pongdang-backend:${RELEASE_SHA:-local}
+    build: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.ingestion.worker"]
+    mem_limit: 512m
+    memswap_limit: 1g
+    cpus: 1
+    pids_limit: 128
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-pongdang}
+      POSTGRES_USER: ${POSTGRES_USER:-pongdang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DATA_GO_KR_KEY: ${DATA_GO_KR_KEY:-}
+      KMA_API_HUB_KEY: ${KMA_API_HUB_KEY:-}
+      KAKAO_REST_KEY: ${KAKAO_REST_KEY:-}
+      HRFCO_KEY: ${HRFCO_KEY:-}
+      COLLECTION_LATITUDE: ${COLLECTION_LATITUDE:-37.8034055083}
+      COLLECTION_LONGITUDE: ${COLLECTION_LONGITUDE:-128.9102102476}
+      COLLECTION_RADIUS_M: ${COLLECTION_RADIUS_M:-20000}
+      AWS_STATIONS: ${AWS_STATIONS:-516}
+      KHOA_TIDE_STATION_CODE: ${KHOA_TIDE_STATION_CODE:-DT_0006}
+      KHOA_BUOY_STATION_CODE: ${KHOA_BUOY_STATION_CODE:-TW_0089}
+      KHOA_RIP_BEACH_CODE: ${KHOA_RIP_BEACH_CODE:-GYEONGPO}
+    depends_on:
+      db:
+        condition: service_healthy
+      initialize:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.ingestion.health"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+      start_period: 60s
     logging: *logging
 
 volumes:

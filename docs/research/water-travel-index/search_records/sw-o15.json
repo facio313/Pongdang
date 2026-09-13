@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o15",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.weather.go.kr/w/hazard/safety-guide/typhoon.do",
+  "note": "원문 전문 미재배포. 관련 위치는 주장 CSV에 기록.",
+  "url": "https://www.weather.go.kr/w/hazard/safety-guide/typhoon.do",
+  "title": "국민행동요령-태풍",
+  "access_status": "full_text_checked",
+  "decision": "include",
+  "review_note": "관련방법·결과·한계직접확인"
+}

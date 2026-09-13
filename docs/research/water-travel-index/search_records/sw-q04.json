@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q04",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "site.khoa.go.kr 이안류 지수 해수욕장 입수 통제",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q04",
+      "title": "대한민국광고대상_비기스트라이프가드_OOH",
+      "url": "https://adawards.ad.co.kr/data/entry/file/2025/w18267/w18267.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q04",
+      "title": "2024년도\n- 테마와 힐링이 있는 해수욕장 조성을 위한 -\n해수욕장 관리운영 계획(고시용",
+      "url": "https://eminwon.gangneung.go.kr/emwp/jsp/ofr/FileDown.jsp?file_path=%2Fntishome%2Ffile%2Fupload%2Fofr%2Fofr%2F20240628&sys_file_nm=2024%EB%85%84+%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5+%EA%B4%80%EB%A6%AC%EC%9A%B4%EC%98%81%EA%B3%84%ED%9A%8D%28%EA%B3%A0%EC%8B%9C%EC%9A%A9%29_ofr_ofr_kLFoaXMQW7VgXAAE_20240628065851740_1.pdf&user_file_nm=2024%EB%85%84+%ED%95%B4%EC%88%98%EC%9A%95%EC%9E%A5+%EA%B4%80%EB%A6%AC%EC%9A%B4%EC%98%81%EA%B3%84%ED%9A%8D%28%EA%B3%A0%EC%8B%9C%EC%9A%A9%29.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q04",
+      "title": "-\n전국 10개 해수욕장에서 이안류 감시 서비스 - 부처 브리핑 | 브리핑룸 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/briefing/policyBriefingView.do?newsId=148903098",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q04",
+      "title": "보도자료 올여름 바다갈 땐, 이안류지수와 해양레저지수 확인으로 안전하고 쾌적하게! 해양수산부",
+      "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=67092&menuSeq=971",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S06",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q04",
+      "title": "실시간 이안류 감시 및 해양레저지수 서비스 운영 - 정책뉴스 | 뉴스 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/news/policyNewsView.do?newsId=148967197",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q04",
+      "title": "실시간 이안류 감시 및 해양레저지수 서비스 운영 - 카드/한컷 | 멀티미디어 | 대한민국 정책브리핑",
+      "url": "https://admin.korea.kr/multi/visualNewsView.do?newsId=148967197&pWise=mSub&pWiseSub=C5",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q04",
+      "title": "보도자료 지켜보고 있다. 해수욕장의 불청객, ‘이안류’ 해양수산부",
+      "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=39436&menuSeq=971",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q04",
+      "title": "해양수산부 국립해양조사원_이안류 지수 조회 - 해양수산부 국립해양조사원 오픈API | 공공데이터 검색 포털",
+      "url": "https://data.netfilcker.com/dataset/15156028",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q04",
+      "title": "해양수산부> 보도자료",
+      "url": "https://www.mof.go.kr/iframe/doc/ko/selectDoc.do?bbsSeq=10&docSeq=32890&menuSeq=971",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q04",
+      "title": "전국 10개 해수욕장에서 이안류 감시 서비스 - 전체 | 카드/한컷 | 멀티미디어 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/multi/visualNewsView.do?newsId=148903098",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q04",
+      "title": "∙손상이란 외부의 힘에 의해 신체가 다치는 것으로 약물 중독(음식 제외)이나 벌레 쏘임, 넘어지거나 찢어지는",
+      "url": "https://central.childcare.go.kr/ccef/community/common/DownloadBoardFile.jsp?ATCHMNFLSEQ=2&BBSGB=49&BID=97074",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q04",
+      "title": "이안류 지수 4단계 읽는 법 — 관심·주의·경계·위험 · OurOcean",
+      "url": "https://ourocean.co.kr/guide/rip-current",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q04",
+      "title": "실시간 이안류 감시 및 해양레저지수 서비스 운영 - 전체 | 카드/한컷 | 멀티미디어 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/multi/visualNewsView.do?newsId=148967197&pWise=main&pWiseMain=L4",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q04",
+      "title": "실시간 이안류 감시 및 해양레저지수 서비스 운영 - 전체 | 카드/한컷 | 멀티미디어 | 대한민국 정책브리핑",
+      "url": "https://www.korea.kr/multi/visualNewsView.do?newsId=148967197",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q04",
+      "title": "※ ‘물놀이 안전’을 위한 정보",
+      "url": "https://www.hiks.or.kr/Announcement/download/2106/4392",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q04",
+      "title": "실시간 이안류 감시 및 해양레저지수 서비스 운영 - 카드/한컷 | 멀티미디어 | 대한민국 정책브리핑",
+      "url": "https://admin.korea.kr/multi/visualNewsView.do?newsId=148967197&pWise=mSub&pWiseSub=C4",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q04",
+      "title": "2025  \n5 8 ( ) ~ 10 ( )\n\n실시간 이안류 감시체계 현황\n\nStatus o",
+      "url": "https://kaosts.org/data/2025/25KAOSTS_%EA%B3%B5%EB%8F%99%ED%95%99%EC%88%A0%EB%8C%80%ED%9A%8C_%EC%98%A8%EB%9D%BC%EC%9D%B8%EB%85%BC%EB%AC%B8%EC%A7%91_%ED%95%9C%EA%B5%AD%ED%95%B4%EC%95%88%C2%B7%ED%95%B4%EC%96%91%EA%B3%B5%ED%95%99%ED%9A%8C_F.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q04",
+      "title": "이상고파 원인규명 및 예측·감시기술 개발 연구",
+      "url": "https://sciwatch.kiost.ac.kr/bitstream/2020.kiost/38143/1/%EC%9D%B4%EC%83%81%EA%B3%A0%ED%8C%8C_%EC%9B%90%EC%9D%B8%EA%B7%9C%EB%AA%85_%EB%B0%8F_%EC%98%88%EC%B8%A1%C2%B7%EA%B0%90%EC%8B%9C%EA%B8%B0%EC%88%A0_%EA%B0%9C%EB%B0%9C_%EC%97%B0%EA%B5%AC.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

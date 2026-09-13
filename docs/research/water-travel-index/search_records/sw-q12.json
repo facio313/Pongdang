@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q12",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"낙뢰\" \"물놀이\" \"대피\" site.korea.kr",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q12",
+      "title": "연구자료RRM 2009-17-01",
+      "url": "https://m.korea.kr/expertWeb/resources/files/data/document_file/2009/%EB%B0%A9%EA%B3%BC%ED%9B%84%ED%95%99%EA%B5%90%20%ED%95%99%EB%B6%80%EB%AA%A8%20%EC%BD%94%EB%94%94%EB%84%A4%EC%9D%B4%ED%84%B0%20%EC%9A%B4%EC%98%81%EB%A7%A4%EB%89%B4%EC%96%BC.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q12",
+      "title": "국민안전24",
+      "url": "https://m.safekorea.go.kr/safekorea-kor/acts/nacts/action-guide.do?actsHeaderTitle=%ED%83%9C%ED%92%8D&category=typhoon&menuSn=4",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q12",
+      "title": "<C7D1B1B9B9E6BCDBB0F8BBE72D32303230B3E220BBE7BEF7B3E2B5B520B0E6BFB5C6F2B0A1BAB8B0EDBCAD2E687770>",
+      "url": "https://www.kmcc.go.kr/download.do?fileSeq=52401",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q12",
+      "title": "재난재해 유형별 대응",
+      "url": "https://gocamping.or.kr/static/menual/2024/2024_menual_3.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q12",
+      "title": "한국원자력환경공단 > 알림마당 > 공지사항 > 여름 휴가철 안전수칙",
+      "url": "https://www.korad.or.kr/korad/board/view.do?board_idx=1324498&manage_idx=22&menu_idx=54&s=&viewPage=1",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q12",
+      "title": "행정안전부 안전한TV > 비디오 보기 > [행동요령] 물놀이 사고 예방 계곡·하천 집중호우 대처법",
+      "url": "https://www.safetv.go.kr/base/video/view?idx=2864&searchCategory=+",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q12",
+      "title": "행정안전부 안전한TV > 비디오 보기 > [행동요령] 물놀이 사고 예방 계곡·하천 집중호우 대처법",
+      "url": "https://www.safetv.go.kr/base/video/view?idx=2864&menuLevel=&menuNo=&playlistManagementIdx=&searchCategory=3",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q12",
+      "title": "국민행동요령-태풍 - 기상청 날씨누리",
+      "url": "https://www.weather.go.kr/w/hazard/safety-guide/typhoon.do",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S08",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q12",
+      "title": "행정안전부 안전한TV > 추천영상 > [행동요령] 물놀이 사고 예방 계곡·하천 집중호우 대처법",
+      "url": "https://www.safetv.go.kr/base/video/view?idx=2864&menuLevel=1&menuNo=9&playlistManagementIdx=",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q12",
+      "title": "현장특수교육웹진",
+      "url": "https://www.nise.go.kr/jsp/field/2014-3/03_3.jsp",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q12",
+      "title": "국민안전24",
+      "url": "https://www.safekorea.go.kr/safekorea-kor/acts/nacts/action-guide.do?actsHeaderTitle=%ED%98%B8%EC%9A%B0&category=heavyRain&menuSn=4",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q12",
+      "title": "0528_생애주기별안전교육지도 수정",
+      "url": "https://kasem.safekorea.go.kr/file/%EC%83%9D%EC%95%A0%EC%A3%BC%EA%B8%B0%EB%B3%84%EC%95%88%EC%A0%84%EA%B5%90%EC%9C%A1%EC%A7%80%EB%8F%84.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q12",
+      "title": "30초 안에 피해야 산다? 집중호우+번개 대응법 총정리",
+      "url": "https://som-2ee.tistory.com/87?category=1186721",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q12",
+      "title": "@원주 칠봉유원지 노지캠핑 여행, 차박·물놀이·주변 명소 이용 팁",
+      "url": "https://withbeatles.tistory.com/m/7889",
+      "decision": "exclude",
+      "exclusion_reason": "활동별환경-결과원자료와무관하거나비학술/비1차소개자료",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q12",
+      "title": "[아하!] 장마철 낙뢰 피해 예방 행동요령은?",
+      "url": "https://www.newsprime.co.kr/news/article/?no=380605",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q12",
+      "title": "<visual_element id=\"e1\">",
+      "url": "https://gjyeo.ms.jne.kr/data/attach_data/kangjin/gjyeo_ms/k2board/na/bbs_65437/ntt_1800724451/doc_5a91vf8f8%3De0v75%3D4bv7e%3D8bv25%3D8c53vf30evc725_v1869.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q12",
+      "title": "나. 영역별 안전 지도",
+      "url": "https://www.jne.go.kr/upload/spedu/na/bbs_390/ntt_5142908/doc_ab46993b-20b5-4af8-8519-ea9fca4bbd0f1744a9459b73083.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q12",
+      "title": "계곡 물놀이 안전수칙 완전 가이드 — 사고 유형별 대처법과 준비물 체크리스트 - 만물백과사전",
+      "url": "https://ryudoryung.com/%EA%B3%84%EA%B3%A1-%EB%AC%BC%EB%86%80%EC%9D%B4-%EC%95%88%EC%A0%84%EC%88%98%EC%B9%99-%EC%99%84%EC%A0%84-%EA%B0%80%EC%9D%B4%EB%93%9C-%EC%82%AC%EA%B3%A0-%EC%9C%A0%ED%98%95%EB%B3%84-%EB%8C%80/",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

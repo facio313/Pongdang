@@ -1,0 +1,39 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q08",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"수온\" \"열쾌적\" 수영",
+      "returned_count": "2"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q08",
+      "title": "한국환경생태학회 학술대회논문집 제23권 2호 - koreascholar",
+      "url": "https://db.koreascholar.com/Journal/Volume/902?page=1&vid=22807",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q08",
+      "title": "검색결과 - koreascholar",
+      "url": "https://db.koreascholar.com/Search/Result?field=k&page=31&print=1D20&query=%EB%8C%80%EC%83%81",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

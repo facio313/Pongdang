@@ -1,0 +1,195 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q12",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"beach\" \"observed\" \"climate preference\" swimming 2024 2025 2026 validation",
+      "returned_count": "15"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "HC-Q12",
+      "title": "An Inter-Comparison of the Holiday Climate Index (HCI:Beach) and the Tourism Climate Index (TCI) to Explain Canadian Tourism Arrivals to the Caribbean | MDPI",
+      "url": "https://www.mdpi.com/2073-4433/11/4/412",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S01",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "HC-Q12",
+      "title": "An Inter-Comparison of the Holi",
+      "url": "https://res.mdpi.com/d_attachment/atmosphere/atmosphere-11-00412/article_deploy/atmosphere-11-00412.pdf",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S01",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "HC-Q12",
+      "title": "Applying an ecosystem services framework on nature and mental health to recreational blue space visits across 18 countries | Scientific Reports",
+      "url": "https://www.nature.com/articles/s41598-023-28544-w",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "HC-Q12",
+      "title": "Frontiers | Nonlinear effects of climate change on outdoor activities and potential feedback pathways: a systematic review",
+      "url": "https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2026.1836657/full",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S12",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "HC-Q12",
+      "title": "A comparison of the holiday climate index:beach and the tourism climate index across coastal destinations in China - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7406217/",
+      "decision": "duplicate_url",
+      "exclusion_reason": "이미 반환된 URL; 독립 논문/표본으로 합산하지 않음",
+      "study_id": "HC-S10",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "HC-Q12",
+      "title": "(PDF) Differences in the importance of weather and weather-based decisions among campers in Ontario parks (Canada)",
+      "url": "https://www.researchgate.net/publication/316882575_Differences_in_the_importance_of_weather_and_weather-based_decisions_among_campers_in_Ontario_parks_Canada",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "HC-Q12",
+      "title": "(PDF) Developments in Tourism Climatology",
+      "url": "https://www.researchgate.net/publication/233758650_Developments_in_Tourism_Climatology",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "HC-Q12",
+      "title": "Publications - Department of Aerospace and Geodesy",
+      "url": "https://www.asg.ed.tum.de/en/asg/research-and-innovation/publications/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "HC-Q12",
+      "title": "PROCEEDINGS OF THE 4TH INTERNATIONAL CONFERENCE ON CLIMATE, TOURISM AND RECREATION - CCTR2015",
+      "url": "https://ipc.sabanciuniv.edu/Content/Images/CKeditorImages/20200326-01035115.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "HC-Q12",
+      "title": "Climate Indices for Caribbean Tourism | PDF | Tourism | Climate",
+      "url": "https://www.scribd.com/document/817382942/An-Inter-Comparison-of-the-Holiday-Climate-Index-and-the-Tourism-Climate-Index-to-Explain-Canadian-Tourism-Arrivals-to-the-Caribbean",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "HC-Q12",
+      "title": "Frontiers | Nonlinear effects of climate change on outdoor activities and potential feedback pathways: a systematic review",
+      "url": "https://doi.org/10.3389/fpubh.2026.1836657",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S12",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "HC-Q12",
+      "title": "Michelle Rutty - Research Profile - Research Papers",
+      "url": "https://independent.academia.edu/MichelleRutty",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "HC-Q12",
+      "title": "Quantifying climate comfort sensitivity for urban and beach tourism in China: An HCI-based attribution analysis | Request PDF",
+      "url": "https://www.researchgate.net/publication/402064260_Quantifying_climate_comfort_sensitivity_for_urban_and_beach_tourism_in_China_An_HCI-based_attribution_analysis",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "HC-Q12",
+      "title": "Climate Impact on Tourism Insights | PDF | Tourism | Climate",
+      "url": "https://www.scribd.com/document/311132511/ProceedingsRaporENG-10-11-15-web",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "HC-Q12",
+      "title": "Vidyabharati International Interdisciplinary Research Journal  ISSN 2319-4979",
+      "url": "https://www.viirj.org/specialissues/2023/SP2302/Part%203.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

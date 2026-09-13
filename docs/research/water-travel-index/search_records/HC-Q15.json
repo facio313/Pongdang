@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q15",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"10.3354/cr00774\" \"38\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn87search0",
+      "return_order": 1,
+      "query_id": "HC-Q15",
+      "title": "Preferred climates for tourism: case studies from Canada, New Zealand and Sweden. | Lund University Publications",
+      "url": "https://lup.lub.lu.se/record/1272799",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S14",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search1",
+      "return_order": 2,
+      "query_id": "HC-Q15",
+      "title": "Preferred climates for tourism: case studies from Canada, New Zealand and Sweden. - Lund University",
+      "url": "https://portal.research.lu.se/en/publications/preferred-climates-for-tourism-case-studies-from-canada-new-zeala/",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S14",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search12",
+      "return_order": 3,
+      "query_id": "HC-Q15",
+      "title": "Printed December 2008",
+      "url": "https://www.int-res.com/articles/cr2009/38/c038p061.pdf",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S14",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search2",
+      "return_order": 4,
+      "query_id": "HC-Q15",
+      "title": "Preferred climates for tourism: case studies from Canada, New Zealand and Sweden. | Lund University",
+      "url": "https://www.lunduniversity.lu.se/lup/publication/2a3bcbd8-ba1e-4cd1-91fc-21eb406ec0b9",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S14",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search3",
+      "return_order": 5,
+      "query_id": "HC-Q15",
+      "title": "A multidecadal assessment of climate indices over Europe - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7188899/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search4",
+      "return_order": 6,
+      "query_id": "HC-Q15",
+      "title": "Preferred climates for tourism: case studies from Canada, New Zealand and Sweden. | Lunds universitet",
+      "url": "https://www.lu.se/lup/publication/2a3bcbd8-ba1e-4cd1-91fc-21eb406ec0b9",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S14",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search13",
+      "return_order": 7,
+      "query_id": "HC-Q15",
+      "title": "Journal of Geography and Geology; Vol. 8, No. 2; 2016",
+      "url": "https://ccsenet.org/journal/index.php/jgg/article/download/58369/31187",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search5",
+      "return_order": 8,
+      "query_id": "HC-Q15",
+      "title": "Effects of Abnormal Weather Conditions on the Performance of Hotel Firms - Sung Gyun Mun, Sangwon Park, 2023",
+      "url": "https://journals.sagepub.com/doi/10.1177/10963480211070211",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search14",
+      "return_order": 9,
+      "query_id": "HC-Q15",
+      "title": "PLOS CLIMATE",
+      "url": "https://journals.plos.org/climate/article/file?id=10.1371%2Fjournal.pclm.0000266&type=printable",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search6",
+      "return_order": 10,
+      "query_id": "HC-Q15",
+      "title": "Impact of selected personal factors on seasonal variability of recreationist weather perceptions and preferences in Warsaw (Poland) - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5752755/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search7",
+      "return_order": 11,
+      "query_id": "HC-Q15",
+      "title": "Effects of Abnormal Weather Conditions on the Performance of Hotel Firms - Sung Gyun Mun, Sangwon Park, 2023",
+      "url": "https://doi.org/10.1177%2F10963480211070211",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search15",
+      "return_order": 12,
+      "query_id": "HC-Q15",
+      "title": "ГЛАСНИК Српског географског друштва 103(2) 107-128",
+      "url": "https://doiserbia.nb.rs/img/doi/0350-3593/2023/0350-35932302107C.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search8",
+      "return_order": 13,
+      "query_id": "HC-Q15",
+      "title": "기후변화가 해안 관광목적지에 미치는 영향 분석 : 해수욕장의 활동선호일수 및 침수지역 변화를 중심으로",
+      "url": "https://www.jccr.re.kr/_PR/view/?aidx=36551&bidx=3287",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search16",
+      "return_order": 14,
+      "query_id": "HC-Q15",
+      "title": "PLOS ONE RESEARCH ARTICLE Boost the resilience of",
+      "url": "https://journals.plos.org/plosone/article/file?id=10.1371%2Fjournal.pone.0278591&type=printable",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search17",
+      "return_order": 15,
+      "query_id": "HC-Q15",
+      "title": "CHANGEMENTS CLIMATIQUES",
+      "url": "https://www.conjoncturevaudoise.ch/fileadmin/content/etudes/alpe-vaud-rapp-chang-clim-wsl-2013.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search9",
+      "return_order": 16,
+      "query_id": "HC-Q15",
+      "title": "Effects of Abnormal Weather Conditions on the Performance of Hotel Firms - Sung Gyun Mun, Sangwon Park, 2023",
+      "url": "https://journals.sagepub.com/doi/abs/10.1177/10963480211070211",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search10",
+      "return_order": 17,
+      "query_id": "HC-Q15",
+      "title": "Exploring Climate Change Threats to Beach Tourism Destinations: Application of the Hazard–Activity Pairs Methodology to South Africa",
+      "url": "https://journals.ametsoc.org/view/journals/wcas/12/3/wcasD190133.xml",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn87search11",
+      "return_order": 18,
+      "query_id": "HC-Q15",
+      "title": "The impact of weather and climate on tourist demand: the case of Chester Zoo",
+      "url": "https://ouci.dntb.gov.ua/en/works/leoRgkW7/",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

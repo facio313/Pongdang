@@ -99,12 +99,13 @@ jobs:
           docker inspect --format '{{.Name}}' pongdang-ci-db pongdang-ci-backend pongdang-ci-frontend
           curl --fail --silent --show-error http://127.0.0.1:5188/ | grep -q '<title>Pongdang</title>'
           curl --fail --silent --show-error http://127.0.0.1:5188/api/ready
-      - name: Verify independent schema and demo seed without any legacy database
+      - name: Verify independent collection and retired demo API
         run: |
           docker compose --project-name pongdang-ci exec -T backend python -m app.schema --initialize
-          docker compose --project-name pongdang-ci exec -T backend python -m app.seed_demo --confirm-demo-only
+          docker compose --project-name pongdang-ci exec -T backend python -m app.schema --remove-demo
           curl --fail --silent --show-error http://127.0.0.1:5188/api/data/summary
-          curl --fail --silent --show-error http://127.0.0.1:5188/api/demo/summary
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/demo/summary)" = 404
+          docker compose --project-name pongdang-ci exec -T collector python -m app.ingestion.health
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/collector/summary)" = 404
       - name: Show container logs on failure
         if: failure()

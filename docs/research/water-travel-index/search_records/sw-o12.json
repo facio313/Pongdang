@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o12",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.korea.kr/news/policyNewsView.do?newsId=148798064",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://www.korea.kr/news/policyNewsView.do?newsId=148798064",
+  "title": "물놀이 전후 스트레칭 알고 계시죠?",
+  "access_status": "full_text_checked",
+  "decision": "exclude",
+  "review_note": "2015대중안내;현재선택공식행동요령으로대체"
+}

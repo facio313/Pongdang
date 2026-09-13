@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o04",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=67092&menuSeq=971",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=67092&menuSeq=971",
+  "title": "이안류/해양레저 서비스 안내",
+  "access_status": "partial_text_checked",
+  "decision": "continue_reading",
+  "review_note": "본문후반추가열람 sw-o16"
+}

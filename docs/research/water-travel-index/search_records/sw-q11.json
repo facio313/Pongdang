@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q11",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"Macaluso\" \"2011\" \"water temperatures\" \"swimmers\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q11",
+      "title": "Effects of three different water temperatures on dehydration in competitive swimmers",
+      "url": "https://iris.unipa.it/handle/10447/60372",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S04",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q11",
+      "title": "Pubblicazione | VALENTINA DI FELICE | Università degli Studi di Palermo",
+      "url": "https://www.unipa.it/persone/docenti/d/valentina.difelice/en/?idPubblicazione=71509&pagina=pubblicazione",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q11",
+      "title": "Effects of three different water temperatures on dehydration in competitive swimmers - EM consulte",
+      "url": "https://www.em-consulte.com/article/667850/figures/effects-of-three-different-water-temperatures-on-d",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S04",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q11",
+      "title": "Curriculum e ricerca | FILIPPO MACALUSO | Università degli Studi di Palermo",
+      "url": "https://www.unipa.it/persone/docenti/m/filippo.macaluso/en/?pagina=curriculum",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q11",
+      "title": "(PDF) Effects of three different water temperatures on dehydration in competitive swimmers",
+      "url": "https://www.researchgate.net/publication/232767668_Effects_of_three_different_water_temperatures_on_dehydration_in_competitive_swimmers",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S04",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q11",
+      "title": "Curriculum e ricerca | FILIPPO MACALUSO | Università degli Studi di Palermo",
+      "url": "https://www.unipa.it/persone/docenti/m/filippo.macaluso/?pagina=curriculum",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q11",
+      "title": "BOSCAINO, Giovanni",
+      "url": "https://iris.unipa.it/cris/rp/rp10580",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q11",
+      "title": "Curriculum e ricerca | FILIPPO MACALUSO | Università degli Studi di Palermo",
+      "url": "https://www.unipa.it/persone/docenti/m/filippo.macaluso/?PageSpeed=noscript&pagina=curriculum",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q11",
+      "title": "Ricerca",
+      "url": "https://iris.unipa.it/handle/10447/52757/simple-search?etal=0&order=desc&query=&rpp=45&sort_by=score&start=85860",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q11",
+      "title": "Effects of three different water temperatures on dehydration in competitive swimmers",
+      "url": "https://openalex.org/W2146891733",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S04",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q11",
+      "title": "Ricerca",
+      "url": "https://iris.uniecampus.it/handle/11389/16427/simple-search?etal=0&order=desc&query=&rpp=95&sort_by=score&start=11305",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q11",
+      "title": "Science & Sports - Vol 26 - n° 5 - EM consulte",
+      "url": "https://www.em-consulte.com/revue/SCISPO/26/5/table-des-matieres/",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q11",
+      "title": "Curriculum Vitae",
+      "url": "https://docenti.unipa.it/didatweb/curriculum?oidCurriculum=12754",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q11",
+      "title": "Curriculum vitae Dott. Valentina Di Felice",
+      "url": "https://www.unipa.it/scuole/dimedicinaechirurgia/.content/documenti/Curriculum-Vitae_Di-Felice-Valentina.pdf",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q11",
+      "title": "CURRICULUM VITAE",
+      "url": "https://www.uniecampus.it/fileadmin/public/cv_docenti/MCLFPP81D19C421F.pdf",
+      "decision": "exclude_duplicate_or_metadata",
+      "exclusion_reason": "학위논문·재게시·서지/저자페이지;독립연구로계수안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q11",
+      "title": "Delft University of Technology",
+      "url": "https://pure.tudelft.nl/ws/files/7775069/Microbiology_in_swimming_pools_M.C.F.M._Peters.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q11",
+      "title": "Page 1 of 2",
+      "url": "https://iris.unipa.it/retrieve/e3ad891a-676c-da0e-e053-3705fe0a2b96/Wilderness%20Environ%20Med%202014%20-%20Lett.%20to%20Editor.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "sw-q11",
+      "title": "<4D6963726F736F667420576F7264202D20D0D4D5D7C9C1CAC720D4D3CFCBC1CACFD320CA2DD4D3CFCBC1CACFD320CB>",
+      "url": "https://pergamos.lib.uoa.gr/uoa/dl/object/2661907/file.pdf",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,219 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q13",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"Thermal and cardiovascular responses\" \"Masuda\" pdf",
+      "returned_count": "17"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn44search0",
+      "return_order": 1,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0306456519300750",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search1",
+      "return_order": 2,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31128663/",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search2",
+      "return_order": 3,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0306456519300750",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search3",
+      "return_order": 4,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature | Request PDF",
+      "url": "https://www.researchgate.net/publication/332004859_Thermal_and_cardiovascular_responses_and_thermal_sensation_during_hot-water_bathing_and_the_influence_of_room_temperature",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search4",
+      "return_order": 5,
+      "query_id": "ac-q13",
+      "title": "日本温泉気候物理医学会雑誌 84巻1号（日本温泉気候物理医学会） | 医学文献検索サービス メディカルオンライン",
+      "url": "https://mol.medicalonline.jp/archive/search?issue=1&jo=ck1onsen&vo=84&ye=2021",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search5",
+      "return_order": 6,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - Waseda University",
+      "url": "https://waseda.elsevierpure.com/en/publications/thermal-and-cardiovascular-responses-and-thermal-sensation-during/",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search12",
+      "return_order": 7,
+      "query_id": "ac-q13",
+      "title": "１版 様　式　Ｃ－１９、Ｆ－１９－１、Ｚ－１９ （共通） 科学研究費助成事業　　研究成果報告書 令和",
+      "url": "https://kaken.nii.ac.jp/file/KAKENHI-PROJECT-19H01128/19H01128seika.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search6",
+      "return_order": 8,
+      "query_id": "ac-q13",
+      "title": "Yuta MASUDA | Professor (Assistant) | Ph.D. | Kyoto Prefectural University, Kyoto | Research profile",
+      "url": "https://www.researchgate.net/profile/Yuta-Masuda",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search7",
+      "return_order": 9,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature",
+      "url": "https://openalex.org/W2923635708",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search8",
+      "return_order": 10,
+      "query_id": "ac-q13",
+      "title": "Thermal and cardiovascular responses and thermal sensation during hot-water bathing and the influence of room temperature - 早稲田大学",
+      "url": "https://waseda.elsevierpure.com/ja/publications/thermal-and-cardiovascular-responses-and-thermal-sensation-during/",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S04",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search9",
+      "return_order": 11,
+      "query_id": "ac-q13",
+      "title": "ORCID",
+      "url": "https://orcid.org/0000-0001-9643-5807",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search13",
+      "return_order": 12,
+      "query_id": "ac-q13",
+      "title": "人間科学研究　Vol.38, Supplement (2025)",
+      "url": "https://waseda.repo.nii.ac.jp/record/2006676/files/NingenKagakuKenkyu_38_1_1.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search10",
+      "return_order": 13,
+      "query_id": "ac-q13",
+      "title": "研究情報－JISSリポジトリ | High Performance Sport Center Network",
+      "url": "https://hpsc-network.jpnsport.go.jp/plugin/repositories/search/4/15?page=28&sort=title%7Casc",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search11",
+      "return_order": 14,
+      "query_id": "ac-q13",
+      "title": "",
+      "url": "https://ymasu08.github.io/y-masu.github.io/works",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search14",
+      "return_order": 15,
+      "query_id": "ac-q13",
+      "title": "Meta-analysis of heat-induced changes in cardiac function from over 400 laboratory-based heat exposure studies",
+      "url": "https://www.nature.com/articles/s41467-025-57868-6.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search15",
+      "return_order": 16,
+      "query_id": "ac-q13",
+      "title": "２００６年６月１４日",
+      "url": "https://waseda.repo.nii.ac.jp/record/73012/files/Shinsa-8923.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn44search16",
+      "return_order": 17,
+      "query_id": "ac-q13",
+      "title": "Подготовка горячей воды в автономных системах теплоснабжения",
+      "url": "https://journals.rcsi.science/1997-0935/article/download/266702/245647",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

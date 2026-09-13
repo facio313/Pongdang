@@ -1,0 +1,171 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q11",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"갯벌\" \"고립\" \"논문\" 조석",
+      "returned_count": "13"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn42search0",
+      "return_order": 1,
+      "query_id": "ac-q11",
+      "title": "연안해역 사고방지를 위한 안전관리에 관한 연구",
+      "url": "https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART002180281",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search1",
+      "return_order": 2,
+      "query_id": "ac-q11",
+      "title": "연안해역 안전관리 체계 발전방안 연구: 연안안전 담당자 설문조사 중심으로",
+      "url": "https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART002593703",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search2",
+      "return_order": 3,
+      "query_id": "ac-q11",
+      "title": "「연안사고 예방에 관한 법률」상의 위험구역관리 개선방안",
+      "url": "https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART002286905",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search3",
+      "return_order": 4,
+      "query_id": "ac-q11",
+      "title": "연안해역 사고방지를 위한 안전관리에 관한 연구 - earticle",
+      "url": "https://www.earticle.net/Article/A297628",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search4",
+      "return_order": 5,
+      "query_id": "ac-q11",
+      "title": "연안해역 사고방지를 위한 안전관리에 관한 연구 - 논문 | DBpia",
+      "url": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10811010",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search5",
+      "return_order": 6,
+      "query_id": "ac-q11",
+      "title": "연안해역 안전관리 체계 발전방안 연구 : 연안안전 담당자 설문조사 중심으로 - earticle",
+      "url": "https://www.earticle.net/Article/A376598",
+      "decision": "excluded",
+      "exclusion_reason": "안전관리 제도 중심; 조석/환경 노출별 활동결과나 안전시간 경계 추정 연구가 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search12",
+      "return_order": 7,
+      "query_id": "ac-q11",
+      "title": "2025년 9월 9일 화요일",
+      "url": "https://www.thesegye.com/news/pdf/20250909/news20250909_288.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search6",
+      "return_order": 8,
+      "query_id": "ac-q11",
+      "title": "korean vocab json · GitHub",
+      "url": "https://gist.github.com/JudsonHat/d9e7ca3d386e560f9c636ddecdaf749d",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search7",
+      "return_order": 9,
+      "query_id": "ac-q11",
+      "title": "연구원 소식",
+      "url": "https://education.mokpo.ac.kr/islands/5498/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGaXNsYW5kcyUyRjM4MyUyRjI4NTcwMiUyRmFydGNsVmlldy5kbyUzRg%3D%3D",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search8",
+      "return_order": 10,
+      "query_id": "ac-q11",
+      "title": "2024-2 사회문제해결을 위한 공공정책 - 연세대학교행정학과PLAY | 플립 PDF 온라인 | FlipHTML5",
+      "url": "https://fliphtml5.com/vdjow/kmto/2024-2_%25EC%2582%25AC%25ED%259A%258C%25EB%25AC%25B8%25EC%25A0%259C%25ED%2595%25B4%25EA%25B2%25B0%25EC%259D%2584_%25EC%259C%2584%25ED%2595%259C_%25EA%25B3%25B5%25EA%25B3%25B5%25EC%25A0%2595%25EC%25B1%2585/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search9",
+      "return_order": 11,
+      "query_id": "ac-q11",
+      "title": "해양경찰정비창, 구명조끼 착용률 높이기 캠페인 동참",
+      "url": "https://www.metroseoul.co.kr/article/20240703500246",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search10",
+      "return_order": 12,
+      "query_id": "ac-q11",
+      "title": "리포트 인문사회 공유자료 - 씽크존 문서공유",
+      "url": "https://www.thinkzon.com/share_list_report/A28B14_585.php?display_type=list&scale=40&sort=score",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn42search11",
+      "return_order": 13,
+      "query_id": "ac-q11",
+      "title": "qwen_asr/inference/assets/korean_dict_jieba.dict · Qwen/Qwen3-ASR at 976bece4bc919768e5d96fe8ef1051b1d77d8d70",
+      "url": "https://api-inference.huggingface.co/spaces/Qwen/Qwen3-ASR/blob/976bece4bc919768e5d96fe8ef1051b1d77d8d70/qwen_asr/inference/assets/korean_dict_jieba.dict",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

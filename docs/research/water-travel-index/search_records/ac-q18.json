@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q18",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"Assessing preferences of beach users for certain aspects of weather and ocean conditions\"",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn89search0",
+      "return_order": 1,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/22661009/",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search1",
+      "return_order": 2,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia",
+      "url": "https://www.researchgate.net/publication/225097957_Assessing_preferences_of_beach_users_for_certain_aspects_of_weather_and_ocean_conditions_case_studies_from_Australia",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search2",
+      "return_order": 3,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia",
+      "url": "https://agris.fao.org/search/en/records/65e009620f3e94b9e5deb595",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search3",
+      "return_order": 4,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia",
+      "url": "https://agris.fao.org/search/ar/records/65e009620f3e94b9e5deb595",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search4",
+      "return_order": 5,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia",
+      "url": "https://agris.fao.org/search/es/records/65e009620f3e94b9e5deb595",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search5",
+      "return_order": 6,
+      "query_id": "ac-q18",
+      "title": "SARCCM publications by year | UNSW Research",
+      "url": "https://research.unsw.edu.au/projects/sarccm-publications-year",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search6",
+      "return_order": 7,
+      "query_id": "ac-q18",
+      "title": "Assessing preferences of beach users for certain aspects of weather and ocean conditions: case studies from Australia",
+      "url": "https://openalex.org/W1982132370",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search7",
+      "return_order": 8,
+      "query_id": "ac-q18",
+      "title": "Therapeutic and restorative landscapes: including preferences for bluespaces in planning urban infrastructure | Oxford Open Infrastructure and Health | Oxford Academic",
+      "url": "https://academic.oup.com/ooih/article/doi/10.1093/ooih/ouae003/7755366",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search8",
+      "return_order": 9,
+      "query_id": "ac-q18",
+      "title": "Select Publications by Professor Xiao Hua Wang | UNSW Research",
+      "url": "https://research.unsw.edu.au/people/professor-xiao-hua-wang/publications?page=3",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search9",
+      "return_order": 10,
+      "query_id": "ac-q18",
+      "title": "Artificial intelligence-based monitoring of occupancy and stay duration on urban beaches: Analyzing climate influence in Benidorm (Spain) | Request PDF",
+      "url": "https://www.researchgate.net/publication/397149593_Artificial_intelligence-based_monitoring_of_occupancy_and_stay_duration_on_urban_beaches_Analyzing_climate_influence_in_Benidorm_Spain",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search10",
+      "return_order": 11,
+      "query_id": "ac-q18",
+      "title": "(PDF) Monitoring beach usage with a coastal video imaging system: an application at Paralia Katerinis, Greece",
+      "url": "https://www.researchgate.net/publication/276961440_Monitoring_beach_usage_with_a_coastal_video_imaging_system_an_application_at_Paralia_Katerinis_Greece",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search11",
+      "return_order": 12,
+      "query_id": "ac-q18",
+      "title": "Beach study shows tourists like good weather | Research | The Guardian",
+      "url": "https://www.theguardian.com/education/2015/mar/09/beach-study-tourists-like-good-weather",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search12",
+      "return_order": 13,
+      "query_id": "ac-q18",
+      "title": "Professor Xiao Hua Wang",
+      "url": "https://fiocom.fio.org.cn/pdf/Prof.Xiao%20Hua%20Wang.pdf",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은논문 서지·재게시; 독립표본 아님",
+      "study_id": "AC-S10",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search13",
+      "return_order": 14,
+      "query_id": "ac-q18",
+      "title": "PEARL Application of multiple linear regression an",
+      "url": "https://pure.plymouth.ac.uk/ws/portalfiles/portal/38883153/Stokes%20et%20al%202017%20Beach%20Risk_Complete%20Revised%20Manuscript.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search14",
+      "return_order": 15,
+      "query_id": "ac-q18",
+      "title": "http://researchcommons.waikato.ac.nz/",
+      "url": "https://researchcommons.waikato.ac.nz/server/api/core/bitstreams/af17baac-ab66-416d-93f2-b91d5cb39366/content",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search15",
+      "return_order": 16,
+      "query_id": "ac-q18",
+      "title": "Please do not remove this page",
+      "url": "https://s3.ap-southeast-1.amazonaws.com/ap-st01.ext.exlibrisgroup.com/61SCU_INST/upload/1767403563843/Provost_EJ_2021_PhD_Redacted.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람 서명형 URL의 인증·만료 쿼리 제거; 자료 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search16",
+      "return_order": 17,
+      "query_id": "ac-q18",
+      "title": "International Conference on Environmental Interactions of Marine Renewable Energy Technologies. Stornoway, Isle of Lewis, Outer Hebrides, Scotland.",
+      "url": "https://pure.strath.ac.uk/ws/portalfiles/portal/63673267/Stokes_etal_OCM2017_Application_of_multiple_linear_regression_and_Bayesian_belief.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn89search17",
+      "return_order": 18,
+      "query_id": "ac-q18",
+      "title": "Journal of Architectural Sciences and Applications, 2025, 10 (2), 949-970.",
+      "url": "https://dergipark.org.tr/en/download/article-file/5065035",
+      "decision": "not_prioritized",
+      "exclusion_reason": "한정 보완검색의 다른 주변연구·뉴스; 원문미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "query_id": "sw-o26",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.cdc.gov/healthy-swimming/safety/what-you-can-do-to-stay-healthy-in-hot-tubs.html",
+  "url": "https://www.cdc.gov/healthy-swimming/safety/what-you-can-do-to-stay-healthy-in-hot-tubs.html",
+  "title": "What You Can Do to Stay Healthy in Hot Tubs",
+  "access_status": "full_text_checked",
+  "reviewed_locations": "Follow rules for healthy and safe use; Observe the hot tub and its surroundings",
+  "note": "공식CDC2025-05-20페이지; 원문전문 미재배포",
+  "decision": "include",
+  "review_note": "CDC공식본문온도·연령조건확인"
+}

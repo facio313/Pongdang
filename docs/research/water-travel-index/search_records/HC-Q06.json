@@ -1,0 +1,159 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q06",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"여름철 해변지역의 인간 열환경지수\"",
+      "returned_count": "12"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "HC-Q06",
+      "title": "여름철 해변지역의 인간 열환경지수 및 열쾌적성 - 제주특별자치도 제주시 구좌읍 월정리 해변 -",
+      "url": "https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART002141334",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S05",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "HC-Q06",
+      "title": "여름철 해변지역의 인간 열환경지수 및 열쾌적성-제주특별자치도 제주시 구좌읍 월정리 해변- - 한국조경학회지 - 한국조경학회 - KISS",
+      "url": "https://kiss.kstudy.com/Detail/Ar?key=3470027",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S05",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "HC-Q06",
+      "title": "여름철 해변지역의 인간 열환경지수 및 열쾌적성 - AURIC",
+      "url": "https://www.auric.or.kr/user/Rdoc/DocCmag.aspx?dn=214462&returnVal=CMAG",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S05",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "HC-Q06",
+      "title": "KCI 국내학술지 인용색인 정보 포털입니다.",
+      "url": "https://www.kci.go.kr/kciportal/po/search/poSereArtiList.kci?sereId=000407&volIsseId=VOL000079547",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "HC-Q06",
+      "title": "(PDF) Human Thermal Sensation and Comfort of Beach Areas in Summer - Woljeong-ri Beach, Gujwa-eup, Jeju-si, Jeju Special Self-Governing Province -",
+      "url": "https://www.researchgate.net/publication/308663713_Human_Thermal_Sensation_and_Comfort_of_Beach_Areas_in_Summer_-_Woljeong-ri_Beach_Gujwa-eup_Jeju-si_Jeju_Special_Self-Governing_Province_-",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S05",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "HC-Q06",
+      "title": "여름철 해변지역의 인간 열환경지수 및 열쾌적성 - 제주특별자치도 제주시 구좌읍 월정리 해변 - - 논문 | DBpia",
+      "url": "https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE09918988",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S05",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "HC-Q06",
+      "title": "한국조경학회지 2016-08 (Vol.44 No.4) - AURIC",
+      "url": "https://www.auric.or.kr/User/rdoc/RdocDirectoryStep3.aspx?dbname=CMAG&n=4&organCode2=kila01&yearmonth=201608",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "HC-Q06",
+      "title": "Spatio-temporal Patterns and Long-term Trends of Apparent Temperature in Jeju Island, Korea",
+      "url": "https://journal.koreangeography.or.kr/articles/article/WrJ2/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "HC-Q06",
+      "title": "검색결과 - earticle",
+      "url": "https://www.earticle.net/Search/Result?q=%EC%A1%B0%EC%83%81%EB%A7%8C&sf=3",
+      "decision": "excluded_listing",
+      "exclusion_reason": "논문 자체가 아닌 목록/인물/검색/특집 페이지",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "HC-Q06",
+      "title": "한국조경학회지|RISS 상세보기",
+      "url": "https://www.riss4u.net/search/detail/DetailView.do?control_no=0139aa79f27e546d&p_mat_type=3a11008f85f7c51d&v_control_no=7260daee419b6e72ffe0bdc3ef48d419",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "HC-Q06",
+      "title": "기상요소변화와 해변 관광객 유입간의 관계 분석 : 강릉지역을 중심으로|RISS 상세보기",
+      "url": "https://www.riss.or.kr/search/detail/DetailView.do?control_no=024aad6b731cf4a0e9810257f7042666&p_mat_type=1a0202e37d52c72d",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "KR-S01",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "HC-Q06",
+      "title": "RISS 검색 - 국내학술지논문",
+      "url": "https://www.riss4u.net/search/Search.do?colName=re_a_kor&isDetailSearch=Y&queryText=znCreator%2C%EB%B0%95%EC%88%98%EA%B5%AD&searchGubun=true",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

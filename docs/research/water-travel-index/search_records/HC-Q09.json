@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q09",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"The Tourism Climate Index\" Mieczkowski 1985",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "HC-Q09",
+      "title": "The Camping Climate Index (CCI): The development, validation, and application of a camping-sector tourism climate index - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0261517720300315",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "HC-Q09",
+      "title": "The data from the aforementioned selected meteorology stations has been assessed using the Tourism Climate Index – TCI (Mieczkowski, 1985). This index determines climate comfort conditions in order to understand the effects of climate on tourist flows and establish what is considered as the tourism season. This index is the most commonly integrated index. The climate factors considered in the index are sunshine duration, temperature, relative humidity, precipitation, and wind.",
+      "url": "https://ipc.sabanciuniv.edu/Content/Images/CKeditorImages/20200326-01030196.pdf",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "HC-Q09",
+      "title": "National Assessment of Climate Resources for Tourism Seasonality in China Using the Tourism Climate Index",
+      "url": "https://www.mdpi.com/2073-4433/6/2/183",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "HC-Q09",
+      "title": "Tourism climatology: past, present, and future.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33416950/",
+      "decision": "duplicate_url",
+      "exclusion_reason": "이미 반환된 URL; 독립 논문/표본으로 합산하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "HC-Q09",
+      "title": "TCI",
+      "url": "https://klimatolodzy.pl/index.php/pl/baza-wiedzy/wskazniki-klimatyczne/tci",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "HC-Q09",
+      "title": "Climatology and trend of tourism climate index over China during 1979–2020 - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0169809522003076",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "HC-Q09",
+      "title": "Full article: Tourism dependency and extreme weather: developing tourism extreme weather exposure indices for Denmark",
+      "url": "https://www.tandfonline.com/doi/full/10.1080/09669582.2025.2573708",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "HC-Q09",
+      "title": "Risk assessment of precipitation and the tourism climate index - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0261517715000138",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "HC-Q09",
+      "title": "Full article: Climate change, coastal tourism, and impact chains – a literature review",
+      "url": "https://www.tandfonline.com/doi/abs/10.1080/13683500.2020.1825351",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "HC-Q09",
+      "title": "Tourism Climatology",
+      "url": "https://tourismemory.org/tourism-climatology",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "HC-Q09",
+      "title": "Z. Mieczkowski, “The Tourism Climate Index A Method for Evaluating World Climates for Tourism,” The Canadian Geographer, Vol. 29, 1985, pp. 220-233. - References - Scientific Research Publishing",
+      "url": "https://www.scirp.org/reference/referencespapers?referenceid=1076162",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "HC-Q09",
+      "title": "Comparing the ‘Tourism Climate Index’ and",
+      "url": "https://core.ac.uk/download/pdf/144146611.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "HC-Q09",
+      "title": "Quantitative Analysis of Tourism Climate Comfort in the DPRK Using Tourism Climate Index (TCI): A Validation With In Situ Observations - Jo - 2026 - Advances in Meteorology - Wiley Online Library",
+      "url": "https://onlinelibrary.wiley.com/doi/10.1155/adme/4402780",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "HC-Q09",
+      "title": "of Mieczkowski (1985), who developed the ‘Tourism Climate Index’ (TCI). Mieczkowski’s (1985) index was designed to use climate data that was already widely available for tourist destinations worldwide. The TCI merges seven features of climate into a single climate index. The TCI was originally conceptualized as a composite measure that would systematically assess the climatic elements that were most relevant to the quality of the tourist experience for the ‘average’ tourist (i.e., the most common tourism activities of sightseeing and shopping). TCI has subsequently been used in a slightly modified form by Morgan et al., (2000) for beach environments, and in a number of recent studies that assess the potential impact of global climate change on the climate resources of destinations around the world (Scott and McBoyle, 2001; Scott et al., 2003; Amelung and Viner, 2006). In Iran, several researchers analyzed and calculated TCI. Farajzadeh and Matzarakis, (2009) computed PET and TCI in the northwest of Iran in the period 1985- 2005 from a network of 15 meteorological stations. There are a number of research about investigation of climate change impacts on tourism by using different bioclimatic indices such as (Yazdanpanah et al., 2016; Amelung et al., 2014; Amelung et al., 2007; Hamilton et al., 2005; Scott et al., 2004; Hamilton et al., 2004). Nasirihendkhaleh et al., (2014) evaluated and separated Fars province (south-central Iran) touristic climate using TCI and GIS framework. Esmaili and Fallah Ghalhari, (2014) evaluated the bio-climatic conditions of the tourists in Mashhad (northeast of Iran), through the use of PET index on an hourly scale. Morris et al. (2017) considered the impact of urbanization level on the interactions of the urban area, the urban climate, and human thermal comfort. Andelković et al., (2016) proposed a new mathematical formulation of climate parameters for calculating the tourism climate comfort index (TCCI) and determined the appropriate destinations and favorable resorts for tourists in each month in Serbia. Cohen, (2013) studied the perception of human thermal sensation for Coastal Mediterranean outdoor urban environments by using a bioclimatic index. The aim of this paper is an investigation of climate change impacts on bioclimatic conditions for tourism in Iran for the baseline and future periods. In addition, this paper aimed to apply the TCI developed by Mieczkowski, (1985) and provide a comprehensive information source for the most suitable time periods, per region, for outdoor activities. It was the first attempt to use this index for the entire country. For this purpose, a user-friendly and multi-platform software was designed in JAVA programming language. This software is consonant with the format of Islamic Republic of Iran’s Meteorological Organization (IRIMO) database. Finally, multiple regression models were used to determine the relationship between the geographic component such as latitude, longitude, elevation, and TCI and spatial analysis of TCI values.",
+      "url": "https://journal.gnest.org/sites/default/files/Submissions/gnest_02435/gnest_02435_published.pdf",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "HC-Q09",
+      "title": "Tourism Climatic Index rating system (Mieczkowski, 1985) | Download Table",
+      "url": "https://www.researchgate.net/figure/Tourism-Climatic-Index-rating-system-Mieczkowski-1985_tbl3_275020435",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "HC-Q09",
+      "title": "Mieczkowski Z. (1985), *The tourism climatic index: a method of evaluating world climates for tourism*, Canadian Geographer/Le Géographe Canadien, 29(3), 220-233.",
+      "url": "https://web.itu.edu.tr/toros/yayinlar/2019/AMonthlyAssessmentofHumanBioclimaticComfortConditionsinIstanbul.pdf",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S08",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "HC-Q09",
+      "title": "Mieczkowski, Z. (1985). The Tourism Climate Index: A method of evaluating world climates for tourism. *The Canadian Geographer*, 29(3), 220–233.",
+      "url": "https://repositoriodigital.uns.edu.ar/bitstream/handle/123456789/7288/TANANA%20A.T_%20TESIS_firmado%20%282%29.pdf?isAllowed=y&sequence=1",
+      "decision": "excluded_scope",
+      "exclusion_reason": "제목/검색 맥락상 대상 물활동·환경 결과와 무관하거나 관광 홍보",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-18",
+      "return_order": 18,
+      "query_id": "HC-Q09",
+      "title": "Climate change in Greece",
+      "url": "https://en.wikipedia.org/wiki/Climate_change_in_Greece",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

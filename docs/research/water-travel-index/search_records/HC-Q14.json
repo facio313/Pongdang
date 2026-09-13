@@ -1,0 +1,75 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "HC-Q14",
+      "date": "2026-09-14",
+      "source": "exa.search",
+      "query": "category:research paper original Holiday Climate Index urban Scott Rutty Amelung Tang 2016 empirical validation Europe",
+      "returned_count": "5"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "HC-Q14",
+      "title": "An Inter-Comparison of the Holiday Climate Index (HCI) and the Tourism Climate Index (TCI) in Europe",
+      "url": "https://doi.org/10.3390/atmos7060080",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S09",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "HC-Q14",
+      "title": "An Inter-Comparison of the Holiday Climate Index (HCI) and the Tourism Climate Index (TCI) in Europe",
+      "url": "https://mdpi-res.com/d_attachment/atmosphere/atmosphere-07-00080/article_deploy/atmosphere-07-00080.pdf?version=1465300086",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S09",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "HC-Q14",
+      "title": "An Inter-Comparison of the Holiday Climate Index (HCI) ...",
+      "url": "https://www.mdpi.com/2073-4433/7/6/80",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S09",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "HC-Q14",
+      "title": "N/A",
+      "url": "https://pdfs.semanticscholar.org/7a49/cdfe784e6e9021c31e4ccff995634b2c4c68.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련 가능 반환; 우선 원연구·직접 결과 중심 범위에서 추가 원문 검토하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "HC-Q14",
+      "title": "An inter-comparison of the Holiday Climate Index (HCI) ...",
+      "url": "https://research.wur.nl/en/publications/an-inter-comparison-of-the-holiday-climate-index-hci-and-the-tour/",
+      "decision": "linked_to_included_study",
+      "exclusion_reason": "선정 연구의 검색 반환/서지 사본; 접근 단계는 별도 행 참조",
+      "study_id": "HC-S09",
+      "access_status_at_return": "search_return_only",
+      "notes": ""
+    }
+  ]
+}

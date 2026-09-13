@@ -1,0 +1,219 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q08",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"래프팅\" \"유량\" 연구",
+      "returned_count": "17"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn24search12",
+      "return_order": 1,
+      "query_id": "ac-q08",
+      "title": "우리 국토의 자연환경",
+      "url": "https://nationalatlas.cafe24.com/pages/download.php?dir=%2Fnationalatlas%2Fkor_hi_2022%2Fpdf&file=2022_%EC%B2%AD%EC%86%8C%EB%85%84%ED%8C%90_4_%EC%9A%B0%EB%A6%AC%EA%B5%AD%ED%86%A0%EC%9D%98%EC%9E%90%EC%97%B0%ED%99%98%EA%B2%BD.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search0",
+      "return_order": 2,
+      "query_id": "ac-q08",
+      "title": "친수지구의 친수활동과 계절적, 수리적 인자를 고려한 수질특성 변화에 관한 연구 - 김택호 | 광운대학교 논문 | DBpia",
+      "url": "https://www.dbpia.co.kr/journal/detail?nodeId=T16850648",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search1",
+      "return_order": 3,
+      "query_id": "ac-q08",
+      "title": "동강 어라연 래프팅",
+      "url": "https://eorayeonrafting.co.kr/program?type=rafting",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search2",
+      "return_order": 4,
+      "query_id": "ac-q08",
+      "title": "\"무더위야 반갑다\"…산청 경호강 래프팅족 '북적' | 연합뉴스",
+      "url": "https://www.yna.co.kr/view/AKR20190723136500052",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search13",
+      "return_order": 5,
+      "query_id": "ac-q08",
+      "title": "bc0corgm.dgm",
+      "url": "https://bonbonmath.com/wp-content/uploads/2023-%EA%B3%A02-9%EC%9B%94-%EB%AA%A8%EC%9D%98%EA%B3%A0%EC%82%AC-%EC%82%AC%ED%9A%8C%ED%83%90%EA%B5%AC-%EB%AC%B8%EC%A0%9C.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search3",
+      "return_order": 6,
+      "query_id": "ac-q08",
+      "title": "\"무더위야 반갑다\"…산청 경호강 래프팅족 '북적' | 연합뉴스",
+      "url": "https://www.yna.co.kr/amp/view/AKR20190723136500052",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search14",
+      "return_order": 7,
+      "query_id": "ac-q08",
+      "title": "건설공사 사후평가 수행매뉴얼 및 활용가이드라인 본“건설공사 사후평가 수행매뉴얼 및 활용가이",
+      "url": "https://www.bidform.co.kr/updata/notifile/z8ugu2015SepWed.PDF",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search4",
+      "return_order": 8,
+      "query_id": "ac-q08",
+      "title": "4 하천 지형과 해안 지형 Flashcards | Quizlet",
+      "url": "https://quizlet.com/kr/1035996644/4-%ED%95%98%EC%B2%9C-%EC%A7%80%ED%98%95%EA%B3%BC-%ED%95%B4%EC%95%88-%EC%A7%80%ED%98%95-flash-cards/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search15",
+      "return_order": 9,
+      "query_id": "ac-q08",
+      "title": "3. 과업범위 ※ 세부 내용 추후 변동 가능",
+      "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01330839&bidPbancOrd=000&fileSeq=2&fileType=&prcmBsneSeCd=03",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search5",
+      "return_order": 10,
+      "query_id": "ac-q08",
+      "title": "[민사] 래프팅 사고 피해자 유족의 국가배상청구 기각 | 격주간 최신 판례 대시보드",
+      "url": "https://www.klawdigest.kr/articles/13351?issueNumber=13&tab=all&view=practice",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search6",
+      "return_order": 11,
+      "query_id": "ac-q08",
+      "title": "래프팅 초보 가이드: 장비, 명령, 안전 수칙, 첫 투어 준비",
+      "url": "https://www.superage.app/ko/blog/raepeting-chobo-jangbi-myeongryeong-anjeon-gaideu/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search7",
+      "return_order": 12,
+      "query_id": "ac-q08",
+      "title": "[바캉스 특집-경남 산청군] 짜릿한 래프팅·뜨끈한 약초목욕탕…어르신도 아이도 만족 : 국제신문",
+      "url": "https://www.kookje.co.kr/news2011/asp/newsbody.asp?code=0700&key=20180716.22036002380",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search8",
+      "return_order": 13,
+      "query_id": "ac-q08",
+      "title": "SMUDs 사우스 포크 파워하우스 수력 발전 프로젝트 가동 개시",
+      "url": "https://www.smud.org/ko/Corporate/About-us/News-and-Media/2020/2020/SMUDs-South-Fork-Powerhouse-hydroelectric-project-goes-operational",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search9",
+      "return_order": 14,
+      "query_id": "ac-q08",
+      "title": "2026년 무이산 구곡계 래프팅 추천| Trip Moments",
+      "url": "https://kr.trip.com/moments/theme/poi-wuyi-mountain-nine-bend-stream-10558604-rafting-910214/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search10",
+      "return_order": 15,
+      "query_id": "ac-q08",
+      "title": "단양 래프팅 남한강레포츠 | 오케이단양 급류카약 더키 ATV 서바이벌 패러글라이딩 예약",
+      "url": "https://okdy.nurii.kr/policies/terms",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search11",
+      "return_order": 16,
+      "query_id": "ac-q08",
+      "title": "2026년 구곡계 대나무 래프팅 래프팅 추천| Trip Moments",
+      "url": "https://kr.trip.com/moments/theme/poi-jiuquxi-bamboo-rafting-10670396-rafting-910214/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn24search16",
+      "return_order": 17,
+      "query_id": "ac-q08",
+      "title": "공개특허 10-2021-0021367",
+      "url": "https://patentimages.storage.googleapis.com/dd/5f/b6/bd0c10a7ccf8cf/KR20210021367A.pdf",
+      "decision": "excluded",
+      "exclusion_reason": "요구한 활동×환경×결과 관계와 무관하거나 연구 원문이 아님",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

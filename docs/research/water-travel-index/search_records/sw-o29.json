@@ -1,0 +1,13 @@
+{
+  "query_id": "sw-o29",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.cdc.gov/healthy-swimming/prevention/preventing-legionella-from-hot-tubs.html",
+  "url": "https://www.cdc.gov/healthy-swimming/prevention/preventing-legionella-from-hot-tubs.html",
+  "title": "About Protecting Yourself from Legionella in Hot Tubs",
+  "access_status": "full_text_checked",
+  "reviewed_locations": "Exposure risks; Risk factors; Prevention steps and strategies",
+  "note": "50세 이상은 Legionnaires disease 취약군이지 수온상한 근거가 아님; 전문 미재배포",
+  "decision": "include",
+  "review_note": "50세이상취약군은Legionnaires질환에대한것임"
+}

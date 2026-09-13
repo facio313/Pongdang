@@ -1,0 +1,231 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q10",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"tidal\" \"cut-off\" \"risk\" beach study modelling",
+      "returned_count": "18"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn45search0",
+      "return_order": 1,
+      "query_id": "ac-q10",
+      "title": "Cut Off by the Tide: How Ocean Literacy Can Help Save Lives | Article | Ocean and Society",
+      "url": "https://www.cogitatiopress.com/oceanandsociety/article/view/9793",
+      "decision": "selected_for_review",
+      "exclusion_reason": "",
+      "study_id": "AC-S06",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search12",
+      "return_order": 2,
+      "query_id": "ac-q10",
+      "title": "PEARL Application of multiple linear regression an",
+      "url": "https://pure.plymouth.ac.uk/ws/portalfiles/portal/38883153/Stokes%20et%20al%202017%20Beach%20Risk_Complete%20Revised%20Manuscript.pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search1",
+      "return_order": 3,
+      "query_id": "ac-q10",
+      "title": "Research reveals major gaps in tidal knowledge that frequently lead to a risk to life for coastal visitors | Bangor University",
+      "url": "https://www.bangor.ac.uk/news/2025-04-09-research-reveals-major-gaps-in-tidal-knowledge-that-frequently-lead-to-a-risk-to",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search2",
+      "return_order": 4,
+      "query_id": "ac-q10",
+      "title": "Extensive media coverage of finalised study results on tidal cut-off - Bangor University",
+      "url": "https://research.bangor.ac.uk/en/clippings/extensive-media-coverage-of-finalised-study-results-on-tidal-cut-/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search3",
+      "return_order": 5,
+      "query_id": "ac-q10",
+      "title": "Managing physical and anthropogenic hazards on macrotidal Amazon beaches - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0964569114001501",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search4",
+      "return_order": 6,
+      "query_id": "ac-q10",
+      "title": "Misunderstanding the tide is putting millions at risk on UK coasts – here’s what you need to know | Bangor University",
+      "url": "https://www.bangor.ac.uk/news/2025-10-17-misunderstanding-the-tide-is-putting-millions-at-risk-on-uk-coasts-heres-what-you",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search5",
+      "return_order": 7,
+      "query_id": "ac-q10",
+      "title": "Relationships between the tide and fatal drowning at surf beaches in New South Wales, Australia: Implications for coastal safety management and practice - ScienceDirect",
+      "url": "https://doi.org/10.1016%2Fj.ocecoaman.2023.106584",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search13",
+      "return_order": 8,
+      "query_id": "ac-q10",
+      "title": "PRIFYSGOL BANGOR UNIVERSITYCut off by the tide: Ho",
+      "url": "https://research.bangor.ac.uk/files/77702356/Morris-Webb_et_al_Accepted_Final_Manuscript.pdf",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S06",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search6",
+      "return_order": 9,
+      "query_id": "ac-q10",
+      "title": "Why do people frequently get cut off by the tide? A collaborative project with the RNLI | Bangor University",
+      "url": "https://www.bangor.ac.uk/plocc/why-do-people-frequently-get-cut-off-by-the-tide-a-collaborative-project-with-the-rnli",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search14",
+      "return_order": 10,
+      "query_id": "ac-q10",
+      "title": "BEACH MORPHODYNAMICS",
+      "url": "https://citeseerx.ist.psu.edu/document?doi=aa9066dab4e772233d46a59ca853e73a4d241ff1&repid=rep1&type=pdf",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search15",
+      "return_order": 11,
+      "query_id": "ac-q10",
+      "title": "Cut off by the tide: How Ocean Literacy can help save lives",
+      "url": "https://pure.bangor.ac.uk/ws/portalfiles/portal/77976966/OaS_2_-_Cut_Off_by_the_Tide_How_Ocean_Literacy_Can_Help_Save_Lives.pdf",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S06",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search7",
+      "return_order": 12,
+      "query_id": "ac-q10",
+      "title": "",
+      "url": "https://svn.oss.deltares.nl/repos/openearthtools/websites/cosmos/htdocs/zandmotor/ripcurrents/forecastsystems.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search16",
+      "return_order": 13,
+      "query_id": "ac-q10",
+      "title": "Cut off by the tide: How Ocean Literacy can help save lives",
+      "url": "https://pure.bangor.ac.uk/ws/portalfiles/portal/77702356/Morris-Webb_et_al_Accepted_Final_Manuscript.pdf",
+      "decision": "duplicate_or_alternative_access",
+      "exclusion_reason": "같은 연구의 재반환 또는 다른 접근주소; 독립연구로 세지 않음",
+      "study_id": "AC-S06",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search17",
+      "return_order": 14,
+      "query_id": "ac-q10",
+      "title": "Public Document Pack",
+      "url": "https://democracy.eastdevon.gov.uk/documents/g1545/Public%20reports%20pack%2006th-Jan-2021%2010.00%20Planning%20Committee.pdf?T=10",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search8",
+      "return_order": 15,
+      "query_id": "ac-q10",
+      "title": "Evolving tides aggravate nuisance flooding along the U.S. coastline - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7935371/",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search9",
+      "return_order": 16,
+      "query_id": "ac-q10",
+      "title": "(PDF) Rip current variability and hazard along a macro-tidal coast",
+      "url": "https://www.researchgate.net/publication/257496397_Rip_current_variability_and_hazard_along_a_macro-tidal_coast",
+      "decision": "not_prioritized",
+      "exclusion_reason": "관련성 있는 주변 후보도 포함될 수 있으나 이번 제한된 원문검토 우선순위에서 미선정; 원문 미열람",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search10",
+      "return_order": 17,
+      "query_id": "ac-q10",
+      "title": "Tidal asymmetry in sediment resuspension on a macrotidal beach in northwestern Australia - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0025322799001103",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn45search11",
+      "return_order": 18,
+      "query_id": "ac-q10",
+      "title": "Cut Off by the Tide: How Ocean Literacy Can Help Save Lives",
+      "url": "https://ideas.repec.org/a/cog/ocesoc/v2y2025a9793.html",
+      "decision": "not_prioritized",
+      "exclusion_reason": "주변 관련 후보; 직접 확인한 핵심 원연구·공식자료를 우선하며 전원문 검토는 수행하지 않음",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

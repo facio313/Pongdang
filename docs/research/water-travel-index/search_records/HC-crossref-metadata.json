@@ -1,0 +1,1153 @@
+[
+  {
+    "study_id": "HC-S01",
+    "url": "https://api.crossref.org/works/10.3390%2Fatmos11040412",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3390/atmos11040412",
+      "title": [
+        "An Inter-Comparison of the Holiday Climate Index (HCI:Beach) and the Tourism Climate Index (TCI) to Explain Canadian Tourism Arrivals to the Caribbean"
+      ],
+      "author": [
+        {
+          "ORCID": "https://orcid.org/0000-0002-4567-7766",
+          "authenticated-orcid": false,
+          "given": "Michelle",
+          "family": "Rutty",
+          "sequence": "first",
+          "affiliation": [
+            {
+              "name": "Faculty of Environment, University of Waterloo, Waterloo, ON N2L 3G1, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "ORCID": "https://orcid.org/0000-0001-7825-9301",
+          "authenticated-orcid": false,
+          "given": "Daniel",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Faculty of Environment, University of Waterloo, Waterloo, ON N2L 3G1, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Lindsay",
+          "family": "Matthews",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Faculty of Environment, University of Waterloo, Waterloo, ON N2L 3G1, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Ravidya",
+          "family": "Burrowes",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "ESSA Technologies, Vancouver, BC V6H 3H4, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Adrian",
+          "family": "Trotman",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Caribbean Institute for Meteorology and Hydrology (CIMH), St. James BB 23006, Barbados"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "ORCID": "https://orcid.org/0000-0001-9621-7033",
+          "authenticated-orcid": false,
+          "given": "Roché",
+          "family": "Mahon",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Caribbean Institute for Meteorology and Hydrology (CIMH), St. James BB 23006, Barbados"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Amanda",
+          "family": "Charles",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Caribbean Tourism Organization (CTO), Bridgetown BB 22026, Barbados"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Atmosphere"
+      ],
+      "volume": "11",
+      "issue": "4",
+      "page": "412",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2020,
+            4,
+            20
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2020,
+            4,
+            20
+          ]
+        ]
+      },
+      "published-print": null,
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S02",
+    "url": "https://api.crossref.org/works/10.3354%2Fcr01183",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3354/cr01183",
+      "title": [
+        "Differential climate preferences of international beach tourists"
+      ],
+      "author": [
+        {
+          "given": "M",
+          "family": "Rutty",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "D",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Climate Research"
+      ],
+      "volume": "57",
+      "issue": "3",
+      "page": "259-269",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2013,
+            10,
+            28
+          ]
+        ]
+      },
+      "published-online": null,
+      "published-print": {
+        "date-parts": [
+          [
+            2013,
+            10,
+            28
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S03",
+    "url": "https://api.crossref.org/works/10.1007%2Fs00484-014-0820-x",
+    "date": "2026-09-14",
+    "status": "failed",
+    "error": "HTTPError"
+  },
+  {
+    "study_id": "HC-S04",
+    "url": "https://api.crossref.org/works/10.3390%2Fsu9091535",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3390/su9091535",
+      "title": [
+        "Impact of Climate Change on the Preferred Season for Outdoor Water Activities"
+      ],
+      "author": [
+        {
+          "given": "Songyi",
+          "family": "Kim",
+          "sequence": "first",
+          "affiliation": [
+            {
+              "name": "Tourism Policy Research Division, Korea Culture and Tourism Institute, Seoul 07511, Korea"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "ORCID": "https://orcid.org/0000-0002-4186-0467",
+          "authenticated-orcid": false,
+          "given": "Jin",
+          "family": "Park",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Interdisciplinary Program in Landscape Architecture, Seoul National University, Seoul 08826, Korea"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Dong",
+          "family": "Lee",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Department of Landscape Architecture, College of Agriculture and Life Sciences, Seoul National University, Seoul 08826, Korea"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Sustainability"
+      ],
+      "volume": "9",
+      "issue": "9",
+      "page": "1535",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2017,
+            8,
+            29
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2017,
+            8,
+            29
+          ]
+        ]
+      },
+      "published-print": null,
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S05",
+    "url": "https://api.crossref.org/works/10.9715%2FKILA.2016.44.4.100",
+    "date": "2026-09-14",
+    "status": "failed",
+    "error": "HTTPError"
+  },
+  {
+    "study_id": "HC-S06",
+    "url": "https://api.crossref.org/works/10.1007%2Fs00484-019-01799-7",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.1007/s00484-019-01799-7",
+      "title": [
+        "Development of a data-driven weather index for beach parks tourism"
+      ],
+      "author": [
+        {
+          "ORCID": "https://orcid.org/0000-0002-6633-3049",
+          "authenticated-orcid": false,
+          "given": "Lindsay",
+          "family": "Matthews",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Daniel",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Jean",
+          "family": "Andrey",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "International Journal of Biometeorology"
+      ],
+      "volume": "65",
+      "issue": "5",
+      "page": "749-762",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2019,
+            9,
+            14
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2019,
+            9,
+            14
+          ]
+        ]
+      },
+      "published-print": {
+        "date-parts": [
+          [
+            2021,
+            5
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S07",
+    "url": "https://api.crossref.org/works/10.1007%2Fs00484-007-0134-3",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.1007/s00484-007-0134-3",
+      "title": [
+        "A second generation climate index for tourism (CIT): specification and verification"
+      ],
+      "author": [
+        {
+          "given": "C. R.",
+          "family": "de Freitas",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Daniel",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Geoff",
+          "family": "McBoyle",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "International Journal of Biometeorology"
+      ],
+      "volume": "52",
+      "issue": "5",
+      "page": "399-407",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2007,
+            12,
+            20
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2007,
+            12,
+            20
+          ]
+        ]
+      },
+      "published-print": {
+        "date-parts": [
+          [
+            2008,
+            5
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S08",
+    "url": "https://api.crossref.org/works/10.1111%2Fj.1541-0064.1985.tb00365.x",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.1111/j.1541-0064.1985.tb00365.x",
+      "title": [
+        "THE TOURISM CLIMATIC INDEX: A METHOD OF EVALUATING WORLD CLIMATES FOR TOURISM"
+      ],
+      "author": [
+        {
+          "given": "Z.",
+          "family": "MIECZKOWSKI",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Canadian Geographies / Géographies canadiennes"
+      ],
+      "volume": "29",
+      "issue": "3",
+      "page": "220-233",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            1985,
+            9
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2008,
+            3,
+            5
+          ]
+        ]
+      },
+      "published-print": {
+        "date-parts": [
+          [
+            1985,
+            9
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S09",
+    "url": "https://api.crossref.org/works/10.3390%2Fatmos7060080",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3390/atmos7060080",
+      "title": [
+        "An Inter-Comparison of the Holiday Climate Index (HCI) and the Tourism Climate Index (TCI) in Europe"
+      ],
+      "author": [
+        {
+          "ORCID": "https://orcid.org/0000-0001-7825-9301",
+          "authenticated-orcid": false,
+          "given": "Daniel",
+          "family": "Scott",
+          "sequence": "first",
+          "affiliation": [
+            {
+              "name": "Department of Geography and Environmental Management, University of Waterloo, Waterloo, ON N2L 3G1, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Michelle",
+          "family": "Rutty",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Department of Community Sustainability, Michigan State University, East Lansing, MI 48824, USA"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "ORCID": "https://orcid.org/0000-0001-8501-9787",
+          "authenticated-orcid": false,
+          "given": "Bas",
+          "family": "Amelung",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Environmental Systems Analysis Group, Wageningen University, 6708 Wageningen, The Netherlands"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Mantao",
+          "family": "Tang",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Department of Geography and Environmental Management, University of Waterloo, Waterloo, ON N2L 3G1, Canada"
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Atmosphere"
+      ],
+      "volume": "7",
+      "issue": "6",
+      "page": "80",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2016,
+            6,
+            7
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2016,
+            6,
+            7
+          ]
+        ]
+      },
+      "published-print": null,
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S10",
+    "url": "https://api.crossref.org/works/10.1007%2Fs00484-020-01979-w",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.1007/s00484-020-01979-w",
+      "title": [
+        "A comparison of the holiday climate index:beach and the tourism climate index across coastal destinations in China"
+      ],
+      "author": [
+        {
+          "ORCID": "https://orcid.org/0000-0002-1393-3876",
+          "authenticated-orcid": false,
+          "given": "D D",
+          "family": "Yu",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "M.",
+          "family": "Rutty",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "D.",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "S",
+          "family": "Li",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "International Journal of Biometeorology"
+      ],
+      "volume": "65",
+      "issue": "5",
+      "page": "741-748",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2020,
+            8,
+            5
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2020,
+            8,
+            5
+          ]
+        ]
+      },
+      "published-print": {
+        "date-parts": [
+          [
+            2021,
+            5
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S11",
+    "url": "https://api.crossref.org/works/10.5194%2Fegusphere-egu24-5058",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.5194/egusphere-egu24-5058",
+      "title": [
+        "The development of the Koreans&amp;#8217; climatic index for tourism (KCIT)"
+      ],
+      "author": [
+        {
+          "ORCID": "https://orcid.org/0000-0002-5455-8371",
+          "authenticated-orcid": false,
+          "given": "Sookuk",
+          "family": "Park",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        },
+        {
+          "given": "Sangman",
+          "family": "Jo",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        },
+        {
+          "given": "Yuri",
+          "family": "Choi",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        },
+        {
+          "given": "Jeonghyeon",
+          "family": "Moon",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        }
+      ],
+      "container-title": [],
+      "volume": null,
+      "issue": null,
+      "page": null,
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2025,
+            1,
+            20
+          ]
+        ]
+      },
+      "published-online": null,
+      "published-print": null,
+      "type": "posted-content"
+    }
+  },
+  {
+    "study_id": "HC-S12",
+    "url": "https://api.crossref.org/works/10.3389%2Ffpubh.2026.1836657",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3389/fpubh.2026.1836657",
+      "title": [
+        "Nonlinear effects of climate change on outdoor activities and potential feedback pathways: a systematic review"
+      ],
+      "author": [
+        {
+          "given": "Yuqi",
+          "family": "Zhu",
+          "sequence": "first",
+          "affiliation": [
+            {
+              "name": "School of Economics and Management, Shanghai University of Sport",
+              "place": [
+                "Shanghai, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Junyi",
+          "family": "Guo",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "College of Physical Education, Hunan University",
+              "place": [
+                "Changsha, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Jinhui",
+          "family": "Zhang",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "Department of Physical Education, Xidian University",
+              "place": [
+                "Xi'an, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Wenhao",
+          "family": "Du",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "School of Economics and Management, Shanghai University of Sport",
+              "place": [
+                "Shanghai, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Zhiwen",
+          "family": "Guan",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "School of Economics and Management, Shanghai University of Sport",
+              "place": [
+                "Shanghai, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "Hai",
+          "family": "Li",
+          "sequence": "additional",
+          "affiliation": [
+            {
+              "name": "School of Economics and Management, Shanghai University of Sport",
+              "place": [
+                "Shanghai, China"
+              ]
+            }
+          ],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Frontiers in Public Health"
+      ],
+      "volume": "14",
+      "issue": null,
+      "page": null,
+      "article-number": "1836657",
+      "published": {
+        "date-parts": [
+          [
+            2026,
+            5,
+            28
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2026,
+            5,
+            28
+          ]
+        ]
+      },
+      "published-print": null,
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S13",
+    "url": "https://api.crossref.org/works/10.1080%2F14616688.2014.932833",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.1080/14616688.2014.932833",
+      "title": [
+        "Thermal range of coastal tourism resort microclimates"
+      ],
+      "author": [
+        {
+          "given": "Michelle",
+          "family": "Rutty",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        },
+        {
+          "given": "Daniel",
+          "family": "Scott",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "role": "author",
+              "vocabulary": "crossref"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Tourism Geographies"
+      ],
+      "volume": "16",
+      "issue": "3",
+      "page": "346-363",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2014,
+            5,
+            27
+          ]
+        ]
+      },
+      "published-online": {
+        "date-parts": [
+          [
+            2014,
+            7,
+            17
+          ]
+        ]
+      },
+      "published-print": {
+        "date-parts": [
+          [
+            2014,
+            5,
+            27
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  },
+  {
+    "study_id": "HC-S14",
+    "url": "https://api.crossref.org/works/10.3354%2Fcr00774",
+    "date": "2026-09-14",
+    "status": "metadata_checked",
+    "metadata": {
+      "DOI": "10.3354/cr00774",
+      "title": [
+        "Preferred climates for tourism: case studies from Canada, New Zealand and Sweden"
+      ],
+      "author": [
+        {
+          "given": "D",
+          "family": "Scott",
+          "sequence": "first",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "S",
+          "family": "Gössling",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        },
+        {
+          "given": "CR",
+          "family": "de Freitas",
+          "sequence": "additional",
+          "affiliation": [],
+          "role": [
+            {
+              "vocabulary": "crossref",
+              "role": "author"
+            }
+          ]
+        }
+      ],
+      "container-title": [
+        "Climate Research"
+      ],
+      "volume": "45",
+      "issue": null,
+      "page": "61-73",
+      "article-number": null,
+      "published": {
+        "date-parts": [
+          [
+            2008,
+            11,
+            18
+          ]
+        ]
+      },
+      "published-online": null,
+      "published-print": {
+        "date-parts": [
+          [
+            2008,
+            11,
+            18
+          ]
+        ]
+      },
+      "type": "journal-article"
+    }
+  }
+]

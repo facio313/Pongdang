@@ -1,0 +1,18 @@
+{
+  "search_call_groups": 18,
+  "query_strings": 21,
+  "saved_return_records": 324,
+  "unique_return_urls": 313,
+  "access_attempt_records": 37,
+  "search_log_rows": 361,
+  "evidence_rows": 15,
+  "included_studies_or_guidance": 10,
+  "primary_empirical_studies": 7,
+  "index_development_studies": 2,
+  "official_guidance": 1,
+  "research_full_text_checked": 4,
+  "research_abstract_only": 5,
+  "official_full_text_checked": 1,
+  "metadata_only_reference": "Hutt2001",
+  "notes": "No independent dual review; no meta-analysis; no product changes."
+}

@@ -1,0 +1,159 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "ac-q09",
+      "date": "2026-09-14",
+      "source": "web.search_query",
+      "query": "\"온천\" \"수온\" \"쾌적\" 연구",
+      "returned_count": "12"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "turn22search0",
+      "return_order": 1,
+      "query_id": "ac-q09",
+      "title": "2026년 량허 어트랙션 추천| Trip Moments",
+      "url": "https://kr.trip.com/moments/theme/destination-lianghe-1446289-attraction-993137/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search1",
+      "return_order": 2,
+      "query_id": "ac-q09",
+      "title": "체스터톤스 호텔, 속초·고성, 강원 - 여기어때 특가",
+      "url": "https://www.yeogi.com/domestic-accommodations/69729",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search2",
+      "return_order": 3,
+      "query_id": "ac-q09",
+      "title": "노천탕과 자연 속 온천 체험",
+      "url": "https://samurai-sauna-magazine.com/ko-KR/guides/outdoor-onsen-nature-experience",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search3",
+      "return_order": 4,
+      "query_id": "ac-q09",
+      "title": "유성온천",
+      "url": "https://www.namu.moe/w/%EC%9C%A0%EC%84%B1%EC%98%A8%EC%B2%9C",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search4",
+      "return_order": 5,
+      "query_id": "ac-q09",
+      "title": "겨울에 더 좋은 능암탄산온천｜아이와 가기 좋은 충북 가족 온천 당일치기",
+      "url": "https://luckydaddy86.tistory.com/155",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search5",
+      "return_order": 6,
+      "query_id": "ac-q09",
+      "title": "2026년 우쉬안 꽃구경 추천| Trip Moments",
+      "url": "https://kr.trip.com/moments/theme/destination-wuxuan-1446260-flower-viewing-990796/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search6",
+      "return_order": 7,
+      "query_id": "ac-q09",
+      "title": "유성온천",
+      "url": "https://m.namu.moe/w/%EC%9C%A0%EC%84%B1%EC%98%A8%EC%B2%9C",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search7",
+      "return_order": 8,
+      "query_id": "ac-q09",
+      "title": "일본 온천에서 실내·야외 온천과 족욕의 차이점과 선택 기준은 무엇인가요? | 상식닷컴 - sangseek.com",
+      "url": "https://sangseek.com/communities/233856",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search8",
+      "return_order": 9,
+      "query_id": "ac-q09",
+      "title": "2026년 전캉 어트랙션 추천| Trip Moments",
+      "url": "https://kr.trip.com/moments/theme/destination-zhenkang-1446295-attraction-993137/",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search9",
+      "return_order": 10,
+      "query_id": "ac-q09",
+      "title": "Jinjishan impression, Fuzhou Shui House genuine Long Hotel: Booking Jinjishan impression, Fuzhou Shui House genuine Long Hotel, China, Fuzhou Hotels Reservation - China Holiday",
+      "url": "https://www.chinaholiday.com/ko/cheap-hotels-fuzhou-fujian/jinjishan-impression-fuzhou-shui-house-genuine-long-hotel-fuzhou-fujian.html",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search10",
+      "return_order": 11,
+      "query_id": "ac-q09",
+      "title": "유성온천",
+      "url": "https://dark.namu.moe/w/%EC%9C%A0%EC%84%B1%EC%98%A8%EC%B2%9C",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    },
+    {
+      "record_id": "turn22search11",
+      "return_order": 12,
+      "query_id": "ac-q09",
+      "title": "Shanghai Xuelang Lake Resort: Booking Shanghai Xuelang Lake Resort, China, Shanghai Hotels Reservation - China Holiday",
+      "url": "https://www.chinaholiday.com/ko/cheap-hotels-shanghai/shanghai-xuelang-lake-resort-shanghai.html",
+      "decision": "excluded",
+      "exclusion_reason": "비원자료/비공식 홍보·커뮤니티·백과 또는 주제무관; 수치규칙의 과학근거로 미채택",
+      "study_id": "",
+      "access_status_at_return": "search_return_screen_only",
+      "notes": ""
+    }
+  ]
+}

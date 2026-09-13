@@ -1,0 +1,195 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q02",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "recreational water swimming rainfall illness prospective cohort study San Diego surfers 2017",
+      "returned_count": "15"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q02",
+      "title": "Acute Illness Among Surfers After Exposure to Seawater in Dry- and Wet-Weather Conditions | American Journal of Epidemiology | Oxford Academic",
+      "url": "https://academic.oup.com/aje/article/186/7/866/3813104",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q02",
+      "title": "Acute Illness Among Surfers After Exposure to Seawater in Dry- and Wet-Weather Conditions - PMC",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5860265/",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q02",
+      "title": "Incidence of gastrointestinal illness following wet weather recreational exposures: Harmonization of quantitative microbial risk assessment with an epidemiologic investigation of surfers - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28558279/",
+      "decision": "related_duplicate_dataset",
+      "exclusion_reason": "Arnold2017동일서퍼연구/후속QMRA가능;독립역학표본으로추가계수안함;원문추출미수행",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q02",
+      "title": "Acute Illness Among Surfers After Exposure to Seawater in Dry- and Wet-Weather Conditions.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28498895/",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q02",
+      "title": "Incidence of gastrointestinal illness following wet weather recreational exposures: Harmonization of quantitative microbial risk assessment with an epidemiologic investigation of surfers - ScienceDirect",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0043135417303767",
+      "decision": "related_duplicate_dataset",
+      "exclusion_reason": "Arnold2017동일서퍼연구/후속QMRA가능;독립역학표본으로추가계수안함;원문추출미수행",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q02",
+      "title": "U.S. EPA’s 2016 Recreational Waters Conference Session 5: Epidemiology and Quantitative Microbial Risk Assessment",
+      "url": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1018PMD.txt",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q02",
+      "title": "The Surfer Health",
+      "url": "https://www.waterboards.ca.gov/sandiego/water_issues/programs/san_diego_river_io/docs/SurferHealthStudy.pdf",
+      "decision": "related_duplicate_dataset",
+      "exclusion_reason": "Arnold2017동일서퍼연구/후속QMRA가능;독립역학표본으로추가계수안함;원문추출미수행",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q02",
+      "title": "(PDF) Acute Illness Among Surfers After Exposure to Seawater in Dry- and Wet-Weather Conditions",
+      "url": "https://www.researchgate.net/publication/316896983_Acute_Illness_Among_Surfers_After_Exposure_to_Seawater_in_Dry-_and_Wet-Weather_Conditions",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q02",
+      "title": "Surfing Medicine – The Surfer Health Study",
+      "url": "https://journal.surfersmedicalassociation.org/the-surfer-health-study/",
+      "decision": "exclude",
+      "exclusion_reason": "반환제목/스니펫에서목표활동-환경-결과연결부족",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q02",
+      "title": "oup_ajepid_kwx019 1..10 ++",
+      "url": "https://ftp.sccwrp.org/pub/download/DOCUMENTS/JournalArticles/986_Acute_IllnessAmongSurfersSeawaterDry-Wet-Weather.pdf",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q02",
+      "title": "Comparison of recreational health risks associated with surfing and swimming in dry weather and post-storm conditions at Southern California beaches using quantitative microbial risk assessment (QMRA) - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/22472787/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q02",
+      "title": "Acute Illness Among Surfers After Exposure to Seawater in Dry- and Wet-Weather Conditions",
+      "url": "https://openalex.org/W2613408348",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S03",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q02",
+      "title": "Surfer rainfall study helps focus water-quality discussion - Southern California Coastal Water Research Project",
+      "url": "https://www.sccwrp.org/news/surfer-rainfall-study-helps-focus-water-quality-discussion/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q02",
+      "title": "Coliphages and Gastrointestinal Illness in Recreational Waters: Pooled Analysis of Six Coastal Beach Cohorts - PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28489717/",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련생리/수질후보;이번종합은직접쾌적감·고온반증·강우코호트에집중하여추가원문검토안함",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q02",
+      "title": "SCCWRP #0994",
+      "url": "https://ftp.sccwrp.org/pub/download/DOCUMENTS/WorkPlan/RestrictedJournalArticles/994_IncidenceOfGastrointestinalIllnessFollowingWetWeather.pdf",
+      "decision": "related_duplicate_dataset",
+      "exclusion_reason": "Arnold2017동일서퍼연구/후속QMRA가능;독립역학표본으로추가계수안함;원문추출미수행",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

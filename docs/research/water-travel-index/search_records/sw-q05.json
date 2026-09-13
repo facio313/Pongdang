@@ -1,0 +1,219 @@
+{
+  "record_format": "search_return_metadata_v1",
+  "note": "Actual returned titles, URLs, query strings, IDs and decisions retained. Full abstracts/article text and long search excerpts omitted. Signed public-search URL parameters redacted where present. This is not a verbatim engine-response archive.",
+  "queries": [
+    {
+      "query_id": "sw-q05",
+      "date": "2026-09-14",
+      "source": "web.search",
+      "query": "\"해수욕장\" \"수질\" \"대장균\" \"장구균\"",
+      "returned_count": "17"
+    }
+  ],
+  "results": [
+    {
+      "record_id": "result-1",
+      "return_order": 1,
+      "query_id": "sw-q05",
+      "title": "<C1B6BBE7BBE7BEF75F35392E20C7D8BCF6BFE5C0E520BCF6C1FA20B9D720B9E9BBE7C0E520C5E4BEE7BFC0BFB020C1B6BBE72833C2F720C6EDC1FD5FBCF6C1A4B9DDBFB5292E687770>",
+      "url": "https://www.busan.go.kr/humanframe/theme/ihe/assets/file/20250513busan_research_59.pdf",
+      "decision": "selected_study_record",
+      "exclusion_reason": "해당연구/공식자료를후속열람;URL중복은독립연구아님",
+      "study_id": "SW-S05",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-2",
+      "return_order": 2,
+      "query_id": "sw-q05",
+      "title": "행정규칙 > 해수욕장 수질기준 운용지침 | 국가법령정보센터",
+      "url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000001425",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-3",
+      "return_order": 3,
+      "query_id": "sw-q05",
+      "title": "경주 5개 해수욕장 수질 `적합` - 경북신문",
+      "url": "https://www.kbsm.net/news/view.php?idx=317616",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-4",
+      "return_order": 4,
+      "query_id": "sw-q05",
+      "title": "해수욕장 수질 및 백사장 모래 조사",
+      "url": "https://www.busan.go.kr/PageDownload.do?savename=20220628water_survey_10.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-5",
+      "return_order": 5,
+      "query_id": "sw-q05",
+      "title": "해수욕장 수질 및 백사장 모래 조사",
+      "url": "https://www.busan.go.kr/PageDownload.do?savename=20210622water_survey_11.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-6",
+      "return_order": 6,
+      "query_id": "sw-q05",
+      "title": "2019년 해수욕장 수질 및 백사장 모래 조사",
+      "url": "https://www.busan.go.kr/PageDownload.do?savename=20200603water_survey_10.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-7",
+      "return_order": 7,
+      "query_id": "sw-q05",
+      "title": "행정규칙 > 해수욕장의 환경관리에 관한 지침 | 국가법령정보센터",
+      "url": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000209038&vSct=",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-8",
+      "return_order": 8,
+      "query_id": "sw-q05",
+      "title": "해수욕장 수질 및 백사장 토양오염 조사",
+      "url": "https://www.busan.go.kr/PageDownload.do?savename=20240611water_59.pdf",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-9",
+      "return_order": 9,
+      "query_id": "sw-q05",
+      "title": "보도자료 올해부터 전국해수욕장 수질조사 결과 국민에게 공개 해양수산부",
+      "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=8119&menuSeq=971",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-10",
+      "return_order": 10,
+      "query_id": "sw-q05",
+      "title": "해운대 등 부산 8개 해수욕장, 수질·모래 모두 환경 기준 적합 | 서울신문",
+      "url": "https://www.seoul.co.kr/news/society/2026/06/26/20260626500102",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-11",
+      "return_order": 11,
+      "query_id": "sw-q05",
+      "title": "해운대 등 부산 8개 해수욕장, 수질·모래 모두 환경 기준 적합",
+      "url": "https://m.seoul.co.kr/news/society/2026/06/26/20260626500102",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-12",
+      "return_order": 12,
+      "query_id": "sw-q05",
+      "title": "데이터 상세 | 공공데이터포털",
+      "url": "https://www.data.go.kr/data/15119712/fileData.do?recommendDataYn=Y",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-13",
+      "return_order": 13,
+      "query_id": "sw-q05",
+      "title": "보도자료 올 여름 물 좋은 해수욕장은? 해양수산부",
+      "url": "https://www.mof.go.kr/doc/ko/selectDoc.do?bbsSeq=10&docSeq=1171&menuSeq=971",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-14",
+      "return_order": 14,
+      "query_id": "sw-q05",
+      "title": "부산지역 해수욕장 수질·모래 모두 적합",
+      "url": "https://www.newspim.com/index.php/news/view/20210706000017",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-15",
+      "return_order": 15,
+      "query_id": "sw-q05",
+      "title": "해운대 등 부산 8개 해수욕장, 수질·모래 모두 환경 기준 적합",
+      "url": "https://amp.seoul.co.kr/seoul/20260626500102",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-16",
+      "return_order": 16,
+      "query_id": "sw-q05",
+      "title": "제주 해수욕장 등 수질 안전…대장균·장구균 기준 이하 | 연합뉴스",
+      "url": "https://www.yna.co.kr/amp/view/AKR20230605074400056",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    },
+    {
+      "record_id": "result-17",
+      "return_order": 17,
+      "query_id": "sw-q05",
+      "title": "포항 모든 해수욕장 수질 `적합` - 경북매일",
+      "url": "https://www.kbmaeil.com/357728",
+      "decision": "not_extracted_candidate",
+      "exclusion_reason": "관련행정/모니터링/학술후보;선정공식출처로범위집중;이반환기록은원문미검토(포괄검색아님)",
+      "study_id": "",
+      "access_status_at_return": "search_snippet_only",
+      "notes": ""
+    }
+  ]
+}

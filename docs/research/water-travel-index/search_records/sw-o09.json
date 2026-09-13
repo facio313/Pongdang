@@ -1,0 +1,12 @@
+{
+  "query_id": "sw-o09",
+  "date": "2026-09-14",
+  "source": "web.open",
+  "query": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000209038&vSct=",
+  "note": "원문 전문은 작업 캐시에만 보관. 검색·근거 CSV에서 확인 위치 및 접근상태 제공.",
+  "url": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000209038&vSct=",
+  "title": "해수욕장의 환경관리에 관한 지침(2022연혁)",
+  "access_status": "metadata_only",
+  "decision": "exclude_unread_body",
+  "review_note": "2022연혁제목만표시;조문/현행성미확인"
+}
