@@ -18,10 +18,16 @@
 
 스키마 v5는 기존 collection/Water Index 원자료를 보존하는 추가 migration이다. production용 fixture 삽입이나 테스트 실행은 하지 않는다. production postgres_data volume과 서비스 DNS·명시 container names·private ports는 보존한다.
 
-기존 schema의 버전 불일치 거부 때문에 **v5 적용 뒤 이전 schema v1–v4 초기화 코드·collector 이미지로 단순 rollback하면 시작에 실패할 수 있다**. ops/pongdang-deploy의 previous 이미지 재시작만으로 DB 버전까지 되돌아가지 않는다. 따라서 migration 이후 앱 회귀가 발생하면 v5와 호환되는 수정 커밋을 CI 검증한 후 배포하여 복구한다. 스키마 버전 숫자만 낮추거나 새 테이블/운영 volume을 삭제하는 방식으로 우회하지 않는다. 이번 변경은 데이터 파괴 migration이 아니며 복구를 위해 실자료를 제거할 필요가 없다.
+실제 이전 운영 후보인 main(d07cd232)의 스키마는 **v1**, Compose 서비스는 db/backend/frontend뿐이며 initialize/collector가 없다. 따라서 초기에 feature/api의 v4 코드를 이전 운영 버전으로 가정해 발견한 “v5에서 이전 initialize/worker가 시작을 거부한다”는 제한은 실제 v1 release의 자동 앱 rollback에 그대로 해당하지 않는다.
+
+추가로 실제 main의 schema.py와 data_catalog.json을 그대로 격리 PostgreSQL18에 적용한 뒤 현재 v5로 이전했다. 기존 시험 행 보존·누락 컬럼0·18개 데이터셋 GET200·두 번째 initialize no-op을 확인했다. [실제 v1→v5 검사 결과](production-v1-upgrade-verification.json)에 근거를 남겼다.
+
+v1 backend는 기존 테이블/컬럼을 읽으므로 additive v5에서 구 조회가 가능한 구조다. 다만 이전 Compose로 돌아갈 때 새 collector/initialize는 orphan 서비스로 남을 수 있어 이미지 복구만으로 수집까지 완전 복구됐다고 판단하지 않는다. 회귀가 발생하면 Pongdang 서비스의 실제 상태를 확인하고 v5 호환 수정 커밋을 CI 검증·배포하여 복구한다. 스키마 숫자만 낮추거나 새 테이블/운영 volume을 삭제하지 않는다.
 
 실행 중인 host gate는 저장소 템플릿과 구분한다. CI의 실제 배포 로그·health 관측이 배포 성공의 근거이며 템플릿 파일만으로 서버 상태를 단정하지 않는다. 앱 배포 과정에서 host gate를 자가 업데이트하지 않는다.
 
 ## 상태 기록
+
+구현 커밋 c1c3eb115837f6d8142f19114cf80cd8c3f53a16의 feature/api CI(34778418209)와 dev CI(34778418313)는 frontend/backend/standalone Compose smoke 모두 통과했다. 이 문서의 정정 및 실제v1 검사 기록만 추가한 후속 커밋도 동일 CI 경로로 검증한다.
 
 현재 문서는 배포 전 체크와 승인 범위를 기록한 커밋 자료다. 실제 commit SHA, GitHub Actions URL, 배포 완료 로그와 공개 SSO 경로 관측은 실행 결과로 별도 확인하여 사용자에게 보고한다. 수치 모델·실영상·실제 리뷰·SSO mutation 헤더·알림·AI 모델의 미활성/검증 한계는 기존 기능 인계표 그대로 유지한다.

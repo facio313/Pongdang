@@ -1,0 +1,28 @@
+{
+  "base_commit": "d07cd23279808e74c1998d849c240a48e06d06d2",
+  "base_schema_version": 1,
+  "result_schema_version": 5,
+  "missing_columns": [],
+  "marker_preserved": true,
+  "dataset_statuses": {
+    "spots": 200,
+    "snapshots": 200,
+    "metrics": 200,
+    "scores": 200,
+    "forecasts": 200,
+    "runs": 200,
+    "heartbeat": 200,
+    "lineage": 200,
+    "calibrations": 200,
+    "route-snapshots": 200,
+    "route-entries": 200,
+    "facilities": 200,
+    "catch-guides": 200,
+    "hot-springs": 200,
+    "source-stations": 200,
+    "weather-warnings": 200,
+    "source-places": 200,
+    "collection-jobs": 200
+  },
+  "test_database": "pongdang_test:55439"
+}
