@@ -150,7 +150,7 @@ def produce_assessments(settings, *, now=None):
         now = now or c.execute("SELECT clock_timestamp()").fetchone()[0]
         if now > datetime.now(UTC):
             raise ValueError("Producer cannot use future knowledge")
-        sources = read_normalized(c, now)
+        sources = read_normalized(c, now, current_only=True)
         with c.cursor(row_factory=dict_row) as cursor:
             mapping_rows = cursor.execute(
                 "SELECT payload FROM pongdang_data.water_index_station_mapping m "

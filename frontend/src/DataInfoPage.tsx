@@ -1,6 +1,6 @@
 import type { Dataset, Summary } from "./data";
 import { date, labels } from "./data";
-import { codeName } from "./codeNames";
+import { displayCodeName as codeName } from "./codeReference";
 
 const stages = [
   ["제공처 요청", "서버에 설정된 API를 호출하고 응답의 상태·출처·레코드 ID를 확인합니다.", "인증 정보는 서버에서만 사용합니다. 조회 화면에서 외부 API를 직접 호출하지 않습니다."],
@@ -20,6 +20,13 @@ export function DataInfoPage({ catalog, summary, openDataset }: {
     <article className="collector-doc">
       <h1>Pongdang 데이터 정보</h1>
       <p>Pongdang 자체 PostgreSQL의 pongdang_data에 저장한 실제 수집 자료를 조회합니다. 원본 지점·대상 시각·유효 기간이 서로 다른 자료는 같은 관측으로 합치지 않습니다.</p>
+      <section>
+        <h2>코드의 뜻과 다시 확인하는 방법</h2>
+        <p>데이터 조회의 각 표에서 ‘이 페이지 코드 설명’을 펼치면 측정 항목·단위·제공처·실행 결과의 원본 코드와 한글 뜻을 검색할 수 있습니다. 출처·작업과 예시 행 ID도 함께 표시합니다.</p>
+        <p>‘설명 확인 필요’는 코드의 뜻이 표시 사전에 아직 등록되지 않았다는 뜻입니다. 사전을 보완하면 기존 저장 기록에도 설명이 적용됩니다. 원본 데이터를 삭제하거나 다시 수집할 필요는 없습니다.</p>
+        <p>실제 수집 실패는 실행 기록의 오류 코드로 구분합니다. 활성 수집 작업은 다음 실행 시각에 재시도하며, ‘새로고침’은 저장된 결과를 다시 조회합니다.</p>
+        <div className="toolbar"><button onClick={() => openDataset("collection-jobs")}>수집 작업·다음 실행 확인</button><button onClick={() => openDataset("runs")}>실행 이력·오류 확인</button></div>
+      </section>
       <section>
         <h2>수집 구조</h2>
         <div className="table-scroll">

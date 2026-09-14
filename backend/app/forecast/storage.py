@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from app.ingestion.errors import SourceScopeTooLargeError
 from app.schema import connect
 from app.water_index.adapters import input_from_records
 from app.water_index.sources import stable_id
@@ -13,8 +14,8 @@ from app.water_index.sources import stable_id
 from .models import ForecastRecord
 
 
-def read_normalized(connection, now):
-    """Bound a whole worker pass; fail explicitly instead of dropping lineage."""
+def read_normalized(connection, now, *, forecast_only=False, current_only=False):
+    """Bound applicable sources before the limit without dropping tide lineage."""
     with connection.cursor(row_factory=dict_row) as cursor:
         rows = cursor.execute(
             "SELECT to_jsonb(s) AS snapshot,to_jsonb(st) AS station,"
@@ -25,13 +26,26 @@ def read_normalized(connection, now):
             "WHERE s.state<>'superseded' AND s.fetched_at<=%s "
             "AND (s.issued_at IS NULL OR s.issued_at<=%s) "
             "AND s.valid_until>%s AND s.observed_at<%s "
+            # Keep v2 tide slots, including expired ones: they establish which
+            # legacy timestamp identities must stay suppressed for that day.
+            "AND ((s.provider='khoa_tide_extrema' "
+            "AND s.ingestion_version='tide-event-slots.2') OR "
+            "((NOT %s OR s.valid_until>%s) AND (NOT %s OR EXISTS ("
+            "SELECT 1 FROM pongdang_data.conditions_observationmetric fm "
+            "WHERE fm.snapshot_id=s.id AND fm.mode='forecast')))) "
             "GROUP BY s.id,st.id ORDER BY s.id LIMIT 5001",
-            [now, now, now - timedelta(days=31), now + timedelta(days=31)],
+            [
+                now,
+                now,
+                now - timedelta(days=31),
+                now + timedelta(days=31),
+                current_only,
+                now,
+                forecast_only,
+            ],
         ).fetchall()
     if len(rows) > 5000:
-        raise ValueError(
-            "SOURCE_SCOPE_TOO_LARGE: narrow the configured collection scope"
-        )
+        raise SourceScopeTooLargeError
 
     # A complete new adapter pass establishes unambiguous ordered tide slots.
     # Ignore pre-upgrade timestamp identities for dates now captured by v2;
@@ -115,7 +129,7 @@ def project_forecasts(settings, *, now=None):
         )
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
         selected = {}
-        for source in read_normalized(c, now):
+        for source in read_normalized(c, now, forecast_only=True):
             record = forecast_from_normalized(source)
             if record is None:
                 continue

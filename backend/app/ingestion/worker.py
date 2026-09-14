@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from psycopg.types.json import Jsonb
 
 from app.config import Settings
+from app.ingestion.errors import SourceScopeTooLargeError
 from app.ingestion.http import ProviderError
 from app.ingestion.storage import store_batch
 from app.schema import connect
@@ -133,6 +134,8 @@ def run_due(settings, jobs, *, force=False):
                             error = "BOUNDED_CATALOG"
                 except ProviderError as exc:
                     state, error = "failed", exc.code
+                except SourceScopeTooLargeError:
+                    state, error = "failed", "SOURCE_SCOPE_TOO_LARGE"
                 except Exception:
                     # Exceptions can contain request URLs, keys or database credentials.
                     state, error = "failed", "COLLECTION_ERROR"
