@@ -6,9 +6,9 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.ingestion.http import Client, ProviderError
 from app.ingestion.jobs import Job
-from app.ingestion.models import Reading, SourceBatch, Station, Value
+from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
-from app.ingestion.worker import run_due
+from app.ingestion.worker import run_due, synchronize_jobs
 from app.schema import VERSION, connect, initialize, remove_demo
 
 
@@ -249,3 +249,131 @@ def test_v1_upgrade_preserves_existing_rows(db):
 def test_provider_client_never_sends_keys_to_unapproved_endpoints(url):
     with pytest.raises(ProviderError, match="ENDPOINT_NOT_ALLOWED"):
         Client().get_text(url, {"serviceKey": "private-test-value"})
+
+
+def test_service_approval_disable_reason_and_reactivation(db):
+    batch = evidence()
+    job = Job(
+        "approval_pending",
+        86400,
+        lambda: batch,
+        enabled=False,
+        disabled_reason="SERVICE_APPROVAL_UNCONFIRMED",
+    )
+    assert run_due(db, [job]) == []
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT state,last_error,last_success_at FROM pongdang_data.collection_job"
+        ).fetchone() == ("disabled", "SERVICE_APPROVAL_UNCONFIRMED", None)
+    active = Job(job.name, 86400, lambda: batch)
+    synchronize_jobs(db, [active])
+    assert run_due(db, [active], force=True)[0]["state"] == "succeeded"
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT state,last_error FROM pongdang_data.collection_job"
+        ).fetchone() == ("succeeded", "")
+
+
+def test_place_provider_times_migrate_and_are_readable_without_new_observations(db):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    # Simulate the existing v5 catalogue. Migration must keep the existing record.
+    now = datetime.now(UTC)
+    place = Place(
+        source_id="official-content-id",
+        name="Official catalogue entry",
+        kind="tourism",
+        latitude=37.8,
+        longitude=128.9,
+    )
+    batch = SourceBatch(provider="TOURAPI_ENGLISH", fetched_at=now, places=[place])
+    assert store_batch(db, batch) == 1
+    with connect(db) as c:
+        c.execute(
+            "ALTER TABLE pongdang_data.collection_place "
+            "DROP COLUMN source_created_at, DROP COLUMN source_modified_at"
+        )
+        c.execute(
+            "ALTER TABLE pongdang_data.collection_station "
+            "DROP COLUMN source_valid_from, DROP COLUMN source_valid_until"
+        )
+        c.execute("UPDATE pongdang_data.schema_version SET version=5 WHERE id=1")
+    assert initialize(db)
+    assert not initialize(db)
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT source_id,source_created_at,source_modified_at "
+            "FROM pongdang_data.collection_place"
+        ).fetchone() == (
+            place.source_id,
+            None,
+            None,
+        )
+    station = Station(
+        source_id="official-zone",
+        name="Official forecast zone",
+        kind="forecast_zone",
+        source_valid_from=now - timedelta(days=100),
+        source_valid_until=now + timedelta(days=100),
+    )
+    store_batch(
+        db,
+        SourceBatch(
+            provider="KMA_FORECAST_ZONES",
+            fetched_at=now,
+            catalog_only=True,
+            stations=[station],
+        ),
+    )
+    place.source_created_at = now - timedelta(days=100)
+    place.source_modified_at = now - timedelta(days=2)
+    assert store_batch(db, batch) == 0  # Updates the original catalogue identity.
+    with TestClient(create_app(db)) as client:
+        response = client.get(
+            "/api/data/datasets/source-places",
+            params={
+                "filter_column": "provider",
+                "filter_value": batch.provider,
+            },
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result["total"] == 1
+        row = result["rows"][0]
+        assert (
+            datetime.fromisoformat(row["source_created_at"]) == place.source_created_at
+        )
+        assert (
+            datetime.fromisoformat(row["source_modified_at"])
+            == place.source_modified_at
+        )
+        assert client.get("/api/data/datasets/snapshots").json()["total"] == 0
+        station_row = client.get("/api/data/datasets/source-stations").json()["rows"][0]
+        assert (
+            datetime.fromisoformat(station_row["source_valid_from"])
+            == station.source_valid_from
+        )
+        assert (
+            datetime.fromisoformat(station_row["source_valid_until"])
+            == station.source_valid_until
+        )
+        assert (
+            client.get("/api/data/datasets/source-places?page_size=101").status_code
+            == 422
+        )
+
+
+def test_nullable_catalogue_metadata_preserves_existing_evidence_hash():
+    import hashlib
+
+    from app.ingestion.storage import digest
+
+    reading = evidence().readings[0]
+    original_json = reading.model_dump_json(
+        exclude={
+            "station": {"source_valid_from", "source_valid_until"},
+        }
+    )
+    assert digest(reading) == hashlib.sha256(original_json.encode()).hexdigest()

@@ -939,6 +939,16 @@
         "key": "fetched_at",
         "label": "확인 시각",
         "type": "datetime"
+      },
+      {
+        "key": "source_valid_from",
+        "label": "제공처 적용 시작",
+        "type": "datetime"
+      },
+      {
+        "key": "source_valid_until",
+        "label": "제공처 적용 종료",
+        "type": "datetime"
       }
     ],
     "search": [
@@ -1096,6 +1106,16 @@
       {
         "key": "fetched_at",
         "label": "확인 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "source_created_at",
+        "label": "제공처 등록 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "source_modified_at",
+        "label": "제공처 수정 시각",
         "type": "datetime"
       }
     ],

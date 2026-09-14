@@ -1,0 +1,41 @@
+{
+  "date_kst": "2026-09-14",
+  "scope": "All six A1 activities: explicit user-condition matching, read-only API and frontend",
+  "backend": {
+    "runtime": "Python 3.14.4 / PostgreSQL 18.3",
+    "database": "disposable pongdang_test (Unix socket only)",
+    "ruff_check": "passed",
+    "ruff_format_files": 96,
+    "pytest_passed": 512,
+    "warnings": 2,
+    "new_unit_http_cases": 82,
+    "new_db_integration_cases": 17,
+    "registered_activity_metric_pairs_tested": 23
+  },
+  "frontend": {
+    "runtime": "Node 24.19.0",
+    "lint": "passed",
+    "tests_passed": 32,
+    "build": "passed",
+    "production_base_build": "/pongdang/ verified"
+  },
+  "browser": {
+    "fixture_route_tests": "six activities, zero/full score, input rejection, editing and stale request cancellation, 390px viewport",
+    "real_backend_and_disposable_db": "six activities selected and computed; two criteria with weights 3:1 produced 75.0 and corresponding evidence table",
+    "fixture_is_not_official_or_field_data": true
+  },
+  "external_validation": "not performed; scientific environment model remains unimplemented / not_evaluated; environment score remains null",
+  "deployment": "not performed in this task",
+  "source_sha256": {
+    "backend/app/water_index/conditions.py": "16e20468bff44e2bd280fe8c253692ef767de68dce6aa2c70d7837acddbcd374",
+    "backend/app/water_index/condition_api.py": "9aa6208a8ed44a516aec22520ce9832fe60ded8439593f97c79888f9b63ec587",
+    "backend/tests/test_condition_score.py": "bda2357149870da521abdbe8832e4914e43aa0ac351e7b69519273f3cdfb84b3",
+    "backend/tests/test_condition_score_integration.py": "8223e48e03881d07e538387d4e529a9f96b37f869e88a7c9bd74c013c52f6ed1",
+    "frontend/src/ActivityAssessmentPanel.tsx": "dc0beb7f7f688a5e67d09876184585b69fec654734430fdbd86c676617fc8ba7",
+    "frontend/src/activityAssessmentApi.ts": "c0ea62cc8c195d8ba4dc1788b8d1551965624e3aba173c174921e79bbc412f1a",
+    "frontend/src/activityAssessment.css": "bf3cebc691934a373ce31ab662962ef1c6930507f324b077a21b79586f5775ae",
+    "frontend/tests/activityAssessmentApi.test.mjs": "4a01edd9420efdfbd2da2524936111c6cc86d4cc4555e811fbe5a88abbfdfbec",
+    "frontend/src/WaterIndexHubPage.tsx": "a023cc54c4844a0342005e8852220bcd6e4cfd3f6248d4e0617033ba36738fe1",
+    "backend/app/main.py": "8f5c091bcfa34ac2c383e846315294154b9a2fec9d5531a48ba5f5741b83428a"
+  }
+}

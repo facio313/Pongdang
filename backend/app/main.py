@@ -16,6 +16,7 @@ from app.quality.api import create_router as create_quality_router
 from app.tides.api import create_tides_router
 from app.twin.api import create_twin_router
 from app.water_index.api import create_water_index_router
+from app.water_index.condition_api import create_condition_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -51,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(create_data_router(settings))
     app.include_router(create_water_index_router(settings))
+    app.include_router(create_condition_router(settings))
     app.include_router(create_forecast_router(settings))
     app.include_router(create_twin_router(settings))
     app.include_router(create_livecam_router(settings))

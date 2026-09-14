@@ -15,9 +15,12 @@ from app.schema import connect
 
 def registered_jobs(settings):
     from app.feature_jobs import feature_jobs
+    from app.ingestion.environment import environment_jobs
     from app.ingestion.marine import marine_jobs
+    from app.ingestion.marine_extra import marine_extra_jobs
     from app.ingestion.places import place_jobs
     from app.ingestion.water import water_jobs
+    from app.ingestion.water_tour_extra import water_tour_extra_jobs
     from app.ingestion.weather import weather_jobs
 
     return (
@@ -25,6 +28,9 @@ def registered_jobs(settings):
         + marine_jobs(settings)
         + water_jobs(settings)
         + place_jobs(settings)
+        + marine_extra_jobs(settings)
+        + environment_jobs(settings)
+        + water_tour_extra_jobs(settings)
         + feature_jobs(settings)
     )
 
@@ -55,12 +61,12 @@ def synchronize_jobs(settings, jobs):
                 "WHEN collection_job.state='disabled' THEN 'pending' "
                 "ELSE collection_job.state END,last_error=CASE WHEN "
                 "EXCLUDED.state='disabled' "
-                "THEN 'KEY_NOT_CONFIGURED' ELSE collection_job.last_error END",
+                "THEN EXCLUDED.last_error ELSE collection_job.last_error END",
                 [
                     job.name,
                     "pending" if job.enabled else "disabled",
                     job.interval_seconds,
-                    "" if job.enabled else "KEY_NOT_CONFIGURED",
+                    "" if job.enabled else job.disabled_reason,
                 ],
             )
 

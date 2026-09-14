@@ -1,5 +1,9 @@
 # A 기능 프론트 인계
 
+**A1 최신 연결(2026-09-14):** Water Index 허브는 첫 지점·수영 고정 요약에서 여섯 활동/장소/시각 선택과 사용자 조건 점수 패널로 확장됐다. 신규 API·상태 처리와 실제 검사 결과는 [activity_conditions.md](activity_conditions.md)를 따른다. 아래 기존 요약 연결표의 A1 항목보다 이 후속 문서가 우선하며, 다른 기능 화면은 기존 계약을 유지한다.
+
+프론트 담당자에게 전달할 기능별 구현 범위·실제 화면 연결·후속 작업·후속 CI/배포 상태는 [frontend_briefing.md](frontend_briefing.md)에 정리했다.
+
 이번 변경은 기존 `FeatureData` 원본 표와 페이지·메뉴·CSS를 보존하고 결과 문구 영역만 연결한다. 경수의 백엔드 범위이며 지도/차트/구독 설정/리뷰 입력 UI는 추가하지 않았다.
 
 ## 파일별 연결
@@ -21,6 +25,10 @@
 | tests/featureApi.test.mjs | null/0/잘못된 숫자·계약·미검증 점수·발표시각·BASE_URL·취소 signal·503·인증 URL 회귀 |
 
 기존 화면에는 장소 선택 UI가 없으므로 A1/A2/A3/A4/A6 연결은 `water-twin?page_size=1`의 첫 수집 지점을 사용하고 해당 지점명을 문구에 표시한다. 이는 추천이나 가까운 지점 추론이 아니다. 프론트에서 장소 선택을 구현하면 같은 `spot_id`를 각 API에 전달하고 아래 시간·활동 조건을 유지한다. A5/A8은 첫 페이지 결과, A7은 인증된 본인 이벤트만 요청한다.
+
+현재 A4 표시는 `water-twin` 응답의 수온 레이어를 사용하며 `water-temperature`를 직접 호출하지 않는다. A5/A8은 아직 `spot_id` 필터 없이 1건을 요청한다. `useFeatureResult`는 마운트/feature 변경 시에만 조회하며 polling은 없다. 기존 `FeatureData`의 선택·필터·자료 새로고침은 기능 요약과 독립적이다. 지도/차트/매초 countdown/연도별 비교는 구현하지 않았고, A7 구독 변경·A8 관찰 입력·B AI API도 현재 화면에서 호출하지 않는다.
+
+`FeatureResult`는 `text/detail/sourceUrl`로 축약된 표시용 타입이다. 현재 런타임 검증은 사용 필드와 계약을 검사한다. 상세 지도/차트 UI에는 OpenAPI 원 응답을 위한 구조화 DTO와 검증을 추가해야 하며, 표시용 한국어 문자열을 다시 파싱하지 않는다. 기존 `requestData`는 GET 전용이므로 변경 API 연결에는 JSON body와 204/409 등을 처리하는 client 확장이 필요하다.
 
 ## 요청 계약
 
@@ -58,3 +66,19 @@ HTTP200 빈 결과는 정상 자료 부재다. 401/403은 SSO 인증/권한, 503
 OpenAPI 원문은 실행 앱 `/api/openapi.json` (외부 배포 prefix를 포함하면 `/pongdang/api/openapi.json`)와 이 폴더 `openapi.json`을 확인한다. 사용자/세션 테이블, raw provider responses, arbitrary SQL, 임의 URL proxy는 공개하지 않는다.
 
 최종 Node.js 24 검사: lint 통과, 테스트 20개 통과, TypeScript/Vite build 통과. 시작 상태 `baseline.json`에 기록된 CSS 8개와 App/DataPage/FeatureData/useResource/navigation은 동일 SHA-256을 유지했다. 과거 시점의 이름·좌표를 복원할 수 없으면 null이며, 이름은 지점 ID로 표시한다. 단위 미제공·평가 미실행도 각각 표시한다.
+
+
+## 2026-09-14 승인 API 자동수집 연결
+
+추가 17개 수집 작업 중 15개를 활성화했다. 로컬 실수집 결과 14종은 실제 자료 저장,
+WQ-04는 관측 0건이다. TOUR-05/HYD-03은 승인 확인/심의 대기를 구분하여 비활성이다.
+원자료는 기존 `/api/data/catalog`, `/api/data/datasets/{key}`에서 제공처별로 조회하며
+100행 상한을 유지한다. 새 API별 별도 HTTP 수집 트리거는 없다.
+
+`source-places`에 제공처 등록·수정 시각, `source-stations`에 제공처 적용 시작·종료 시각이
+nullable 열로 추가됐다. 프론트는 catalog를 읽어 이 열을 그대로 표시한다.
+새 작업·지표·제공처의 한국어 이름은 `frontend/src/codeNames.ts`에서 원본 코드와 함께
+표시한다. `disabled` 자체를 키 미설정으로 단정하지 않고 별도 오류코드로 원인을 설명한다.
+
+[수집별 결과와 범위](../../api-connection-2026-09-14.md)를 참고한다. 추가 원자료가
+수집됐다는 사실만으로 활동별 안전성이나 과학적 적합도 점수가 검증된 것은 아니다.

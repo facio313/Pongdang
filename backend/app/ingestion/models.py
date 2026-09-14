@@ -16,6 +16,13 @@ class Station(Record):
     longitude: float | None = Field(default=None, ge=-180, le=180)
     region: str = Field(default="", max_length=200)
     datum: str = Field(default="", max_length=200)
+    # Omit absent new metadata from the evidence hash to preserve old identities.
+    source_valid_from: AwareDatetime | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    source_valid_until: AwareDatetime | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class Value(Record):
@@ -55,6 +62,8 @@ class Place(Record):
     region: str = Field(default="", max_length=200)
     category: str = Field(default="", max_length=200)
     source_url: str = Field(default="", max_length=1000)
+    source_created_at: AwareDatetime | None = None
+    source_modified_at: AwareDatetime | None = None
 
 
 class Warning(Record):

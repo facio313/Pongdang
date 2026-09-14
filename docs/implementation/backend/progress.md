@@ -1,5 +1,7 @@
 # 백엔드 Goal 진행 기록
 
+2026-09-14 후속 사용자 요청으로 **A1 여섯 활동 선택·조회·명시 조건 종합 계산·허브 연결**을 구현했다. Backend 512개, Frontend 32개 검사와 격리 DB→실제 브라우저 연결을 검증했다. 사용자 범위의 조건 일치 산술과 과학적 환경 모델을 구분하며 후자의 미구현/미검증 상태는 유지한다. [최신 A1 작업과 한계](activity_conditions.md). 아래는 이전 전체 백엔드 Goal의 기록이다.
+
 2026-09-14 KST 최종 갱신. 기준: `backend/BACKEND_GOAL.md`. 상세 상태표는 [README.md](README.md), 실행 증거는 [checks.md](checks.md)·[checks.json](checks.json), 시작 상태/HEAD/해시는 [baseline.json](baseline.json).
 
 **이번 범위의 구현·로컬 통합·기존 프론트 연결·자동 검사·인계를 마쳤다.** 외부 데이터/과학적 모델/운영 활성화는 아래와 같이 별도이며 미완료를 완료로 전환하지 않았다. 운영 배포·main 변경·운영 DB 쓰기·실제 알림·실제 LLM 호출은 없다.

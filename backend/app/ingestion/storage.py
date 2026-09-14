@@ -48,7 +48,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                 c.execute(
                     "UPDATE pongdang_data.collection_station SET name=%s,kind=%s,"
                     "latitude=COALESCE(%s,latitude),longitude=COALESCE(%s,longitude),"
-                    "region=%s,datum=%s,fetched_at=%s WHERE id=%s",
+                    "region=%s,datum=%s,fetched_at=%s,source_valid_from=%s,"
+                    "source_valid_until=%s WHERE id=%s",
                     [
                         station.name,
                         station.kind,
@@ -57,6 +58,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                         station.region,
                         station.datum,
                         batch.fetched_at,
+                        station.source_valid_from,
+                        station.source_valid_until,
                         sid,
                     ],
                 )
@@ -80,7 +83,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                 sid = c.execute(
                     "INSERT INTO pongdang_data.collection_station "
                     "(provider,source_id,name,kind,latitude,longitude,region,datum,"
-                    "spot_id,fetched_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                    "spot_id,fetched_at,source_valid_from,source_valid_until) VALUES "
+                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                     "RETURNING id",
                     [
                         batch.provider,
@@ -93,6 +97,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                         station.datum,
                         spot,
                         batch.fetched_at,
+                        station.source_valid_from,
+                        station.source_valid_until,
                     ],
                 ).fetchone()[0]
                 inserted += 1
@@ -222,7 +228,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                     "UPDATE pongdang_data.collection_place SET "
                     "name=%s,kind=%s,latitude=%s,"
                     "longitude=%s,address=%s,region=%s,category=%s,source_url=%s,"
-                    "fetched_at=%s WHERE id=%s",
+                    "fetched_at=%s,source_created_at=%s,source_modified_at=%s "
+                    "WHERE id=%s",
                     [
                         place.name,
                         place.kind,
@@ -233,6 +240,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                         place.category,
                         place.source_url,
                         batch.fetched_at,
+                        place.source_created_at,
+                        place.source_modified_at,
                         pid,
                     ],
                 )
@@ -260,7 +269,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                     "(provider,source_id,name,"
                     "kind,latitude,longitude,address,region,category,source_url,spot_"
                     "id,"
-                    "fetched_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "fetched_at,source_created_at,source_modified_at) VALUES "
+                    "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     [
                         batch.provider,
                         place.source_id,
@@ -274,6 +284,8 @@ def store_batch(settings: Settings, batch: SourceBatch) -> int:
                         place.source_url,
                         spot,
                         batch.fetched_at,
+                        place.source_created_at,
+                        place.source_modified_at,
                     ],
                 )
                 inserted += 1

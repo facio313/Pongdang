@@ -21,6 +21,7 @@ def test_v4_upgrade_preserves_evidence_and_is_idempotent(monkeypatch):
         # v4 consists of collection + existing Water Index, before feature tables.
         with monkeypatch.context() as patch:
             patch.setattr(schema, "migrate_features", lambda connection: None)
+            patch.setattr(schema, "migrate_place_provenance", lambda connection: None)
             assert schema.initialize(settings)
         with schema.connect(settings) as connection:
             assert connection.execute(
@@ -77,7 +78,7 @@ def test_v4_upgrade_preserves_evidence_and_is_idempotent(monkeypatch):
         with schema.connect(settings) as connection:
             assert connection.execute(
                 "SELECT version FROM pongdang_data.schema_version WHERE id=1"
-            ).fetchone() == (5,)
+            ).fetchone() == (schema.VERSION,)
             for table in (
                 "forecast_revision",
                 "water_index_station_mapping",

@@ -1,0 +1,49 @@
+.activity-assessment {
+  margin: 18px 0 22px;
+  padding: 12px 0;
+  border-top: 1px solid #b9c4ce;
+  border-bottom: 1px solid #b9c4ce;
+}
+.activity-assessment .toolbar select {
+  max-width: min(100%, 350px);
+}
+.activity-assessment .activity-state-table {
+  margin: 14px 0 8px;
+}
+.activity-assessment .activity-notice {
+  padding: 8px 10px;
+  border: 1px solid #c8b780;
+  background: #fffaf0;
+  color: #5b491b;
+}
+.activity-assessment .activity-criteria-table input[type="number"] {
+  width: 108px;
+}
+.activity-assessment .activity-criteria-table select {
+  max-width: 220px;
+}
+.activity-assessment .activity-criteria-table td:nth-child(2) {
+  min-width: 160px;
+}
+.activity-assessment .activity-score-result {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid #8a9daf;
+  background: #f7f9fb;
+}
+.activity-assessment .activity-evidence {
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+.activity-assessment code {
+  white-space: normal;
+}
+@media (max-width: 600px) {
+  .activity-assessment .toolbar label {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .activity-assessment .activity-score-result {
+    padding: 8px;
+  }
+}

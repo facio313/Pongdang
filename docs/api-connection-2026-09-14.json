@@ -1,0 +1,871 @@
+{
+  "checked_at": "2026-09-14T04:33:29.373227+00:00",
+  "environment": "local Pongdang PostgreSQL 18; production deployment not performed",
+  "schema_version": 6,
+  "jobs": [
+    {
+      "task_name": "airkorea_observations",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 24.0,
+      "records_inserted": 23.0,
+      "interval_seconds": 3600.0,
+      "started_at": "2026-09-14 13:28:37.859337+09:00",
+      "finished_at": "2026-09-14 13:28:38.198170+09:00",
+      "last_success_at": "2026-09-14 13:28:38.198170+09:00",
+      "next_run_at": "2026-09-14 14:28:38.198170+09:00",
+      "api_id": "AIR-01"
+    },
+    {
+      "task_name": "airkorea_stations",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 1.0,
+      "records_inserted": 1.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:39.693942+09:00",
+      "finished_at": "2026-09-14 13:27:39.777037+09:00",
+      "last_success_at": "2026-09-14 13:27:39.777037+09:00",
+      "next_run_at": "2026-09-15 13:27:39.777037+09:00",
+      "api_id": "AIR-02"
+    },
+    {
+      "task_name": "kasi_rise_set",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 1.0,
+      "records_inserted": 2.0,
+      "interval_seconds": 21600.0,
+      "started_at": "2026-09-14 13:27:44.892169+09:00",
+      "finished_at": "2026-09-14 13:27:45.032620+09:00",
+      "last_success_at": "2026-09-14 13:27:45.032620+09:00",
+      "next_run_at": "2026-09-14 19:27:45.032620+09:00",
+      "api_id": "ASTRO-01"
+    },
+    {
+      "task_name": "khoa_current_timeseries",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 169.0,
+      "records_inserted": 169.0,
+      "interval_seconds": 21600.0,
+      "started_at": "2026-09-14 13:27:19.603487+09:00",
+      "finished_at": "2026-09-14 13:27:39.594525+09:00",
+      "last_success_at": "2026-09-14 13:27:39.594525+09:00",
+      "next_run_at": "2026-09-14 19:27:39.594525+09:00",
+      "api_id": "MAR-12"
+    },
+    {
+      "task_name": "khoa_hf_current",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 936.0,
+      "records_inserted": 936.0,
+      "interval_seconds": 3600.0,
+      "started_at": "2026-09-14 13:27:18.551582+09:00",
+      "finished_at": "2026-09-14 13:27:19.598169+09:00",
+      "last_success_at": "2026-09-14 13:27:19.598169+09:00",
+      "next_run_at": "2026-09-14 14:27:19.598169+09:00",
+      "api_id": "MAR-11"
+    },
+    {
+      "task_name": "khoa_roms",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 1611.0,
+      "records_inserted": 1611.0,
+      "interval_seconds": 21600.0,
+      "started_at": "2026-09-14 13:33:26.443412+09:00",
+      "finished_at": "2026-09-14 13:33:29.350952+09:00",
+      "last_success_at": "2026-09-14 13:33:29.350952+09:00",
+      "next_run_at": "2026-09-14 19:33:29.350952+09:00",
+      "api_id": "MAR-14"
+    },
+    {
+      "task_name": "khoa_tide_timeseries",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 169.0,
+      "records_inserted": 169.0,
+      "interval_seconds": 21600.0,
+      "started_at": "2026-09-14 13:27:17.623501+09:00",
+      "finished_at": "2026-09-14 13:27:18.544932+09:00",
+      "last_success_at": "2026-09-14 13:27:18.544932+09:00",
+      "next_run_at": "2026-09-14 19:27:18.544932+09:00",
+      "api_id": "MAR-10"
+    },
+    {
+      "task_name": "kma_forecast_zones",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 1.0,
+      "records_inserted": 1.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:45.047124+09:00",
+      "finished_at": "2026-09-14 13:27:45.166218+09:00",
+      "last_success_at": "2026-09-14 13:27:45.166218+09:00",
+      "next_run_at": "2026-09-15 13:27:45.166218+09:00",
+      "api_id": "KMA-04"
+    },
+    {
+      "task_name": "kma_uv_forecast",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 26.0,
+      "records_inserted": 27.0,
+      "interval_seconds": 10800.0,
+      "started_at": "2026-09-14 13:27:45.197096+09:00",
+      "finished_at": "2026-09-14 13:27:45.349794+09:00",
+      "last_success_at": "2026-09-14 13:27:45.349794+09:00",
+      "next_run_at": "2026-09-14 16:27:45.349794+09:00",
+      "api_id": "KMA-05"
+    },
+    {
+      "task_name": "koem_wemo_catalog",
+      "state": "succeeded",
+      "last_error": "",
+      "records_received": 13.0,
+      "records_inserted": 13.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:45.364154+09:00",
+      "finished_at": "2026-09-14 13:27:45.517164+09:00",
+      "last_success_at": "2026-09-14 13:27:45.517164+09:00",
+      "next_run_at": "2026-09-15 13:27:45.517164+09:00",
+      "api_id": "WQ-06"
+    },
+    {
+      "task_name": "koem_wemo_water_quality",
+      "state": "no_data",
+      "last_error": "",
+      "records_received": 1.0,
+      "records_inserted": 1.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:45.534444+09:00",
+      "finished_at": "2026-09-14 13:27:45.822207+09:00",
+      "last_success_at": null,
+      "next_run_at": "2026-09-15 13:27:45.822207+09:00",
+      "api_id": "WQ-04"
+    },
+    {
+      "task_name": "kwater_dam_release",
+      "state": "disabled",
+      "last_error": "APPROVAL_PENDING",
+      "records_received": 0.0,
+      "records_inserted": 0.0,
+      "interval_seconds": 3600.0,
+      "started_at": null,
+      "finished_at": null,
+      "last_success_at": null,
+      "next_run_at": "2026-09-14 13:27:17.595749+09:00",
+      "api_id": "HYD-03"
+    },
+    {
+      "task_name": "tourapi_chinese_simplified",
+      "state": "partial",
+      "last_error": "BOUNDED_CATALOG",
+      "records_received": 48.0,
+      "records_inserted": 48.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:47.339547+09:00",
+      "finished_at": "2026-09-14 13:27:47.619452+09:00",
+      "last_success_at": "2026-09-14 13:27:47.619452+09:00",
+      "next_run_at": "2026-09-15 13:27:47.619452+09:00",
+      "api_id": "TOUR-04"
+    },
+    {
+      "task_name": "tourapi_chinese_traditional",
+      "state": "disabled",
+      "last_error": "SERVICE_APPROVAL_UNCONFIRMED",
+      "records_received": 0.0,
+      "records_inserted": 0.0,
+      "interval_seconds": 86400.0,
+      "started_at": null,
+      "finished_at": null,
+      "last_success_at": null,
+      "next_run_at": "2026-09-14 13:27:17.595749+09:00",
+      "api_id": "TOUR-05"
+    },
+    {
+      "task_name": "tourapi_daily_visitors",
+      "state": "partial",
+      "last_error": "BOUNDED_CATALOG",
+      "records_received": 1076.0,
+      "records_inserted": 1076.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:45.842073+09:00",
+      "finished_at": "2026-09-14 13:27:46.728436+09:00",
+      "last_success_at": "2026-09-14 13:27:46.728436+09:00",
+      "next_run_at": "2026-09-15 13:27:46.728436+09:00",
+      "api_id": "TOUR-06"
+    },
+    {
+      "task_name": "tourapi_english",
+      "state": "partial",
+      "last_error": "BOUNDED_CATALOG",
+      "records_received": 48.0,
+      "records_inserted": 48.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:46.733535+09:00",
+      "finished_at": "2026-09-14 13:27:47.036321+09:00",
+      "last_success_at": "2026-09-14 13:27:47.036321+09:00",
+      "next_run_at": "2026-09-15 13:27:47.036321+09:00",
+      "api_id": "TOUR-02"
+    },
+    {
+      "task_name": "tourapi_japanese",
+      "state": "partial",
+      "last_error": "BOUNDED_CATALOG",
+      "records_received": 48.0,
+      "records_inserted": 48.0,
+      "interval_seconds": 86400.0,
+      "started_at": "2026-09-14 13:27:47.052505+09:00",
+      "finished_at": "2026-09-14 13:27:47.327661+09:00",
+      "last_success_at": "2026-09-14 13:27:47.327661+09:00",
+      "next_run_at": "2026-09-15 13:27:47.327661+09:00",
+      "api_id": "TOUR-03"
+    }
+  ],
+  "runs": [
+    {
+      "checked_at": "2026-09-14T04:27:47.632090+00:00",
+      "outcomes": [
+        {
+          "job": "khoa_tide_timeseries",
+          "state": "succeeded",
+          "received": 169,
+          "inserted": 169,
+          "error": ""
+        },
+        {
+          "job": "khoa_hf_current",
+          "state": "succeeded",
+          "received": 936,
+          "inserted": 936,
+          "error": ""
+        },
+        {
+          "job": "khoa_current_timeseries",
+          "state": "succeeded",
+          "received": 169,
+          "inserted": 169,
+          "error": ""
+        },
+        {
+          "job": "khoa_roms",
+          "state": "failed",
+          "received": 0,
+          "inserted": 0,
+          "error": "PROVIDER_10"
+        },
+        {
+          "job": "airkorea_stations",
+          "state": "succeeded",
+          "received": 1,
+          "inserted": 1,
+          "error": ""
+        },
+        {
+          "job": "airkorea_observations",
+          "state": "failed",
+          "received": 0,
+          "inserted": 0,
+          "error": "HTTP_504"
+        },
+        {
+          "job": "kasi_rise_set",
+          "state": "succeeded",
+          "received": 1,
+          "inserted": 2,
+          "error": ""
+        },
+        {
+          "job": "kma_forecast_zones",
+          "state": "succeeded",
+          "received": 1,
+          "inserted": 1,
+          "error": ""
+        },
+        {
+          "job": "kma_uv_forecast",
+          "state": "succeeded",
+          "received": 26,
+          "inserted": 27,
+          "error": ""
+        },
+        {
+          "job": "koem_wemo_catalog",
+          "state": "succeeded",
+          "received": 13,
+          "inserted": 13,
+          "error": ""
+        },
+        {
+          "job": "koem_wemo_water_quality",
+          "state": "no_data",
+          "received": 1,
+          "inserted": 1,
+          "error": ""
+        },
+        {
+          "job": "tourapi_daily_visitors",
+          "state": "partial",
+          "received": 1076,
+          "inserted": 1076,
+          "error": "BOUNDED_CATALOG"
+        },
+        {
+          "job": "tourapi_english",
+          "state": "partial",
+          "received": 48,
+          "inserted": 48,
+          "error": "BOUNDED_CATALOG"
+        },
+        {
+          "job": "tourapi_japanese",
+          "state": "partial",
+          "received": 48,
+          "inserted": 48,
+          "error": "BOUNDED_CATALOG"
+        },
+        {
+          "job": "tourapi_chinese_simplified",
+          "state": "partial",
+          "received": 48,
+          "inserted": 48,
+          "error": "BOUNDED_CATALOG"
+        }
+      ]
+    },
+    {
+      "checked_at": "2026-09-14T04:28:38.206070+00:00",
+      "outcomes": [
+        {
+          "job": "airkorea_observations",
+          "state": "succeeded",
+          "received": 24,
+          "inserted": 23,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "checked_at": "2026-09-14T04:29:41.559228+00:00",
+      "outcomes": [
+        {
+          "job": "khoa_roms",
+          "state": "failed",
+          "received": 0,
+          "inserted": 0,
+          "error": "PROVIDER_10"
+        }
+      ]
+    },
+    {
+      "checked_at": "2026-09-14T04:33:29.359417+00:00",
+      "outcomes": [
+        {
+          "job": "khoa_roms",
+          "state": "succeeded",
+          "received": 1611,
+          "inserted": 1611,
+          "error": ""
+        }
+      ]
+    }
+  ],
+  "stored_provider_counts": {
+    "collection_station": [
+      {
+        "provider": "AIRKOREA",
+        "count": 1
+      },
+      {
+        "provider": "hrfco_waterlevel",
+        "count": 6
+      },
+      {
+        "provider": "KASI_RISE_SET",
+        "count": 1
+      },
+      {
+        "provider": "khoa_beach",
+        "count": 3
+      },
+      {
+        "provider": "khoa_buoy_recent",
+        "count": 1
+      },
+      {
+        "provider": "khoa_current_timeseries",
+        "count": 1
+      },
+      {
+        "provider": "khoa_hf_current",
+        "count": 468
+      },
+      {
+        "provider": "khoa_rip_current",
+        "count": 1
+      },
+      {
+        "provider": "khoa_roms",
+        "count": 9
+      },
+      {
+        "provider": "khoa_surfing",
+        "count": 2
+      },
+      {
+        "provider": "khoa_tide_extrema",
+        "count": 1
+      },
+      {
+        "provider": "khoa_tide_level",
+        "count": 1
+      },
+      {
+        "provider": "khoa_tide_recent",
+        "count": 1
+      },
+      {
+        "provider": "khoa_tide_timeseries",
+        "count": 1
+      },
+      {
+        "provider": "khoa_water_temperature",
+        "count": 1
+      },
+      {
+        "provider": "khoa_waves",
+        "count": 1
+      },
+      {
+        "provider": "kma_aws",
+        "count": 1
+      },
+      {
+        "provider": "kma_buoy",
+        "count": 1
+      },
+      {
+        "provider": "KMA_FORECAST_ZONE",
+        "count": 1
+      },
+      {
+        "provider": "kma_mid_forecast",
+        "count": 1
+      },
+      {
+        "provider": "kma_nowcast",
+        "count": 1
+      },
+      {
+        "provider": "kma_short_forecast",
+        "count": 1
+      },
+      {
+        "provider": "kma_ultra_forecast",
+        "count": 1
+      },
+      {
+        "provider": "KMA_UV",
+        "count": 1
+      },
+      {
+        "provider": "koem_catalog",
+        "count": 425
+      },
+      {
+        "provider": "koem_water_quality",
+        "count": 14
+      },
+      {
+        "provider": "koem_wemo_catalog",
+        "count": 13
+      },
+      {
+        "provider": "koem_wemo_water_quality",
+        "count": 1
+      },
+      {
+        "provider": "nier_water_quality",
+        "count": 6
+      },
+      {
+        "provider": "tourapi_daily_visitors",
+        "count": 269
+      }
+    ],
+    "collection_place": [
+      {
+        "provider": "KAKAO_LOCAL",
+        "count": 75
+      },
+      {
+        "provider": "tourapi_chinese_simplified",
+        "count": 48
+      },
+      {
+        "provider": "tourapi_english",
+        "count": 48
+      },
+      {
+        "provider": "tourapi_japanese",
+        "count": 48
+      },
+      {
+        "provider": "TOURAPI_KOREAN",
+        "count": 500
+      }
+    ],
+    "conditions_observationsnapshot": [
+      {
+        "provider": "AIRKOREA",
+        "count": 23
+      },
+      {
+        "provider": "hrfco_waterlevel",
+        "count": 456
+      },
+      {
+        "provider": "KASI_RISE_SET",
+        "count": 1
+      },
+      {
+        "provider": "khoa_beach",
+        "count": 54
+      },
+      {
+        "provider": "khoa_buoy_recent",
+        "count": 81
+      },
+      {
+        "provider": "khoa_current_timeseries",
+        "count": 168
+      },
+      {
+        "provider": "khoa_hf_current",
+        "count": 468
+      },
+      {
+        "provider": "khoa_rip_current",
+        "count": 154
+      },
+      {
+        "provider": "khoa_roms",
+        "count": 1602
+      },
+      {
+        "provider": "khoa_surfing",
+        "count": 108
+      },
+      {
+        "provider": "khoa_tide_extrema",
+        "count": 20
+      },
+      {
+        "provider": "khoa_tide_level",
+        "count": 287
+      },
+      {
+        "provider": "khoa_tide_recent",
+        "count": 81
+      },
+      {
+        "provider": "khoa_tide_timeseries",
+        "count": 168
+      },
+      {
+        "provider": "khoa_water_temperature",
+        "count": 81
+      },
+      {
+        "provider": "khoa_waves",
+        "count": 81
+      },
+      {
+        "provider": "kma_aws",
+        "count": 86
+      },
+      {
+        "provider": "kma_buoy",
+        "count": 30
+      },
+      {
+        "provider": "kma_mid_forecast",
+        "count": 3
+      },
+      {
+        "provider": "kma_nowcast",
+        "count": 15
+      },
+      {
+        "provider": "kma_short_forecast",
+        "count": 456
+      },
+      {
+        "provider": "kma_ultra_forecast",
+        "count": 90
+      },
+      {
+        "provider": "KMA_UV",
+        "count": 26
+      },
+      {
+        "provider": "koem_water_quality",
+        "count": 108
+      },
+      {
+        "provider": "nier_water_quality",
+        "count": 6
+      },
+      {
+        "provider": "tourapi_daily_visitors",
+        "count": 807
+      }
+    ],
+    "conditions_observationmetric": [
+      {
+        "provider": "AIRKOREA",
+        "count": 437
+      },
+      {
+        "provider": "hrfco_waterlevel",
+        "count": 912
+      },
+      {
+        "provider": "KASI_RISE_SET",
+        "count": 12
+      },
+      {
+        "provider": "khoa_beach",
+        "count": 378
+      },
+      {
+        "provider": "khoa_buoy_recent",
+        "count": 891
+      },
+      {
+        "provider": "khoa_current_timeseries",
+        "count": 336
+      },
+      {
+        "provider": "khoa_hf_current",
+        "count": 936
+      },
+      {
+        "provider": "khoa_rip_current",
+        "count": 1232
+      },
+      {
+        "provider": "khoa_roms",
+        "count": 4806
+      },
+      {
+        "provider": "khoa_surfing",
+        "count": 756
+      },
+      {
+        "provider": "khoa_tide_extrema",
+        "count": 40
+      },
+      {
+        "provider": "khoa_tide_level",
+        "count": 287
+      },
+      {
+        "provider": "khoa_tide_recent",
+        "count": 810
+      },
+      {
+        "provider": "khoa_tide_timeseries",
+        "count": 168
+      },
+      {
+        "provider": "khoa_water_temperature",
+        "count": 81
+      },
+      {
+        "provider": "khoa_waves",
+        "count": 405
+      },
+      {
+        "provider": "kma_aws",
+        "count": 1376
+      },
+      {
+        "provider": "kma_buoy",
+        "count": 440
+      },
+      {
+        "provider": "kma_mid_forecast",
+        "count": 3
+      },
+      {
+        "provider": "kma_nowcast",
+        "count": 120
+      },
+      {
+        "provider": "kma_short_forecast",
+        "count": 5517
+      },
+      {
+        "provider": "kma_ultra_forecast",
+        "count": 990
+      },
+      {
+        "provider": "KMA_UV",
+        "count": 26
+      },
+      {
+        "provider": "koem_water_quality",
+        "count": 2268
+      },
+      {
+        "provider": "nier_water_quality",
+        "count": 126
+      },
+      {
+        "provider": "tourapi_daily_visitors",
+        "count": 4035
+      }
+    ]
+  },
+  "read_api_verification": [
+    {
+      "dataset": "snapshots",
+      "provider": "khoa_tide_timeseries",
+      "http": 200,
+      "total": 168,
+      "returned_rows": 100
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "khoa_hf_current",
+      "http": 200,
+      "total": 468,
+      "returned_rows": 100
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "khoa_current_timeseries",
+      "http": 200,
+      "total": 168,
+      "returned_rows": 100
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "khoa_roms",
+      "http": 200,
+      "total": 1602,
+      "returned_rows": 100
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "AIRKOREA",
+      "http": 200,
+      "total": 23,
+      "returned_rows": 23
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "KASI_RISE_SET",
+      "http": 200,
+      "total": 1,
+      "returned_rows": 1
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "KMA_UV",
+      "http": 200,
+      "total": 26,
+      "returned_rows": 26
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "tourapi_daily_visitors",
+      "http": 200,
+      "total": 807,
+      "returned_rows": 100
+    },
+    {
+      "dataset": "source-places",
+      "provider": "tourapi_english",
+      "http": 200,
+      "total": 48,
+      "returned_rows": 48
+    },
+    {
+      "dataset": "source-places",
+      "provider": "tourapi_japanese",
+      "http": 200,
+      "total": 48,
+      "returned_rows": 48
+    },
+    {
+      "dataset": "source-places",
+      "provider": "tourapi_chinese_simplified",
+      "http": 200,
+      "total": 48,
+      "returned_rows": 48
+    },
+    {
+      "dataset": "source-stations",
+      "provider": "KMA_FORECAST_ZONE",
+      "http": 200,
+      "total": 1,
+      "returned_rows": 1
+    },
+    {
+      "dataset": "source-stations",
+      "provider": "koem_wemo_catalog",
+      "http": 200,
+      "total": 13,
+      "returned_rows": 13
+    },
+    {
+      "dataset": "source-stations",
+      "provider": "AIRKOREA",
+      "http": 200,
+      "total": 1,
+      "returned_rows": 1
+    },
+    {
+      "dataset": "snapshots",
+      "provider": "koem_wemo_water_quality",
+      "http": 200,
+      "total": 0,
+      "returned_rows": 0
+    }
+  ],
+  "collector_installation": {
+    "checked_at": "2026-09-14T04:34:52.673256+00:00",
+    "label": "work.bonifacio.pongdang.collector",
+    "release": "c41a1bfd20003c92",
+    "status": [
+      "state = running",
+      "pid = 49021",
+      "last exit code = (never exited)",
+      "state = active",
+      "state = active"
+    ],
+    "registered_jobs": 45,
+    "persisted_jobs": 45,
+    "heartbeat_state": "running",
+    "heartbeat_age_seconds": 12.815673,
+    "installed": true,
+    "production_deployed": false
+  },
+  "validation": {
+    "backend_tests_passed": 653,
+    "frontend_tests_passed": 36,
+    "ruff": "passed;100 files formatted",
+    "frontend_lint": "passed",
+    "frontend_build_base": "/pongdang/",
+    "database_tests": "disposable pongdang_test only",
+    "browser": "actual localhost UI verified collected data and distinct pending/no_data status",
+    "excluded_api_ids": [
+      "KMA-07"
+    ]
+  }
+}

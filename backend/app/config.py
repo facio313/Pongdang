@@ -26,6 +26,24 @@ class Settings(BaseSettings):
     khoa_tide_station_code: str = "DT_0006"
     khoa_buoy_station_code: str = "TW_0089"
     khoa_rip_beach_code: str = "GYEONGPO"
+    # Explicit provider scopes; these are not representative mappings to Gyeongpo.
+    khoa_current_station_code: str = Field(default="HF_0076", pattern=r"^HF_[0-9]+$")
+    khoa_current_forecast_code: str = Field(
+        default="16LTC10", pattern=r"^[A-Za-z0-9_-]{1,40}$"
+    )
+    air_quality_station_names: str = Field(
+        default="종로구", min_length=1, max_length=200
+    )
+    astronomy_location: str = Field(default="서울", min_length=1, max_length=100)
+    uv_area_code: str = Field(default="1100000000", pattern=r"^[0-9]{10}$")
+    forecast_zone_code: str = Field(default="11A00101", pattern=r"^[A-Za-z0-9]{1,20}$")
+    water_quality_station_name: str = Field(
+        default="인천강화", min_length=1, max_length=100
+    )
+    visitor_statistics_lag_days: int = Field(default=60, ge=1, le=365)
+    visitor_region_code: str = Field(default="", pattern=r"^[0-9]{0,10}$")
+    tourism_traditional_enabled: bool = False
+    dam_release_enabled: bool = False
     collector_poll_seconds: int = Field(default=30, ge=5, le=300)
     sso_proxy_secret: SecretStr = SecretStr("")
     sso_allowed_origins: str = ""

@@ -688,6 +688,292 @@
         }
       }
     },
+    "/api/data/water-index/activities": {
+      "get": {
+        "tags": [
+          "water-index-conditions"
+        ],
+        "summary": "Activities",
+        "operationId": "activities_api_data_water_index_activities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/water-index/conditions": {
+      "get": {
+        "tags": [
+          "water-index-conditions"
+        ],
+        "summary": "Conditions",
+        "operationId": "conditions_api_data_water_index_conditions_get",
+        "parameters": [
+          {
+            "name": "spot_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Spot Id"
+            }
+          },
+          {
+            "name": "activity",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "swim",
+                "surf",
+                "relax",
+                "mudflat",
+                "onsen",
+                "rafting"
+              ],
+              "type": "string",
+              "title": "Activity"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "observation",
+                "forecast"
+              ],
+              "type": "string",
+              "title": "Mode"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          },
+          {
+            "name": "as_of",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConditionsEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/water-index/condition-score": {
+      "post": {
+        "tags": [
+          "water-index-conditions"
+        ],
+        "summary": "Condition Score",
+        "description": "Read-only calculation of explicit user ranges over collection evidence. No writes, ingestion, external calls, default criteria, or scientific safety score.",
+        "operationId": "condition_score_api_data_water_index_condition_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "spot_id": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0.0,
+                    "title": "Spot Id"
+                  },
+                  "activity": {
+                    "type": "string",
+                    "enum": [
+                      "swim",
+                      "surf",
+                      "relax",
+                      "mudflat",
+                      "onsen",
+                      "rafting"
+                    ],
+                    "title": "Activity"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "observation",
+                      "forecast"
+                    ],
+                    "title": "Mode"
+                  },
+                  "at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "At"
+                  },
+                  "as_of": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "As Of"
+                  },
+                  "criteria": {
+                    "items": {
+                      "properties": {
+                        "metric": {
+                          "type": "string",
+                          "enum": [
+                            "water_temperature",
+                            "bath_water_temperature",
+                            "air_temperature",
+                            "relative_humidity",
+                            "wind_speed",
+                            "wave_height",
+                            "wave_period",
+                            "precipitation",
+                            "river_level",
+                            "river_flow"
+                          ],
+                          "title": "Metric"
+                        },
+                        "station_id": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0.0,
+                          "title": "Station Id"
+                        },
+                        "minimum": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Minimum"
+                        },
+                        "maximum": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Maximum"
+                        },
+                        "weight": {
+                          "type": "number",
+                          "maximum": 1000.0,
+                          "exclusiveMinimum": 0.0,
+                          "title": "Weight"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "metric",
+                        "station_id",
+                        "weight"
+                      ],
+                      "title": "Criterion"
+                    },
+                    "type": "array",
+                    "maxItems": 8,
+                    "minItems": 1,
+                    "title": "Criteria"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "spot_id",
+                  "activity",
+                  "mode",
+                  "criteria"
+                ],
+                "title": "ScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/data/water-forecast/forecasts": {
       "get": {
         "tags": [
@@ -2414,6 +2700,301 @@
   },
   "components": {
     "schemas": {
+      "ActivityCatalog": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "water-conditions.v1",
+            "title": "Contract Version",
+            "default": "water-conditions.v1"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ConditionModel"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityDefinition"
+            },
+            "type": "array",
+            "title": "Rows",
+            "default": [
+              {
+                "activity": "swim",
+                "label": "수영",
+                "description": "설정한 수영 관련 환경 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "관측소 수온. 해변 직접 측정·욕조 수온으로 전용하지 않습니다.",
+                    "label": "수온",
+                    "name": "water_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "제공기관의 풍속. 돌풍과 구분합니다.",
+                    "label": "풍속",
+                    "name": "wind_speed",
+                    "unit": "m/s"
+                  },
+                  {
+                    "description": "제공기관 관측소의 파고. 해변 쇄파 높이·개인 숙련도 판단이 아닙니다.",
+                    "label": "파고",
+                    "name": "wave_height",
+                    "unit": "m"
+                  }
+                ],
+                "required_evidence": [
+                  "장소별 수영 지원·운영 구역",
+                  "입수·수질·기상·이안류 등 공식 제한",
+                  "노출·장비·대상자별 외부 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              },
+              {
+                "activity": "surf",
+                "label": "서핑",
+                "description": "설정한 서핑 관련 환경 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "관측소 수온. 해변 직접 측정·욕조 수온으로 전용하지 않습니다.",
+                    "label": "수온",
+                    "name": "water_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "제공기관의 풍속. 돌풍과 구분합니다.",
+                    "label": "풍속",
+                    "name": "wind_speed",
+                    "unit": "m/s"
+                  },
+                  {
+                    "description": "제공기관 관측소의 파고. 해변 쇄파 높이·개인 숙련도 판단이 아닙니다.",
+                    "label": "파고",
+                    "name": "wave_height",
+                    "unit": "m"
+                  },
+                  {
+                    "description": "제공기관 관측소의 파주기입니다.",
+                    "label": "파주기",
+                    "name": "wave_period",
+                    "unit": "s"
+                  }
+                ],
+                "required_evidence": [
+                  "서핑 구역·브레이크와 관측소 대표성",
+                  "공식 입수 제한·수질·해안 위험",
+                  "파향·풍향·숙련·장비별 현장 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              },
+              {
+                "activity": "relax",
+                "label": "휴식",
+                "description": "설정한 야외 휴식 기상 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "제공기관의 상대습도입니다.",
+                    "label": "상대습도",
+                    "name": "relative_humidity",
+                    "unit": "%"
+                  },
+                  {
+                    "description": "제공기관의 풍속. 돌풍과 구분합니다.",
+                    "label": "풍속",
+                    "name": "wind_speed",
+                    "unit": "m/s"
+                  },
+                  {
+                    "description": "수치로 제공된 1시간 강수만 사용합니다. 강수확률·일강수와 다릅니다.",
+                    "label": "1시간 강수량",
+                    "name": "precipitation",
+                    "unit": "mm/1h"
+                  }
+                ],
+                "required_evidence": [
+                  "휴식·접근 가능 구역",
+                  "낙뢰·폭풍·해안 접근 통제",
+                  "활동·노출별 쾌적성/만족 표본 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              },
+              {
+                "activity": "mudflat",
+                "label": "갯벌",
+                "description": "설정한 갯벌 주변 기상 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "제공기관의 풍속. 돌풍과 구분합니다.",
+                    "label": "풍속",
+                    "name": "wind_speed",
+                    "unit": "m/s"
+                  },
+                  {
+                    "description": "수치로 제공된 1시간 강수만 사용합니다. 강수확률·일강수와 다릅니다.",
+                    "label": "1시간 강수량",
+                    "name": "precipitation",
+                    "unit": "mm/1h"
+                  }
+                ],
+                "required_evidence": [
+                  "체험 구역·귀환 경로",
+                  "공식 운영창·조석·침수·안개 통제",
+                  "활동별 만족·참여 표본 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              },
+              {
+                "activity": "onsen",
+                "label": "온천",
+                "description": "설정한 시설 욕조·외부 기온 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "시설 욕조를 직접 측정한 자료만 사용합니다. 해수·하천 수온 대체 불가.",
+                    "label": "시설 욕조 수온",
+                    "name": "bath_water_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  }
+                ],
+                "required_evidence": [
+                  "시설 유형·실내외 구분",
+                  "시설 실측 욕조 수온·위생·이용 제한",
+                  "체류시간·대상자·노출별 외부 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              },
+              {
+                "activity": "rafting",
+                "label": "래프팅",
+                "description": "설정한 하천 관측소·기상 조건의 일치 정도",
+                "metrics": [
+                  {
+                    "description": "선택한 관측소의 기준면 수위. 다른 강·관측소와 같은 기준이 아닙니다.",
+                    "label": "하천 수위",
+                    "name": "river_level",
+                    "unit": "m"
+                  },
+                  {
+                    "description": "선택한 관측소의 유량. 구간별 운항 허용 유량은 별도 근거가 필요합니다.",
+                    "label": "하천 유량",
+                    "name": "river_flow",
+                    "unit": "m³/s"
+                  },
+                  {
+                    "description": "관측소 수온. 해변 직접 측정·욕조 수온으로 전용하지 않습니다.",
+                    "label": "수온",
+                    "name": "water_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "연결된 기상 관측·예보의 기온. 실내 온도나 체감온도가 아닙니다.",
+                    "label": "외부 기온",
+                    "name": "air_temperature",
+                    "unit": "°C"
+                  },
+                  {
+                    "description": "제공기관의 풍속. 돌풍과 구분합니다.",
+                    "label": "풍속",
+                    "name": "wind_speed",
+                    "unit": "m/s"
+                  }
+                ],
+                "required_evidence": [
+                  "승인 운항 구간·운영자",
+                  "상류 강우·방류·구간 통제",
+                  "관측소 수리 관계·장비·숙련별 현장 검증"
+                ],
+                "environment_model_status": "unimplemented"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ActivityCatalog"
+      },
+      "ActivityDefinition": {
+        "properties": {
+          "activity": {
+            "type": "string",
+            "enum": [
+              "swim",
+              "surf",
+              "relax",
+              "mudflat",
+              "onsen",
+              "rafting"
+            ],
+            "title": "Activity"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/MetricDefinition"
+            },
+            "type": "array",
+            "title": "Metrics"
+          },
+          "required_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Evidence"
+          },
+          "environment_model_status": {
+            "type": "string",
+            "const": "unimplemented",
+            "title": "Environment Model Status",
+            "default": "unimplemented"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "activity",
+          "label",
+          "description",
+          "metrics",
+          "required_evidence"
+        ],
+        "title": "ActivityDefinition"
+      },
       "Aggregation": {
         "properties": {
           "start_at": {
@@ -3478,6 +4059,318 @@
         "type": "object",
         "title": "Component"
       },
+      "ConditionMetric": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "water_temperature",
+              "bath_water_temperature",
+              "air_temperature",
+              "relative_humidity",
+              "wind_speed",
+              "wave_height",
+              "wave_period",
+              "precipitation",
+              "river_level",
+              "river_flow"
+            ],
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "station_id": {
+            "type": "integer",
+            "title": "Station Id"
+          },
+          "station_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Name"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "station_observation_point",
+              "representative_station"
+            ],
+            "title": "Relation"
+          },
+          "mapping_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Id"
+          },
+          "spatial_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spatial Scope"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "missing",
+              "stale",
+              "unknown",
+              "conflict",
+              "unit_mismatch",
+              "not_applicable"
+            ],
+            "title": "Status"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reason Codes"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SourceValue"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "unit",
+          "value",
+          "station_id",
+          "station_name",
+          "relation",
+          "mapping_id",
+          "spatial_scope",
+          "status",
+          "reason_codes",
+          "evidence"
+        ],
+        "title": "ConditionMetric"
+      },
+      "ConditionModel": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "const": "explicit-range-match",
+            "title": "Model Id",
+            "default": "explicit-range-match"
+          },
+          "model_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Model Version",
+            "default": "1.0.0"
+          },
+          "score_meaning": {
+            "type": "string",
+            "const": "user_defined_condition_match",
+            "title": "Score Meaning",
+            "default": "user_defined_condition_match"
+          },
+          "scientific_validation": {
+            "type": "string",
+            "const": "not_evaluated",
+            "title": "Scientific Validation",
+            "default": "not_evaluated"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula",
+            "default": "100 × Σ(중요도 × 범위 충족 여부[0 또는 1]) / Σ중요도; 경계 포함, 소수 첫째 자리 반올림. 선택 조건 하나라도 미확보면 계산 보류."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConditionModel"
+      },
+      "ConditionsEnvelope": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "water-conditions.v1",
+            "title": "Contract Version",
+            "default": "water-conditions.v1"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ConditionModel"
+          },
+          "spot_id": {
+            "type": "integer",
+            "title": "Spot Id"
+          },
+          "place_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Name"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "swim",
+              "surf",
+              "relax",
+              "mudflat",
+              "onsen",
+              "rafting"
+            ],
+            "title": "Activity"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "observation",
+              "forecast"
+            ],
+            "title": "Mode"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "support_status": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "unsupported",
+              "unknown"
+            ],
+            "title": "Support Status"
+          },
+          "safety_status": {
+            "type": "string",
+            "enum": [
+              "restricted",
+              "caution",
+              "unknown"
+            ],
+            "title": "Safety Status"
+          },
+          "restriction_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Restriction Refs"
+          },
+          "environment_score": {
+            "type": "null",
+            "title": "Environment Score"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/ConditionMetric"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Metrics"
+          },
+          "missing_metrics": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "water_temperature",
+                "bath_water_temperature",
+                "air_temperature",
+                "relative_humidity",
+                "wind_speed",
+                "wave_height",
+                "wave_period",
+                "precipitation",
+                "river_level",
+                "river_flow"
+              ]
+            },
+            "type": "array",
+            "title": "Missing Metrics"
+          },
+          "required_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Evidence"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reason Codes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "spot_id",
+          "place_name",
+          "activity",
+          "mode",
+          "at",
+          "as_of",
+          "support_status",
+          "safety_status",
+          "restriction_refs",
+          "metrics",
+          "missing_metrics",
+          "required_evidence",
+          "reason_codes"
+        ],
+        "title": "ConditionsEnvelope"
+      },
       "Context": {
         "properties": {
           "profile_id": {
@@ -3591,6 +4484,126 @@
           "reason_codes"
         ],
         "title": "Coverage"
+      },
+      "CriterionResult": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "water_temperature",
+              "bath_water_temperature",
+              "air_temperature",
+              "relative_humidity",
+              "wind_speed",
+              "wave_height",
+              "wave_period",
+              "precipitation",
+              "river_level",
+              "river_flow"
+            ],
+            "title": "Metric"
+          },
+          "station_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Station Id"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "weight": {
+            "type": "number",
+            "maximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Weight"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "matched",
+              "not_matched",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "matched": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched"
+          },
+          "weighted_points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weighted Points"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reason Codes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "station_id",
+          "weight",
+          "status",
+          "value",
+          "unit",
+          "matched",
+          "weighted_points",
+          "reason_codes"
+        ],
+        "title": "CriterionResult"
       },
       "DataQuality": {
         "properties": {
@@ -5221,6 +6234,47 @@
           "difference"
         ],
         "title": "MeasurementComparison"
+      },
+      "MetricDefinition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "water_temperature",
+              "bath_water_temperature",
+              "air_temperature",
+              "relative_humidity",
+              "wind_speed",
+              "wave_height",
+              "wave_period",
+              "precipitation",
+              "river_level",
+              "river_flow"
+            ],
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "unit",
+          "description"
+        ],
+        "title": "MetricDefinition"
       },
       "MetricLayer": {
         "properties": {
@@ -6866,6 +7920,98 @@
         "title": "SafetyNotice",
         "description": "A displayed authority notice retains the full source attestation."
       },
+      "ScoreEnvelope": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "water-conditions.v1",
+            "title": "Contract Version",
+            "default": "water-conditions.v1"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ConditionModel"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/ConditionsEnvelope"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionResult"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Criteria"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "evaluated",
+              "incomplete",
+              "blocked"
+            ],
+            "title": "Status"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "score_label": {
+            "type": "string",
+            "const": "종합 조건 일치 점수",
+            "title": "Score Label",
+            "default": "종합 조건 일치 점수"
+          },
+          "total_weight": {
+            "type": "number",
+            "title": "Total Weight"
+          },
+          "matched_weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Weight"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reason Codes"
+          },
+          "calculation_id": {
+            "type": "string",
+            "title": "Calculation Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence",
+          "criteria",
+          "status",
+          "score",
+          "total_weight",
+          "matched_weight",
+          "reason_codes",
+          "calculation_id"
+        ],
+        "title": "ScoreEnvelope"
+      },
       "Signal": {
         "properties": {
           "category": {
@@ -6969,6 +8115,189 @@
           "analysis_version"
         ],
         "title": "SignalReference"
+      },
+      "SourceValue": {
+        "properties": {
+          "metric_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric Id"
+          },
+          "snapshot_id": {
+            "type": "integer",
+            "title": "Snapshot Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "provider_record_id": {
+            "type": "string",
+            "title": "Provider Record Id"
+          },
+          "source_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Record Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "numeric_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numeric Value"
+          },
+          "text_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Value"
+          },
+          "is_missing": {
+            "type": "boolean",
+            "title": "Is Missing"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "observation",
+              "forecast"
+            ],
+            "title": "Mode"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fetched At"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "spatial_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spatial Scope"
+          },
+          "source_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source State"
+          },
+          "metric_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric_id",
+          "snapshot_id",
+          "provider",
+          "provider_record_id",
+          "source_record_id",
+          "name",
+          "numeric_value",
+          "text_value",
+          "is_missing",
+          "unit",
+          "mode",
+          "observed_at",
+          "issued_at",
+          "fetched_at",
+          "valid_from",
+          "valid_until",
+          "spatial_scope",
+          "source_state",
+          "metric_state"
+        ],
+        "title": "SourceValue"
       },
       "SpatialEnvelope": {
         "properties": {
