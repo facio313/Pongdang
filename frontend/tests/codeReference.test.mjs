@@ -55,4 +55,13 @@ test('a provider error with an unverified service meaning stays in the review li
   assert.equal(entries[0].resolved, false);
   assert.ok(entries[0].label.includes('해당 서비스 명세 확인 필요'));
   assert.equal(entries[0].raw, 'PROVIDER_10');
+  assert.equal(entries[0].guidance.url, 'https://www.data.go.kr/data/15142227/openapi.do');
+  assert.ok(entries[0].guidance.text.includes('요청 파라미터 값·형식 오류'));
+  const mixed = collectCodeReferences(jobs, [
+    { id: 1, task_name: 'khoa_roms', last_error: 'PROVIDER_10' },
+    { id: 2, task_name: 'another_service', last_error: 'PROVIDER_10' },
+  ]).filter((entry) => entry.field === 'last_error');
+  assert.equal(mixed.length, 2);
+  assert.equal(mixed.filter((entry) => entry.guidance).length, 1);
+  assert.deepEqual(mixed.find((entry) => entry.guidance).rowIds, ['1']);
 });

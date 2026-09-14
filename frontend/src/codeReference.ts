@@ -10,6 +10,7 @@ export interface CodeReference {
   count: number;
   rowIds: string[];
   origins: string[];
+  guidance?: { text: string; url: string };
 }
 
 export const unresolvedCodeLabel = "설명 확인 필요";
@@ -35,7 +36,14 @@ export function collectCodeReferences(dataset: Dataset, rows: Row[]): CodeRefere
       const value = row[column.key];
       if (value === null || value === undefined || value === "" || typeof value === "object") continue;
       const raw = String(value);
-      const key = JSON.stringify([column.key, raw]);
+      const guidance = raw === "PROVIDER_10" && row.task_name === "khoa_roms" &&
+        ((dataset.key === "runs" && column.key === "error_code") ||
+          (dataset.key === "collection-jobs" && column.key === "last_error"))
+        ? {
+          text: "ROMS 서비스의 공식 코드 10 안내는 요청 파라미터 값·형식 오류입니다. 과거 기록에는 코드만 남아 있어 당시 어떤 요청 항목이 문제였는지는 확인할 수 없습니다.",
+          url: "https://www.data.go.kr/data/15142227/openapi.do",
+        } : undefined;
+      const key = JSON.stringify([column.key, raw, guidance?.url]);
       let entry = entries.get(key);
       if (!entry) {
         entry = {
@@ -43,6 +51,7 @@ export function collectCodeReferences(dataset: Dataset, rows: Row[]): CodeRefere
           label: displayCodeName(dataset.key, column.key, raw) ?? unresolvedCodeLabel,
           resolved: !codeNeedsReview(dataset.key, column.key, raw),
           count: 0, rowIds: [], origins: [],
+          ...(guidance ? { guidance } : {}),
         };
         entries.set(key, entry);
       }
@@ -69,6 +78,7 @@ export function codeReviewText(dataset: Dataset, entries: CodeReference[]): stri
       field: entry.field, field_label: entry.fieldLabel, code: entry.raw,
       description: entry.label, resolved: entry.resolved, page_count: entry.count,
       example_row_ids: entry.rowIds, origins: entry.origins,
+      ...(entry.guidance ? { official_guidance: entry.guidance } : {}),
     })),
   ].join("\n");
 }

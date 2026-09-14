@@ -35,10 +35,10 @@ export function CodeReferencePanel({ dataset, rows }: { dataset: Dataset; rows: 
       <div className="table-scroll code-reference-scroll">
         <table aria-label={`${dataset.title} 현재 페이지 코드 설명`}>
           <thead><tr><th>필드</th><th>원본 코드</th><th>뜻</th><th>이 페이지 건수</th><th>출처·작업 / 예시 행 ID</th></tr></thead>
-          <tbody>{filtered.map((entry) => <tr key={JSON.stringify([entry.field, entry.raw])}>
+          <tbody>{filtered.map((entry) => <tr key={JSON.stringify([entry.field, entry.raw, entry.guidance?.url])}>
             <td>{entry.fieldLabel}<br /><code>{entry.field}</code></td>
             <td><code>{entry.raw}</code></td>
-            <td>{entry.label}</td>
+            <td>{entry.label}{entry.guidance && <><p>{entry.guidance.text}</p><a href={entry.guidance.url} target="_blank" rel="noreferrer">ROMS 공식 코드 안내</a></>}</td>
             <td className="numeric">{entry.count}</td>
             <td>{entry.origins.length ? entry.origins.join(" · ") : dataset.source}<br /><small>행 ID: {entry.rowIds.join(", ") || "기록 없음"}</small></td>
           </tr>)}</tbody>
