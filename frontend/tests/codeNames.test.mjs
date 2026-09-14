@@ -18,8 +18,9 @@ test('unknown, empty and prototype keys never acquire invented meanings', () => 
   assert.equal(codeName('metrics', 'name', 'toString'), '미등록 코드');
   assert.equal(codeName('metrics', 'name', ''), undefined);
 });
-test('unregistered provider and task codes do not acquire invented meanings', () => {
-  assert.equal(codeName('metrics', 'source', 'new-provider'), '미등록 코드');
-  assert.equal(codeName('runs', 'task_name', 'unknown-task'), '미등록 코드');
+test('synthetic providers, units and tasks remain explicitly synthetic', () => {
+  assert.match(codeName('metrics', 'source', 'PONGDANG_DEMO_MOE'), /수집기 미구현/);
+  assert.match(codeName('metrics', 'unit', 'demo_index'), /공식 지수 아님/);
+  assert.equal(codeName('runs', 'task_name', 'DEMO/weather-nowcast'), '현재 기상 수집 · 합성 예시 (실제 실행 아님)');
   assert.equal(codeName('runs', 'task_name', 'weather-nowcast'), '현재 기상 수집');
 });

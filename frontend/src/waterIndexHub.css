@@ -41,7 +41,7 @@
 
 .hub-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
 .hub-card {
@@ -379,11 +379,4 @@
     color: #2b3d4e;
     margin-top: 1px;
   }
-}
-
-@media (max-width: 760px) {
-  .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 440px) {
-  .hub-grid { grid-template-columns: 1fr; }
 }
