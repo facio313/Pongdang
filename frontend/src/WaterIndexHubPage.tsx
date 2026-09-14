@@ -1,4 +1,4 @@
-import { ActivityAssessmentPanel } from "./ActivityAssessmentPanel";
+import { useFeatureResult } from "./useFeatureResult";
 import { FeatureData } from "./FeatureData";
 import "./waterIndexHub.css";
 
@@ -12,12 +12,12 @@ const sections = [
 ];
 
 export function WaterIndexHubPage() {
+  const result = useFeatureResult("assessment");
   return (
     <article className="water-index-hub">
       <div className="hub-content">
         <h1>Water Index</h1>
-        <p className="hub-lede">활동별 실제 자료와 조건 일치 점수를 확인하고 각 기능 화면으로 이동할 수 있습니다. 원본 자료는 아래 표에서 확인할 수 있습니다.</p>
-        <ActivityAssessmentPanel />
+        <p className="hub-lede">수집 자료와 각 기능 화면을 모았습니다. 원본 자료는 아래 표에서 확인할 수 있습니다.</p>
         <div className="hub-grid">
           {sections.map((section) => (
             <div className="hub-card" key={section.href}>
@@ -27,6 +27,7 @@ export function WaterIndexHubPage() {
             </div>
           ))}
         </div>
+        <p className="hub-note">{result.text} {result.detail}</p>
         <FeatureData keys={["metrics", "snapshots", "spots"]} description="서버에 저장된 원본 수집 자료입니다. 원본 상태·출처·유효 기간을 함께 확인해 주세요." />
       </div>
     </article>
