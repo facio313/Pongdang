@@ -1,0 +1,17 @@
+.wim-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.wim-map-status {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  max-width: min(320px, 80%);
+  z-index: 4;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(15, 40, 70, 0.15);
+  font-size: 13px;
+}
+.wim-map-status p { margin: 0 0 8px; }

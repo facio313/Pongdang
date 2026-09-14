@@ -5,6 +5,8 @@ RUN npm ci
 COPY . .
 ARG APP_BASE_PATH=/pongdang/
 ENV APP_BASE_PATH=$APP_BASE_PATH
+ARG VITE_KAKAO_MAP_KEY
+ENV VITE_KAKAO_MAP_KEY=$VITE_KAKAO_MAP_KEY
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:stable-alpine

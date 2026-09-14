@@ -85,6 +85,9 @@
   cursor: pointer;
   align-self: flex-start;
 }
+a.hub-link-chip {
+  text-decoration: none;
+}
 .hub-demo-tag {
   font-size: 9.5px;
   font-weight: 700;
@@ -201,6 +204,10 @@
   border: 0;
   padding: 0;
   cursor: pointer;
+}
+.wim-map-marker .hub-map-pin {
+  position: relative;
+  transform: none;
 }
 .hub-map-pin-label {
   display: block;

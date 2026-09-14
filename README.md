@@ -75,6 +75,22 @@ collector는 `restart: unless-stopped`로 계속 실행하며 DB/API 포트는 �
 `/home/cks/.config/pongdang/production.env`이며 API 키도 이 파일에 등록합니다.
 로컬 환경 파일은 서버에 자동 전송되지 않습니다.
 
+지도는 카카오 **JavaScript 키**를 사용합니다. 로컬에서는
+`frontend/.env.local`에 `VITE_KAKAO_MAP_KEY`를 등록하고 Vite를 재시작합니다.
+서버에서는 `/home/cks/.config/pongdang/production.env`의 같은 변수에 키를
+등록한 뒤 현재 `main`을 기존 배포 절차로 다시 빌드·배포합니다.
+Compose가 이 변수 하나를 프론트 Docker 빌드 인자로 전달합니다.
+Vite의 빌드 시점 설정이므로 컨테이너 재시작만으로는 키 변경이 반영되지 않습니다.
+카카오 Developers의 JavaScript SDK 도메인에 실제 접속 origin
+(`http://127.0.0.1:5173`, `http://localhost:5173`, `https://bonifacio.work`)을 등록합니다.
+`KAKAO_REST_KEY`는 수집기의 장소 검색용 키이며 지도 키로 사용하지 않습니다.
+키 값과 `.env` 파일은 커밋하지 않습니다. 브라우저용 JavaScript 키는 지도 SDK
+요청에 포함되므로 등록 도메인으로 사용 범위를 제한합니다.
+
+Water Index의 지점 지도와 전체 지도는 실제 카카오 타일·장소 좌표를 사용합니다.
+금요일 프론트 시안에 있던 점수·수온 등은 별도 시연용 값으로 유지하며,
+이 지도 연결 작업이 실시간 관측·평가 API 연결을 의미하지는 않습니다.
+
 `dev`는 통합, `main`은 CI 통과 후 자동 배포입니다. 이 코드의 수정만으로 운영
 배포가 완료되는 것은 아닙니다. `ops/pongdang-deploy`는 SSH 게이트 설치용 소스이고
 애플리케이션 배포가 게이트 설치본을 바꾸지는 않습니다.

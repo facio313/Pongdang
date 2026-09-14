@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ring } from "./groupAGrade";
+import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { MAP_LOCATIONS } from "./mapLocations";
 import "./waterIndexHub.css";
 
 // Group A hub: pulls a one-line summary from each Condition Data screen (Water
@@ -11,8 +13,8 @@ import "./waterIndexHub.css";
 interface HubSpot {
   id: string;
   name: string;
-  left: number;
-  top: number;
+  latitude: number;
+  longitude: number;
   scoreColor: string;
   score: number;
   temp: string;
@@ -20,9 +22,9 @@ interface HubSpot {
 }
 
 const spots: HubSpot[] = [
-  { id: "gyeongpo", name: "경포해변", left: 24, top: 34, scoreColor: "#0891b2", score: 72, temp: "22.1°C", tempColor: "#22a6c9" },
-  { id: "anmok", name: "안목해변", left: 49, top: 62, scoreColor: "#0891b2", score: 68, temp: "24.8°C", tempColor: "#e0a72a" },
-  { id: "sacheonjin", name: "사천진해변", left: 77, top: 42, scoreColor: "#a16207", score: 54, temp: "19.4°C", tempColor: "#1d6fd8" },
+  { id: "gyeongpo", name: "경포해변", ...MAP_LOCATIONS.gyeongpo, scoreColor: "#0891b2", score: 72, temp: "22.1°C", tempColor: "#22a6c9" },
+  { id: "anmok", name: "안목해변", ...MAP_LOCATIONS.anmok, scoreColor: "#0891b2", score: 68, temp: "24.8°C", tempColor: "#e0a72a" },
+  { id: "sacheonjin", name: "사천진해변", ...MAP_LOCATIONS.sacheonjin, scoreColor: "#a16207", score: 54, temp: "19.4°C", tempColor: "#1d6fd8" },
 ];
 
 const forecast = {
@@ -236,14 +238,15 @@ export function WaterIndexHubPage() {
           <div className="hub-card hub-card-map">
             <div className="hub-card-top">
               <div className="hub-card-title">지점 지도</div>
-              <span className="hub-link-chip">전체 지도 보기 →</span>
+              <a className="hub-link-chip" href="#water-index-map">전체 지도 보기 →</a>
             </div>
             <div className="hub-map-stage">
-              {spots.map((spot) => (
+              <KakaoMapCanvas markers={spots} selectedId={active.id} renderMarker={(id) => {
+                const spot = spots.find((item) => item.id === id)!;
+                return (
                 <button
                   key={spot.id}
                   className={"hub-map-pin" + (spot.id === active.id ? " is-selected" : "")}
-                  style={{ left: `${spot.left}%`, top: `${spot.top}%` }}
                   onClick={() => toggle(spot.id)}
                   aria-pressed={spot.id === active.id}
                   aria-label={`${spot.name} · 수영 ${spot.score} · ${spot.temp}`}
@@ -251,7 +254,8 @@ export function WaterIndexHubPage() {
                   <SpotRing spot={spot} size={34} hole={10} />
                   <span className="hub-map-pin-label">{spot.name}</span>
                 </button>
-              ))}
+                );
+              }} />
             </div>
             <div className="hub-map-info">
               <SpotRing spot={active} size={30} hole={10} />
@@ -266,8 +270,8 @@ export function WaterIndexHubPage() {
               </div>
             </div>
             <div className="hub-map-hint">
-              핀을 눌러 다른 지점을 확인하세요. 점수 · 수온은 참고용이며
-              안전을 보장하지 않습니다.
+              카카오 지도와 지점 위치는 실제 정보입니다. 점수 · 수온은 시연용 예시이며
+              안전을 보장하지 않습니다. 핀을 눌러 다른 지점을 확인하세요.
             </div>
           </div>
           <MiniCards />
@@ -326,23 +330,28 @@ export function WaterIndexHubPage() {
           <div className="hub-card">
             <div className="hub-card-top">
               <div className="hub-card-title">지도</div>
-              <span className="hub-link-chip">전체 지도 →</span>
+              <a className="hub-link-chip" href="#water-index-map">전체 지도 →</a>
             </div>
             <div className="hub-map-stage hub-map-stage-mobile">
-              {spots.map((spot) => (
-                <div
+              <KakaoMapCanvas markers={spots} selectedId={active.id} renderMarker={(id) => {
+                const spot = spots.find((item) => item.id === id)!;
+                return (
+                <button
                   key={spot.id}
                   className={"hub-map-pin" + (spot.id === active.id ? " is-selected" : "")}
-                  style={{ left: `${spot.left}%`, top: `${spot.top}%` }}
+                  onClick={() => toggle(spot.id)}
+                  aria-pressed={spot.id === active.id}
+                  aria-label={`${spot.name} · 수영 ${spot.score} · ${spot.temp}`}
                 >
                   <SpotRing spot={spot} size={28} hole={9} />
                   <span className="hub-map-pin-label">{spot.name}</span>
-                </div>
-              ))}
+                </button>
+                );
+              }} />
             </div>
             <div className="hub-map-hint">
-              위 목록에서 지점을 누르면 지도에서 표시돼요. 점수 · 수온은
-              참고용이며 안전을 보장하지 않습니다.
+              카카오 지도와 지점 위치는 실제 정보입니다. 점수 · 수온은 시연용 예시이며
+              안전을 보장하지 않습니다. 목록이나 핀을 눌러 지점을 확인하세요.
             </div>
           </div>
         </div>

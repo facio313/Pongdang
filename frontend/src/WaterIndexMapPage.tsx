@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { ring } from "./groupAGrade";
+import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { MAP_LOCATIONS } from "./mapLocations";
 import "./waterIndexMap.css";
 
-// Group A: full-screen spot map + detail panel. This is a placeholder/demo
-// mock of the map interaction pattern; it is not wired to real spot or score
-// data yet. Not linked from App.tsx navigation -- integration happens later.
+// The map uses Kakao tiles and place coordinates. The Friday preview's
+// score/weather cards remain layout examples, independent of collected evidence.
 
 interface Activity {
   name: string;
@@ -18,8 +19,8 @@ interface Spot {
   id: string;
   name: string;
   addr: string;
-  left: number;
-  top: number;
+  latitude: number;
+  longitude: number;
   scoreColor: string;
   score: number;
   temp: string;
@@ -35,8 +36,7 @@ const spots: Spot[] = [
     id: "gyeongpo",
     name: "경포해변",
     addr: "강원 강릉시 저동",
-    left: 24,
-    top: 34,
+    ...MAP_LOCATIONS.gyeongpo,
     scoreColor: "#0891b2",
     score: 72,
     temp: "22.1°C",
@@ -54,8 +54,7 @@ const spots: Spot[] = [
     id: "anmok",
     name: "안목해변",
     addr: "강원 강릉시 견소동",
-    left: 49,
-    top: 62,
+    ...MAP_LOCATIONS.anmok,
     scoreColor: "#0891b2",
     score: 68,
     temp: "24.8°C",
@@ -73,8 +72,7 @@ const spots: Spot[] = [
     id: "sacheonjin",
     name: "사천진해변",
     addr: "강원 강릉시 사천면",
-    left: 77,
-    top: 42,
+    ...MAP_LOCATIONS.sacheonjin,
     scoreColor: "#a16207",
     score: 54,
     temp: "19.4°C",
@@ -135,14 +133,15 @@ export function WaterIndexMapPage() {
 
   return (
     <article className="water-index-map">
-      <div className="wim-tile-note">실제 지도 타일 미연동 · 좌표 배치도 확장판 (자리 표시)</div>
+      <div className="wim-tile-note">카카오 지도 · 장소 위치는 실제 좌표이며, 점수·수온 등은 금요일 화면의 시연용 예시입니다.</div>
 
       <div className="wim-stage">
-        {spots.map((spot) => (
+        <KakaoMapCanvas markers={spots} selectedId={selectedId} renderMarker={(id) => {
+          const spot = spots.find((item) => item.id === id)!;
+          return (
           <button
             key={spot.id}
             className={"wim-pin" + (spot.id === selectedId ? " is-selected" : "")}
-            style={{ left: `${spot.left}%`, top: `${spot.top}%` }}
             onClick={() => selectSpot(spot.id)}
             aria-pressed={spot.id === selectedId}
             aria-label={`${spot.name} · 수영 ${spot.score} · ${spot.temp}`}
@@ -153,7 +152,8 @@ export function WaterIndexMapPage() {
               {spot.score} · {spot.temp}
             </span>
           </button>
-        ))}
+          );
+        }} />
 
         <div className="wim-panel">
           {!selected && (

@@ -89,6 +89,7 @@ services:
       context: ./frontend
       args:
         APP_BASE_PATH: ${APP_BASE_PATH:-/}
+        VITE_KAKAO_MAP_KEY: ${VITE_KAKAO_MAP_KEY:-}
     restart: unless-stopped
     mem_limit: 128m
     memswap_limit: 256m
