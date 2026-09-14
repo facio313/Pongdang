@@ -25,7 +25,6 @@ const featurePages = {
 export default function App() {
   const [page, setPage] = useState(() => pageFromHash(window.location.hash));
   const [selectedKey, setSelectedKey] = useState("metrics");
-  const [showAllTablesOnOpen, setShowAllTablesOnOpen] = useState(true);
   const [revision, setRevision] = useState(0);
   const summary = useResource<Summary>("summary", revision);
   const catalog = useResource<Dataset[]>("catalog", revision);
@@ -40,7 +39,6 @@ export default function App() {
 
   function openDataset(key: string) {
     setSelectedKey(key);
-    setShowAllTablesOnOpen(false);
     window.location.hash = "data";
   }
 
@@ -86,7 +84,6 @@ export default function App() {
             selectedKey={selectedKey}
             selectDataset={setSelectedKey}
             revision={revision}
-            showAllInitially={showAllTablesOnOpen}
           />
         )}
       </main>

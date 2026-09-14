@@ -2,9 +2,7 @@ import { Fragment, useState } from "react";
 import type { Cell, Column, Dataset, Row, RowsResult, Summary } from "./data";
 import { categories, text, number, date, labels } from "./data";
 import { useResource } from "./useResource";
-import { isCodeField } from "./codeNames";
-import { displayCodeName, unresolvedCodeLabel } from "./codeReference";
-import { CodeReferencePanel } from "./CodeReferencePanel";
+import { codeName, isCodeField } from "./codeNames";
 
 function CellValue({
   value,
@@ -24,7 +22,7 @@ function CellValue({
   if (typeof value === "object")
     return <pre>{JSON.stringify(value, null, 2)}</pre>;
   if (value === "") return <span className="null-value">빈 문자열 ("")</span>;
-  const label = displayCodeName(datasetKey, column.key, String(value)) ?? ([
+  const label = codeName(datasetKey, column.key, String(value)) ?? ([
     "state",
     "status",
     "safety_status",
@@ -38,7 +36,6 @@ function CellValue({
       <>
         <span className="status-value">{label}</span>
         <small><code>{String(value)}</code></small>
-        {label === unresolvedCodeLabel && <small>‘이 페이지 코드 설명’에서 필드·출처 확인</small>}
       </>
     );
   return <>{text(value, column.type)}</>;
@@ -165,7 +162,7 @@ export function DatasetTable({
       <p className="table-note">
         출처: {dataset.source} · NULL = 값 없음 · 관측·예보의 유효 기간 경과는 조회 시점에 반영합니다. 이전 수정본은 이력으로 보존합니다.
         {dataset.columns.some((column) => isCodeField(dataset.key, column.key)) &&
-          " 코드 필드는 한글 설명과 DB 원본 코드를 함께 표시합니다. ‘이 페이지 코드 설명’에서 코드별 뜻·출처를 검색할 수 있습니다. 데이터 검색·필터는 원본 코드 기준입니다."}
+          " 코드 필드는 한글 코드명과 DB 원본 코드를 함께 표시합니다. 검색·필터는 원본 코드 기준이며, 미등록 코드는 뜻을 추정하지 않습니다."}
       </p>
       <form
         className="toolbar"
@@ -223,7 +220,6 @@ export function DatasetTable({
           새로고침
         </button>
       </form>
-      {!result.loading && !result.error && <CodeReferencePanel key={`${dataset.key}:${result.data?.queried_at}`} dataset={dataset} rows={rows} />}
       <div className="toolbar">
         <span role="status">
           {result.loading
@@ -544,19 +540,17 @@ export function DataPage({
   selectedKey,
   selectDataset,
   revision,
-  showAllInitially = true,
 }: {
   catalog: Dataset[];
   summary?: Summary;
   selectedKey: string;
   selectDataset: (key: string) => void;
   revision: number;
-  showAllInitially?: boolean;
 }) {
   const [category, setCategory] = useState("all");
   const [tableSearch, setTableSearch] = useState("");
   const [populatedOnly, setPopulatedOnly] = useState(false);
-  const [showAll, setShowAll] = useState(showAllInitially);
+  const [showAll, setShowAll] = useState(true);
   const [overviewOpen, setOverviewOpen] = useState(true);
   const counts = new Map(
     summary?.datasets.map((dataset) => [dataset.key, dataset]),
