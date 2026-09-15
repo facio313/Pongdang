@@ -14,11 +14,13 @@ import { WaterQualityPage } from "./WaterQualityPage";
 import { TodayPage } from "./TodayPage";
 import { HomePage } from "./HomePage";
 import { RecommendPage } from "./RecommendPage";
+import { MapPage } from "./MapPage";
 
 const previewPages = {
   home: { label: "홈", render: () => <HomePage /> },
   today: { label: "오늘", render: () => <TodayPage /> },
   recommend: { label: "추천", render: () => <RecommendPage /> },
+  map: { label: "지도", render: () => <MapPage /> },
   "water-index": { label: "Water Index", render: () => <WaterIndexHubPage /> },
   "water-index-map": { label: "지도 배치", render: () => <WaterIndexMapPage /> },
   "water-forecast": { label: "Water Forecast", render: () => <WaterForecastPage /> },

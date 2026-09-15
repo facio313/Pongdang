@@ -1,0 +1,554 @@
+/* 지도 화면(지점 보기 · 코스 경로 보기). Scoped under .map-page.
+   styles.css 는 수정하지 않으며 --pd-* 토큰도 이 페이지 루트에만 선언합니다.
+   컴포넌트 선택자에는 모두 페이지 루트를 붙여, 아래 button 리셋(0,1,1)보다
+   명시도가 낮아지는 일이 없게 합니다. */
+
+.map-page {
+  /* 밝은 레이어 (본문) */
+  --pd-mist: #eef4fb;
+  --pd-surface: #ffffff;
+  --pd-line: #dae7f5;
+  --pd-badge: #dfeaf7;
+  --pd-ink: #1b2c3d;
+  --pd-ink-2: #5c789a;
+  --pd-ink-3: #4c657f;
+  --pd-blue: #4a86c8;
+  --pd-blue-deep: #2f6aa8;
+  --pd-conf: #4a6d8c;
+  --pd-alert: #ffe9e9;
+  --pd-alert-ink: #8d1616;
+
+  /* 글래스 레이어 */
+  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  --pd-glass: rgba(255, 255, 255, 0.14);
+  --pd-glass-line: rgba(255, 255, 255, 0.4);
+  --pd-on-cobalt: #eef5ff;
+  --pd-on-cobalt-2: #c4dcf8;
+  --pd-sky: #9ed4ff;
+
+  /* 형태 */
+  --pd-r-hero: 22px;
+  --pd-r-card: 18px;
+  --pd-r-ctl: 14px;
+  --pd-r-pill: 999px;
+  --pd-shadow: 0 6px 20px rgba(20, 44, 72, 0.1);
+  --pd-shadow-hero: 0 14px 40px rgba(12, 38, 90, 0.28);
+
+  --pd-font-num: "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  color: var(--pd-ink);
+  display: flex;
+  justify-content: center;
+}
+
+.map-page :focus-visible {
+  outline: 2px solid var(--pd-blue);
+  outline-offset: 2px;
+}
+.map-page button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.map-page .mp-frame {
+  width: min(390px, 100%);
+  background: var(--pd-mist);
+  border-radius: 26px;
+  box-shadow: 0 12px 34px rgba(16, 40, 80, 0.16);
+  overflow: hidden;
+}
+
+.map-page .mp-num {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.map-page .mp-lbl {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-ink-2);
+  margin: 0;
+}
+.map-page .mp-note {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.map-page .mp-card {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 14px 16px;
+}
+.map-page .mp-card-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.map-page .mp-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.map-page .mp-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--pd-r-card);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pd-ink-2);
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 8px;
+}
+
+/* ── 지도 무대 ─────────────────────────────────────────── */
+
+.map-page .mp-stage {
+  position: relative;
+  height: 300px;
+  background-color: #cddff0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(47, 106, 168, 0.1) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(47, 106, 168, 0.1) 0 1px, transparent 1px 26px);
+}
+.map-page .mp-sbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 6px;
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+}
+.map-page .mp-sbar-mark {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--pd-ink);
+}
+.map-page .mp-searchbar {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 44px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-pill);
+  box-shadow: var(--pd-shadow);
+  font-size: 12px;
+  color: var(--pd-ink-2);
+  text-align: left;
+  width: calc(100% - 32px);
+}
+.map-page .mp-searchbar.is-course {
+  color: var(--pd-ink);
+  font-weight: 700;
+}
+.map-page .mp-tile-slot {
+  align-content: start;
+  padding-top: 12px;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 92px;
+  bottom: 18px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* 지점 핀 — 점수 링(conic) + 흰 원 안에 점수. 색만으로 판단을 전달하지
+   않도록 링 옆 라벨에 지점명과 점수를 함께 적습니다. */
+.map-page .mp-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.map-page .mp-pin-ring {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.map-page .mp-pin-core {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--pd-surface);
+  display: grid;
+  place-items: center;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.map-page .mp-pin-label {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.map-page .mp-pin.is-selected .mp-pin-label {
+  outline: 2px solid var(--pd-blue-deep);
+}
+
+/* ── 바텀 시트 ─────────────────────────────────────────── */
+
+.map-page .mp-sheet {
+  position: relative;
+  z-index: 3;
+  margin-top: -18px;
+  padding: 14px 18px 18px;
+  border-radius: var(--pd-r-hero) var(--pd-r-hero) 0 0;
+  background: var(--pd-mist);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.map-page .mp-handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: #c6d5e6;
+  margin: 0 auto 4px;
+}
+
+/* 보기 전환 */
+.map-page .mp-switch {
+  display: flex;
+  gap: 6px;
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-pill);
+  padding: 4px;
+  box-shadow: var(--pd-shadow);
+}
+.map-page .mp-switch-item {
+  flex: 1;
+  min-height: 38px;
+  border-radius: var(--pd-r-pill);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pd-ink-2);
+  cursor: pointer;
+}
+.map-page .mp-switch-item.is-on {
+  background: var(--pd-blue);
+  color: #fff;
+}
+
+.map-page .mp-spot-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.map-page .mp-spot-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.map-page .mp-spot-address {
+  font-size: 11.5px;
+  color: var(--pd-ink-2);
+  margin-top: 2px;
+}
+.map-page .mp-spot-score {
+  text-align: right;
+  flex: none;
+}
+.map-page .mp-spot-score-num {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.map-page .mp-tiles {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+}
+.map-page .mp-tile {
+  flex: 1;
+  min-width: 0;
+  background: var(--pd-mist);
+  border-radius: var(--pd-r-ctl);
+  padding: 9px 6px;
+  text-align: center;
+}
+.map-page .mp-tile-icon {
+  display: block;
+  margin: 0 auto 2px;
+  color: var(--pd-blue-deep);
+}
+.map-page .mp-tile-value {
+  font-size: 12.5px;
+}
+.map-page .mp-tile-name {
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+}
+
+.map-page .mp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* ── 이동 순서 ─────────────────────────────────────────── */
+
+.map-page .mp-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.map-page .mp-stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--pd-mist);
+  border-radius: var(--pd-r-ctl);
+  padding: 9px 11px;
+}
+.map-page .mp-stop-no {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pd-blue);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 11px;
+}
+.map-page .mp-stop-body {
+  flex: 1;
+  min-width: 0;
+}
+.map-page .mp-stop-name {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.map-page .mp-stop-meta {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  margin-top: 2px;
+}
+.map-page .mp-stop-dist {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  flex: none;
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 버튼 ──────────────────────────────────────────────── */
+
+.map-page .mp-actions {
+  display: flex;
+  gap: 10px;
+}
+.map-page .mp-actions > * {
+  flex: 1;
+}
+.map-page .mp-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 46px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-blue);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.map-page .mp-primary[disabled] {
+  background: #8fa3b8;
+  cursor: default;
+}
+.map-page .mp-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 46px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+.map-page .mp-secondary[disabled] {
+  color: #8fa3b8;
+  cursor: default;
+}
+
+/* ── 미작성 화면 ───────────────────────────────────────── */
+
+.map-page .mp-todo {
+  min-height: 84px;
+  padding: 14px;
+}
+.map-page .mp-todo b {
+  color: var(--pd-ink-3);
+}
+
+/* ── 등급 칩 · 데이터 상태 칩 (pongdangUi.tsx 가 쓰는 클래스) ──
+   등급 판정과 등급명·원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   레이어별 칩 표면(배경/글자)만 등급 key 로 고릅니다. */
+
+.map-page [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.map-page [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.map-page [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.map-page [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.map-page [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.map-page [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+
+.map-page .pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.map-page .pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: 10px;
+}
+.map-page .pd-grade-chip-num {
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-page .pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.map-page .pd-state-chip.is-live {
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.map-page .pd-state-chip.is-alert {
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+}
+
+/* 안전 상태 unknown — 등급 팔레트와 분리된 경고 면입니다. unknown 은
+   안전하다는 뜻이 아니라 판정이 없다는 뜻입니다. */
+.map-page .mp-unknown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+  white-space: nowrap;
+}
+
+/* ── 탭바 ──────────────────────────────────────────────── */
+
+.map-page .mp-tabbar {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 6px 8px;
+  display: flex;
+}
+.map-page .mp-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+  text-decoration: none;
+}
+.map-page .mp-tab[aria-current="page"] {
+  color: var(--pd-blue-deep);
+  font-weight: 700;
+}
+.map-page .mp-tab[disabled] {
+  color: #9db1c6;
+  cursor: default;
+}
+.map-page .mp-tabbar-note {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-page *,
+  .map-page *::before,
+  .map-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
