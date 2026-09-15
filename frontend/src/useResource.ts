@@ -1,8 +1,7 @@
-import { useContext, useEffect, useState } from "react";
-import { DataOrigin } from "./DataOrigin";
+import { useEffect, useState } from "react";
 
 export function useResource<T>(path: string, revision = 0) {
-  const origin = useContext(DataOrigin);
+  const origin = "data";
   const key = `${origin}:${path}:${revision}`;
   const [result, setResult] = useState<{
     key: string;

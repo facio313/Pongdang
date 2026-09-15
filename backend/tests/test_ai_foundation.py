@@ -404,6 +404,8 @@ def test_configured_model_prices_can_exceed_minimum_call_reservation(ai_db):
             "ai_input_microusd_per_million_tokens": 100_000_000,
             "ai_output_microusd_per_million_tokens": 200_000_000,
             "ai_daily_budget_microusd": 163_600,
+            # This arithmetic case explicitly reserves the legacy 256 output tokens.
+            "ai_max_output_tokens": 256,
         }
     )
     assert service.reserve(settings, 100) is True
@@ -413,3 +415,33 @@ def test_configured_model_prices_can_exceed_minimum_call_reservation(ai_db):
             "SELECT calls,reserved_tokens,reserved_cost_microusd "
             "FROM pongdang_data.ai_daily_budget"
         ).fetchone() == (1, 1380, 163600)
+
+
+def test_legacy_paid_endpoint_shares_concurrency_limit(
+    spatial, ai_settings, monkeypatch
+):
+    from app.ai.budget import Admission
+
+    monkeypatch.setattr(
+        service.accounting,
+        "acquire_request",
+        lambda *_: Admission(None, "ai_concurrency_limit"),
+    )
+    monkeypatch.setattr(service.accounting, "reserve_attempt", forbidden)
+    app = FastAPI()
+    app.include_router(service.create_ai_router(ai_settings))
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/data/ai/explanation",
+            json={"spot_id": 45, "use_model": True},
+            headers={
+                "x-pongdang-sso-token": ai_settings.sso_proxy_secret.get_secret_value(),
+                "x-pongdang-sso-subject": "test-owner",
+                "x-pongdang-sso-grants": "access-pongdang",
+                "origin": "https://example.test",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["provider"] == "deterministic"
+    assert "ai_concurrency_limit" in response.json()["reason_codes"]
+    assert response.json()["facts"]

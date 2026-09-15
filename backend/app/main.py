@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import psycopg
 from fastapi import FastAPI, HTTPException
 
+from app.ai.chat import create_chat_router
 from app.ai.service import create_ai_router
 from app.config import Settings
 from app.data_reader import create_data_router
@@ -19,13 +20,20 @@ from app.water_index.api import create_water_index_router
 from app.water_index.condition_api import create_condition_router
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, chat_factory=create_chat_router
+) -> FastAPI:
     settings = settings or Settings()
+
+    chat_router, ai_provider = chat_factory(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        await check_database(settings)
-        yield
+        try:
+            await check_database(settings)
+            yield
+        finally:
+            await ai_provider.aclose()
 
     app = FastAPI(
         title="Pongdang API",
@@ -60,4 +68,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(create_notifications_router(settings))
     app.include_router(create_quality_router(settings))
     app.include_router(create_ai_router(settings))
+    app.include_router(chat_router)
     return app

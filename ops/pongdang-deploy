@@ -54,7 +54,7 @@ compose "$release" build --pull
 # Only Pongdang's collection schema and retired synthetic schema are affected.
 if [[ -f "$release/backend/app/schema.py" ]]; then
   compose "$release" up -d --no-build --wait db
-  compose "$release" run --rm --no-deps backend python -m app.schema --initialize --remove-demo
+  compose "$release" run --rm --no-deps initialize
 fi
 previous="$(readlink -f "$state/current" || true)"
 if ! compose "$release" up -d --no-build --wait --wait-timeout 180 ||

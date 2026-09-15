@@ -11,7 +11,7 @@ from app.data_reader import CATALOG
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 6
+VERSION = 7
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -55,18 +55,25 @@ def initialize(settings: Settings) -> bool:
                 migrate_water_index(connection)
                 migrate_features(connection)
                 migrate_place_provenance(connection)
+                migrate_ai_concierge(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
                 migrate_features(connection)
                 migrate_place_provenance(connection)
+                migrate_ai_concierge(connection)
                 return True
             if row == (4,):
                 migrate_features(connection)
                 migrate_place_provenance(connection)
+                migrate_ai_concierge(connection)
                 return True
             if row == (5,):
                 migrate_place_provenance(connection)
+                migrate_ai_concierge(connection)
+                return True
+            if row == (6,):
+                migrate_ai_concierge(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -120,7 +127,16 @@ def initialize(settings: Settings) -> bool:
         migrate_water_index(connection)
         migrate_features(connection)
         migrate_place_provenance(connection)
+        migrate_ai_concierge(connection)
     return True
+
+
+def migrate_ai_concierge(connection):
+    """Explicit v6 -> v7: retain old budget totals, add admission/usage records."""
+    from app.ai.budget import migrate_ai
+
+    migrate_ai(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=7 WHERE id=1")
 
 
 def migrate_place_provenance(connection):
