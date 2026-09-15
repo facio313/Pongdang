@@ -11,8 +11,10 @@ import { LivecamHubPage } from "./LivecamHubPage";
 import { TideTimerPage } from "./TideTimerPage";
 import { FirstSwimPage } from "./FirstSwimPage";
 import { WaterQualityPage } from "./WaterQualityPage";
+import { TodayPage } from "./TodayPage";
 
 const previewPages = {
+  today: { label: "오늘", render: () => <TodayPage /> },
   "water-index": { label: "Water Index", render: () => <WaterIndexHubPage /> },
   "water-index-map": { label: "지도 배치", render: () => <WaterIndexMapPage /> },
   "water-forecast": { label: "Water Forecast", render: () => <WaterForecastPage /> },
