@@ -21,7 +21,12 @@
   z-index: 5;
   background: var(--pd-surface, #ffffff);
   border-radius: var(--pd-r-card, 18px);
-  box-shadow: var(--pd-shadow, 0 6px 20px rgba(20, 44, 72, 0.1));
+  /* 본문 카드와 같은 흰 표면 위에 떠 있으므로, 카드용 --pd-shadow 보다 짙게
+     깔고 위쪽으로도 번지게 해 스크롤되는 본문과 경계를 분명히 합니다. */
+  border: 1px solid var(--pd-line, #dae7f5);
+  box-shadow:
+    0 -2px 8px rgba(16, 40, 80, 0.06),
+    0 10px 30px rgba(16, 40, 80, 0.24);
   padding: 6px 8px;
   display: flex;
 }
