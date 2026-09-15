@@ -182,10 +182,26 @@ test("favorites and explicit notification settings use owner-scoped APIs", async
     .getByLabel("알림 장소")
     .selectOption({ label: "강릉 경포 OFFLINE TEST 해변" });
   await page.getByLabel("선호 수온 기준 · °C").fill("19.5");
+  // Keep the post-save refresh pending so both status messages coexist.
+  let releaseRefresh!: () => void;
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
+  await page.route("**/api/data/notifications/subscriptions?**", async (route) => {
+    await refreshGate;
+    await route.continue();
+  });
   await page.getByRole("button", { name: "앱 내 알림 구독 저장" }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "알림 구독을 저장했습니다",
-  );
+  try {
+    await expect(
+      page.getByRole("status").filter({ hasText: "알림 구독을 저장했습니다" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "실제 자료 조회 중" }),
+    ).toBeVisible();
+  } finally {
+    releaseRefresh();
+  }
   await expect(page.locator(".feature-page table tbody tr")).toHaveCount(1);
   await page.reload();
   await expect(page.locator(".feature-page table")).toContainText("19.5");
