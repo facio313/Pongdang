@@ -1,0 +1,825 @@
+/* 추천 화면(진입 → 취향 수집 → 대화 → 코스 결과 → 재추천).
+   Scoped under .recommend-page. styles.css 는 수정하지 않으며 --pd-* 토큰도
+   이 페이지 루트에만 선언합니다. */
+
+.recommend-page {
+  /* 밝은 레이어 (본문) */
+  --pd-mist: #eef4fb;
+  --pd-surface: #ffffff;
+  --pd-line: #dae7f5;
+  --pd-badge: #dfeaf7;
+  --pd-ink: #1b2c3d;
+  --pd-ink-2: #5c789a;
+  --pd-ink-3: #4c657f;
+  --pd-blue: #4a86c8;
+  --pd-blue-deep: #2f6aa8;
+  --pd-conf: #4a6d8c;
+  --pd-alert: #ffe9e9;
+  --pd-alert-ink: #8d1616;
+
+  /* 글래스 레이어 (히어로) */
+  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  --pd-glass: rgba(255, 255, 255, 0.14);
+  --pd-glass-line: rgba(255, 255, 255, 0.4);
+  --pd-on-cobalt: #eef5ff;
+  --pd-on-cobalt-2: #c4dcf8;
+  --pd-sky: #9ed4ff;
+
+  /* 형태 */
+  --pd-r-hero: 22px;
+  --pd-r-card: 18px;
+  --pd-r-ctl: 14px;
+  --pd-r-pill: 999px;
+  --pd-shadow: 0 6px 20px rgba(20, 44, 72, 0.1);
+  --pd-shadow-hero: 0 14px 40px rgba(12, 38, 90, 0.28);
+
+  --pd-font-num: "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  color: var(--pd-ink);
+  display: flex;
+  justify-content: center;
+}
+
+.recommend-page :focus-visible {
+  outline: 2px solid var(--pd-blue);
+  outline-offset: 2px;
+}
+.recommend-page button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.recommend-page .rc-frame {
+  width: min(390px, 100%);
+  background: var(--pd-mist);
+  border-radius: 26px;
+  box-shadow: 0 12px 34px rgba(16, 40, 80, 0.16);
+  overflow: hidden;
+}
+
+.recommend-page .rc-num {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recommend-page .rc-lbl {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-ink-2);
+  margin: 0;
+}
+.recommend-page .rc-note {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.recommend-page .rc-card {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 16px 18px;
+}
+.recommend-page .rc-card-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.recommend-page .rc-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--pd-r-card);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pd-ink-2);
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 8px;
+}
+
+/* ── 히어로 ─────────────────────────────────────────────── */
+
+.recommend-page .rc-hero {
+  background: var(--pd-cobalt);
+  color: var(--pd-on-cobalt);
+  padding-bottom: 18px;
+  border-radius: 0 0 var(--pd-r-hero) var(--pd-r-hero);
+  box-shadow: var(--pd-shadow-hero);
+}
+.recommend-page .rc-sbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 6px;
+  font-size: 10.5px;
+  color: var(--pd-on-cobalt-2);
+}
+.recommend-page .rc-sbar-mark {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.recommend-page .rc-hero-inner {
+  padding: 8px 20px 0;
+}
+.recommend-page .rc-hero .rc-lbl {
+  color: var(--pd-sky);
+}
+.recommend-page .rc-hero-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 8px 0 0;
+}
+.recommend-page .rc-hero-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pd-on-cobalt-2);
+  cursor: pointer;
+  min-height: 24px;
+}
+.recommend-page .rc-progress {
+  display: flex;
+  gap: 5px;
+  margin-top: 14px;
+}
+.recommend-page .rc-progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.recommend-page .rc-progress span.is-on {
+  background: #eef5ff;
+}
+
+/* 컨시어지 헤더 */
+.recommend-page .rc-bot-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 6px 20px 0;
+}
+.recommend-page .rc-bot-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--pd-glass);
+  border: 1px solid var(--pd-glass-line);
+  display: grid;
+  place-items: center;
+}
+.recommend-page .rc-bot-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.recommend-page .rc-bot-sub {
+  font-size: 11px;
+  color: var(--pd-on-cobalt-2);
+  margin-top: 2px;
+}
+
+/* 코스 결과 히어로 */
+.recommend-page .rc-hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.recommend-page .rc-hero-score-num {
+  font-size: 38px;
+  line-height: 1;
+}
+.recommend-page .rc-days {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.recommend-page .rc-day {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0 7px;
+  text-align: center;
+  border: 1px solid var(--pd-glass-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-glass);
+  color: var(--pd-on-cobalt);
+  cursor: pointer;
+}
+.recommend-page .rc-day.is-selected {
+  background: #eef5ff;
+  border-color: #eef5ff;
+  color: #0f2f7a;
+}
+.recommend-page .rc-day-score {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.recommend-page .rc-day-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* 조건 변화 카드 (B4 히어로) */
+.recommend-page .rc-change {
+  background: var(--pd-glass);
+  border: 1px solid var(--pd-glass-line);
+  border-radius: var(--pd-r-card);
+  padding: 12px 14px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.recommend-page .rc-change-metric {
+  font-size: 12px;
+  color: var(--pd-on-cobalt-2);
+}
+.recommend-page .rc-change-metric b {
+  color: var(--pd-on-cobalt);
+}
+.recommend-page .rc-change-scores {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.recommend-page .rc-change-from {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 12px;
+  color: #bcd4ff;
+  text-decoration: line-through;
+}
+.recommend-page .rc-change-to {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 18px;
+}
+.recommend-page .rc-hero-note {
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--pd-on-cobalt-2);
+  margin: 12px 0 0;
+}
+
+/* ── 본문 ──────────────────────────────────────────────── */
+
+.recommend-page .rc-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recommend-page .rc-lede {
+  font-size: 12px;
+  color: var(--pd-ink-3);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 태그 칩 ───────────────────────────────────────────── */
+
+.recommend-page .rc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.recommend-page .rc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.recommend-page .rc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 9px 13px;
+  min-height: 38px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: var(--pd-ink-2);
+  cursor: pointer;
+}
+.recommend-page .rc-tag.is-on {
+  background: var(--pd-blue);
+  color: #fff;
+}
+.recommend-page .rc-facts {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+}
+.recommend-page .rc-fact {
+  flex: 1;
+  min-width: 0;
+  background: var(--pd-mist);
+  border-radius: var(--pd-r-ctl);
+  padding: 9px 10px;
+}
+.recommend-page .rc-fact-name {
+  font-size: 10px;
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-fact-value {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── 활동 카드 (STEP 2) ────────────────────────────────── */
+
+.recommend-page .rc-photo-slot {
+  height: 180px;
+  margin-bottom: 12px;
+}
+.recommend-page .rc-swipe-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.recommend-page .rc-swipe-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+.recommend-page .rc-swipe-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.recommend-page .rc-liked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* ── 대화 (B3) ─────────────────────────────────────────── */
+
+.recommend-page .rc-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recommend-page .rc-bubble-row {
+  display: flex;
+}
+.recommend-page .rc-bubble-row.is-user {
+  justify-content: flex-end;
+}
+.recommend-page .rc-bubble {
+  max-width: 80%;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--pd-surface);
+  box-shadow: var(--pd-shadow);
+}
+.recommend-page .rc-bubble.is-user {
+  border-radius: 18px 18px 6px 18px;
+  background: var(--pd-blue);
+  color: #fff;
+  box-shadow: none;
+}
+.recommend-page .rc-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recommend-page .rc-reply {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 9px 13px;
+  min-height: 38px;
+  border-radius: var(--pd-r-pill);
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+  cursor: pointer;
+}
+
+/* 근거 카드의 지표 막대 — 점수 기여도가 아니라 지표 값의 상대 위치입니다. */
+.recommend-page .rc-basis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+.recommend-page .rc-basis-name {
+  width: 54px;
+  flex: none;
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-basis-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pd-mist);
+  overflow: hidden;
+}
+.recommend-page .rc-basis-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--pd-blue);
+}
+.recommend-page .rc-basis-value {
+  width: 62px;
+  flex: none;
+  text-align: right;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recommend-page .rc-basis-value.is-empty {
+  color: #4b5563;
+}
+
+/* ── 코스 타임라인 (B2) ────────────────────────────────── */
+
+.recommend-page .rc-timeline {
+  padding: 16px 16px 6px;
+}
+.recommend-page .rc-stop {
+  display: flex;
+  gap: 12px;
+}
+.recommend-page .rc-stop-time {
+  width: 42px;
+  flex: none;
+  text-align: right;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.recommend-page .rc-stop-rail {
+  width: 2px;
+  flex: none;
+  background: #e7eef7;
+  border-radius: 1px;
+  position: relative;
+}
+.recommend-page .rc-stop-dot {
+  position: absolute;
+  top: 3px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.recommend-page .rc-stop-body {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0 18px 2px;
+}
+.recommend-page .rc-stop-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.recommend-page .rc-stop-badge {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+  display: grid;
+  place-items: center;
+}
+.recommend-page .rc-stop-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.recommend-page .rc-stop-place {
+  font-size: 11.5px;
+  color: var(--pd-ink-2);
+  margin-top: 2px;
+}
+.recommend-page .rc-stop-basis {
+  font-size: 12px;
+  color: var(--pd-ink-3);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+.recommend-page .rc-stop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.recommend-page .rc-stop.is-cancelled .rc-stop-name,
+.recommend-page .rc-stop.is-cancelled .rc-stop-place {
+  text-decoration: line-through;
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-basis-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  background: var(--pd-badge);
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  white-space: nowrap;
+}
+
+/* ── 빈 상태 (예보 없는 날) ────────────────────────────── */
+
+.recommend-page .rc-empty {
+  text-align: center;
+  padding: 22px 18px;
+}
+.recommend-page .rc-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+.recommend-page .rc-empty-icon {
+  color: #8fa3b8;
+}
+
+/* ── 버튼 ──────────────────────────────────────────────── */
+
+.recommend-page .rc-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 48px;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-blue);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.recommend-page .rc-primary.is-done {
+  background: #8fa3b8;
+  cursor: default;
+}
+.recommend-page .rc-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 44px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+.recommend-page .rc-actions {
+  display: flex;
+  gap: 10px;
+}
+.recommend-page .rc-actions > * {
+  flex: 1;
+}
+.recommend-page .rc-actions > .rc-primary {
+  flex: 1.4;
+}
+.recommend-page .rc-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── 알림 카드 (B4) ────────────────────────────────────── */
+
+.recommend-page .rc-alert {
+  background: var(--pd-alert);
+}
+.recommend-page .rc-alert-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--pd-alert-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.recommend-page .rc-swap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.recommend-page .rc-swap-col {
+  flex: 1;
+  min-width: 0;
+}
+.recommend-page .rc-swap-when {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-swap-what {
+  font-size: 13px;
+  font-weight: 700;
+}
+.recommend-page .rc-swap-col.is-cancelled .rc-swap-what {
+  text-decoration: line-through;
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-alert .rc-note {
+  color: var(--pd-alert-ink);
+}
+
+/* ── 등급 칩 · 데이터 상태 칩 (pongdangUi.tsx 가 쓰는 클래스) ──
+   등급 판정과 등급명·원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   레이어별 칩 표면(배경/글자)만 등급 key 로 고릅니다. */
+
+.recommend-page [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.recommend-page [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.recommend-page [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.recommend-page [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.recommend-page [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.recommend-page [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+.recommend-page .is-glass[data-grade="excellent"] {
+  --g-bg: #bcd4ff;
+  --g-ink: #0f2f7a;
+}
+.recommend-page .is-glass[data-grade="good"] {
+  --g-bg: #8fe3f0;
+  --g-ink: #06303a;
+}
+.recommend-page .is-glass[data-grade="fair"] {
+  --g-bg: #f0d28a;
+  --g-ink: #3d2a00;
+}
+.recommend-page .is-glass[data-grade="caution"] {
+  --g-bg: #f6b08a;
+  --g-ink: #3d1500;
+}
+.recommend-page .is-glass[data-grade="poor"] {
+  --g-bg: #f39a9a;
+  --g-ink: #3d0000;
+}
+.recommend-page .is-glass[data-grade="unscored"] {
+  --g-bg: transparent;
+  --g-ink: var(--pd-on-cobalt);
+  border: 1px solid var(--pd-glass-line);
+}
+
+.recommend-page .pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.recommend-page .pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: 10.5px;
+}
+.recommend-page .pd-grade-chip.is-glass.is-bare {
+  color: #bcd4ff;
+  border: 0;
+}
+.recommend-page .pd-grade-chip-num {
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.recommend-page .pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.recommend-page .pd-state-chip.is-live {
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.recommend-page .pd-state-chip.is-alert {
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+}
+
+.recommend-page .pd-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.recommend-page .pd-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-blue);
+  padding: 3px 10px;
+  border-radius: var(--pd-r-pill);
+  white-space: nowrap;
+}
+.recommend-page .pd-ai-headline {
+  font-size: 11.5px;
+  color: var(--pd-ink-3);
+}
+.recommend-page .pd-ai-basis {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+/* ── 탭바 ──────────────────────────────────────────────── */
+
+.recommend-page .rc-tabbar {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 6px 8px;
+  display: flex;
+}
+.recommend-page .rc-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+  text-decoration: none;
+}
+.recommend-page .rc-tab[aria-current="page"] {
+  color: var(--pd-blue-deep);
+  font-weight: 700;
+}
+.recommend-page .rc-tab[disabled] {
+  color: #9db1c6;
+  cursor: default;
+}
+.recommend-page .rc-tabbar-note {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-page *,
+  .recommend-page *::before,
+  .recommend-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
