@@ -178,6 +178,9 @@ test('real feature links resolve to bounded existing reads and preserve context'
   assert.deepEqual(readRoute('#ai?spot_id=17&activity=surf'), { page: 'ai', spotId: 17, activity: 'surf', from: null, until: null });
   assert.equal(readRoute('#demo').page, 'data');
   assert.equal(readRoute('#collector').page, 'info');
+  assert.equal(readRoute('#livecam').page, 'livecam');
+  assert.equal(readRoute('#livecam-test').page, 'livecam');
+  assert.equal(readRoute('#livecam-test?spot_id=17').spotId, 17);
   assert.equal(readRoute('#water-index-map?spot_id=17').spotId, 17);
   assert.equal(contextLink({ spot_id: 17, activity: 'surf' }), '#ai?spot_id=17&activity=surf');
   const timed = contextLink({spot_id: 17}, {from: '2026-01-01T00:00:00Z', until: '2026-01-02T00:00:00Z'});

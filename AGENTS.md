@@ -14,6 +14,14 @@
   collection migrations additive and explicit via `app.schema`.
 - `/api/data` reads real Pongdang collection records only. Retired `/api/demo`
   and `/api/collector` return 404. Never substitute synthetic data for missing reads.
+  The user-requested `POST /api/data/livecams/preview` is a bounded on-demand
+  Windy lookup for the `#livecam` list (`#livecam-test` remains an alias).
+  On entry, the water catalog combines only the first 25-camera page of each
+  beach/coast/port/lake/river category, with no further provider pagination.
+  Filters and 25-row UI pages share the ten-minute cache. Existing collected
+  beach/valley places within 10 km are matched read-only and ranked first;
+  proximity never confirms the camera's subject. It returns normalized
+  real provider data with a temporary cache and performs no DB writes or seeding.
 - `app.ingestion` owns normalized evidence and atomic idempotent storage.
   `models.SourceBatch` is the live adapter contract; `worker` runs separately
   from FastAPI, with per-job DB locks, persisted due times, backoff and heartbeat.

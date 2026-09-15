@@ -192,3 +192,17 @@ cluster; frontend lint, **27 tests**, TypeScript, and the `/pongdang/` productio
 build passed. This test count excludes the original untracked duplicate test
 files present in earlier whole-working-directory runs. Scanning the selected
 files against the actual local environment secret values found no matches.
+
+## Main integration verification — 2026-09-15
+
+The release merges AI commit `2034aad` with the newly released webcam catalog
+commit `0949282`, preserving the Windy configuration, preview route, `#livecam`
+page and `#livecam-test` alias alongside `#ai`. Documentation for uncommitted
+travel work is excluded from this release.
+
+- Backend Ruff checks and formatting: passed (124 files).
+- Backend PostgreSQL 18 tests in disposable `pongdang_test`: **861 passed**.
+- Frontend lint, complete test suite and `/pongdang/` production build: passed.
+- Route tests cover both webcam hashes and preserve the existing AI/context routes.
+- This integration check makes no additional paid provider calls. GitHub CI and
+  automatic deployment are verified separately for the resulting commit.

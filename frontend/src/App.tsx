@@ -7,6 +7,7 @@ import { DataOrigin } from "./DataOrigin";
 import { AiConciergePage } from "./AiConciergePage";
 import { FeatureDataPage } from "./FeatureDataPage";
 import { featurePages, readRoute, type FeaturePage } from "./featureRoutes";
+import { LivecamPreviewPage } from "./LivecamPreviewPage";
 
 export default function App() {
   useEffect(() => {
@@ -45,6 +46,7 @@ function Workspace() {
     </nav></header>
     <main id="main-content" tabIndex={-1}>
       {route.page === "ai" ? <AiConciergePage key={JSON.stringify(route)} initialContext={{ ...(route.spotId ? { spot_id: route.spotId } : {}), activity: route.activity, ...(route.from && route.until ? { time_text: `${route.from}/${route.until}` } : {}) }} />
+        : route.page === "livecam" ? <LivecamPreviewPage />
         : Object.hasOwn(featurePages, route.page) ? <FeatureDataPage key={JSON.stringify(route)} page={route.page as FeaturePage} spotId={route.spotId} activity={route.activity ?? "swim"} from={route.from} until={route.until} /> : <>
           <div className="toolbar"><span>{summary.data ? "Pongdang DB 연결됨" : summary.loading ? "DB 연결 확인 중" : "DB 조회 불가"} · Pongdang 자체 DB / pongdang_data · 읽기 전용 · KST</span><span>현황 조회: {date(summaryData?.queried_at)}</span><button disabled={summary.loading} onClick={() => setRevision((value) => value + 1)}>전체 새로고침</button></div>
           {summary.error && <p role="alert">DB 현황을 불러오지 못했습니다. {summary.error} 설명과 데이터 구조는 계속 확인할 수 있습니다.</p>}

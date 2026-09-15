@@ -2,12 +2,12 @@ import { activities, type Activity, type AiContext } from "./aiApi";
 
 export const featurePages = {
   "water-index": "Water Index", "water-index-map": "지도 배치", "water-forecast": "Water Forecast",
-  "water-temperature": "수온", livecam: "라이브캠", tide: "물때 타이머", "first-swim": "첫 입수", "water-quality": "수질 교차검증",
+  "water-temperature": "수온", livecam: "웹캠 목록", tide: "물때 타이머", "first-swim": "첫 입수", "water-quality": "수질 교차검증",
 } as const;
 export type FeaturePage = keyof typeof featurePages;
 export function readRoute(hash: string) {
   const [rawPage, rawQuery = ""] = hash.replace(/^#/, "").split("?");
-  const page = rawPage === "collector" ? "info" : rawPage === "ai" || rawPage === "info" || Object.hasOwn(featurePages, rawPage) ? rawPage : "data";
+  const page = rawPage === "livecam-test" ? "livecam" : rawPage === "collector" ? "info" : rawPage === "ai" || rawPage === "info" || Object.hasOwn(featurePages, rawPage) ? rawPage : "data";
   const query = new URLSearchParams(rawQuery);
   const value = query.get("spot_id") ?? "";
   const spotId = /^[1-9]\d{0,14}$/.test(value) ? Number(value) : undefined;
