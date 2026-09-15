@@ -12,8 +12,10 @@ import { TideTimerPage } from "./TideTimerPage";
 import { FirstSwimPage } from "./FirstSwimPage";
 import { WaterQualityPage } from "./WaterQualityPage";
 import { TodayPage } from "./TodayPage";
+import { HomePage } from "./HomePage";
 
 const previewPages = {
+  home: { label: "홈", render: () => <HomePage /> },
   today: { label: "오늘", render: () => <TodayPage /> },
   "water-index": { label: "Water Index", render: () => <WaterIndexHubPage /> },
   "water-index-map": { label: "지도 배치", render: () => <WaterIndexMapPage /> },

@@ -1,0 +1,612 @@
+/* 홈 화면. Scoped under .home-page. styles.css 는 수정하지 않으며 --pd-*
+   토큰도 이 페이지 루트에만 선언합니다. */
+
+.home-page {
+  /* 밝은 레이어 (본문) */
+  --pd-mist: #eef4fb;
+  --pd-surface: #ffffff;
+  --pd-line: #dae7f5;
+  --pd-badge: #dfeaf7;
+  --pd-ink: #1b2c3d;
+  --pd-ink-2: #5c789a;
+  --pd-ink-3: #4c657f;
+  --pd-blue: #4a86c8;
+  --pd-blue-deep: #2f6aa8;
+  --pd-conf: #4a6d8c;
+  --pd-alert: #ffe9e9;
+  --pd-alert-ink: #8d1616;
+
+  /* 글래스 레이어 (히어로) */
+  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  --pd-glass: rgba(255, 255, 255, 0.14);
+  --pd-glass-line: rgba(255, 255, 255, 0.4);
+  --pd-on-cobalt: #eef5ff;
+  --pd-on-cobalt-2: #c4dcf8;
+  --pd-sky: #9ed4ff;
+
+  /* 형태 */
+  --pd-r-hero: 22px;
+  --pd-r-card: 18px;
+  --pd-r-ctl: 14px;
+  --pd-r-pill: 999px;
+  --pd-shadow: 0 6px 20px rgba(20, 44, 72, 0.1);
+  --pd-shadow-hero: 0 14px 40px rgba(12, 38, 90, 0.28);
+
+  /* 수치·라틴 전용. Space Grotesk 미설치 환경에서는 본문 폰트로 폴백하되
+     tabular-nums 로 자릿수 정렬은 유지합니다. */
+  --pd-font-num: "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  color: var(--pd-ink);
+  display: flex;
+  justify-content: center;
+}
+
+.home-page :focus-visible {
+  outline: 2px solid var(--pd-blue);
+  outline-offset: 2px;
+}
+.home-page button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.home-page .hm-frame {
+  position: relative;
+  width: min(390px, 100%);
+  background: var(--pd-mist);
+  border-radius: 26px;
+  box-shadow: 0 12px 34px rgba(16, 40, 80, 0.16);
+  overflow: hidden;
+}
+
+.home-page .hm-num {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.home-page .hm-lbl {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-ink-2);
+  margin: 0;
+}
+.home-page .hm-note {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.home-page .hm-card {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 14px 16px;
+}
+.home-page .hm-card-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* 아직 디자인이 확정되지 않은 자리입니다. 빈 채로 두지 않고 무엇이 들어올
+   자리인지 점선 슬롯으로 밝힙니다. */
+.home-page .hm-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--pd-r-card);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pd-ink-2);
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 8px;
+}
+.home-page .hm-slot.is-on-cobalt {
+  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--pd-on-cobalt-2);
+}
+
+/* ── 히어로 ─────────────────────────────────────────────── */
+
+.home-page .hm-hero {
+  background: var(--pd-cobalt);
+  color: var(--pd-on-cobalt);
+  padding-bottom: 20px;
+  border-radius: 0 0 var(--pd-r-hero) var(--pd-r-hero);
+  box-shadow: var(--pd-shadow-hero);
+}
+.home-page .hm-sbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 6px;
+  font-size: 10.5px;
+  color: var(--pd-on-cobalt-2);
+}
+.home-page .hm-sbar-mark {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.home-page .hm-hero-inner {
+  padding: 6px 20px 0;
+}
+.home-page .hm-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-page .hm-menu-button {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--pd-glass-line);
+  border-radius: 10px;
+  background: var(--pd-glass);
+  cursor: pointer;
+}
+.home-page .hm-hero-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pd-sky);
+}
+.home-page .hm-hero-visual {
+  height: 140px;
+  margin-top: 12px;
+}
+.home-page .hm-hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+.home-page .hm-hero-sentence {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+.home-page .hm-hero-score {
+  text-align: right;
+  flex: none;
+}
+.home-page .hm-hero-score-num {
+  font-size: 42px;
+  line-height: 1;
+}
+.home-page .hm-hero-note {
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--pd-on-cobalt-2);
+  margin: 12px 0 0;
+}
+
+/* ── 본문 ──────────────────────────────────────────────── */
+
+.home-page .hm-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-page .hm-tiles {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+.home-page .hm-tile {
+  flex: 1;
+  min-width: 0;
+  background: var(--pd-mist);
+  border-radius: var(--pd-r-ctl);
+  padding: 10px 4px;
+  text-align: center;
+}
+.home-page .hm-tile.is-empty {
+  background: #f4f6f9;
+}
+.home-page .hm-tile-value {
+  font-size: 13px;
+}
+.home-page .hm-tile.is-empty .hm-tile-value {
+  color: #8fa3b8;
+}
+.home-page .hm-tile-name {
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+}
+.home-page .hm-graph-slot {
+  height: 64px;
+  margin-top: 12px;
+}
+
+/* ── 등급 칩 · 데이터 상태 칩 (pongdangUi.tsx 가 쓰는 클래스) ──
+   등급 판정과 등급명·원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   레이어별 칩 표면(배경/글자)만 등급 key 로 고릅니다. */
+
+.home-page [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.home-page [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.home-page [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.home-page [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.home-page [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.home-page [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+.home-page .is-glass[data-grade="excellent"] {
+  --g-bg: #bcd4ff;
+  --g-ink: #0f2f7a;
+}
+.home-page .is-glass[data-grade="good"] {
+  --g-bg: #8fe3f0;
+  --g-ink: #06303a;
+}
+.home-page .is-glass[data-grade="fair"] {
+  --g-bg: #f0d28a;
+  --g-ink: #3d2a00;
+}
+.home-page .is-glass[data-grade="caution"] {
+  --g-bg: #f6b08a;
+  --g-ink: #3d1500;
+}
+.home-page .is-glass[data-grade="poor"] {
+  --g-bg: #f39a9a;
+  --g-ink: #3d0000;
+}
+.home-page .is-glass[data-grade="unscored"] {
+  --g-bg: transparent;
+  --g-ink: var(--pd-on-cobalt);
+  border: 1px solid var(--pd-glass-line);
+}
+
+.home-page .pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.home-page .pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: 10.5px;
+}
+.home-page .pd-grade-chip.is-glass.is-bare {
+  color: #bcd4ff;
+  border: 0;
+}
+.home-page .pd-grade-chip-num {
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-page .pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.home-page .pd-state-chip.is-live {
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.home-page .pd-state-chip.is-alert {
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+}
+
+/* AI 제안 칩 — 규칙상 이 칩이 붙은 카드에는 같은 카드 안에 근거가 함께
+   있어야 합니다. pongdangUi 의 AiSuggestion 이 둘을 한 덩어리로 렌더합니다. */
+.home-page .pd-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.home-page .pd-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-blue);
+  padding: 3px 10px;
+  border-radius: var(--pd-r-pill);
+  white-space: nowrap;
+}
+.home-page .pd-ai-headline {
+  font-size: 11.5px;
+  color: var(--pd-ink-3);
+}
+.home-page .pd-ai-basis {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+/* ── 버튼 ──────────────────────────────────────────────── */
+
+.home-page .hm-primary {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 48px;
+  margin-top: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-blue);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.home-page .hm-secondary {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 46px;
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* ── 최적경로 · 라이브캠 ───────────────────────────────── */
+
+.home-page .hm-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.home-page .hm-route-slot {
+  height: 86px;
+  margin-top: 10px;
+}
+.home-page .hm-badge-round {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+  display: grid;
+  place-items: center;
+}
+.home-page .hm-cam-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.home-page .hm-cam {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--pd-r-ctl);
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+.home-page .hm-cam-thumb {
+  height: 56px;
+}
+.home-page .hm-cam-label {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  padding: 5px 4px;
+  text-align: center;
+}
+
+/* ── 탭바 ──────────────────────────────────────────────── */
+
+.home-page .hm-tabbar {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 6px 8px;
+  display: flex;
+}
+.home-page .hm-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+  text-decoration: none;
+}
+.home-page .hm-tab[aria-current="page"] {
+  color: var(--pd-blue-deep);
+  font-weight: 700;
+}
+.home-page .hm-tab[disabled] {
+  color: #9db1c6;
+  cursor: default;
+}
+.home-page .hm-tabbar-note {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── 사이드 메뉴 (탭 밖) ───────────────────────────────── */
+
+.home-page .hm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  padding: 0;
+  background: rgba(15, 47, 122, 0.32);
+  cursor: pointer;
+}
+.home-page .hm-menu {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 3;
+  width: min(300px, 82%);
+  background: var(--pd-surface);
+  box-shadow: 0 0 40px rgba(12, 38, 90, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  animation: hm-slide-in 180ms ease-out;
+}
+@keyframes hm-slide-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.home-page .hm-menu-head {
+  background: var(--pd-cobalt);
+  color: var(--pd-on-cobalt);
+  padding: 18px 18px 20px;
+}
+.home-page .hm-menu-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.home-page .hm-menu-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--pd-glass-line);
+  background: var(--pd-glass);
+  color: var(--pd-on-cobalt);
+  cursor: pointer;
+}
+.home-page .hm-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 14px;
+}
+.home-page .hm-menu-avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.45);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  color: var(--pd-on-cobalt-2);
+  text-align: center;
+  line-height: 1.3;
+}
+.home-page .hm-menu-signin {
+  font-size: 13px;
+  font-weight: 700;
+}
+.home-page .hm-menu-signin-sub {
+  font-size: 10.5px;
+  color: var(--pd-on-cobalt-2);
+  margin-top: 2px;
+}
+.home-page .hm-menu-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-page .hm-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--pd-r-ctl);
+  font-size: 12.5px;
+  text-align: left;
+  text-decoration: none;
+  color: var(--pd-ink);
+  cursor: pointer;
+}
+.home-page .hm-menu-item:hover {
+  background: var(--pd-mist);
+}
+.home-page .hm-menu-item[disabled] {
+  color: #8fa3b8;
+  cursor: default;
+}
+.home-page .hm-menu-item[disabled]:hover {
+  background: none;
+}
+.home-page .hm-menu-item .pd-state-chip {
+  margin-left: auto;
+}
+.home-page .hm-menu-note {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 4px 12px 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page *,
+  .home-page *::before,
+  .home-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
