@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     data_go_kr_key: SecretStr = SecretStr("")
     kma_api_hub_key: SecretStr = SecretStr("")
     kakao_rest_key: SecretStr = SecretStr("")
+    # Route-only key, using the same environment name as Pilgrimage.
+    kakao_rest_api_key: SecretStr = SecretStr("")
+    travel_route_provider: Literal["disabled", "kakao"] = "kakao"
     hrfco_key: SecretStr = SecretStr("")
     collection_latitude: float = Field(default=37.8034055083, ge=-90, le=90)
     collection_longitude: float = Field(default=128.9102102476, ge=-180, le=180)
@@ -52,16 +55,71 @@ class Settings(BaseSettings):
     notifications_from_email: str = ""
     notifications_delivery_enabled: bool = False
     livecam_allowed_hosts: str = ""
-    ai_provider: Literal["disabled", "openai"] = "disabled"
-    ai_model: str = Field(default="", max_length=100)
-    ai_pricing_model: str = Field(default="", max_length=100)
-    ai_input_microusd_per_million_tokens: int | None = Field(default=None, ge=0)
-    ai_output_microusd_per_million_tokens: int | None = Field(default=None, ge=0)
+    windy_webcams_api_key: SecretStr = SecretStr("")
+    windy_webcams_radii_km: str = "2,5,10"
+    windy_webcams_daily_budget: int = Field(default=30, ge=0, le=100)
+    windy_webcams_refresh_hours: int = Field(default=24, ge=6, le=168)
+    windy_webcams_timeout_seconds: float = Field(default=8, ge=1, le=15)
+
+    @field_validator("windy_webcams_radii_km")
+    @classmethod
+    def validate_windy_radii(cls, value):
+        radii = [float(r) for r in value.split(",")]
+        if (
+            not 1 <= len(radii) <= 3
+            or radii != sorted(set(radii))
+            or any(not 0 < r <= 10 for r in radii)
+        ):
+            raise ValueError("Use one to three increasing radii, at most 10 km")
+        return value
+
+    @field_validator("windy_webcams_api_key", mode="before")
+    @classmethod
+    def trim_windy_key(cls, value):
+        if isinstance(value, SecretStr):
+            value = value.get_secret_value()
+        return value.strip() if isinstance(value, str) else value
+
+    ai_provider: Literal["auto", "disabled", "openai"] = "auto"
+    ai_model: str = Field(default="gpt-5.6-luna", max_length=100)
+    ai_pricing_model: str = Field(default="gpt-5.6-luna", max_length=100)
+    # Official standard token prices verified 2026-09-15: USD 0.20 / 1.20
+    # per million tokens. Cached-input discounts are deliberately not assumed.
+    ai_input_microusd_per_million_tokens: int | None = Field(default=200000, ge=0)
+    ai_output_microusd_per_million_tokens: int | None = Field(default=1200000, ge=0)
     ai_api_key: SecretStr = SecretStr("")
-    ai_timeout_seconds: float = Field(default=8, ge=1, le=30)
-    ai_max_input_bytes: int = Field(default=8000, ge=100, le=16000)
-    ai_max_output_tokens: int = Field(default=256, ge=64, le=1024)
-    ai_max_daily_calls: int = Field(default=20, ge=0, le=1000)
-    ai_max_daily_tokens: int = Field(default=20000, ge=0, le=1000000)
-    ai_reserved_call_microusd: int = Field(default=100000, ge=1)
+    ai_timeout_seconds: float = Field(default=20, ge=1, le=30)
+    ai_max_input_bytes: int = Field(default=65536, ge=100, le=131072)
+    ai_max_output_tokens: int = Field(default=2048, ge=64, le=4096)
+    ai_max_daily_calls: int = Field(default=200, ge=0, le=1000)
+    ai_max_daily_tokens: int = Field(default=4000000, ge=0, le=10000000)
+    ai_reserved_call_microusd: int = Field(default=20000, ge=1)
     ai_daily_budget_microusd: int = Field(default=1000000, ge=0)
+    ai_max_model_calls: int = Field(default=3, ge=1, le=3)
+    ai_max_tool_calls: int = Field(default=6, ge=1, le=6)
+    ai_request_timeout_seconds: float = Field(default=60, ge=5, le=60)
+    ai_max_concurrency: int = Field(default=2, ge=1, le=4)
+    ai_principal_requests_per_minute: int = Field(default=6, ge=1, le=30)
+
+    @field_validator("ai_model", "ai_pricing_model", mode="before")
+    @classmethod
+    def default_empty_ai_model(cls, value):
+        return "gpt-5.6-luna" if value is None or str(value).strip() == "" else value
+
+    @field_validator("ai_provider", mode="before")
+    @classmethod
+    def default_empty_ai_provider(cls, value):
+        return "auto" if value is None or str(value).strip() == "" else value
+
+    @field_validator("ai_api_key", mode="before")
+    @classmethod
+    def trim_ai_key(cls, value):
+        if isinstance(value, SecretStr):
+            value = value.get_secret_value()
+        return value.strip() if isinstance(value, str) else value
+
+    @property
+    def ai_effective_provider(self) -> Literal["disabled", "openai"]:
+        if self.ai_provider == "disabled" or not self.ai_api_key.get_secret_value():
+            return "disabled"
+        return "openai"

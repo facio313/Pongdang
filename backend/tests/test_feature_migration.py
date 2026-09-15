@@ -22,6 +22,8 @@ def test_v4_upgrade_preserves_evidence_and_is_idempotent(monkeypatch):
         with monkeypatch.context() as patch:
             patch.setattr(schema, "migrate_features", lambda connection: None)
             patch.setattr(schema, "migrate_place_provenance", lambda connection: None)
+            patch.setattr(schema, "migrate_ai_concierge", lambda connection: None)
+            patch.setattr(schema, "migrate_travel", lambda connection: None)
             assert schema.initialize(settings)
         with schema.connect(settings) as connection:
             assert connection.execute(

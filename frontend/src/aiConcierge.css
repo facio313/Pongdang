@@ -1,0 +1,44 @@
+.ai-concierge { max-width: 1040px; margin: 0 auto; overflow-wrap: anywhere; }
+.ai-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ai-concierge button, .ai-concierge input, .ai-concierge select, .feature-page button, .feature-page input, .feature-page select { min-height: 40px; }
+.ai-privacy, .ai-notice { border: 1px solid #c2ccd6; padding: 10px 12px; margin: 12px 0; background: #f5f7fa; }
+.ai-privacy { color: #424d58; font-size: 12px; }
+.ai-examples { margin: 18px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-examples h2 { flex-basis: 100%; }
+.ai-examples button { text-align: left; background: white; border: 1px solid #b7c7d6; border-radius: 4px; padding: 8px 10px; }
+.ai-turn { padding: 14px 0; border-top: 1px solid #d8dde3; }
+.ai-user-question { border-left: 3px solid #174d8c; padding: 8px 12px; background: #eef4fa; font-size: 15px; white-space: pre-wrap; }
+.ai-response { padding: 8px 0; }
+.ai-plain-text { white-space: pre-wrap; }
+.ai-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+.ai-badges > * { background: #edf0f3; color: #303c49; padding: 2px 7px; border-radius: 3px; font-size: 12px; }
+.ai-candidates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 10px; }
+.ai-candidate, .ai-fact { border: 1px solid #cbd3dc; padding: 10px 12px; margin: 8px 0; min-width: 0; }
+.ai-candidate nav { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 10px 0 0; }
+.ai-candidate a { display: inline-flex; align-items: center; min-height: 40px; }
+.ai-metadata { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 10px 0; font-size: 12px; }
+.ai-metadata div { min-width: 130px; max-width: 100%; }
+.ai-metadata dt { color: #53606e; }
+.ai-metadata dd { margin: 2px 0 0; }
+.ai-form { border: 1px solid #b2c0ce; padding: 12px; margin-top: 14px; background: white; }
+.ai-form > label { display: block; font-weight: 600; margin: 8px 0; }
+.ai-form textarea { display: block; width: 100%; resize: vertical; font: inherit; padding: 10px; min-height: 92px; border: 1px solid #7d8f9f; }
+.ai-submit { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ai-context-fields { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+.ai-context-fields label { display: flex; flex-direction: column; gap: 3px; flex: 1 1 180px; }
+.ai-context-fields input, .ai-context-fields select { width: 100%; }
+.feature-page { max-width: 1300px; margin: 0 auto; }
+.feature-page .toolbar { align-items: end; }
+.feature-page .toolbar label { flex-direction: column; align-items: flex-start; }
+.feature-page td { overflow-wrap: anywhere; max-width: 440px; }
+.feature-page .feature-json { max-height: 450px; overflow: auto; }
+.app-header nav { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .ai-heading { align-items: start; }
+  .ai-heading button { flex-shrink: 0; }
+  .ai-form { padding: 10px; }
+  .ai-form textarea, .ai-context-fields input, .ai-context-fields select { font-size: 16px; }
+  .ai-examples button { width: 100%; }
+  .ai-candidate, .ai-fact { padding: 8px; }
+  .feature-page input[type="datetime-local"] { max-width: 100%; }
+}

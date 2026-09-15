@@ -208,6 +208,59 @@ def run_checks(settings, now=None, checker=check_camera):
     )
 
 
+async def read_cameras(
+    reader, *, spot_id=None, media_kind=None, page=1, page_size=25, now=None
+):
+    """Public camera projection shared by the API and bounded AI reads."""
+    now = now or datetime.now(UTC)
+    async with reader.connection() as c:
+        rows = await (
+            await c.execute(
+                """WITH latest AS (
+            SELECT DISTINCT ON(camera_id) * FROM pongdang_data.livecam_revision
+            ORDER BY camera_id,available_at DESC,revision_id DESC)
+            SELECT r.revision_id,r.payload,k.checked_at,k.valid_until,
+            k.status,k.reason_code FROM latest r LEFT JOIN LATERAL (
+            SELECT * FROM pongdang_data.livecam_check
+            WHERE revision_id=r.revision_id
+            ORDER BY checked_at DESC LIMIT 1) k ON true
+            WHERE (%s::bigint IS NULL OR r.spot_id=%s)
+            AND (%s::text IS NULL OR r.payload->>'media_kind'=%s)
+            ORDER BY r.camera_id LIMIT %s OFFSET %s""",
+                [
+                    spot_id,
+                    spot_id,
+                    media_kind,
+                    media_kind,
+                    page_size + 1,
+                    (page - 1) * page_size,
+                ],
+            )
+        ).fetchall()
+    more = len(rows) > page_size
+    for row in rows[:page_size]:
+        camera = Camera.model_validate(row.pop("payload"))
+        row.update(camera.model_dump(mode="json"))
+        if (
+            not row["valid_until"]
+            or row["valid_until"] <= now
+            or camera.review_valid_until <= now
+        ):
+            row["status"] = "unverifiable"
+            row["reason_code"] = "check_missing_or_expired"
+        row["live_verified"] = False
+    return dict(
+        contract_version="livecams.v1",
+        rows=rows[:page_size],
+        page=page,
+        page_size=page_size,
+        has_more=more,
+        as_of=now,
+        status="available" if rows else "no_data",
+        reason_codes=[] if rows else ["no_verified_camera_data"],
+    )
+
+
 def create_livecam_router(settings):
     router = APIRouter(prefix="/api/data/livecams", tags=["livecams"])
     reader = DataReader(settings)
@@ -219,52 +272,12 @@ def create_livecam_router(settings):
         page: int = Query(default=1, ge=1, le=1000),
         page_size: int = Query(default=25, ge=1, le=100),
     ):
-        now = datetime.now(UTC)
-        async with reader.connection() as c:
-            rows = await (
-                await c.execute(
-                    """WITH latest AS (
-                SELECT DISTINCT ON(camera_id) * FROM pongdang_data.livecam_revision
-                ORDER BY camera_id,available_at DESC,revision_id DESC)
-                SELECT r.revision_id,r.payload,k.checked_at,k.valid_until,
-                k.status,k.reason_code FROM latest r LEFT JOIN LATERAL (
-                SELECT * FROM pongdang_data.livecam_check
-                WHERE revision_id=r.revision_id
-                ORDER BY checked_at DESC LIMIT 1) k ON true
-                WHERE (%s::bigint IS NULL OR r.spot_id=%s)
-                AND (%s::text IS NULL OR r.payload->>'media_kind'=%s)
-                ORDER BY r.camera_id LIMIT %s OFFSET %s""",
-                    [
-                        spot_id,
-                        spot_id,
-                        media_kind,
-                        media_kind,
-                        page_size + 1,
-                        (page - 1) * page_size,
-                    ],
-                )
-            ).fetchall()
-        more = len(rows) > page_size
-        for row in rows[:page_size]:
-            camera = Camera.model_validate(row.pop("payload"))
-            row.update(camera.model_dump(mode="json"))
-            if (
-                not row["valid_until"]
-                or row["valid_until"] <= now
-                or camera.review_valid_until <= now
-            ):
-                row["status"] = "unverifiable"
-                row["reason_code"] = "check_missing_or_expired"
-            row["live_verified"] = False
-        return dict(
-            contract_version="livecams.v1",
-            rows=rows[:page_size],
+        return await read_cameras(
+            reader,
+            spot_id=spot_id,
+            media_kind=media_kind,
             page=page,
             page_size=page_size,
-            has_more=more,
-            as_of=now,
-            status="available" if rows else "no_data",
-            reason_codes=[] if rows else ["no_verified_camera_data"],
         )
 
     return router

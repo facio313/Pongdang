@@ -5,6 +5,11 @@ export default defineConfig({
   plugins: [react()],
   base: process.env.APP_BASE_PATH ?? '/',
   server: {
-    proxy: { '/api': 'http://127.0.0.1:8000' },
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      '/api': { target: process.env.APP_API_TARGET ?? 'http://127.0.0.1:8000', changeOrigin: false },
+    },
   },
 })

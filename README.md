@@ -95,6 +95,35 @@ Water Index의 지점 지도와 전체 지도는 실제 카카오 타일·장소
 배포가 완료되는 것은 아닙니다. `ops/pongdang-deploy`는 SSH 게이트 설치용 소스이고
 애플리케이션 배포가 게이트 설치본을 바꾸지는 않습니다.
 
+## Luna AI에게 물어보기
+
+기존 내비게이션의 **AI에게 물어보기**(`/pongdang/#ai`)에서 지역·장소·활동·시각을
+자연어로 조회하고 조건을 바꿔 이어서 질문할 수 있습니다. 실제 Pongdang 장소,
+Water Twin·수온·활동 조건, 공개 평가·지원 범위, 공식 예보, 물때, 수질 교차검증,
+라이브캠 등록 정보를 제한된 읽기 도구로 조회합니다. 관측소를 여행장소로 추천하거나
+미검증 점수·입수 안전·없는 시설을 생성하지 않습니다.
+
+기존 DB·collector·검토된 Bonifacio SSO 헤더 브리지가 정상이고 이 코드가 CI를 거쳐
+배포된 환경에서는 `/home/cks/.config/pongdang/production.env`에
+`AI_API_KEY=발급받은_OpenAI_API_키` 한 줄을 넣고 **backend 컨테이너를 재생성**하면
+기본 `gpt-5.6-luna`와 요금·호출 제한을 사용합니다. 키는 backend 환경에만 전달됩니다.
+키가 없으면 AI는 준비 전 상태로 표시하고 가능한 결정론적 읽기를 제공하며 기존
+조회·수집·health/readiness는 계속 동작합니다. 상태의 `ready_to_try`는 실제 API
+연결 검증 완료를 뜻하지 않습니다.
+
+명시적 `AI_PROVIDER=disabled` 또는 과거의 `null` 요금/낮은 토큰 제한은 운영자
+설정을 존중하므로 별도로 검토해야 합니다. 저장소의 SSO ingress include만으로
+운영 호스트의 헤더 전달이 검증된 것은 아닙니다. 정확한 환경 적용 명령,
+`python -m app.ai.smoke --live` 유료 확인, 실제 기능/자료 대응표, 비용·개인정보·
+SSO 설치 경계는 [AI 컨시어지 구현·운영 문서](docs/ai-concierge.md)에 정리했습니다.
+
+로컬 브라우저에서 직접 AI를 테스트하려면 일반 backend 실행 대신
+`uv run --frozen python -m app.ai.local --session-file /새로운/임시/세션.json`을
+사용합니다. 이 컴퓨터에서만 유효한 임시 접속 URL로 AI 화면을 열고 실제 질문을
+전송할 수 있습니다. 운영 SSO와 API 키 설정은 그대로 두고 기존 호출·비용 한도를
+적용합니다. [로컬 브라우저 실행 안내](docs/ai-concierge.md#로컬-브라우저에서-직접-대화)에
+정확한 실행 순서와 세션 만료 조건이 있습니다.
+
 ## 조회 API와 검증
 
 - `/api/data/catalog`, `/api/data/summary`, `/api/data/datasets/{key}`
@@ -121,3 +150,9 @@ uv run ruff format --check .
 
 실제 API를 호출하는 스모크는 수동 검증이며 CI 테스트는 제공처 응답 대역을 사용합니다.
 운영 DB에서 테스트나 더미 시드를 실행하지 않습니다.
+
+### 물 풍경 웹캠
+
+`/pongdang/#livecam`은 해변·해안·항구·호수·하천의 실제 Windy 카메라를 모아 보여줍니다.
+서버 전용 `WINDY_WEBCAMS_API_KEY`를 설정하면 화면 요청에 따라 조회하며, 기존 수집 장소
+10km 이내인 카메라를 먼저 표시합니다. [설정과 조회 범위](docs/webcams.md)를 참조하세요.

@@ -10,6 +10,9 @@ from urllib.request import Request, build_opener
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from app.ai import budget as accounting
+from app.ai.budget import migrate_ai as migrate_ai
+from app.ai.budget import reserve as reserve
 from app.data_reader import DataReader
 from app.ingestion.http import NoRedirect
 from app.twin.api import SpatialQuery, spatial_view
@@ -76,60 +79,6 @@ class Explanation(BaseModel):
     reason_codes: list[str]
 
 
-def migrate_ai(c):
-    c.execute("""CREATE TABLE IF NOT EXISTS pongdang_data.ai_daily_budget (
-        day date PRIMARY KEY, calls integer NOT NULL DEFAULT 0,
-        reserved_tokens bigint NOT NULL DEFAULT 0,
-        reserved_cost_microusd bigint NOT NULL DEFAULT 0)""")
-
-
-def reserve(settings, input_size):
-    from app.schema import connect
-
-    if (
-        not isinstance(input_size, int)
-        or not 0 <= input_size <= settings.ai_max_input_bytes
-    ):
-        return False
-    # input_size is the entire serialized provider request, including schema and
-    # instructions. Byte count plus protocol margin is conservative for text BPE;
-    # this is a reservation, not a report of billed provider usage.
-    input_tokens = input_size + 1024
-    tokens = input_tokens + settings.ai_max_output_tokens
-    input_price = getattr(settings, "ai_input_microusd_per_million_tokens", None)
-    output_price = getattr(settings, "ai_output_microusd_per_million_tokens", None)
-    priced_cost = (
-        (input_tokens * input_price + 999_999) // 1_000_000
-        + (settings.ai_max_output_tokens * output_price + 999_999) // 1_000_000
-        if input_price is not None and output_price is not None
-        else 0
-    )
-    cost = max(settings.ai_reserved_call_microusd, priced_cost)
-    with connect(settings) as c:
-        c.execute(
-            "INSERT INTO pongdang_data.ai_daily_budget(day) "
-            "VALUES((now() AT TIME ZONE 'UTC')::date) ON CONFLICT DO NOTHING"
-        )
-        result = c.execute(
-            "UPDATE pongdang_data.ai_daily_budget SET calls=calls+1,"
-            "reserved_tokens=reserved_tokens+%s,"
-            "reserved_cost_microusd=reserved_cost_microusd+%s "
-            "WHERE day=(now() AT TIME ZONE 'UTC')::date "
-            "AND calls<%s AND reserved_tokens+%s<=%s "
-            "AND reserved_cost_microusd+%s<=%s RETURNING calls",
-            [
-                tokens,
-                cost,
-                settings.ai_max_daily_calls,
-                tokens,
-                settings.ai_max_daily_tokens,
-                cost,
-                settings.ai_daily_budget_microusd,
-            ],
-        ).fetchone()
-    return bool(result)
-
-
 def validate_order(value, fact_ids):
     if (
         not isinstance(value, dict)
@@ -147,8 +96,8 @@ def pricing_configured(settings):
     return (
         getattr(settings, "ai_pricing_model", "") == settings.ai_model
         and bool(settings.ai_model)
-        and getattr(settings, "ai_input_microusd_per_million_tokens", None) is not None
-        and getattr(settings, "ai_output_microusd_per_million_tokens", None) is not None
+        and (getattr(settings, "ai_input_microusd_per_million_tokens", None) or 0) > 0
+        and (getattr(settings, "ai_output_microusd_per_million_tokens", None) or 0) > 0
     )
 
 
@@ -188,6 +137,14 @@ def request_bytes(settings, payload):
     return json.dumps(request_body(settings, payload), ensure_ascii=False).encode()
 
 
+class OrderedFacts(dict):
+    """Internal transport usage does not change the legacy JSON contract."""
+
+    def __init__(self, value, usage):
+        super().__init__(value)
+        self.usage = usage
+
+
 def openai_order(settings, payload):
     request = Request(
         "https://api.openai.com/v1/responses",
@@ -215,7 +172,7 @@ def openai_order(settings, payload):
     ]
     if len(texts) != 1:
         raise ValueError("Expected one structured result")
-    return json.loads(texts[0])
+    return OrderedFacts(json.loads(texts[0]), response.get("usage", {}))
 
 
 async def explain(settings, request, *, adapter=openai_order, budget=reserve):
@@ -284,7 +241,7 @@ async def explain(settings, request, *, adapter=openai_order, budget=reserve):
         if not place["layers"]:
             reasons.append("no_evidence_to_order")
         elif (
-            settings.ai_provider != "openai"
+            settings.ai_effective_provider != "openai"
             or not settings.ai_model
             or not settings.ai_api_key.get_secret_value()
         ):
@@ -299,7 +256,14 @@ async def explain(settings, request, *, adapter=openai_order, budget=reserve):
                 reasons.append("ai_input_limit")
             else:
                 try:
-                    reserved = await asyncio.to_thread(budget, settings, size)
+                    reservation = None
+                    if budget is reserve:
+                        reservation = await asyncio.to_thread(
+                            accounting.reserve_attempt, settings, size
+                        )
+                        reserved = bool(reservation)
+                    else:
+                        reserved = await asyncio.to_thread(budget, settings, size)
                 except Exception:
                     reserved = False
                     reasons.append("ai_budget_unavailable")
@@ -311,6 +275,15 @@ async def explain(settings, request, *, adapter=openai_order, budget=reserve):
                             asyncio.to_thread(adapter, settings, payload),
                             timeout=settings.ai_timeout_seconds + 1,
                         )
+                        if reservation and isinstance(output, OrderedFacts):
+                            usage = output.usage
+                            await asyncio.to_thread(
+                                accounting.record_usage,
+                                settings,
+                                reservation,
+                                usage.get("input_tokens"),
+                                usage.get("output_tokens"),
+                            )
                         order = validate_order(output, [f.fact_id for f in facts])
                         by_id = {f.fact_id: f for f in facts}
                         facts = [by_id[key] for key in order]
@@ -342,9 +315,12 @@ def create_ai_router(settings):
 
     @router.get("/tools")
     async def tools():
+        from app.ai.tools import TOOL_REGISTRY
+
         return {
             "contract_version": "bounded-services.v1",
             "services": TOOLS,
+            "concierge_tools": list(TOOL_REGISTRY),
             "maximum_page_size": 100,
             "arbitrary_sql": False,
             "model_authors_facts": False,
@@ -371,6 +347,35 @@ def create_ai_router(settings):
     async def model_explanation(
         request: ExplainRequest, principal: Annotated[Principal, Depends(auth)]
     ):
-        return await explain(settings, request)
+        if not request.use_model or settings.ai_effective_provider != "openai":
+            return await explain(settings, request)
+        admission = None
+        reason = "ai_admission_unavailable"
+        try:
+            admission = await asyncio.to_thread(
+                accounting.acquire_request, settings, principal.subject
+            )
+            if admission.lease_id:
+                return await explain(settings, request)
+            reason = admission.reason_code
+        except Exception:
+            pass
+        finally:
+            if admission and admission.lease_id:
+                try:
+                    await asyncio.shield(
+                        asyncio.to_thread(
+                            accounting.release_request, settings, admission.lease_id
+                        )
+                    )
+                except Exception:
+                    pass
+        result = await explain(
+            settings, request.model_copy(update={"use_model": False})
+        )
+        result.reason_codes.append(reason)
+        if result.status != "no_data":
+            result.status = "deterministic_fallback"
+        return result
 
     return router

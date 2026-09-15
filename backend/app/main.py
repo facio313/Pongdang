@@ -5,27 +5,37 @@ from contextlib import asynccontextmanager
 import psycopg
 from fastapi import FastAPI, HTTPException
 
+from app.ai.chat import create_chat_router
 from app.ai.service import create_ai_router
 from app.config import Settings
 from app.data_reader import create_data_router
 from app.database import check_database
 from app.forecast.api import create_forecast_router
+from app.livecams.preview import create_preview_router
 from app.livecams.service import create_livecam_router
 from app.notifications.api import create_router as create_notifications_router
 from app.quality.api import create_router as create_quality_router
 from app.tides.api import create_tides_router
+from app.travel.api import create_router as create_travel_router
 from app.twin.api import create_twin_router
 from app.water_index.api import create_water_index_router
 from app.water_index.condition_api import create_condition_router
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, chat_factory=create_chat_router
+) -> FastAPI:
     settings = settings or Settings()
+
+    chat_router, ai_provider = chat_factory(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        await check_database(settings)
-        yield
+        try:
+            await check_database(settings)
+            yield
+        finally:
+            await ai_provider.aclose()
 
     app = FastAPI(
         title="Pongdang API",
@@ -56,8 +66,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(create_forecast_router(settings))
     app.include_router(create_twin_router(settings))
     app.include_router(create_livecam_router(settings))
+    app.include_router(create_preview_router(settings))
     app.include_router(create_tides_router(settings))
     app.include_router(create_notifications_router(settings))
     app.include_router(create_quality_router(settings))
     app.include_router(create_ai_router(settings))
+    app.include_router(create_travel_router(settings))
+    app.include_router(chat_router)
     return app

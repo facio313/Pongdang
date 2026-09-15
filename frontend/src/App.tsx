@@ -40,7 +40,7 @@ export default function App() {
   );
   const [page, setPage] = useState<Page>(pageFromHash);
   useEffect(() => {
-    const change = () => setPage(pageFromHash());
+    const change = () => setRoute(readRoute(window.location.hash));
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);

@@ -235,9 +235,15 @@ async def read_authority(c, q, at, as_of):
     )
 
 
-async def read_conditions(reader, q: ConditionQuery, *, now=None):
+async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=None):
     at, as_of = q.times(now or datetime.now(UTC))
     allowed = {m.name for m in ACTIVITIES[q.activity].metrics}
+    if metric_names is not None:
+        # Internal travel reader only; public activity calculation still uses
+        # its original activity allowlist and explicit scoring contract.
+        if not set(metric_names) <= METRICS.keys() or len(metric_names) > 8:
+            raise ValueError("invalid_internal_metric_selection")
+        allowed = set(metric_names)
     source_names = sorted(
         allowed | {alias for alias, name in ALIASES.items() if name in allowed}
     )
@@ -337,9 +343,7 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None):
         safety_status=safety,
         restriction_refs=tuple(restrictions),
         metrics=metrics,
-        missing_metrics=tuple(
-            m.name for m in ACTIVITIES[q.activity].metrics if m.name not in present
-        ),
+        missing_metrics=tuple(name for name in sorted(allowed) if name not in present),
         required_evidence=ACTIVITIES[q.activity].required_evidence,
         reason_codes=tuple(reasons),
     )
