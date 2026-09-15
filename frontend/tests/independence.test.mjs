@@ -23,6 +23,14 @@ test("navigation and data source identify the independent project", () => {
 
 test("the root route enters the home screen", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
-  // 해시가 없거나 알 수 없는 해시는 홈으로 폴백합니다.
-  assert.match(app, /return "home";/);
+  // 해시가 없거나 알 수 없는 해시는 홈으로 폴백합니다. readRoute 는 모르는
+  // 해시를 data 로 떨어뜨리므로, 실제 해시가 #data 인지로 구분합니다.
+  assert.match(
+    app,
+    /route\.page === "data" && rawPage !== "data"\)\s*\n\s*return \{ kind: "product", key: "home" \};/,
+  );
+  // 제품 5화면과 기능 데이터 화면이 같은 해시 라우터를 씁니다.
+  for (const key of ["home", "today", "recommend", "map", "my-courses"])
+    assert.match(app, new RegExp(`"?${key}"?:`));
+  assert.match(app, /readRoute\(hash\)/);
 });

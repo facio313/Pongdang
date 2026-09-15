@@ -7,6 +7,8 @@ const LINKS = [
   { hash: "#my-courses", label: "내 코스", note: "저장 목록" },
   { hash: "#data", label: "데이터 조회", note: "수집 DB 테이블 열람" },
   { hash: "#info", label: "데이터 정보", note: "데이터셋 설명 · 구조" },
+  { hash: "#ai", label: "AI에게 물어보기", note: "Luna 컨시어지" },
+  { hash: "#livecam", label: "웹캠 목록", note: "공개 웹캠 카탈로그" },
 ];
 
 export function DevIndexPage() {

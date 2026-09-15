@@ -1,0 +1,40 @@
+.livecam-hub { max-width: 1240px; margin: 0 auto; padding: 1.5rem 0; }
+.livecam-hub h1 { margin: 0 0 .7rem; }
+.lc-attribution { font-size: 1rem; margin: 1rem 0; }
+.lc-search { display: flex; gap: .8rem; flex-wrap: wrap; align-items: end; margin: 1.5rem 0; }
+.lc-search label { display: grid; gap: .35rem; }
+.lc-search input, .lc-search select { min-height: 42px; max-width: 100%; }
+.livecam-hub button { min-height: 40px; white-space: normal; }
+.livecam-hub button[aria-pressed="true"] { background: #e1eff0; color: #124c54; border-color: #237781; font-weight: 700; }
+.livecam-hub table { width: 100%; border-collapse: collapse; }
+.livecam-hub caption { text-align: left; padding: .8rem 0; font-weight: 600; }
+.livecam-hub td, .livecam-hub th { padding: .8rem; vertical-align: top; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.livecam-hub tr[aria-selected="true"] { background: #f1f7f7; }
+.lc-place-table { min-width: 580px; }
+.lc-camera-table { min-width: 730px; }
+.lc-catalog-table { min-width: 850px; }
+.lc-catalog-links { display: grid; gap: .7rem; min-width: 125px; }
+.lc-catalog-links a:first-child { font-weight: 700; }
+.lc-pages, .lc-options { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; margin: 1rem 0; }
+.lc-cameras { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ccd6da; }
+.lc-viewer { margin-top: 1.5rem; padding: 1.2rem; border: 1px solid #bfcfd4; border-radius: 8px; }
+.lc-frame { width: 100%; aspect-ratio: 16 / 9; background: #eef2f3; }
+.lc-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.lc-empty, .lc-notice { padding: 1.1rem; border: 1px solid #d0d9dd; background: #f5f8f9; }
+.lc-player-help, .lc-note { line-height: 1.7; color: #465c68; }
+.lc-viewer dl { display: grid; grid-template-columns: minmax(130px, 1fr) 3fr; gap: .6rem 1rem; }
+.lc-viewer dd { margin: 0; overflow-wrap: anywhere; }
+.lc-original { font-weight: 600; }
+@media (max-width: 640px) {
+  .livecam-hub { padding-top: .8rem; }
+  .lc-search { display: grid; grid-template-columns: 1fr 1fr; }
+  .lc-search label:first-child { grid-column: 1 / -1; }
+  .lc-search input, .lc-search select { width: 100%; min-width: 0; box-sizing: border-box; }
+  .lc-search label { min-width: 0; }
+  .lc-viewer { padding: .75rem; }
+  .lc-viewer dl { grid-template-columns: 1fr; }
+  .lc-options button { flex: 1 1 140px; }
+  .lc-frame { aspect-ratio: 4 / 3; }
+}
+
+.lc-cameras, .lc-viewer { scroll-margin-top: 1rem; }

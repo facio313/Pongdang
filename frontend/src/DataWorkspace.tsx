@@ -3,22 +3,13 @@ import { DataInfoPage } from "./DataInfoPage";
 import { DataPage } from "./DataPage";
 import { date, type Dataset, type Summary } from "./data";
 import { useResource } from "./useResource";
-import { type Origin } from "./DataOrigin";
+import { featurePages } from "./featureRoutes";
 
 // 데이터 조회 · 데이터 정보 화면. 제품 화면(홈·오늘·추천·지도·내 코스)과 분리된
-// 개발/검증용 화면이며 상단 헤더와 「데이터 구분」 선택은 여기에서만 나타납니다.
-export function DataWorkspace({
-  page,
-  origin,
-  setOrigin,
-}: {
-  page: "data" | "info";
-  origin: Origin;
-  setOrigin: (next: Origin) => void;
-}) {
-  const [selectedKey, setSelectedKey] = useState(
-    origin === "demo" ? "metrics" : "spots",
-  );
+// 개발/검증용 화면이며, 상단 헤더와 기능별 데이터 화면 링크는 여기에서만
+// 나타납니다. 합성 더미는 폐기되어 읽는 대상은 항상 pongdang_data 입니다.
+export function DataWorkspace({ page }: { page: "data" | "info" }) {
+  const [selectedKey, setSelectedKey] = useState("spots");
   const [revision, setRevision] = useState(0);
   const summary = useResource<Summary>("summary", revision);
   const summaryData = summary.data ?? summary.previousData;
@@ -32,20 +23,11 @@ export function DataWorkspace({
       <div className="toolbar origin-selector">
         <label>
           데이터 구분{" "}
-          <select
-            aria-label="데이터 구분"
-            value={origin}
-            onChange={(event) => setOrigin(event.target.value as Origin)}
-          >
+          <select aria-label="데이터 구분" value="data" disabled>
             <option value="data">Pongdang 수집 데이터</option>
-            <option value="demo">더미 데이터 · 실제 관측 아님</option>
           </select>
         </label>
-        <strong>
-          {origin === "demo"
-            ? "합성 더미 전용: 실제 관측·예보·시설·안전 판단에 사용 금지"
-            : "Pongdang 자체 DB · 제공처 API 미설정 · 더미와 분리"}
-        </strong>
+        <strong>Pongdang 자체 DB · 실제 자료 · 읽기 전용</strong>
       </div>
       <header className="app-header">
         <span>Pongdang</span>
@@ -56,6 +38,12 @@ export function DataWorkspace({
           <a href="#info" aria-current={page === "info" ? "page" : undefined}>
             데이터 정보
           </a>
+          <a href="#ai">AI에게 물어보기</a>
+          {Object.entries(featurePages).map(([key, label]) => (
+            <a key={key} href={"#" + key}>
+              {label}
+            </a>
+          ))}
           <a href="#home">앱 화면</a>
           <a href="/">포트폴리오</a>
         </nav>
@@ -63,17 +51,11 @@ export function DataWorkspace({
       <div className="toolbar">
         <span>
           {summary.data
-            ? origin === "demo"
-              ? "더미 DB 연결됨"
-              : "Pongdang DB 연결됨"
+            ? "Pongdang DB 연결됨"
             : summary.loading
               ? "DB 연결 확인 중"
               : "DB 조회 불가"}{" "}
-          ·{" "}
-          {origin === "demo"
-            ? "Pongdang 자체 DB / pongdang_demo"
-            : "Pongdang 자체 DB / pongdang_data"}{" "}
-          · 읽기 전용 · KST
+          · Pongdang 자체 DB / pongdang_data · 읽기 전용 · KST
         </span>
         <span>현황 조회: {date(summaryData?.queried_at)}</span>
         <button
@@ -93,36 +75,6 @@ export function DataWorkspace({
         <p role="alert">
           데이터셋 목록을 불러오지 못했습니다. 페이지를 새로고침해 주세요.
         </p>
-      )}
-      {origin === "demo" && summaryData?.demo_manifest && (
-        <details open>
-          <summary>
-            더미 생성 내역 · {summaryData.demo_manifest.scenarios.length}개 세트
-            · 실제 데이터와 분리
-          </summary>
-          <p>
-            기준 장소:{" "}
-            {summaryData.demo_manifest.reference_spots
-              .map((spot) => spot.name + " (ID " + spot.id + ")")
-              .join(", ")}
-            . 계곡·온천·갯벌은 별도의 가상 장소입니다.
-          </p>
-          <p>
-            세트:{" "}
-            {summaryData.demo_manifest.scenarios
-              .map((item) => item.key + " (" + item.label + ")")
-              .join(" · ")}
-          </p>
-          <p>
-            기온·습도는 지표명으로 검색하고, 세트명(clear, humid, rain, wind,
-            stale, missing)으로 검색해 예시를 비교할 수 있습니다.
-          </p>
-          <p>
-            생성: {date(summaryData.demo_manifest.created_at)} KST ·{" "}
-            {summaryData.demo_manifest.version} · 합성 값으로 실제 수집
-            성공·안전함·법적 채취 허용·시설 실재를 주장하지 않습니다.
-          </p>
-        </details>
       )}
       {page === "info" ? (
         <DataInfoPage catalog={catalog.data ?? []} openDataset={openDataset} />
