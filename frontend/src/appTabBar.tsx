@@ -14,17 +14,19 @@ const TABS: { key: TabKey; label: string }[] = [
 // 화면마다 따로 두지 않고 이 컴포넌트 하나만 씁니다.
 export function AppTabBar({ active }: { active: TabKey }) {
   return (
-    <nav className="pd-tabbar" aria-label="주요 탭">
-      {TABS.map((tab) => (
-        <a
-          key={tab.key}
-          className="pd-tab"
-          href={"#" + tab.key}
-          aria-current={tab.key === active ? "page" : undefined}
-        >
-          {tab.label}
-        </a>
-      ))}
-    </nav>
+    <div className="pd-tabbar-slot">
+      <nav className="pd-tabbar" aria-label="주요 탭">
+        {TABS.map((tab) => (
+          <a
+            key={tab.key}
+            className="pd-tab"
+            href={"#" + tab.key}
+            aria-current={tab.key === active ? "page" : undefined}
+          >
+            {tab.label}
+          </a>
+        ))}
+      </nav>
+    </div>
   );
 }

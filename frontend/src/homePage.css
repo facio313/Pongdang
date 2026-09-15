@@ -447,11 +447,12 @@
 }
 
 /* ── 사이드 메뉴 (탭 밖) ───────────────────────────────── */
+/* 하단 탭바가 화면에 고정(z-index 5)되어 있어, 메뉴는 그보다 위에 덮습니다. */
 
 .home-page .hm-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 6;
   border: 0;
   padding: 0;
   background: rgba(15, 47, 122, 0.32);
@@ -460,7 +461,7 @@
 .home-page .hm-menu {
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: 3;
+  z-index: 7;
   width: min(300px, 82%);
   background: var(--pd-surface);
   box-shadow: 0 0 40px rgba(12, 38, 90, 0.3);

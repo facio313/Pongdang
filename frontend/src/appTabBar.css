@@ -1,14 +1,37 @@
-/* 공용 하단 탭바 · 홈/오늘/추천/지도/내 코스 5화면이 함께 씁니다.
+/* 공용 하단 인디케이터(탭바) · 홈/오늘/추천/지도/내 코스 5화면이 함께 씁니다.
    --pd-* 토큰은 각 페이지 루트(.home-page 등)에 선언되어 있고 탭바는 그 안에서
    렌더되므로 상속으로 받습니다. 토큰이 없는 곳에서도 깨지지 않도록 폴백을 둡니다. */
 
+/* 탭바는 화면 하단에 고정합니다. 고정하면 흐름에서 빠지므로, 슬롯이 같은
+   자리를 대신 차지해 마지막 카드가 탭바에 가리지 않게 합니다. */
+.pd-tabbar-slot {
+  height: 58px;
+  container-type: inline-size;
+}
+
 .pd-tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  /* 프레임 폭 min(390px,100%) 에서 main 좌우 여백(14px)과 본문 패딩(18px)을
+     뺀 값. 컨테이너 쿼리를 지원하면 아래 100cqw 가 슬롯 실측 폭으로
+     덮어씁니다. */
+  width: min(354px, 100vw - 64px);
+  z-index: 5;
   background: var(--pd-surface, #ffffff);
   border-radius: var(--pd-r-card, 18px);
   box-shadow: var(--pd-shadow, 0 6px 20px rgba(20, 44, 72, 0.1));
   padding: 6px 8px;
   display: flex;
 }
+
+@supports (width: 100cqw) {
+  .pd-tabbar {
+    width: 100cqw;
+  }
+}
+
 .pd-tab {
   flex: 1;
   min-width: 0;
