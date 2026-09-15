@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     data_go_kr_key: SecretStr = SecretStr("")
     kma_api_hub_key: SecretStr = SecretStr("")
     kakao_rest_key: SecretStr = SecretStr("")
+    # Route-only key, using the same environment name as Pilgrimage.
+    kakao_rest_api_key: SecretStr = SecretStr("")
+    travel_route_provider: Literal["disabled", "kakao"] = "kakao"
     hrfco_key: SecretStr = SecretStr("")
     collection_latitude: float = Field(default=37.8034055083, ge=-90, le=90)
     collection_longitude: float = Field(default=128.9102102476, ge=-180, le=180)

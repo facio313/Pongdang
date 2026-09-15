@@ -1,5 +1,12 @@
 # Pongdang Luna AI 컨시어지
 
+## 여행 추천 백엔드 연동
+
+선택적인 `travel` 상태로 키워드·취향·기분·선택 후보와 후속 경로 요청을 받는다.
+처음에는 장소·활동 목록을 반환하고 별도 요청에서만 카카오 길찾기를 계산한다.
+프런트 연동은 [키워드·경로 계약](travel-frontend-contract.md), 개인 자료·일정·여행
+세션 API는 [그룹 B 백엔드](group-b-backend.md)를 따른다.
+
 ## 구현 범위와 읽기 경로
 
 브라우저의 `#ai` 화면은 기존 FastAPI의 `POST /api/data/ai/chat`을 호출한다.

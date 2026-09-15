@@ -8,10 +8,11 @@ from psycopg import sql
 
 from app.config import Settings
 from app.data_reader import CATALOG
+from app.travel.migrations import migrate_travel
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 7
+VERSION = 8
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -56,24 +57,32 @@ def initialize(settings: Settings) -> bool:
                 migrate_features(connection)
                 migrate_place_provenance(connection)
                 migrate_ai_concierge(connection)
+                migrate_travel(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
                 migrate_features(connection)
                 migrate_place_provenance(connection)
                 migrate_ai_concierge(connection)
+                migrate_travel(connection)
                 return True
             if row == (4,):
                 migrate_features(connection)
                 migrate_place_provenance(connection)
                 migrate_ai_concierge(connection)
+                migrate_travel(connection)
                 return True
             if row == (5,):
                 migrate_place_provenance(connection)
                 migrate_ai_concierge(connection)
+                migrate_travel(connection)
                 return True
             if row == (6,):
                 migrate_ai_concierge(connection)
+                migrate_travel(connection)
+                return True
+            if row == (7,):
+                migrate_travel(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -128,6 +137,7 @@ def initialize(settings: Settings) -> bool:
         migrate_features(connection)
         migrate_place_provenance(connection)
         migrate_ai_concierge(connection)
+        migrate_travel(connection)
     return True
 
 

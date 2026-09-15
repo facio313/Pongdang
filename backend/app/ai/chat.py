@@ -23,6 +23,7 @@ from app.ai.provider import ProviderError, ResponsesProvider, encode_body
 from app.ai.service import DISCLAIMER, pricing_configured
 from app.ai.tools import ToolError, ToolSession
 from app.auth import require_principal
+from app.travel.models import TravelContext
 from app.water_index.models import Activity
 
 LOG = logging.getLogger("uvicorn.error.pongdang.ai")
@@ -124,10 +125,12 @@ class ChatRequest(StrictModel):
     message: str = Field(min_length=1, max_length=2000)
     history: list[Message] = Field(default_factory=list, max_length=8)
     context: Context = Field(default_factory=Context)
+    travel: TravelContext | None = None
 
     @model_validator(mode="after")
     def bound_input(self):
-        if not self.message.strip() or len(self.model_dump_json().encode()) > 16000:
+        limit = 64000 if self.travel is not None else 16000
+        if not self.message.strip() or len(self.model_dump_json().encode()) > limit:
             raise ValueError("conversation_input_limit")
         return self
 
@@ -140,9 +143,13 @@ class SectionPlan(StrictModel):
         "sources",
         "limitations",
         "features",
+        "recommendations",
+        "itinerary",
+        "companion",
     ]
     fact_ids: list[str] = Field(max_length=40)
     candidate_ids: list[str] = Field(max_length=8)
+    structured_ids: list[str] = Field(default_factory=list, max_length=3)
 
 
 class ResponsePlan(StrictModel):
@@ -174,6 +181,8 @@ class ChatResponse(StrictModel):
     reason_codes: list[str]
     context: Context
     sections: list[dict]
+    travel: TravelContext | None = None
+    travel_results: dict = Field(default_factory=dict)
 
 
 def strict_schema(schema):
@@ -268,6 +277,7 @@ def body_for(settings, session, inputs, *, require_tools, final_answer_only=Fals
         "reasoning": {"effort": "none"},
         "include": ["reasoning.encrypted_content"],
         "instructions": SYSTEM
+        + getattr(session, "travel_instructions", "")
         + (
             "\nThis is the final allowed model turn. Return the final structured "
             "plan using this turn's tool evidence. No further tools are available. "
@@ -357,6 +367,8 @@ def validate_plan(plan, session, request):
             raise ProviderError("ai_output_unverified")
         if not set(section.candidate_ids) <= session.candidates.keys():
             raise ProviderError("ai_output_unverified")
+        if not set(section.structured_ids) <= getattr(session, "structured", {}).keys():
+            raise ProviderError("ai_output_unverified")
     if plan.intent == "compare" and not set(session.features).intersection(
         {
             "place_conditions",
@@ -364,6 +376,8 @@ def validate_plan(plan, session, request):
             "forecast_compare",
             "tides",
             "quality",
+            "travel_recommend",
+            "travel_draft",
         }
     ):
         raise ProviderError("ai_read_required")
@@ -371,6 +385,11 @@ def validate_plan(plan, session, request):
         raise ProviderError("ai_read_required")
     if plan.intent not in {"clarify", "greeting"} and not session.features:
         raise ProviderError("ai_read_required")
+    if (
+        plan.intent not in {"clarify", "greeting"}
+        and getattr(session, "travel_results", None) == {}
+    ):
+        raise ProviderError("ai_travel_read_required")
     if plan.intent == "clarify" and plan.clarification is None:
         raise ProviderError("ai_output_unverified")
     if plan.intent != "clarify" and plan.clarification is not None:
@@ -379,6 +398,9 @@ def validate_plan(plan, session, request):
 
 async def deterministic_reads(session, request):
     """Only explicit selected IDs/exact short place searches are reliable offline."""
+    if hasattr(session, "fallback"):
+        await session.fallback()
+        return ResponsePlan(intent="explain", clarification=None, sections=[])
     context = request.context
     ids = context.spot_ids or ([context.spot_id] if context.spot_id else [])
     args = {
@@ -505,9 +527,15 @@ def assemble(session, request, now, request_id, plan, reasons, model):
         limitations.append("이번 요청에서 사용할 공개 근거를 확인하지 못했습니다.")
     sections = [
         {
-            "title": TITLES[s.title],
+            "title": {
+                **TITLES,
+                "recommendations": "이번 여행의 추천",
+                "itinerary": "일정 초안",
+                "companion": "여행 중 안내",
+            }[s.title],
             "fact_ids": s.fact_ids,
             "candidate_ids": s.candidate_ids,
+            "structured_ids": s.structured_ids,
         }
         for s in plan.sections
     ]
@@ -607,6 +635,16 @@ async def converse(
             try:
                 if state["enabled"]:
                     inputs = initial_input(request, now)
+                    if hasattr(session, "model_context"):
+                        inputs.append(
+                            {
+                                "role": "user",
+                                "content": json.dumps(
+                                    {"travel_request": session.model_context()},
+                                    ensure_ascii=False,
+                                ),
+                            }
+                        )
                     signatures, call_ids = set(), set()
                     while calls < settings.ai_max_model_calls:
                         # Reserve the last model turn for composition after reads.
@@ -703,7 +741,9 @@ async def converse(
             except Exception:
                 reasons.append("ai_service_unavailable")
             if plan is None:
-                if session.features:
+                if hasattr(session, "fallback") and not session.travel_results:
+                    plan = await deterministic_reads(session, request)
+                elif session.features:
                     plan = ResponsePlan(
                         intent="explain", clarification=None, sections=[]
                     )
@@ -754,10 +794,18 @@ async def converse(
         model = None
     if plan is None:
         plan = ResponsePlan(intent="explain", clarification=None, sections=[])
-    return assemble(session, request, now, request_id, plan, reasons, model)
+    from app.travel.chat import assemble_travel
+
+    return assemble_travel(
+        assemble(session, request, now, request_id, plan, reasons, model), session
+    )
 
 
-def create_chat_router(settings, *, provider=None, handler=converse):
+def create_chat_router(settings, *, provider=None, handler=None):
+    if handler is None:
+        from app.travel.chat import travel_converse
+
+        handler = travel_converse
     auth = require_principal(settings)
     provider = provider or ResponsesProvider(settings)
 
@@ -784,7 +832,16 @@ def _create_authorized_chat_router(
                     body = bytearray()
                     async for chunk in request.stream():
                         body.extend(chunk)
-                        if len(body) > 20000:
+                        if len(body) > 64000:
+                            raise HTTPException(413, "conversation_input_limit")
+                    if len(body) > 20000:
+                        try:
+                            parsed = json.loads(body)
+                        except ValueError, UnicodeDecodeError:
+                            raise HTTPException(
+                                413, "conversation_input_limit"
+                            ) from None
+                        if not isinstance(parsed, dict) or not parsed.get("travel"):
                             raise HTTPException(413, "conversation_input_limit")
                     request._body = bytes(body)
                 response = await original(request)

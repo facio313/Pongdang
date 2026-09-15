@@ -16,6 +16,7 @@ from app.livecams.service import create_livecam_router
 from app.notifications.api import create_router as create_notifications_router
 from app.quality.api import create_router as create_quality_router
 from app.tides.api import create_tides_router
+from app.travel.api import create_router as create_travel_router
 from app.twin.api import create_twin_router
 from app.water_index.api import create_water_index_router
 from app.water_index.condition_api import create_condition_router
@@ -70,5 +71,6 @@ def create_app(
     app.include_router(create_notifications_router(settings))
     app.include_router(create_quality_router(settings))
     app.include_router(create_ai_router(settings))
+    app.include_router(create_travel_router(settings))
     app.include_router(chat_router)
     return app
