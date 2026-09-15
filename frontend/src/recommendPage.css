@@ -781,39 +781,6 @@
   margin: 8px 0 0;
 }
 
-/* ── 탭바 ──────────────────────────────────────────────── */
-
-.recommend-page .rc-tabbar {
-  background: var(--pd-surface);
-  border-radius: var(--pd-r-card);
-  box-shadow: var(--pd-shadow);
-  padding: 6px 8px;
-  display: flex;
-}
-.recommend-page .rc-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 0;
-  text-align: center;
-  font-size: 9.5px;
-  color: var(--pd-ink-2);
-  text-decoration: none;
-}
-.recommend-page .rc-tab[aria-current="page"] {
-  color: var(--pd-blue-deep);
-  font-weight: 700;
-}
-.recommend-page .rc-tab[disabled] {
-  color: #9db1c6;
-  cursor: default;
-}
-.recommend-page .rc-tabbar-note {
-  font-size: 10.5px;
-  color: var(--pd-ink-2);
-  text-align: center;
-  margin: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .recommend-page *,
   .recommend-page *::before,

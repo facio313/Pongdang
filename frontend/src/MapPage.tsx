@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
+import { AppTabBar } from "./appTabBar";
 import "./mapPage.css";
 
 // 지도. 「지점 보기(A3·A4)」와 「코스 경로 보기」를 한 페이지 안에서 전환합니다.
@@ -91,33 +92,6 @@ const TODO_SCREENS = [
     detail: "샤워장 · 주차 · 카페 · 반려동물 가능",
   },
 ];
-
-function TabBar() {
-  return (
-    <>
-      <nav className="mp-tabbar" aria-label="주요 탭">
-        <a className="mp-tab" href="#home">
-          홈
-        </a>
-        <a className="mp-tab" href="#today">
-          오늘
-        </a>
-        <a className="mp-tab" href="#recommend">
-          추천
-        </a>
-        <a className="mp-tab" href="#map" aria-current="page">
-          지도
-        </a>
-        <a className="mp-tab" href="#my-courses">
-          내 코스
-        </a>
-      </nav>
-      <p className="mp-tabbar-note">
-        라이브캠은 이 탭이 아니라 홈 최하단 모듈에서 들어갑니다.
-      </p>
-    </>
-  );
-}
 
 function Stage({
   view,
@@ -371,7 +345,7 @@ export function MapPage() {
             </div>
           ))}
 
-          <TabBar />
+          <AppTabBar active="map" />
         </div>
       </div>
     </article>

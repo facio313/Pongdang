@@ -446,39 +446,6 @@
   text-align: center;
 }
 
-/* ── 탭바 ──────────────────────────────────────────────── */
-
-.home-page .hm-tabbar {
-  background: var(--pd-surface);
-  border-radius: var(--pd-r-card);
-  box-shadow: var(--pd-shadow);
-  padding: 6px 8px;
-  display: flex;
-}
-.home-page .hm-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 0;
-  text-align: center;
-  font-size: 9.5px;
-  color: var(--pd-ink-2);
-  text-decoration: none;
-}
-.home-page .hm-tab[aria-current="page"] {
-  color: var(--pd-blue-deep);
-  font-weight: 700;
-}
-.home-page .hm-tab[disabled] {
-  color: #9db1c6;
-  cursor: default;
-}
-.home-page .hm-tabbar-note {
-  font-size: 10.5px;
-  color: var(--pd-ink-2);
-  text-align: center;
-  margin: 0;
-}
-
 /* ── 사이드 메뉴 (탭 밖) ───────────────────────────────── */
 
 .home-page .hm-backdrop {

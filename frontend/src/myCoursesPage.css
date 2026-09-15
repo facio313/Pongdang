@@ -354,35 +354,6 @@
   color: var(--pd-alert-ink);
 }
 
-/* ── 탭바 ──────────────────────────────────────────────── */
-
-.my-courses-page .mc-tabbar {
-  background: var(--pd-surface);
-  border-radius: var(--pd-r-card);
-  box-shadow: var(--pd-shadow);
-  padding: 6px 8px;
-  display: flex;
-}
-.my-courses-page .mc-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 0;
-  text-align: center;
-  font-size: 9.5px;
-  color: var(--pd-ink-2);
-  text-decoration: none;
-}
-.my-courses-page .mc-tab[aria-current="page"] {
-  color: var(--pd-blue-deep);
-  font-weight: 700;
-}
-.my-courses-page .mc-tabbar-note {
-  font-size: 10.5px;
-  color: var(--pd-ink-2);
-  text-align: center;
-  margin: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .my-courses-page *,
   .my-courses-page *::before,

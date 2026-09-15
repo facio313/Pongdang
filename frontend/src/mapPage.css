@@ -510,39 +510,6 @@
   white-space: nowrap;
 }
 
-/* ── 탭바 ──────────────────────────────────────────────── */
-
-.map-page .mp-tabbar {
-  background: var(--pd-surface);
-  border-radius: var(--pd-r-card);
-  box-shadow: var(--pd-shadow);
-  padding: 6px 8px;
-  display: flex;
-}
-.map-page .mp-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 0;
-  text-align: center;
-  font-size: 9.5px;
-  color: var(--pd-ink-2);
-  text-decoration: none;
-}
-.map-page .mp-tab[aria-current="page"] {
-  color: var(--pd-blue-deep);
-  font-weight: 700;
-}
-.map-page .mp-tab[disabled] {
-  color: #9db1c6;
-  cursor: default;
-}
-.map-page .mp-tabbar-note {
-  font-size: 10.5px;
-  color: var(--pd-ink-2);
-  text-align: center;
-  margin: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .map-page *,
   .map-page *::before,

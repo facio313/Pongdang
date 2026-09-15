@@ -1,0 +1,24 @@
+/* 공용 하단 탭바 · 홈/오늘/추천/지도/내 코스 5화면이 함께 씁니다.
+   --pd-* 토큰은 각 페이지 루트(.home-page 등)에 선언되어 있고 탭바는 그 안에서
+   렌더되므로 상속으로 받습니다. 토큰이 없는 곳에서도 깨지지 않도록 폴백을 둡니다. */
+
+.pd-tabbar {
+  background: var(--pd-surface, #ffffff);
+  border-radius: var(--pd-r-card, 18px);
+  box-shadow: var(--pd-shadow, 0 6px 20px rgba(20, 44, 72, 0.1));
+  padding: 6px 8px;
+  display: flex;
+}
+.pd-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--pd-ink-2, #5c789a);
+  text-decoration: none;
+}
+.pd-tab[aria-current="page"] {
+  color: var(--pd-blue-deep, #2f6aa8);
+  font-weight: 700;
+}

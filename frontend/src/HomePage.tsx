@@ -6,6 +6,7 @@ import {
   Icon,
   StateChip,
 } from "./pongdangUi";
+import { AppTabBar } from "./appTabBar";
 import { useGangneungSpots } from "./gangneungSpots";
 import "./homePage.css";
 
@@ -161,12 +162,12 @@ function RouteCard() {
         <StateChip kind="example" />
       </div>
       <div className="hm-slot hm-route-slot">지도 · 경로 렌더링 영역</div>
-      <a className="hm-secondary" href="#water-index-map">
+      <a className="hm-secondary" href="#map">
         경로 탐색 →
       </a>
       <p className="hm-note">
-        경로 계산과 지도 위 경로 렌더링은 아직 구현되지 않았습니다. 지금은 기존
-        지도 배치 화면으로 이동합니다.
+        경로 계산과 지도 위 경로 렌더링은 아직 구현되지 않았습니다. 지금은 지도
+        탭으로 이동합니다.
       </p>
     </div>
   );
@@ -186,48 +187,20 @@ function LivecamModule() {
       </div>
       <div className="hm-cam-row">
         {CAMS.map((cam) => (
-          <a className="hm-cam" href="#livecam" key={cam.id}>
+          <div className="hm-cam" key={cam.id}>
             <span
               className="hm-cam-thumb"
               style={{ background: cam.gradient, display: "block" }}
             />
             <span className="hm-cam-label">{cam.label}</span>
-          </a>
+          </div>
         ))}
       </div>
       <p className="hm-note">
-        영상 연동이 아직 구현되지 않아 썸네일은 자리표시자입니다. 탭하면
-        라이브캠 화면(A5)으로 들어갑니다.
+        영상 연동과 라이브캠 화면이 아직 구현되지 않아 썸네일은
+        자리표시자입니다.
       </p>
     </div>
-  );
-}
-
-function TabBar() {
-  return (
-    <>
-      <nav className="hm-tabbar" aria-label="주요 탭">
-        <a className="hm-tab" href="#home" aria-current="page">
-          홈
-        </a>
-        <a className="hm-tab" href="#today">
-          오늘
-        </a>
-        <a className="hm-tab" href="#recommend">
-          추천
-        </a>
-        <a className="hm-tab" href="#water-index-map">
-          지도
-        </a>
-        <button type="button" className="hm-tab" disabled>
-          내 코스
-        </button>
-      </nav>
-      <p className="hm-tabbar-note">
-        내 코스 화면은 아직 없어 비활성입니다. 지도는 기존 지도 배치 화면으로
-        이동합니다.
-      </p>
-    </>
   );
 }
 
@@ -308,7 +281,7 @@ function HomeScreen() {
           <TasteBanner />
           <RouteCard />
           <LivecamModule />
-          <TabBar />
+          <AppTabBar active="home" />
         </div>
         {menuOpen && <SideMenu onClose={() => setMenuOpen(false)} />}
       </div>

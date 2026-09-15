@@ -9,6 +9,7 @@ import {
   StateChip,
   type IconName,
 } from "./pongdangUi";
+import { AppTabBar } from "./appTabBar";
 import { useGangneungSpots } from "./gangneungSpots";
 import "./recommendPage.css";
 
@@ -136,33 +137,6 @@ const CHAT_BASIS_BARS: { name: string; value: string; ratio: number | null }[] =
 
 // ── 공통 조각 ───────────────────────────────────────────────
 
-function TabBar() {
-  return (
-    <>
-      <nav className="rc-tabbar" aria-label="주요 탭">
-        <a className="rc-tab" href="#home">
-          홈
-        </a>
-        <a className="rc-tab" href="#today">
-          오늘
-        </a>
-        <a className="rc-tab" href="#recommend" aria-current="page">
-          추천
-        </a>
-        <a className="rc-tab" href="#water-index-map">
-          지도
-        </a>
-        <button type="button" className="rc-tab" disabled>
-          내 코스
-        </button>
-      </nav>
-      <p className="rc-tabbar-note">
-        내 코스 화면은 아직 없어 비활성입니다.
-      </p>
-    </>
-  );
-}
-
 function ExampleNote({ children }: { children: React.ReactNode }) {
   return (
     <p className="rc-note">
@@ -269,7 +243,7 @@ function EntryStep({
             이며, 실제 예보로 계산한 결과가 아닙니다.
           </p>
         </div>
-        <TabBar />
+        <AppTabBar active="recommend" />
       </div>
     </>
   );
@@ -470,7 +444,7 @@ function TasteStep({
             </div>
           </>
         )}
-        <TabBar />
+        <AppTabBar active="recommend" />
       </div>
     </>
   );
@@ -600,7 +574,7 @@ function ChatStep({
             </div>
           </>
         )}
-        <TabBar />
+        <AppTabBar active="recommend" />
       </div>
     </>
   );
@@ -710,7 +684,7 @@ function CourseStep({
                 예보가 있는 날 보기 →
               </button>
             </div>
-            <TabBar />
+            <AppTabBar active="recommend" />
           </>
         ) : (
           <>
@@ -805,7 +779,7 @@ function CourseStep({
               기록되지 않습니다. 지점명은 장소 카탈로그에서 읽어옵니다 —{" "}
               {statusText}
             </p>
-            <TabBar />
+            <AppTabBar active="recommend" />
           </>
         )}
       </div>
@@ -915,7 +889,7 @@ function RealertStep({
             </button>
           </div>
         </div>
-        <TabBar />
+        <AppTabBar active="recommend" />
       </div>
     </>
   );

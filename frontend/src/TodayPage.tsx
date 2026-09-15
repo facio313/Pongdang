@@ -3,6 +3,7 @@ import { DataOrigin } from "./DataOrigin";
 import { gradeOf } from "./groupAGrade";
 import { useResource } from "./useResource";
 import type { RowsResult } from "./data";
+import { AppTabBar } from "./appTabBar";
 import "./todayPage.css";
 
 // Group A: "오늘" 통합 페이지. A1(허브 요약)·A2(7일 예보)·A6(물때)·A7(첫
@@ -398,7 +399,7 @@ function SpotSection() {
     <section>
       <SectionHead
         label="지점 비교 · 수영 점수"
-        href="#water-index-map"
+        href="#map"
         linkLabel="전체 지도 →"
       />
       <div className="td-card">
@@ -512,12 +513,7 @@ function ForecastSection() {
 
   return (
     <section>
-      <SectionHead
-        label="7일 예보"
-        suffix="A2"
-        href="#water-forecast"
-        linkLabel="자세히 →"
-      />
+      <SectionHead label="7일 예보" suffix="A2" />
       <div className="td-card">
         <div className="td-bars" role="group" aria-label="날짜 선택">
           {FORECAST_DAYS.map((day) => {
@@ -575,7 +571,7 @@ function ForecastSection() {
 function TideSection() {
   return (
     <section>
-      <SectionHead label="물때" suffix="A6" href="#tide" linkLabel="자세히 →" />
+      <SectionHead label="물때" suffix="A6" />
       <div className="td-card">
         <div className="td-tide-now">
           <span className="td-tide-pill is-now">썰물 (지금)</span>
@@ -626,12 +622,7 @@ function FirstSwimSection() {
 
   return (
     <section>
-      <SectionHead
-        label="올해 첫 입수"
-        suffix="A7"
-        href="#first-swim"
-        linkLabel="연도 비교 →"
-      />
+      <SectionHead label="올해 첫 입수" suffix="A7" />
       <div className="td-card">
         <div className="td-swim">
           <span className="td-swim-badge">
@@ -658,12 +649,7 @@ function FirstSwimSection() {
 function QualitySection() {
   return (
     <section>
-      <SectionHead
-        label="수질 신뢰도"
-        suffix="A8"
-        href="#water-quality"
-        linkLabel="교차검증 →"
-      />
+      <SectionHead label="수질 신뢰도" suffix="A8" />
       <div className="td-card">
         {QUALITY_CONFIDENCE.map((item) => (
           <div className="td-conf-row" key={item.label}>
@@ -708,34 +694,6 @@ function UnlinkedAlert() {
   );
 }
 
-function TabBar() {
-  return (
-    <>
-      <nav className="td-tabbar" aria-label="주요 탭">
-        <button type="button" className="td-tab" disabled>
-          홈
-        </button>
-        <a className="td-tab" href="#today" aria-current="page">
-          오늘
-        </a>
-        <button type="button" className="td-tab" disabled>
-          추천
-        </button>
-        <a className="td-tab" href="#water-index-map">
-          지도
-        </a>
-        <button type="button" className="td-tab" disabled>
-          내 코스
-        </button>
-      </nav>
-      <p className="td-tabbar-note">
-        홈 · 추천 · 내 코스 화면은 아직 없어 비활성입니다. 지도는 기존 지도
-        배치 화면으로 이동합니다.
-      </p>
-    </>
-  );
-}
-
 function TodayScreen() {
   return (
     <article className="today-page">
@@ -749,7 +707,7 @@ function TodayScreen() {
           <FirstSwimSection />
           <QualitySection />
           <UnlinkedAlert />
-          <TabBar />
+          <AppTabBar active="today" />
         </div>
       </div>
     </article>

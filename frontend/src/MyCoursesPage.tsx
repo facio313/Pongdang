@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
+import { AppTabBar } from "./appTabBar";
 import "./myCoursesPage.css";
 
 // 내 코스(저장 목록). 코스 상세는 추천 탭의 코스 결과 화면과 같은 화면을
@@ -58,33 +59,6 @@ const TODO_SCREENS = [
     detail: "다녀온 코스 · 첫 입수 기록과 연결",
   },
 ];
-
-function TabBar() {
-  return (
-    <>
-      <nav className="mc-tabbar" aria-label="주요 탭">
-        <a className="mc-tab" href="#home">
-          홈
-        </a>
-        <a className="mc-tab" href="#today">
-          오늘
-        </a>
-        <a className="mc-tab" href="#recommend">
-          추천
-        </a>
-        <a className="mc-tab" href="#map">
-          지도
-        </a>
-        <a className="mc-tab" href="#my-courses" aria-current="page">
-          내 코스
-        </a>
-      </nav>
-      <p className="mc-tabbar-note">
-        코스 상세는 추천 탭의 코스 결과 화면을 함께 씁니다.
-      </p>
-    </>
-  );
-}
 
 export function MyCoursesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -201,7 +175,7 @@ export function MyCoursesPage() {
             </div>
           ))}
 
-          <TabBar />
+          <AppTabBar active="my-courses" />
         </div>
       </div>
     </article>
