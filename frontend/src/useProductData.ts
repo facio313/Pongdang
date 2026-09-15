@@ -10,21 +10,24 @@ import {
   type TideResult,
   type QualityRow,
 } from "./productData";
+export interface DefaultPlaceSelection {
+  place: ClassifiedWaterPlace | null;
+  display_name: string;
+  status: "preferred" | "fallback" | "no_current_data" | "no_places";
+  message: string;
+  rows: ClassifiedWaterPlace[];
+}
 export function useProductData() {
   const [now] = useState(() => new Date().toISOString());
-  // Provider category classification also includes collected search-result
-  // records whose region is empty and whose city appears only in the address.
-  // This read-only endpoint needs neither Windy credentials nor a provider call.
-  const catalog = useResource<ClassifiedWaterPlace[]>(
-    "livecams/preview/places?q=강릉",
-  );
-  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data) : undefined };
-  const rows = places.data?.rows ?? [];
-  const place =
-    rows.find((row) => row.name.includes("경포") && row.type === "beach") ??
-    rows.find((row) => row.type === "beach");
+  const catalog = useResource<DefaultPlaceSelection>("water-index/default-place");
+  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data.rows) : undefined };
+  const place = catalog.data?.place ? productPlaces([catalog.data.place]).rows[0] : undefined;
+  const displayName = catalog.data?.display_name ?? "강릉 경포대 해수욕장";
+  const selectionMessage = catalog.error ?? (catalog.loading
+    ? "기본 해수욕장의 수집 자료를 확인하고 있습니다."
+    : catalog.data?.message ?? "기본 해수욕장을 조회하지 못했습니다.");
   const conditions = useConditions(place?.id);
-  return { now, places, place, conditions };
+  return { now, places, place, conditions, displayName, selectionMessage };
 }
 export function useTodayData(id: number | undefined, now: string) {
   const forecasts = useResource<RowPage<Forecast>>(

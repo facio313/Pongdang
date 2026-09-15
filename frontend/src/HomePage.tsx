@@ -298,7 +298,7 @@ function SideMenu({ onClose }: { onClose: () => void }) {
 
 function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { place, places, conditions } = useProductData();
+  const { place, places, conditions, displayName, selectionMessage } = useProductData();
   const quality = useResource<RowPage<QualityRow>>(
     place ? `quality/comparisons?spot_id=${place.id}&page_size=100` : null,
   );
@@ -307,7 +307,7 @@ function HomeScreen() {
     <article className="home-page">
       <div className="hm-frame">
         <Hero
-          placeName={place?.name ?? "장소 확인 중"}
+          placeName={displayName}
           conditions={conditions.data}
           onOpenMenu={() => setMenuOpen(true)}
         />
@@ -318,7 +318,7 @@ function HomeScreen() {
             statusText={
               places.error ??
               conditions.error ??
-              (conditions.loading ? "조건 조회 중입니다." : "")
+              (conditions.loading ? "조건 조회 중입니다." : selectionMessage)
             }
           />
           <TasteBanner />

@@ -263,10 +263,12 @@ const TIDE_ACTIVITIES = [
 
 function Hero({
   place,
+  displayName,
   conditions,
   quality,
 }: {
   place?: Place;
+  displayName: string;
   conditions?: Conditions;
   quality: string;
 }) {
@@ -276,11 +278,11 @@ function Hero({
       <div className="td-sbar">
         <span>{timeLabel(new Date().toISOString())}</span>
         <span className="td-sbar-mark">TODAY</span>
-        <span>강릉</span>
+        <span>{place?.region || (displayName.includes("경포") ? "강릉" : "선택 해수욕장")}</span>
       </div>
       <div className="td-hero-inner">
         <p className="td-lbl">
-          {dateLabel()} · {place?.name ?? "장소 확인 중"} {conditionModeLabel(conditions)} 기준
+          {dateLabel()} · {displayName} {conditionModeLabel(conditions)} 기준
         </p>
         <div className="td-hero-row">
           <h1 className="td-hero-sentence">
@@ -793,7 +795,7 @@ function UnlinkedAlert() {
 }
 
 function TodayScreen() {
-  const { now, place, places, conditions } = useProductData();
+  const { now, place, places, conditions, displayName, selectionMessage } = useProductData();
   const { forecasts, tides, quality } = useTodayData(place?.id, now);
   return (
     <article className="today-page">
@@ -801,6 +803,7 @@ function TodayScreen() {
         <Hero
           quality={qualityGrade(quality.data?.rows ?? [])}
           place={place}
+          displayName={displayName}
           conditions={conditions.data}
         />
         <div className="td-body">
@@ -809,7 +812,7 @@ function TodayScreen() {
             status={
               places.error ??
               conditions.error ??
-              (places.loading ? "장소 조회 중" : "실제 장소 카탈로그")
+              selectionMessage
             }
           />
           <ActivitySection id={place?.id} />

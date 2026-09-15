@@ -6,7 +6,7 @@ test("home and today render calculated server condition scores and their evidenc
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.locator(".hm-hero-place")).toContainText("OFFLINE TEST");
+  await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
   const placeResponse = await page.request.get("api/data/datasets/spots?page_size=100&q=강릉");
   const places = await placeResponse.json();
   const place = places.rows.find((item: { name: string }) => item.name.includes("경포"));
@@ -37,6 +37,10 @@ test("home and today render calculated server condition scores and their evidenc
 });
 
 test("home and map use actual category-classified beaches when only the address contains the city", async ({ page }) => {
+  const selectedPlace = { id: 71, name: "경포", place_kind: "beach", region: "", address: "강원특별자치도 강릉시 창해로", lat: 37.8, lng: 128.9 };
+  await page.route("**/api/data/water-index/default-place", (route) => route.fulfill({ json: {
+    place: selectedPlace, rows: [selectedPlace], display_name: "강릉 경포대 해수욕장", status: "preferred", message: "기본 해수욕장 자료",
+  } }));
   await page.route("**/api/data/livecams/preview/places?**", (route) => route.fulfill({ json: [{
     id: 71, name: "경포", place_kind: "beach", region: "", address: "강원특별자치도 강릉시 창해로", lat: 37.8, lng: 128.9,
   }] }));
@@ -295,12 +299,18 @@ test("map adds an actual place and requests a route only on explicit submit", as
 });
 
 test("empty and unauthenticated data stay explicit", async ({ page }) => {
+  await page.route("**/api/data/water-index/default-place", (route) => route.fulfill({ json: {
+    place: null, rows: [], display_name: "강릉 경포대 해수욕장", status: "no_places", message: "수집된 해수욕장이 없습니다. 수집기와 해변 자료 연동을 확인해야 합니다.",
+  } }));
   await page.route("**/api/data/livecams/preview/places?**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/data/datasets/spots?**", (route) =>
     route.fulfill({ json: { rows: [], total: 0 } }),
   );
   await page.goto("");
   await expect(page.locator(".hm-tile-value").first()).toHaveText("–");
+  await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
+  await expect(page.locator(".home-page")).not.toContainText("장소 확인 중");
+  await expect(page.locator(".home-page")).toContainText("수집된 해수욕장이 없습니다");
   await page.route("**/api/data/travel/**", (route) =>
     route.fulfill({
       status: 401,

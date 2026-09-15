@@ -5,6 +5,7 @@ import { AppTabBar } from "./appTabBar";
 import { usePlacesById } from "./usePlacesById";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
+import type { DefaultPlaceSelection } from "./useProductData";
 import { useAction } from "./useAction";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import {
@@ -372,11 +373,18 @@ export function MapPage() {
       ? "course"
       : "spots",
   );
-  const [search, setSearch] = useState("강릉");
+  const [search, setSearch] = useState("");
   const waterCatalog = useResource<ClassifiedWaterPlace[]>(
     "livecams/preview/places?q=" + encodeURIComponent(search),
   );
-  const places = { ...waterCatalog, data: waterCatalog.data ? productPlaces(waterCatalog.data) : undefined };
+  const defaultPlace = useResource<DefaultPlaceSelection>(search ? null : "water-index/default-place");
+  const catalog = search ? waterCatalog : {
+    ...waterCatalog,
+    error: defaultPlace.error ?? waterCatalog.error,
+    data: defaultPlace.data || waterCatalog.data
+      ? [...(defaultPlace.data?.rows ?? []), ...(waterCatalog.data ?? [])] : undefined,
+  };
+  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data) : undefined };
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
@@ -400,6 +408,7 @@ export function MapPage() {
   ];
   const selected =
     raw.find((item) => item.id === selectedSpotId) ??
+    raw.find((item) => item.id === defaultPlace.data?.place?.id) ??
     raw.find((item) => item.type === "beach") ??
     raw[0];
   const conditions = useConditions(selected?.id);
