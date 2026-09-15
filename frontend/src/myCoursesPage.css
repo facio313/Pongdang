@@ -1,0 +1,394 @@
+/* 내 코스(저장 목록). Scoped under .my-courses-page. styles.css 는 수정하지
+   않으며 --pd-* 토큰도 이 페이지 루트에만 선언합니다. 컴포넌트 선택자에는
+   모두 페이지 루트를 붙여 button 리셋(0,1,1)보다 명시도를 높입니다. */
+
+.my-courses-page {
+  /* 밝은 레이어 (본문) */
+  --pd-mist: #eef4fb;
+  --pd-surface: #ffffff;
+  --pd-line: #dae7f5;
+  --pd-badge: #dfeaf7;
+  --pd-ink: #1b2c3d;
+  --pd-ink-2: #5c789a;
+  --pd-ink-3: #4c657f;
+  --pd-blue: #4a86c8;
+  --pd-blue-deep: #2f6aa8;
+  --pd-conf: #4a6d8c;
+  --pd-alert: #ffe9e9;
+  --pd-alert-ink: #8d1616;
+
+  /* 글래스 레이어 (히어로) */
+  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  --pd-glass: rgba(255, 255, 255, 0.14);
+  --pd-glass-line: rgba(255, 255, 255, 0.4);
+  --pd-on-cobalt: #eef5ff;
+  --pd-on-cobalt-2: #c4dcf8;
+  --pd-sky: #9ed4ff;
+
+  /* 형태 */
+  --pd-r-hero: 22px;
+  --pd-r-card: 18px;
+  --pd-r-ctl: 14px;
+  --pd-r-pill: 999px;
+  --pd-shadow: 0 6px 20px rgba(20, 44, 72, 0.1);
+  --pd-shadow-hero: 0 14px 40px rgba(12, 38, 90, 0.28);
+
+  --pd-font-num: "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  color: var(--pd-ink);
+  display: flex;
+  justify-content: center;
+}
+
+.my-courses-page :focus-visible {
+  outline: 2px solid var(--pd-blue);
+  outline-offset: 2px;
+}
+.my-courses-page button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.my-courses-page .mc-frame {
+  width: min(390px, 100%);
+  background: var(--pd-mist);
+  border-radius: 26px;
+  box-shadow: 0 12px 34px rgba(16, 40, 80, 0.16);
+  overflow: hidden;
+}
+
+.my-courses-page .mc-num {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.my-courses-page .mc-lbl {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-ink-2);
+  margin: 0;
+}
+.my-courses-page .mc-note {
+  font-size: 11px;
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.my-courses-page .mc-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--pd-r-card);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pd-ink-2);
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 14px;
+  min-height: 84px;
+}
+.my-courses-page .mc-slot b {
+  color: var(--pd-ink-3);
+}
+
+/* ── 히어로 ─────────────────────────────────────────────── */
+
+.my-courses-page .mc-hero {
+  background: var(--pd-cobalt);
+  color: var(--pd-on-cobalt);
+  padding-bottom: 18px;
+  border-radius: 0 0 var(--pd-r-hero) var(--pd-r-hero);
+  box-shadow: var(--pd-shadow-hero);
+}
+.my-courses-page .mc-sbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 6px;
+  font-size: 10.5px;
+  color: var(--pd-on-cobalt-2);
+}
+.my-courses-page .mc-sbar-mark {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.my-courses-page .mc-hero-inner {
+  padding: 8px 20px 0;
+}
+.my-courses-page .mc-hero .mc-lbl {
+  color: var(--pd-sky);
+}
+.my-courses-page .mc-hero-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 8px 0 0;
+}
+.my-courses-page .mc-hero-sub {
+  font-size: 12px;
+  color: var(--pd-on-cobalt-2);
+  margin: 6px 0 0;
+}
+.my-courses-page .mc-hero-note {
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--pd-on-cobalt-2);
+  margin: 12px 0 0;
+}
+
+/* ── 본문 ──────────────────────────────────────────────── */
+
+.my-courses-page .mc-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.my-courses-page .mc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--pd-surface);
+  border: 1px solid transparent;
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 13px 15px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.my-courses-page .mc-row.is-selected {
+  border-color: var(--pd-blue-deep);
+}
+.my-courses-page .mc-score-badge {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  background: var(--g-bg);
+  color: var(--g-ink);
+}
+.my-courses-page .mc-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.my-courses-page .mc-row-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.my-courses-page .mc-row-meta {
+  font-size: 11.5px;
+  color: var(--pd-ink-2);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.my-courses-page .mc-alarm-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pd-r-pill);
+  flex: none;
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.my-courses-page .mc-alarm-chip.is-off {
+  background: #e7ecf2;
+  color: #4b5563;
+}
+
+.my-courses-page .mc-detail {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 14px 16px;
+}
+.my-courses-page .mc-detail-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.my-courses-page .mc-detail dl {
+  margin: 10px 0 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 11.5px;
+}
+.my-courses-page .mc-detail dt {
+  color: var(--pd-ink-2);
+}
+.my-courses-page .mc-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.my-courses-page .mc-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.my-courses-page .mc-detail-actions > * {
+  flex: 1;
+}
+
+.my-courses-page .mc-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 46px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-blue);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+.my-courses-page .mc-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 46px;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+.my-courses-page .mc-secondary[disabled] {
+  color: #8fa3b8;
+  cursor: default;
+}
+
+/* ── 등급 칩 · 데이터 상태 칩 (pongdangUi.tsx 가 쓰는 클래스) ──
+   등급 판정과 등급명·원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   레이어별 칩 표면(배경/글자)만 등급 key 로 고릅니다. */
+
+.my-courses-page [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.my-courses-page [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.my-courses-page [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.my-courses-page [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.my-courses-page [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.my-courses-page [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+
+.my-courses-page .pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.my-courses-page .pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: 10.5px;
+}
+.my-courses-page .pd-grade-chip-num {
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-courses-page .pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.my-courses-page .pd-state-chip.is-live {
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.my-courses-page .pd-state-chip.is-alert {
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+}
+
+/* ── 탭바 ──────────────────────────────────────────────── */
+
+.my-courses-page .mc-tabbar {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 6px 8px;
+  display: flex;
+}
+.my-courses-page .mc-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--pd-ink-2);
+  text-decoration: none;
+}
+.my-courses-page .mc-tab[aria-current="page"] {
+  color: var(--pd-blue-deep);
+  font-weight: 700;
+}
+.my-courses-page .mc-tabbar-note {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  text-align: center;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-courses-page *,
+  .my-courses-page *::before,
+  .my-courses-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
