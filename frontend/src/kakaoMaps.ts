@@ -32,6 +32,7 @@ export interface KakaoCustomOverlay {
 }
 
 export interface KakaoMapsNamespace {
+  Polyline?: new (options: { map: KakaoMap; path: KakaoLatLng[]; strokeWeight: number; strokeColor: string; strokeOpacity: number }) => { setMap(map: KakaoMap | null): void };
   Map: new (container: HTMLElement, options: {
     center: KakaoLatLng;
     level?: number;

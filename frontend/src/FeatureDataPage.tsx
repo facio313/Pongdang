@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { activities, displayTime, requestJson, safeSourceUrl, type Activity } from "./aiApi";
 import { contextLink, featurePages, featurePath, type FeaturePage } from "./featureRoutes";
 import { type RowsResult } from "./data";
+import { NotificationSettings } from "./NotificationSettings";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 
 type Envelope = { rows: Record<string, unknown>[]; status?: string; as_of?: string; queried_at?: string; at?: string; total?: number; has_more?: boolean; reason_codes?: string[]; coverage?: unknown };
@@ -54,15 +55,20 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
     );
     return () => controller.abort();
   }, [path, key]);
-  const rows = current?.data?.rows ?? [];
+  const personal = ["first-swim", "favorites", "travel-history"].includes(page);
+  const rows = (current?.data?.rows ?? []).filter(row => {
+    if (page !== "favorites" && page !== "travel-history") return true;
+    const payload = row.payload as { kind?: string } | undefined;
+    return page === "favorites" ? payload?.kind === "favorite" : payload?.kind === "visit" || payload?.kind === "review";
+  });
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
   const selectedPlace = places?.rows.find((row) => row.id === spotId);
   const markers = rows.filter((row) => typeof row.spot_id === "number" && typeof row.name === "string" && typeof row.lat === "number" && typeof row.lng === "number")
     .map((row) => ({ id: String(row.spot_id), name: row.name as string, latitude: row.lat as number, longitude: row.lng as number }));
   return <article className="feature-page">
     <div className="ai-heading"><h1>{featurePages[page]} · 실제 자료 조회</h1><a href={contextLink({ spot_id: spotId, activity }, ["water-index", "water-forecast", "tide"].includes(page) && periodValid ? { from: isoInput(from), until: isoInput(until) } : undefined)}>이 조건으로 AI에게 물어보기</a></div>
-    <p>실제 Pongdang 읽기 서비스의 공개 자료입니다. 관측·예보·관측소 자료의 시각과 공간 범위를 구분해 확인하세요. NULL·unknown은 안전함을 뜻하지 않습니다.</p>
-    {page === "first-swim" ? <p className="ai-notice">본인의 기존 알림 구독을 조회합니다. 이 화면과 AI 대화는 구독을 생성·변경하거나 메일을 보내지 않습니다. 수온 기준 통과는 입수 안전 판정이 아닙니다.</p> : <>
+    <p>{personal ? "기존 SSO 계정에 속한 개인 자료입니다." : "실제 Pongdang 읽기 서비스의 공개 자료입니다."} 관측·예보·관측소 자료의 시각과 공간 범위를 구분해 확인하세요. NULL·unknown은 안전함을 뜻하지 않습니다.</p>
+    {personal ? <p className="ai-notice">본인의 SSO 세션에 저장된 자료입니다. 수온 기준 통과와 방문 기록은 입수 안전 판정이 아닙니다.</p> : <>
       <form className="toolbar" onSubmit={(event) => { event.preventDefault(); setPlaceQuery(search); }}><label>장소 찾기<input type="search" maxLength={100} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="실제 장소명·지역" /></label><button type="submit">장소 검색</button></form>
       {placesError && <p role="alert">{placesError}</p>}
       <div className="toolbar"><label>장소<select value={spotId ?? ""} onChange={(event) => setSpotId(event.target.value ? Number(event.target.value) : undefined)}><option value="">장소 선택</option>{initialSpotId && !places?.rows.some((row) => row.id === initialSpotId) && <option value={initialSpotId}>장소 ID {initialSpotId} · 서버 조회로 확인</option>}{places?.rows.map((row) => <option key={String(row.id)} value={String(row.id)}>{String(row.name ?? "이름 기록 없음")} · ID {String(row.id)}</option>)}</select></label>
@@ -72,6 +78,7 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
       {selectedPlace && <p>선택 장소: {String(selectedPlace.name)} · 유형: {String(selectedPlace.type ?? "기록 없음")} · 지역: {String(selectedPlace.region ?? "기록 없음")}</p>}
       {(places?.total ?? 0) > 100 && <p className="table-note">장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.</p>}
     </>}
+    {page === "first-swim" && <NotificationSettings onSaved={() => setRevision(value => value + 1)} />}
     {!periodValid && <p role="alert">시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.</p>}
     {periodValid && !path && <p className="ai-notice">실제 장소를 선택하면 자료를 조회합니다.</p>}
     {path && !current && <p role="status">실제 자료 조회 중…</p>}

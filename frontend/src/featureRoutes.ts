@@ -1,6 +1,7 @@
 import { activities, type Activity, type AiContext } from "./aiApi";
 
 export const featurePages = {
+  favorites: "지점 즐겨찾기", "travel-history": "지난 코스 기록",
   "water-index": "Water Index", "water-index-map": "지도 배치", "water-forecast": "Water Forecast",
   "water-temperature": "수온", livecam: "웹캠 목록", tide: "물때 타이머", "first-swim": "첫 입수", "water-quality": "수질 교차검증",
 } as const;
@@ -23,6 +24,7 @@ export function contextLink(context: AiContext, period?: { from: string; until: 
   return "#ai" + (query.size ? "?" + query : "");
 }
 export function featurePath(page: FeaturePage, spotId: number | undefined, activity: Activity, from: string, until: string) {
+  if (page === "favorites" || page === "travel-history") return "travel/signals?limit=100&offset=0";
   if (page === "first-swim") return "notifications/subscriptions?limit=100&offset=0";
   const params = new URLSearchParams({ page: "1", page_size: "100" });
   if (spotId) params.set("spot_id", String(spotId));

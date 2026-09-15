@@ -14,3 +14,7 @@ __pycache__/
 
 # Local workbook contains provider API credentials.
 /docs/pongdang-api-keys.xlsx
+
+# Browser test artifacts
+frontend/test-results/
+frontend/playwright-report/

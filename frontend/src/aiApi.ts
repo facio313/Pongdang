@@ -28,7 +28,7 @@ export interface ChatResponse {
   context: AiContext; sections: { title: string; fact_ids: string[]; candidate_ids: string[] }[];
 }
 
-const routes = new Set(["data", "info", "ai", "water-index", "water-index-map", "water-forecast", "tide", "water-quality", "livecam", "first-swim", "water-temperature"]);
+const routes = new Set(["favorites", "travel-history", "data", "info", "ai", "water-index", "water-index-map", "water-forecast", "tide", "water-quality", "livecam", "first-swim", "water-temperature"]);
 export function safeInternalLink(value: string): string | null {
   if (!value.startsWith("#") || value.length > 1500 || [...value].some((char) => char.charCodeAt(0) <= 32 || char === "\\")) return null;
   const [page, query = ""] = value.slice(1).split("?");

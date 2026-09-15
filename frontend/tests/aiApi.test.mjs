@@ -190,7 +190,7 @@ test('real feature links resolve to bounded existing reads and preserve context'
     const path = featurePath(feature, 17, 'surf', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z');
     assert.ok(path);
     assert.doesNotMatch(path, /demo|collector/);
-    assert.match(path, feature === 'first-swim' ? /limit=100/ : /page_size=100/);
+    assert.match(path, ['first-swim', 'favorites', 'travel-history'].includes(feature) ? /limit=100/ : /page_size=100/);
   }
   assert.equal(featurePath('water-forecast', undefined, 'swim', '', ''), null);
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { gradeOf } from "./groupAGrade";
 import {
@@ -10,36 +10,52 @@ import {
   type IconName,
 } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
-import { useGangneungSpots } from "./gangneungSpots";
+import { useResource } from "./useResource";
+import { useAction } from "./useAction";
+import {
+  calendarDays,
+  conditionPath,
+  dateLabel,
+  kstDate,
+  metricText,
+  timeLabel,
+  type Conditions,
+} from "./productData";
+import {
+  planItems,
+  placeRoleLabel,
+  unknownConditionsText,
+  recommendationPlan,
+  selectedActivities,
+  travelJson,
+  type PlanInput,
+  type Preference,
+  type RecommendationResult,
+  type TravelRequest,
+  type TripPlan,
+} from "./travelApi";
+import { setTravelSession, useTravelSession } from "./travelSession";
 import "./recommendPage.css";
-
-// 추천(그룹 B). 진입 → 취향 수집(3단계) → 대화형 컨시어지 → 코스 결과 →
-// 조건 변화 재추천을 한 페이지 안의 단계 전환으로 구현합니다.
-//
-// 데이터 연결 상태
-//  - 지점(장소명 · 지역 · 주소 · 검증 상태): `/api/data/datasets/spots` 실연동.
-//  - 점수 · 파고 · 수온 · 물때 · 코스 · 대화 응답: 저장된 값이 없습니다.
-//    추천 엔진도 구현되어 있지 않아, 아래 상수는 전부 레이아웃 확인용
-//    예시이며 화면에 「예시 데이터」/「수집 미구현」 칩으로 표기합니다.
-//
-// 표기 규칙상 「AI 제안」 칩이 붙은 카드에는 같은 카드 안에 근거(사용 지표 ·
-// 시각 · 출처)가 반드시 함께 있어야 하므로, AiSuggestion 이 headline 과
-// basis 를 한 덩어리로 렌더합니다. 근거 없는 추천 카드는 만들지 않습니다.
 
 type Step = "entry" | "taste" | "chat" | "course" | "realert";
 
-const TODAY_LABEL = "9월 15일";
+const TODAY_LABEL = dateLabel();
 
-/** 저장된 활동은 수영 · 래프팅 · 휴식 3종뿐입니다. 그 밖의 태그는 수집
- *  항목이 아니므로 화면에서 예시임을 밝혀야 합니다. */
-const COLLECTED_ACTIVITIES = ["수영", "래프팅", "휴식"];
-
-const TAG_GROUPS: { label: string; tags: string[] }[] = [
+interface KeywordCatalogue {
+  categories: {
+    id: string;
+    label: string;
+    options: { id: string; label: string }[];
+  }[];
+}
+const TAG_GROUPS = [
   { label: "물놀이", tags: ["서핑", "수영", "SUP", "갯벌 체험", "래프팅"] },
   { label: "쉬기 · 구경", tags: ["온천", "카페", "일몰 보기", "캠핑"] },
-  { label: "조건", tags: ["파도 적은 곳", "주차 편한 곳", "샤워장", "반려동물"] },
+  {
+    label: "조건",
+    tags: ["파도 적은 곳", "주차 편한 곳", "샤워장", "반려동물"],
+  },
 ];
-
 const SWIPE_CARDS: {
   id: string;
   name: string;
@@ -47,92 +63,59 @@ const SWIPE_CARDS: {
   score: number | null;
   place: string;
 }[] = [
-  { id: "surf", name: "서핑 강습", icon: "surf", score: 82, place: "경포해변" },
-  { id: "sup", name: "SUP 체험", icon: "sup", score: 74, place: "안목해변" },
-  { id: "mudflat", name: "갯벌 체험", icon: "mudflat", score: 64, place: "사천진 갯벌" },
-  { id: "hotspring", name: "온천 마무리", icon: "hotspring", score: 70, place: "강릉 시내" },
-  { id: "cafe", name: "바다 뷰 카페", icon: "cafe", score: null, place: "안목 커피거리" },
-  { id: "sunset", name: "일몰 보기", icon: "sunset", score: null, place: "경포대" },
-];
-
-const CHAT_TURNS: { question: string; replies: string[] }[] = [
-  { question: "오늘 강릉에서 뭘 하고 싶으세요?", replies: ["물에 들어가고 싶어요", "구경만 할래요"] },
-  { question: "누구와 얼마나 머무세요?", replies: ["친구랑 하루", "혼자 반나절"] },
-  { question: "이동은 어떻게 하세요?", replies: ["차량", "대중교통"] },
-];
-
-interface CourseStop {
-  time: string;
-  name: string;
-  icon: IconName;
-  score: number | null;
-  place: string;
-  match: string | null;
-  basis: string;
-  basisChip: string;
-}
-
-const COURSE_STOPS: CourseStop[] = [
   {
-    time: "09:20",
+    id: "surf",
     name: "서핑 강습",
     icon: "surf",
-    score: 82,
-    place: "경포해변",
-    match: "경포",
-    basis: "파고 0.6m · 수온 22.1°C로 오늘 가장 좋은 조건입니다.",
-    basisChip: "취향: 서핑",
-  },
-  {
-    time: "12:00",
-    name: "점심 · 회센터",
-    icon: "restaurant",
     score: null,
-    place: "안목 항구",
-    match: "안목",
-    basis: "식사 장소는 적합도를 계산하지 않습니다.",
-    basisChip: "주변 카탈로그",
+    place: "활동 취향 선택",
   },
   {
-    time: "14:30",
+    id: "sup",
+    name: "SUP 체험",
+    icon: "sup",
+    score: null,
+    place: "활동 취향 선택",
+  },
+  {
+    id: "mudflat",
     name: "갯벌 체험",
     icon: "mudflat",
-    score: 64,
-    place: "사천진 갯벌",
-    match: "사천진",
-    basis: "간조 12:34 이후 물이 빠져 접근이 쉬워집니다.",
-    basisChip: "물때 기준",
+    score: null,
+    place: "활동 취향 선택",
   },
   {
-    time: "18:40",
+    id: "hotspring",
     name: "온천 마무리",
     icon: "hotspring",
-    score: 70,
-    place: "강릉 시내",
-    match: null,
-    basis: "일몰 19:02 이후 이동 부담이 적습니다.",
-    basisChip: "취향: 온천",
+    score: null,
+    place: "활동 취향 선택",
+  },
+  {
+    id: "cafe",
+    name: "바다 뷰 카페",
+    icon: "cafe",
+    score: null,
+    place: "활동 취향 선택",
+  },
+  {
+    id: "sunset",
+    name: "일몰 보기",
+    icon: "sunset",
+    score: null,
+    place: "활동 취향 선택",
   },
 ];
-
-interface CourseDay {
-  id: string;
-  name: string;
-  score: number | null;
-}
-
-const COURSE_DAYS: CourseDay[] = [
-  { id: "d0", name: "오늘", score: 82 },
-  { id: "d1", name: "내일", score: 74 },
-  { id: "d2", name: "토", score: 58 },
-  { id: "d3", name: "일", score: 34 },
-  { id: "d4", name: "월", score: null },
-];
-
-const CHAT_BASIS_BARS: { name: string; value: string; ratio: number | null }[] = [
-  { name: "파고", value: "0.6m", ratio: 0.3 },
-  { name: "수온", value: "22.1°C", ratio: 0.72 },
-  { name: "수질", value: "–", ratio: null },
+const CHAT_TURNS: { question: string; replies: string[] }[] = [
+  {
+    question: "오늘 강릉에서 뭘 하고 싶으세요?",
+    replies: ["물에 들어가고 싶어요", "구경만 할래요"],
+  },
+  {
+    question: "누구와 얼마나 머무세요?",
+    replies: ["친구랑 하루", "혼자 반나절"],
+  },
+  { question: "이동은 어떻게 하세요?", replies: ["차량", "대중교통"] },
 ];
 
 // ── 공통 조각 ───────────────────────────────────────────────
@@ -140,7 +123,7 @@ const CHAT_BASIS_BARS: { name: string; value: string; ratio: number | null }[] =
 function ExampleNote({ children }: { children: React.ReactNode }) {
   return (
     <p className="rc-note">
-      <StateChip kind="example" /> {children}
+      <StateChip kind="partial" /> {children}
     </p>
   );
 }
@@ -162,7 +145,7 @@ function EntryStep({
     <>
       <header className="rc-hero">
         <div className="rc-sbar">
-          <span>9:41</span>
+          <span>{timeLabel(new Date().toISOString())}</span>
           <span className="rc-sbar-mark">추천</span>
           <span>강릉</span>
         </div>
@@ -201,20 +184,20 @@ function EntryStep({
           <div className="rc-facts">
             <div className="rc-fact">
               <div className="rc-fact-name">동행</div>
-              <div className="rc-fact-value">친구랑</div>
+              <div className="rc-fact-value">선택 전</div>
             </div>
             <div className="rc-fact">
               <div className="rc-fact-name">기간</div>
-              <div className="rc-fact-value">하루</div>
+              <div className="rc-fact-value">날짜 선택</div>
             </div>
             <div className="rc-fact">
               <div className="rc-fact-name">이동</div>
-              <div className="rc-fact-value">차량</div>
+              <div className="rc-fact-value">자동차 기본</div>
             </div>
           </div>
           <p className="rc-note">
-            취향은 아직 저장되지 않습니다. 이 화면을 벗어나면 선택이
-            사라집니다. 동행 · 기간 · 이동은 예시 값입니다.
+            선택한 태그는 이번 추천에 반영합니다. 취향 확정 버튼으로 저장하며,
+            동행과 이동은 대화 답변으로 변경할 수 있습니다.
           </p>
         </div>
 
@@ -222,9 +205,7 @@ function EntryStep({
           <AiSuggestion
             headline="질문 3개 · 30초"
             basis={
-              "오늘 경포해변 예보(점수 82 · 파고 0.6m · 수온 22.1°C, 예시 데이터)와 " +
-              "저장된 활동 3종(수영 · 래프팅 · 휴식)만으로 후보를 고릅니다. " +
-              "출처 · 기상청 · 국립해양조사원"
+              "실제 장소 카탈로그와 선택한 취향·날짜를 비교하고 확인되지 않은 환경 조건을 함께 표시합니다."
             }
           />
           <div className="rc-card-title" style={{ marginTop: 10 }}>
@@ -239,8 +220,8 @@ function EntryStep({
             </button>
           </div>
           <p className="rc-note">
-            추천 엔진은 아직 구현되지 않았습니다. 아래 단계는 화면 흐름 확인용
-            이며, 실제 예보로 계산한 결과가 아닙니다.
+            추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 지도에서
+            출발지를 고른 뒤 별도로 요청합니다.
           </p>
         </div>
         <AppTabBar active="recommend" />
@@ -274,6 +255,10 @@ function TasteStep({
   onDone: () => void;
   onBack: () => void;
 }) {
+  const catalogue = useResource<KeywordCatalogue>("travel/keywords");
+  const waveLabel = catalogue.data?.categories
+    .find((category) => category.id === "weather")
+    ?.options.find((option) => option.id === "small_waves")?.label;
   const card = SWIPE_CARDS[Math.min(cardIndex, SWIPE_CARDS.length - 1)];
   const grade = gradeOf(card.score);
 
@@ -281,7 +266,7 @@ function TasteStep({
     <>
       <header className="rc-hero">
         <div className="rc-sbar">
-          <span>9:41</span>
+          <span>{timeLabel(new Date().toISOString())}</span>
           <span className="rc-sbar-mark">MY TASTE</span>
           <span>STEP {tasteStep} / 3</span>
         </div>
@@ -322,7 +307,9 @@ function TasteStep({
                       <button
                         type="button"
                         key={tag}
-                        className={"rc-tag" + (tags.includes(tag) ? " is-on" : "")}
+                        className={
+                          "rc-tag" + (tags.includes(tag) ? " is-on" : "")
+                        }
                         aria-pressed={tags.includes(tag)}
                         onClick={() => toggleTag(tag)}
                       >
@@ -334,9 +321,10 @@ function TasteStep({
                 </div>
               ))}
               <ExampleNote>
-                저장된 활동은 {COLLECTED_ACTIVITIES.join(" · ")} 3종입니다.
-                서핑 · SUP · 갯벌 체험 · 온천 등 나머지 태그는 수집 항목이
-                아니라 화면 구성을 위한 예시입니다.
+                {catalogue.error ??
+                  "태그는 여행 취향입니다. SUP·편의시설 등의 실제 지원은 별도 확인이 필요합니다."}{" "}
+                파도 적은 곳: {waveLabel ?? "범위 조회 중"}. 이 범위는 안전
+                기준이 아닙니다.
               </ExampleNote>
             </div>
             <button
@@ -377,8 +365,9 @@ function TasteStep({
                 </button>
               </div>
               <p className="rc-note">
-                {Math.min(cardIndex + 1, SWIPE_CARDS.length)} / {SWIPE_CARDS.length}
-                번째 카드입니다. <StateChip kind="example" />
+                {Math.min(cardIndex + 1, SWIPE_CARDS.length)} /{" "}
+                {SWIPE_CARDS.length}
+                번째 카드입니다. <StateChip kind="partial" />
               </p>
             </div>
             <button
@@ -426,13 +415,13 @@ function TasteStep({
                 )}
               </div>
               <ExampleNote>
-                이 요약은 저장되지 않습니다. 취향 저장 기능은 아직 구현되지
-                않았습니다.
+                선택한 태그와 좋아요를 합쳐 취향에 저장하고 실제 장소를
+                추천받습니다. 파도 적은 곳: {waveLabel ?? "범위 조회 중"}.
               </ExampleNote>
             </div>
             <div className="rc-stack">
               <button type="button" className="rc-primary" onClick={onDone}>
-                이 취향으로 코스 보기 →
+                취향 저장하고 코스 보기 →
               </button>
               <button
                 type="button"
@@ -455,12 +444,14 @@ function TasteStep({
 function ChatStep({
   turn,
   answers,
+  answer,
   onReply,
   onReset,
   onDone,
   onBack,
 }: {
   turn: number;
+  answer: string;
   answers: string[];
   onReply: (reply: string) => void;
   onReset: () => void;
@@ -468,11 +459,26 @@ function ChatStep({
   onBack: () => void;
 }) {
   const finished = turn >= CHAT_TURNS.length;
+  const session = useTravelSession();
+  const conditions = useResource<Conditions>(
+    conditionPath(
+      session.recommendation?.recommendations[0]?.spot_id,
+      session.recommendation?.request.activity ?? "relax",
+      session.recommendation?.request.dates[0]
+        ? session.recommendation.request.dates[0] + "T12:00:00+09:00"
+        : undefined,
+    ),
+  );
+  const bars = [
+    { name: "파고", value: metricText(conditions.data, "wave_height") },
+    { name: "수온", value: metricText(conditions.data, "water_temperature") },
+    { name: "수질", value: "–" },
+  ];
   return (
     <>
       <header className="rc-hero">
         <div className="rc-sbar">
-          <span>9:41</span>
+          <span>{timeLabel(new Date().toISOString())}</span>
           <span className="rc-sbar-mark">CONCIERGE</span>
           <span>강릉</span>
         </div>
@@ -535,23 +541,19 @@ function ChatStep({
                 안에 사용 지표 · 시각 · 출처가 함께 있어야 합니다. */}
             <div className="rc-card">
               <AiSuggestion
-                headline="답변과 오늘 예보로 코스를 만들었어요"
-                basis="09:00 발표 예보 · 출처 · 기상청 · 국립해양조사원"
+                headline="답변을 반영한 추천"
+                basis={
+                  answer ||
+                  "답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면 미확인으로 표시합니다."
+                }
               />
-              {CHAT_BASIS_BARS.map((bar) => (
+              {bars.map((bar) => (
                 <div className="rc-basis-row" key={bar.name}>
                   <span className="rc-basis-name">{bar.name}</span>
-                  <span className="rc-basis-track">
-                    {bar.ratio !== null && (
-                      <span
-                        className="rc-basis-fill"
-                        style={{ width: `${bar.ratio * 100}%` }}
-                      />
-                    )}
-                  </span>
+                  <span className="rc-basis-track" />
                   <span
                     className={
-                      "rc-basis-value" + (bar.ratio === null ? " is-empty" : "")
+                      "rc-basis-value" + (bar.value === "–" ? " is-empty" : "")
                     }
                   >
                     {bar.value}
@@ -559,9 +561,9 @@ function ChatStep({
                 </div>
               ))}
               <p className="rc-note">
-                막대는 각 지표 값의 상대 위치이며 점수 기여도가 아닙니다.
-                수질은 저장된 값이 없어 막대를 그리지 않고 –로 둡니다.{" "}
-                <StateChip kind="example" />
+                첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 점수
+                기여 비율은 제공되지 않아 막대 길이를 만들지 않습니다. 추천
+                순서는 취향 일치 기준이며 안전 점수가 아닙니다.
               </p>
             </div>
             <div className="rc-stack">
@@ -591,7 +593,6 @@ function CourseStep({
   setAltOpen,
   onRealert,
   onBack,
-  resolvePlace,
   statusText,
 }: {
   dayIndex: number;
@@ -602,17 +603,42 @@ function CourseStep({
   setAltOpen: (open: boolean) => void;
   onRealert: () => void;
   onBack: () => void;
-  resolvePlace: (match: string | null, fallback: string) => string;
   statusText: string;
 }) {
-  const day = COURSE_DAYS[dayIndex];
-  const hasForecast = day.score !== null;
+  const session = useTravelSession();
+  const days = calendarDays(new Date().toISOString(), 5).map((day) => ({
+    ...day,
+    name: day.weekday,
+  }));
+  const day = days[dayIndex];
+  const stops = session.plan
+    ? planItems(session.plan).map((item) => ({
+        time: timeLabel(item.arrival_at),
+        name: item.name,
+        icon: "pin" as IconName,
+        score: null,
+        place: placeRoleLabel(item.role),
+        basis: unknownConditionsText(item.unknown_conditions) || "선택한 실제 장소",
+        basisChip: "저장 일정",
+      }))
+    : (session.recommendation?.recommendations ?? []).map((item) => ({
+        time: `후보 ${item.rank}`,
+        name: item.name,
+        icon: "pin" as IconName,
+        score: null,
+        place: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
+        basis: `${item.reason} 미확인: ${unknownConditionsText(item.unknown_conditions) || "없음"}`,
+        basisChip:
+          item.matched_preferences.map((p) => p.tag).join(" · ") ||
+          "카탈로그 후보",
+      }));
+  const hasForecast = stops.length > 0;
 
   return (
     <>
       <header className="rc-hero">
         <div className="rc-sbar">
-          <span>9:41</span>
+          <span>{timeLabel(new Date().toISOString())}</span>
           <span className="rc-sbar-mark">MY COURSE</span>
           <span>강릉</span>
         </div>
@@ -622,8 +648,10 @@ function CourseStep({
           </button>
           <div className="rc-hero-row" style={{ marginTop: 6 }}>
             <div>
-              <p className="rc-lbl">{day.name} · 9월</p>
-              <h1 className="rc-hero-title">오늘의 물 코스</h1>
+              <p className="rc-lbl">
+                {session.plan?.request.dates.join(" · ") ?? day.dateLabel}
+              </p>
+              <h1 className="rc-hero-title">선택한 물 코스</h1>
             </div>
             <div style={{ textAlign: "right", flex: "none" }}>
               <div className="rc-num rc-hero-score-num">
@@ -633,11 +661,13 @@ function CourseStep({
             </div>
           </div>
           <div className="rc-days" role="group" aria-label="날짜 선택">
-            {COURSE_DAYS.map((item, index) => (
+            {days.map((item, index) => (
               <button
                 type="button"
                 key={item.id}
-                className={"rc-day" + (index === dayIndex ? " is-selected" : "")}
+                className={
+                  "rc-day" + (index === dayIndex ? " is-selected" : "")
+                }
                 aria-pressed={index === dayIndex}
                 aria-label={`${item.name} · ${
                   item.score === null
@@ -654,8 +684,8 @@ function CourseStep({
             ))}
           </div>
           <p className="rc-hero-note">
-            날짜별 점수는 경포해변 예보 기준이며 예시 데이터입니다. 값이 없는
-            날은 –이며 0점이 아닙니다.
+            날짜를 바꾸면 해당 날짜의 장소·활동 후보를 새로 조회합니다. 종합
+            점수는 제공하지 않으며, 저장된 일정의 날짜는 상세에 표시합니다.
           </p>
         </div>
       </header>
@@ -670,10 +700,11 @@ function CourseStep({
               <span className="rc-empty-icon">
                 <GradeIcon gradeKey="unscored" size={28} />
               </span>
-              <div className="rc-empty-title">저장된 예보가 없습니다</div>
+              <div className="rc-empty-title">추천 장소가 없습니다</div>
               <p className="rc-note">
-                <StateChip kind="no_data" /> 이 날짜는 저장된 예보가 없어 코스를
-                만들지 않았습니다. 값이 없는 것은 0점 · 정상 · 안전이 아닙니다.
+                <StateChip kind="no_data" />{" "}
+                {statusText ||
+                  "선택한 조건에 맞는 후보가 없습니다. 취향이나 날짜를 바꿔 다시 조회해 주세요."}
               </p>
               <button
                 type="button"
@@ -681,7 +712,7 @@ function CourseStep({
                 style={{ marginTop: 14 }}
                 onClick={() => setDayIndex(0)}
               >
-                예보가 있는 날 보기 →
+                오늘 다시 조회 →
               </button>
             </div>
             <AppTabBar active="recommend" />
@@ -689,11 +720,20 @@ function CourseStep({
         ) : (
           <>
             <p className="rc-lede">
-              취향 2개(서핑 · 온천)와 {day.name} 예보로 만든 코스입니다.
+              {(
+                session.plan?.request.preferred_tags ??
+                session.recommendation?.request.preferred_tags ??
+                []
+              ).join(" · ") || "선택 취향 없음"}{" "}
+              · {stops.length}곳. 조회{" "}
+              {timeLabel(
+                session.plan?.queried_at ?? session.recommendation?.queried_at,
+              )}{" "}
+              KST. 환경 미확인 조건은 각 후보에서 확인하세요.
             </p>
 
             <div className="rc-card rc-timeline">
-              {COURSE_STOPS.map((stop) => {
+              {stops.map((stop) => {
                 const grade = gradeOf(stop.score);
                 return (
                   <div className="rc-stop" key={stop.time}>
@@ -712,13 +752,11 @@ function CourseStep({
                         <span className="rc-stop-name">{stop.name}</span>
                         <GradeChip score={stop.score} />
                       </div>
-                      <div className="rc-stop-place">
-                        {resolvePlace(stop.match, stop.place)}
-                      </div>
+                      <div className="rc-stop-place">{stop.place}</div>
                       <div className="rc-stop-basis">{stop.basis}</div>
                       <div className="rc-stop-chips">
                         <span className="rc-basis-chip">{stop.basisChip}</span>
-                        <StateChip kind="example" />
+                        <StateChip kind="partial" />
                       </div>
                     </div>
                   </div>
@@ -729,14 +767,13 @@ function CourseStep({
             <div className="rc-card">
               <div className="rc-card-title">조건이 바뀌면 어떻게 하나요?</div>
               <p className="rc-note">
-                파고 · 수온이 기준을 넘으면 해당 일정만 대안으로 바꿔 제안합니다.
-                취향과 다른 활동을 제안할 때는 같은 카드에 이유를 함께 적습니다.
+                다시 조회할 때 최신 환경 근거와 같은 취향을 비교합니다. 장소
+                추천은 안전 판정이 아니며, 새 후보는 확인 후 적용합니다.
               </p>
               {altOpen && (
                 <p className="rc-note">
-                  예: 「취향은 수영이지만 오늘 파고 0.6m로 서핑 강습이 더 맞아 첫
-                  일정만 바꿨습니다.」 조건 변화 알림은 아직 발송되지 않으며,
-                  아래 버튼으로 화면만 확인할 수 있습니다.
+                  새 후보를 조회해도 기존 저장 코스는 유지됩니다. 대안 적용 시
+                  서버가 최신 제한과 일정 충돌을 다시 확인합니다.
                 </p>
               )}
               <div className="rc-stack" style={{ marginTop: 10 }}>
@@ -753,16 +790,19 @@ function CourseStep({
                   className="rc-secondary"
                   onClick={onRealert}
                 >
-                  조건 변화 알림 미리보기 →
+                  최신 조건으로 대안 조회 →
                 </button>
               </div>
             </div>
 
             <div className="rc-actions">
-              <button type="button" className="rc-secondary" disabled>
-                <Icon name="share" size={16} />
-                공유
-              </button>
+              <a
+                className="rc-secondary"
+                href={`#map?view=course${session.plan?.plan_id ? `&plan_id=${session.plan.plan_id}` : ""}`}
+              >
+                <Icon name="course" size={16} />
+                지도에서 보기
+              </a>
               <button
                 type="button"
                 className={"rc-primary" + (saved ? " is-done" : "")}
@@ -774,10 +814,8 @@ function CourseStep({
               </button>
             </div>
             <p className="rc-note" style={{ marginTop: 0 }}>
-              <StateChip kind="uncollected" /> 공유와 코스 저장은 아직 구현되지
-              않았습니다. 「저장됨」은 이 화면 안에서만 유지되며 서버에
-              기록되지 않습니다. 지점명은 장소 카탈로그에서 읽어옵니다 —{" "}
-              {statusText}
+              <StateChip kind="live" /> {statusText} 장소 후보 순서는 이동
+              경로가 아닙니다. 실제 경로는 지도에서 요청하세요.
             </p>
             <AppTabBar active="recommend" />
           </>
@@ -790,19 +828,28 @@ function CourseStep({
 // ── 5. B4 조건 변화 재추천 ────────────────────────────────
 
 function RealertStep({
-  swapped,
-  setSwapped,
+  proposal,
+  onApply,
   onBack,
 }: {
-  swapped: boolean;
-  setSwapped: (value: boolean) => void;
+  proposal: RecommendationResult | null;
+  onApply: () => void;
   onBack: () => void;
 }) {
+  const session = useTravelSession();
+  const previous =
+    planItems(session.plan)
+      .map((item) => item.name)
+      .join(" · ") ||
+    session.recommendation?.recommendations
+      .map((item) => item.name)
+      .join(" · ") ||
+    "기존 후보 없음";
   return (
     <>
       <header className="rc-hero">
         <div className="rc-sbar">
-          <span>9:41</span>
+          <span>{timeLabel(new Date().toISOString())}</span>
           <span className="rc-sbar-mark">UPDATE</span>
           <span>강릉</span>
         </div>
@@ -811,81 +858,68 @@ function RealertStep({
             ← 코스로 돌아가기
           </button>
           <p className="rc-lbl" style={{ marginTop: 6 }}>
-            조건 변화 · 10분 전
+            최신 조건 조회 · {timeLabel(proposal?.queried_at)}
           </p>
           <h1 className="rc-hero-title">
-            {swapped ? (
-              <>
-                대안으로
-                <br />
-                바꿨어요
-              </>
-            ) : (
-              <>
-                파도가 올라가
-                <br />
-                서핑 조건이 낮아졌어요
-              </>
-            )}
+            새 후보를
+            <br />
+            확인하세요
           </h1>
           <div className="rc-change">
             <span className="rc-change-metric">
-              파고 0.6m → <b>1.2m</b>
+              {proposal?.status ?? "조회 중"}
             </span>
             <span className="rc-change-scores">
-              <span className="rc-change-from">82</span>
+              <span className="rc-change-from">–</span>
               <span aria-hidden="true">→</span>
-              <span className="rc-num rc-change-to">46</span>
-              <GradeChip score={46} glass bare />
+              <span className="rc-num rc-change-to">–</span>
+              <GradeChip score={null} glass bare />
             </span>
           </div>
           <p className="rc-hero-note">
-            점수 변화는 예시입니다. 조건 변화 감시와 알림 발송은 아직 구현되지
-            않았습니다.
+            직접 요청한 최신 추천입니다. 조건 변화나 안전성 향상을 확인했다는
+            뜻은 아닙니다.
           </p>
         </div>
       </header>
-
       <div className="rc-body">
         <div className="rc-card rc-alert">
           <div className="rc-alert-head">
             <Icon name="warning" size={15} />
-            <span>바뀌는 일정 1개</span>
+            <span>일정 대안 확인</span>
           </div>
           <div className="rc-swap">
-            <div className={"rc-swap-col" + (swapped ? " is-cancelled" : "")}>
-              <div className="rc-swap-when">09:20 기존</div>
-              <div className="rc-swap-what">서핑 · 경포해변</div>
-              <GradeChip score={swapped ? 46 : 82} />
+            <div className="rc-swap-col">
+              <div className="rc-swap-when">기존</div>
+              <div className="rc-swap-what">{previous}</div>
+              <GradeChip score={null} />
             </div>
             <span aria-hidden="true">→</span>
             <div className="rc-swap-col">
-              <div className="rc-swap-when">09:40 대안</div>
-              <div className="rc-swap-what">SUP · 안목해변</div>
-              <GradeChip score={74} />
+              <div className="rc-swap-when">대안</div>
+              <div className="rc-swap-what">
+                {proposal?.recommendations
+                  .map((item) => item.name)
+                  .join(" · ") || "새 후보 없음"}
+              </div>
+              <GradeChip score={null} />
             </div>
           </div>
           <p className="rc-note">
-            근거 · 파고 1.2m는 서핑 강습 기준(1.0m)을 넘고, 안목해변은 같은 시각
-            파고 0.7m로 SUP 기준 안에 있습니다. 09:00 발표 예보 · 출처 · 기상청
-            · 국립해양조사원. <StateChip kind="example" />
+            {proposal?.recommendations.map((item) => item.reason).join(" ") ||
+              proposal?.clarification}
           </p>
           <div className="rc-actions" style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className="rc-secondary"
-              onClick={() => setSwapped(false)}
-              disabled={!swapped}
-            >
-              {swapped ? "되돌리기" : "그대로 두기"}
+            <button type="button" className="rc-secondary" onClick={onBack}>
+              그대로 두기
             </button>
             <button
               type="button"
-              className={"rc-primary" + (swapped ? " is-done" : "")}
-              onClick={() => setSwapped(true)}
-              disabled={swapped}
+              className="rc-primary"
+              onClick={onApply}
+              disabled={!proposal?.recommendations.length}
             >
-              {swapped ? "바꿨습니다" : "대안으로 바꾸기"}
+              대안으로 바꾸기
             </button>
           </div>
         </div>
@@ -898,110 +932,381 @@ function RealertStep({
 // ── 화면 ───────────────────────────────────────────────────
 
 function RecommendScreen() {
-  const [step, setStep] = useState<Step>("entry");
-  const [tags, setTags] = useState<string[]>(["서핑", "온천"]);
+  const session = useTravelSession();
+  const [step, setStep] = useState<Step>(() =>
+    session.plan ||
+    new URLSearchParams(window.location.hash.split("?")[1]).has("plan_id")
+      ? "course"
+      : "entry",
+  );
+  const [tags, setTags] = useState<string[] | null>(null);
+  const profile = useResource<{ preference: Preference; revision: number }>(
+    "travel/preferences",
+  );
+  const selectedTags = tags ?? profile.data?.preference.tags ?? [];
+  const keywordOptions = useResource<KeywordCatalogue>("travel/keywords");
   const [tasteStep, setTasteStep] = useState<1 | 2 | 3>(1);
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
   const [turn, setTurn] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [answer, setAnswer] = useState("");
   const [dayIndex, setDayIndex] = useState(0);
   const [altOpen, setAltOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [swapped, setSwapped] = useState(false);
-
-  const spots = useGangneungSpots("RecommendPage");
-  const resolvePlace = (match: string | null, fallback: string) =>
-    match === null ? fallback : spots.resolve(match, fallback).name;
-
-  const toggleTag = (tag: string) =>
-    setTags((current) =>
-      current.includes(tag)
-        ? current.filter((item) => item !== tag)
-        : [...current, tag],
-    );
-
-  const advanceCard = (like: boolean) => {
-    const card = SWIPE_CARDS[cardIndex];
-    if (like) setLiked((current) => [...current, card.name]);
-    if (cardIndex + 1 >= SWIPE_CARDS.length) setTasteStep(3);
-    else setCardIndex(cardIndex + 1);
+  const [proposal, setProposal] = useState<RecommendationResult | null>(null);
+  const action = useAction();
+  const days = calendarDays(new Date().toISOString(), 5);
+  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
+    "plan_id",
+  );
+  const requestedPlan = useResource<TripPlan>(
+    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+      ? `travel/plans/${planId}`
+      : null,
+  );
+  useEffect(() => {
+    if (requestedPlan.data)
+      setTravelSession({
+        plan: requestedPlan.data,
+        planInput: {
+          request: requestedPlan.data.request,
+          stops: requestedPlan.data.input_stops,
+        },
+        recommendation: null,
+        route: null,
+      });
+  }, [requestedPlan.data]);
+  const requestFor = (index = dayIndex, replies = answers): TravelRequest => {
+    const preferred_tags = [...new Set([...selectedTags, ...liked])];
+    if (
+      preferred_tags.includes("파도 적은 곳") &&
+      !keywordOptions.data?.categories
+        .find((category) => category.id === "weather")
+        ?.options.some((option) => option.id === "small_waves")
+    )
+      throw new Error("파고 선호 범위를 읽지 못했습니다. 다시 시도해 주세요.");
+    const chosen = replies[0]
+      ? [
+          replies[0] === "물에 들어가고 싶어요"
+            ? ("swim" as const)
+            : ("relax" as const),
+        ]
+      : selectedActivities(preferred_tags);
+    return {
+      dates: [days[index].id],
+      region: "강릉",
+      place_role: preferred_tags.some((tag) =>
+        ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
+      )
+        ? "any"
+        : "visit",
+      preferred_tags,
+      activity:
+        replies[0] === "물에 들어가고 싶어요" ? "swim" : (chosen[0] ?? "relax"),
+      keyword_selection: [
+        ...(chosen.length &&
+        !preferred_tags.some((tag) =>
+          ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
+        )
+          ? [{ category: "activity", values: chosen }]
+          : []),
+        ...(preferred_tags.includes("파도 적은 곳")
+          ? [{ category: "weather", values: ["small_waves"] }]
+          : []),
+      ],
+      transport: replies[2] === "대중교통" ? "transit" : "driving",
+      ...(replies[1]
+        ? { companion_type: replies[1] === "혼자 반나절" ? "solo" : "friends" }
+        : {}),
+      ...(replies.length ? { purpose: replies.join(" · ") } : {}),
+      day_trip: true,
+    };
   };
-
-  const resetChat = () => {
-    setTurn(0);
-    setAnswers([]);
+  const publish = (result: RecommendationResult) =>
+    setTravelSession({
+      recommendation: result,
+      plan: null,
+      route: null,
+      planInput: result.recommendations.length
+        ? recommendationPlan(result, result.request.dates[0])
+        : null,
+    });
+  const recommend = (index = dayIndex, savePreference = false) =>
+    void action.run(async (signal) => {
+      const baseRequest =
+        step === "course"
+          ? (session.plan?.request ?? session.recommendation?.request)
+          : null;
+      const request = baseRequest
+        ? { ...baseRequest, dates: [days[index].id], day_trip: true }
+        : requestFor(index);
+      if (savePreference) {
+        const current = await travelJson<{
+          preference: Preference;
+          revision: number;
+        }>(
+          import.meta.env.BASE_URL,
+          "travel/preferences",
+          "GET",
+          undefined,
+          signal,
+        );
+        await travelJson(
+          import.meta.env.BASE_URL,
+          "travel/preferences",
+          "PUT",
+          {
+            preference: { ...current.preference, tags: request.preferred_tags },
+            expected_revision: current.revision,
+          },
+          signal,
+        );
+      }
+      const result = await travelJson<RecommendationResult>(
+        import.meta.env.BASE_URL,
+        "travel/recommendations",
+        "POST",
+        {
+          request,
+          preference: {
+            ...(profile.data?.preference ?? {}),
+            tags: request.preferred_tags,
+          },
+          limit: 5,
+        },
+        signal,
+      );
+      if (signal.aborted) return;
+      window.history.replaceState(null, "", "#recommend");
+      publish(result);
+      setDayIndex(index);
+      setStep("course");
+    });
+  const advanceCard = (like: boolean) =>
+    void action.run(async (signal) => {
+      const card = SWIPE_CARDS[cardIndex];
+      await travelJson(
+        import.meta.env.BASE_URL,
+        "travel/signals",
+        "POST",
+        { kind: "card", action: like ? "like" : "skip", tags: [card.name] },
+        signal,
+      );
+      if (signal.aborted) return;
+      if (like) setLiked((current) => [...current, card.name]);
+      if (cardIndex + 1 >= SWIPE_CARDS.length) setTasteStep(3);
+      else setCardIndex(cardIndex + 1);
+    });
+  const save = () =>
+    void action.run(async (signal) => {
+      if (!session.planInput) throw new Error("저장할 코스가 없습니다.");
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans",
+        "POST",
+        session.planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        window.history.replaceState(
+          null,
+          "",
+          `#recommend?plan_id=${plan.plan_id}`,
+        );
+        setTravelSession({ plan });
+      }
+    });
+  const reply = (reply: string) => {
+    const next = [...answers, reply];
+    setAnswers(next);
+    setTurn(next.length);
+    if (next.length === CHAT_TURNS.length)
+      void action.run(async (signal) => {
+        const result = await travelJson<{
+          answer: string;
+          travel_results?: { recommendations?: RecommendationResult };
+        }>(
+          import.meta.env.BASE_URL,
+          "ai/chat",
+          "POST",
+          {
+            message:
+              next.join(". ") + ". 이 조건으로 장소와 활동을 추천해 주세요.",
+            history: [],
+            context: { region: "강릉" },
+            travel: {
+              action: "recommend",
+              request: requestFor(dayIndex, next),
+            },
+          },
+          signal,
+        );
+        if (!signal.aborted) {
+          setAnswer(result.answer);
+          if (result.travel_results?.recommendations)
+            publish(result.travel_results.recommendations);
+        }
+      });
   };
-
+  const refresh = () =>
+    void action.run(async (signal) => {
+      const result = await travelJson<RecommendationResult>(
+        import.meta.env.BASE_URL,
+        "travel/recommendations",
+        "POST",
+        {
+          request:
+            session.plan?.request ??
+            session.recommendation?.request ??
+            requestFor(),
+          limit: 5,
+        },
+        signal,
+      );
+      if (!signal.aborted) {
+        setProposal(result);
+        setStep("realert");
+      }
+    });
+  const apply = () =>
+    void action.run(async (signal) => {
+      if (!proposal?.recommendations.length) return;
+      const input: PlanInput = recommendationPlan(
+        proposal,
+        proposal.request.dates[0] ?? kstDate(),
+      );
+      if (session.plan?.plan_id) {
+        const plan = await travelJson<TripPlan>(
+          import.meta.env.BASE_URL,
+          `travel/plans/${session.plan.plan_id}`,
+          "PUT",
+          { ...input, expected_revision: session.plan.revision },
+          signal,
+        );
+        if (!signal.aborted)
+          setTravelSession({
+            plan,
+            planInput: input,
+            recommendation: proposal,
+            route: null,
+          });
+      } else if (!signal.aborted) publish(proposal);
+      if (!signal.aborted) setStep("course");
+    });
   const goEntry = () => {
+    window.history.replaceState(null, "", "#recommend");
     setStep("entry");
     setTasteStep(1);
     setCardIndex(0);
     setLiked([]);
-    resetChat();
+    setTurn(0);
+    setAnswers([]);
+    setAnswer("");
   };
-
+  const status =
+    action.error ||
+    requestedPlan.error ||
+    (action.busy
+      ? "서버에 요청 중입니다…"
+      : session.plan
+        ? `서버 저장 확인 · ${session.plan.status}`
+        : (session.recommendation?.clarification ??
+          session.recommendation?.status ??
+          ""));
   return (
     <article className="recommend-page">
-      <div className="rc-frame">
-        {step === "entry" && (
-          <EntryStep
-            tags={tags}
-            toggleTag={toggleTag}
-            onChat={() => setStep("chat")}
-            onTags={() => {
-              setTasteStep(1);
-              setStep("taste");
-            }}
-          />
-        )}
-        {step === "taste" && (
-          <TasteStep
-            tasteStep={tasteStep}
-            setTasteStep={setTasteStep}
-            tags={tags}
-            toggleTag={toggleTag}
-            cardIndex={cardIndex}
-            liked={liked}
-            onLike={() => advanceCard(true)}
-            onPass={() => advanceCard(false)}
-            onDone={() => setStep("course")}
-            onBack={goEntry}
-          />
-        )}
-        {step === "chat" && (
-          <ChatStep
-            turn={turn}
-            answers={answers}
-            onReply={(reply) => {
-              setAnswers((current) => [...current, reply]);
-              setTurn((current) => current + 1);
-            }}
-            onReset={resetChat}
-            onDone={() => setStep("course")}
-            onBack={goEntry}
-          />
-        )}
-        {step === "course" && (
-          <CourseStep
-            dayIndex={dayIndex}
-            setDayIndex={setDayIndex}
-            saved={saved}
-            onSave={() => setSaved(true)}
-            altOpen={altOpen}
-            setAltOpen={setAltOpen}
-            onRealert={() => setStep("realert")}
-            onBack={goEntry}
-            resolvePlace={resolvePlace}
-            statusText={spots.statusText}
-          />
-        )}
-        {step === "realert" && (
-          <RealertStep
-            swapped={swapped}
-            setSwapped={setSwapped}
-            onBack={() => setStep("course")}
-          />
+      <div className="rc-frame" aria-busy={action.busy}>
+        <fieldset
+          disabled={action.busy}
+          style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+        >
+          {step === "entry" && (
+            <EntryStep
+              tags={selectedTags}
+              toggleTag={(tag) =>
+                setTags(
+                  selectedTags.includes(tag)
+                    ? selectedTags.filter((value) => value !== tag)
+                    : [...selectedTags, tag],
+                )
+              }
+              onChat={() => setStep("chat")}
+              onTags={() => {
+                setTasteStep(1);
+                setStep("taste");
+              }}
+            />
+          )}
+          {step === "taste" && (
+            <TasteStep
+              tasteStep={tasteStep}
+              setTasteStep={setTasteStep}
+              tags={selectedTags}
+              toggleTag={(tag) =>
+                setTags(
+                  selectedTags.includes(tag)
+                    ? selectedTags.filter((value) => value !== tag)
+                    : [...selectedTags, tag],
+                )
+              }
+              cardIndex={cardIndex}
+              liked={liked}
+              onLike={() => advanceCard(true)}
+              onPass={() => advanceCard(false)}
+              onDone={() => recommend(dayIndex, true)}
+              onBack={goEntry}
+            />
+          )}
+          {step === "chat" && (
+            <ChatStep
+              turn={turn}
+              answers={answers}
+              answer={answer}
+              onReply={reply}
+              onReset={() => {
+                setTurn(0);
+                setAnswers([]);
+                setAnswer("");
+              }}
+              onDone={() =>
+                session.recommendation ? setStep("course") : recommend()
+              }
+              onBack={goEntry}
+            />
+          )}
+          {step === "course" &&
+            (!planId || (!requestedPlan.loading && !requestedPlan.error)) && (
+              <CourseStep
+                dayIndex={dayIndex}
+                setDayIndex={(index) => recommend(index)}
+                saved={Boolean(session.plan?.plan_id)}
+                onSave={save}
+                altOpen={altOpen}
+                setAltOpen={setAltOpen}
+                onRealert={refresh}
+                onBack={goEntry}
+                statusText={status}
+              />
+            )}
+          {step === "realert" && (
+            <RealertStep
+              proposal={proposal}
+              onApply={apply}
+              onBack={() => setStep("course")}
+            />
+          )}
+        </fieldset>
+        {(action.error ||
+          action.busy ||
+          requestedPlan.loading ||
+          requestedPlan.error ||
+          (step === "entry" && profile.error)) && (
+          <p className="rc-note" role={action.error ? "alert" : "status"}>
+            {status ||
+              (requestedPlan.loading
+                ? "저장 상세를 불러오는 중입니다."
+                : profile.error)}
+          </p>
         )}
       </div>
     </article>

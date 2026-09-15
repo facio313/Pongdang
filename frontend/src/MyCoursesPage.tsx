@@ -2,52 +2,12 @@ import { useState } from "react";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
+import { useResource } from "./useResource";
+import { planItems, type TripPlan } from "./travelApi";
+import { setTravelSession } from "./travelSession";
+import { timeLabel } from "./productData";
+import { useAction } from "./useAction";
 import "./myCoursesPage.css";
-
-// 내 코스(저장 목록). 코스 상세는 추천 탭의 코스 결과 화면과 같은 화면을
-// 공유하므로, 상세 열기는 `#recommend` 로 보냅니다.
-//
-// 데이터 연결 상태 — 이 화면은 아직 어떤 API 에도 연결하지 않았습니다. 저장
-// 목록 · 점수 · 날짜 · 알림 설정은 전부 레이아웃 확인용 화면 상수이며
-// 「예시 데이터」 칩으로 표기합니다. 코스 저장 · 알림 발송 기능 자체가
-// 구현되어 있지 않습니다.
-
-interface SavedCourse {
-  id: string;
-  name: string;
-  /** 구성 활동과 날짜. 날짜가 없으면 null 이며 0 이나 오늘로 채우지 않습니다. */
-  parts: string;
-  date: string | null;
-  score: number | null;
-  alarm: boolean;
-}
-
-const SAVED_COURSES: SavedCourse[] = [
-  {
-    id: "water",
-    name: "오늘의 물 코스",
-    parts: "서핑 · 갯벌 · 온천",
-    date: "9/15",
-    score: 82,
-    alarm: true,
-  },
-  {
-    id: "rainy",
-    name: "비 오는 날 실내",
-    parts: "온천 · 시장 · 카페",
-    date: "9/18",
-    score: 60,
-    alarm: true,
-  },
-  {
-    id: "family",
-    name: "부모님과 반나절",
-    parts: "해변 산책 · 카페",
-    date: null,
-    score: null,
-    alarm: false,
-  },
-];
 
 const TODO_SCREENS = [
   {
@@ -56,42 +16,77 @@ const TODO_SCREENS = [
   },
   {
     title: "지난 코스 기록",
-    detail: "다녀온 코스 · 첫 입수 기록과 연결",
+    detail: "다녀온 장소와 후기 기록 조회",
+    href: "#travel-history",
   },
 ];
 
 export function MyCoursesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected =
-    SAVED_COURSES.find((course) => course.id === selectedId) ?? null;
+  const plans = useResource<{ rows: TripPlan[] }>(
+    "travel/plans?limit=100&offset=0",
+  );
+  const sessions = useResource<{
+    rows: {
+      plan_id: string;
+      state: string;
+      notifications: { enabled: boolean };
+    }[];
+  }>("travel/sessions?limit=100&offset=0");
+  const share = useAction();
+  const courses = (plans.data?.rows ?? []).map((plan) => ({
+    id: plan.plan_id!,
+    name: plan.request.dates[0]
+      ? `${plan.request.dates[0]} 물 코스`
+      : "저장 코스",
+    parts: planItems(plan)
+      .map((item) => item.name)
+      .join(" · "),
+    date: plan.request.dates.join(" · ") || null,
+    score: null as number | null,
+    alarm:
+      sessions.data?.rows.some(
+        (session) =>
+          session.plan_id === plan.plan_id &&
+          session.state === "active" &&
+          session.notifications.enabled,
+      ) ?? false,
+    plan,
+  }));
+  const selected = courses.find((course) => course.id === selectedId) ?? null;
 
   return (
     <article className="my-courses-page">
       <div className="mc-frame">
         <header className="mc-hero">
           <div className="mc-sbar">
-            <span>9:41</span>
+            <span>{timeLabel(new Date().toISOString())}</span>
             <span className="mc-sbar-mark">MY COURSES</span>
             <span>강릉</span>
           </div>
           <div className="mc-hero-inner">
-            <p className="mc-lbl">저장 {SAVED_COURSES.length}개</p>
+            <p className="mc-lbl">저장 {courses.length}개</p>
             <h1 className="mc-hero-title">내 코스</h1>
-            <p className="mc-hero-sub">알림은 저장한 코스에만 보냅니다</p>
+            <p className="mc-hero-sub">내가 저장한 여행 일정을 확인하세요</p>
             <p className="mc-hero-note">
-              코스 저장과 알림 발송은 아직 구현되지 않았습니다. 아래 목록은
-              화면 상수이며 실제로 저장된 코스가 아닙니다.
+              기존 SSO 계정에 저장된 코스입니다. 여행 알림은 시작된 동행 세션의
+              설정을 표시하며 백그라운드 발송과 다릅니다.
             </p>
           </div>
         </header>
 
         <div className="mc-body">
           <p className="mc-note" style={{ margin: 0 }}>
-            <StateChip kind="example" /> <StateChip kind="uncollected" /> 아래
-            저장 목록 · 점수 · 날짜 · 알림 설정은 전부 화면 상수입니다. 코스
-            저장과 알림 발송 기능이 아직 없어 실제로 저장된 코스가 없습니다.
+            <StateChip kind={plans.data ? "live" : "no_data"} />{" "}
+            {plans.error ??
+              (plans.loading
+                ? "저장 코스를 불러오는 중입니다."
+                : courses.length
+                  ? `저장 코스 ${courses.length}개 · 최대 100개`
+                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}{" "}
+            {sessions.error} {share.error}
           </p>
-          {SAVED_COURSES.map((course) => {
+          {courses.map((course) => {
             const grade = gradeOf(course.score);
             const isSelected = course.id === selectedId;
             return (
@@ -121,7 +116,7 @@ export function MyCoursesPage() {
                 <span
                   className={"mc-alarm-chip" + (course.alarm ? "" : " is-off")}
                 >
-                  {course.alarm ? "알림 켬" : "날짜 없음"}
+                  {course.alarm ? "동행 알림 켬" : "동행 알림 꺼짐"}
                 </span>
               </button>
             );
@@ -140,22 +135,49 @@ export function MyCoursesPage() {
                 <dt>날짜</dt>
                 <dd>{selected.date ?? "–"}</dd>
                 <dt>알림</dt>
-                <dd>{selected.alarm ? "켬" : "날짜가 없어 보낼 수 없음"}</dd>
+                <dd>
+                  {selected.alarm
+                    ? "동행 세션에서 켜짐"
+                    : "시작된 동행 알림 없음"}
+                </dd>
               </dl>
               <p className="mc-note">
-                <StateChip kind="example" />{" "}
-                {selected.score === null
-                  ? "이 코스는 날짜가 없어 저장된 점수가 없습니다. –는 0점이 아니며 안전하다는 뜻도 아닙니다."
-                  : "점수는 저장 시점의 예보 기준이며 지금 조건이 아닙니다."}{" "}
-                서핑 · 갯벌 · 온천 · 시장은 수집 항목이 아닙니다(저장 활동:
-                수영 · 래프팅 · 휴식).
+                <StateChip kind="live" /> 상태: {selected.plan.status} · 경로:{" "}
+                {selected.plan.route_status}. 미확인 조건:{" "}
+                {selected.plan.unresolved.join(" · ") || "없음"}. 종합 안전
+                점수는 제공하지 않습니다.
               </p>
               <div className="mc-detail-actions">
-                <button type="button" className="mc-secondary" disabled>
+                <button
+                  type="button"
+                  className="mc-secondary"
+                  disabled={share.busy}
+                  onClick={() =>
+                    void share.run(async () => {
+                      await navigator.clipboard.writeText(
+                        `${selected.name}\n${selected.parts}\n${selected.date ?? "날짜 없음"}`,
+                      );
+                    })
+                  }
+                >
                   <Icon name="share" size={16} />
-                  공유
+                  요약 복사
                 </button>
-                <a className="mc-primary" href="#recommend">
+                <a
+                  className="mc-primary"
+                  href={`#recommend?plan_id=${selected.id}`}
+                  onClick={() =>
+                    setTravelSession({
+                      plan: selected.plan,
+                      planInput: {
+                        request: selected.plan.request,
+                        stops: selected.plan.input_stops,
+                      },
+                      recommendation: null,
+                      route: null,
+                    })
+                  }
+                >
                   <Icon name="course" size={16} />
                   코스 상세 열기
                 </a>
@@ -170,7 +192,11 @@ export function MyCoursesPage() {
                 <br />
                 {item.detail}
                 <br />
-                화면 미작성
+                {"href" in item ? (
+                  <a href={item.href}>내 기록 열기 →</a>
+                ) : (
+                  "저장 코스의 요약 복사를 이용하세요"
+                )}
               </div>
             </div>
           ))}

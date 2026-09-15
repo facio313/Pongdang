@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { DataWorkspace } from "./DataWorkspace";
 import { DevIndexPage } from "./DevIndexPage";
@@ -73,7 +73,7 @@ export default function App() {
       </a>
       <main id="main-content" tabIndex={-1}>
         {screen.kind === "product" ? (
-          productPages[screen.key].render()
+          <Fragment key={window.location.hash}>{productPages[screen.key].render()}</Fragment>
         ) : screen.kind === "dev" ? (
           <DevIndexPage />
         ) : screen.route.page === "ai" ? (

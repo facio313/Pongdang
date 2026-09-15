@@ -1,111 +1,97 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
+import { usePlacesById } from "./usePlacesById";
+import { useResource } from "./useResource";
+import { useAction } from "./useAction";
+import {
+  conditionPath,
+  kstDate,
+  metricText,
+  evidenceText,
+  timeLabel,
+  type Place,
+  type RowPage,
+  type Conditions,
+} from "./productData";
+import {
+  directionLink,
+  planItems,
+  travelJson,
+  type RecommendationResult,
+  type RouteResult,
+  type TripPlan,
+} from "./travelApi";
+import { setTravelSession, useTravelSession } from "./travelSession";
+import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import "./mapPage.css";
 
-// 지도. 「지점 보기(A3·A4)」와 「코스 경로 보기」를 한 페이지 안에서 전환합니다.
-// 라이브캠(A5)은 이 탭에서 제외하고 홈 최하단 모듈에서 들어갑니다.
-//
-// 데이터 연결 상태 — 이 화면은 아직 어떤 API 에도 연결하지 않았습니다. 아래
-// 지점 · 점수 · 수온 · 기온 · 풍속 · 거리 · 이동 순서는 전부 레이아웃 확인용
-// 화면 상수이며 「예시 데이터」 칩으로 표기합니다. 합성 값을 실제 관측 ·
-// 예보 · 안전 판단으로 제시하지 않습니다.
-//
-// 카카오 지도 타일과 경로 선 렌더링은 아직 붙이지 않아 점선 슬롯으로 두고,
-// 핀만 실제 버튼으로 얹어 선택 동작을 확인할 수 있게 했습니다.
-
 type View = "spots" | "course";
-
-interface Spot {
-  id: string;
-  name: string;
-  address: string;
+interface Spot extends Place {
   score: number | null;
   waterTemp: string;
   airTemp: string;
   wind: string;
-  /** 무대 위 상대 위치(%). 실제 좌표가 아니라 배치 확인용입니다. */
-  left: number;
-  top: number;
 }
-
-const SPOTS: Spot[] = [
-  {
-    id: "gyeongpo",
-    name: "경포해변",
-    address: "강원 강릉시 저동",
-    score: 72,
-    waterTemp: "22.1°C",
-    airTemp: "26.4°C",
-    wind: "3.2m/s",
-    left: 33,
-    top: 44,
-  },
-  {
-    id: "anmok",
-    name: "안목해변",
-    address: "강원 강릉시 견소동",
-    score: 68,
-    waterTemp: "24.8°C",
-    airTemp: "26.1°C",
-    wind: "2.8m/s",
-    left: 63,
-    top: 66,
-  },
-  {
-    id: "sacheonjin",
-    name: "사천진해변",
-    address: "강원 강릉시 사천면",
-    score: 54,
-    waterTemp: "19.4°C",
-    airTemp: "25.2°C",
-    wind: "4.1m/s",
-    left: 26,
-    top: 74,
-  },
-];
-
-interface CourseStop {
-  no: number;
-  name: string;
-  meta: string;
-  distance: string | null;
-}
-
-const COURSE_STOPS: CourseStop[] = [
-  { no: 1, name: "경포해변", meta: "09:20 서핑 · 주차 가능", distance: "4.2km" },
-  { no: 2, name: "안목 항구", meta: "12:00 점심 · 카페 8", distance: "5.1km" },
-  { no: 3, name: "사천진 갯벌", meta: "14:30 갯벌 · 간조 12:34", distance: "2.7km" },
-  { no: 4, name: "강릉 시내", meta: "18:40 온천 마무리", distance: null },
-];
-
-const COURSE_SUMMARY = "오늘의 코스 · 4곳 · 12km";
-
-const TODO_SCREENS = [
-  {
-    title: "최적경로 탐색",
-    detail: "출발지 입력 · 이동수단 · 시간 제약으로 코스 재정렬",
-  },
-  {
-    title: "편의시설 필터",
-    detail: "샤워장 · 주차 · 카페 · 반려동물 가능",
-  },
-];
 
 function Stage({
   view,
   selectedSpotId,
   onSelectSpot,
+  spots,
+  search,
+  setSearch,
 }: {
   view: View;
-  selectedSpotId: string;
-  onSelectSpot: (id: string) => void;
+  selectedSpotId: number | null;
+  onSelectSpot: (id: number) => void;
+  spots: Spot[];
+  search: string;
+  setSearch: (value: string) => void;
 }) {
+  const session = useTravelSession();
+  const courseIds =
+    session.route?.route?.items.map((item) => item.spot_id) ??
+    session.planInput?.stops.map((item) => item.spot_id) ??
+    [];
+  const key = JSON.stringify([
+    spots.map((spot) => [spot.id, spot.lat, spot.lng]),
+    view,
+    courseIds,
+  ]);
+  const markers = useMemo(() => {
+    const [coords, currentView, ids] = JSON.parse(key) as [
+      [number, number | null, number | null][],
+      View,
+      number[],
+    ];
+    return coords
+      .filter(
+        ([id, lat, lng]) =>
+          lat !== null &&
+          lng !== null &&
+          (currentView === "spots" || ids.includes(id)),
+      )
+      .map(([id, latitude, longitude]) => ({
+        id: String(id),
+        latitude: latitude!,
+        longitude: longitude!,
+      }));
+  }, [key]);
+  const paths = useMemo(
+    () =>
+      view === "course"
+        ? (session.route?.route?.legs.map(
+            (leg) => leg.geometry?.polyline ?? [],
+          ) ?? [])
+        : [],
+    [session.route, view],
+  );
   return (
     <div className="mp-stage">
       <div className="mp-sbar">
-        <span>9:41</span>
+        <span>{timeLabel(new Date().toISOString())}</span>
         <span className="mp-sbar-mark">
           {view === "spots" ? "지도" : "코스 지도"}
         </span>
@@ -113,75 +99,89 @@ function Stage({
       </div>
 
       {view === "spots" ? (
-        <button type="button" className="mp-searchbar" disabled>
+        <label className="mp-searchbar">
           <Icon name="search" size={16} />
-          강릉에서 물놀이 할 곳 찾기
-        </button>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            maxLength={100}
+            placeholder="물놀이 할 곳 찾기"
+            aria-label="장소명·지역 검색"
+            style={{
+              border: 0,
+              padding: 0,
+              minWidth: 0,
+              width: "100%",
+              background: "transparent",
+              color: "inherit",
+              font: "inherit",
+            }}
+          />
+        </label>
       ) : (
         <div className="mp-searchbar is-course">
           <Icon name="course" size={16} />
-          {COURSE_SUMMARY}
+          {`선택 코스 · ${courseIds.length}곳 · ${session.route?.route ? `${session.route.route.travel_minutes}분 이동` : "경로 계산 전"}`}
         </div>
       )}
 
       <div className="mp-slot mp-tile-slot">
-        {view === "spots" ? (
-          <>
-            카카오 지도 타일 영역
-            <br />
-            (지도 SDK 미연동 · 아래 핀은 배치 확인용)
-          </>
-        ) : (
-          <>
-            경로 선 렌더링 영역
-            <br />
-            (1 경포 → 2 안목 → 3 사천진 → 4 시내)
-          </>
-        )}
-      </div>
-
-      {view === "spots" &&
-        SPOTS.map((spot) => {
-          const grade = gradeOf(spot.score);
-          const selected = spot.id === selectedSpotId;
-          return (
-            <button
-              type="button"
-              key={spot.id}
-              className={"mp-pin" + (selected ? " is-selected" : "")}
-              style={{ left: `${spot.left}%`, top: `${spot.top}%` }}
-              aria-pressed={selected}
-              aria-label={`${spot.name} · ${
-                spot.score === null
-                  ? "평가값 없음"
-                  : `${spot.score}점 ${grade.label}`
-              } · 수온 ${spot.waterTemp}`}
-              onClick={() => onSelectSpot(spot.id)}
-            >
-              <span
-                className="mp-pin-ring"
-                style={{
-                  background:
-                    spot.score === null
-                      ? "conic-gradient(rgba(27,39,51,.16) 0 100%)"
-                      : `conic-gradient(${grade.color} 0 ${spot.score}%, rgba(27,39,51,.16) ${spot.score}% 100%)`,
-                }}
+        <KakaoMapCanvas
+          markers={markers}
+          paths={paths}
+          selectedId={selectedSpotId === null ? null : String(selectedSpotId)}
+          renderMarker={(id) => {
+            const spot = spots.find((item) => item.id === Number(id));
+            if (!spot) return null;
+            const grade = gradeOf(spot.score);
+            return (
+              <button
+                type="button"
+                className={
+                  "mp-pin" + (spot.id === selectedSpotId ? " is-selected" : "")
+                }
+                style={{ position: "relative", transform: "none" }}
+                aria-pressed={spot.id === selectedSpotId}
+                aria-label={spot.name}
+                onClick={() => onSelectSpot(spot.id)}
               >
-                <span className="mp-pin-core" style={{ color: grade.color }}>
-                  {spot.score === null ? "–" : spot.score}
+                <span
+                  className="mp-pin-ring"
+                  style={{
+                    background: "conic-gradient(rgba(27,39,51,.16) 0 100%)",
+                  }}
+                >
+                  <span className="mp-pin-core" style={{ color: grade.color }}>
+                    {view === "course"
+                      ? courseIds.indexOf(spot.id) + 1
+                      : (spot.score ?? "–")}
+                  </span>
                 </span>
-              </span>
-              <span className="mp-pin-label">
-                {spot.name} {spot.score === null ? "–" : spot.score}
-              </span>
-            </button>
-          );
-        })}
+                <span className="mp-pin-label">
+                  {spot.name} {spot.score ?? "–"}
+                </span>
+              </button>
+            );
+          }}
+        />
+      </div>
     </div>
   );
 }
 
-function SpotSheet({ spot }: { spot: Spot }) {
+function SpotSheet({
+  spot,
+  conditions,
+  onAdd,
+  onFavorite,
+}: {
+  spot: Spot;
+  conditions?: Conditions;
+  onAdd: () => void;
+  onFavorite: () => void;
+}) {
+  const href = directionLink(spot.name, spot.lat, spot.lng);
   const tiles: { name: string; value: string; icon: IconName }[] = [
     { name: "수온", value: spot.waterTemp, icon: "thermometer" },
     { name: "기온", value: spot.airTemp, icon: "sun" },
@@ -219,47 +219,83 @@ function SpotSheet({ spot }: { spot: Spot }) {
         <div className="mp-chips">
           <span className="mp-unknown-chip">
             <Icon name="warning" size={11} />
-            안전 상태 unknown
+            안전 상태 {conditions?.safety_status ?? "unknown"}
           </span>
-          <StateChip kind="example" />
+          <StateChip kind="live" />
         </div>
 
         <p className="mp-note">
-          점수 · 수온 · 안전 상태는 서로 다른 값이며 하나로 요약하지 않습니다.
-          안전 상태 <code>unknown</code>은 판정이 없다는 뜻이며 안전하다는 뜻이
-          아닙니다. 지점별로 저장된 값은 수영 점수와 수온뿐이고, 기온 · 풍속은
-          경포해변 예보 값입니다. 위 수치는 전부 화면 상수입니다.
+          {evidenceText(conditions)} 안전 상태 unknown은 판정 없음이며 안전함이
+          아닙니다.
         </p>
       </div>
 
       <div className="mp-actions">
-        <button type="button" className="mp-secondary" disabled>
+        <a
+          className="mp-secondary"
+          href={href ?? undefined}
+          aria-disabled={!href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <Icon name="transit" size={16} />
           길찾기
-        </button>
-        <button type="button" className="mp-primary" disabled>
+        </a>
+        <button type="button" className="mp-primary" onClick={onAdd}>
           <Icon name="course" size={16} />
           코스에 넣기
         </button>
       </div>
       <p className="mp-note" style={{ marginTop: 0 }}>
-        <StateChip kind="uncollected" /> 길찾기와 코스 담기는 아직 구현되지
-        않았습니다.
+        <StateChip kind="live" /> 카카오 지도에 등록 좌표를 전달합니다. 코스에
+        넣으면 저장 전 일정에 추가합니다.{" "}
+        <a
+          href="#favorites"
+          onClick={(event) => {
+            event.preventDefault();
+            onFavorite();
+          }}
+        >
+          즐겨찾기 저장 →
+        </a>
       </p>
     </>
   );
 }
 
-function CourseSheet() {
+function CourseSheet({ onSave }: { onSave: () => void }) {
+  const session = useTravelSession();
+  const items = session.route?.route?.items ?? planItems(session.plan);
+  const stops = items.length
+    ? items.map((item, index) => ({
+        no: index + 1,
+        name: item.name,
+        meta: `${timeLabel(item.arrival_at)} 도착`,
+        distance: session.route?.route?.legs[index]
+          ? `${session.route.route.legs[index].duration_minutes}분`
+          : null,
+      }))
+    : (session.recommendation?.recommendations ?? [])
+        .filter((item) =>
+          session.planInput?.stops.some(
+            (stop) => stop.spot_id === item.spot_id,
+          ),
+        )
+        .map((item, index) => ({
+          no: index + 1,
+          name: item.name,
+          meta: "방문 시각 미계산",
+          distance: null,
+        }));
   return (
     <>
       <div className="mp-card">
         <div className="mp-card-top">
           <div className="mp-card-title">이동 순서</div>
-          <StateChip kind="example" />
+          <StateChip kind="live" />
         </div>
         <div className="mp-rows">
-          {COURSE_STOPS.map((stop) => (
+          {stops.map((stop) => (
             <div className="mp-stop" key={stop.no}>
               <span className="mp-stop-no">{stop.no}</span>
               <div className="mp-stop-body">
@@ -271,80 +307,380 @@ function CourseSheet() {
           ))}
         </div>
         <p className="mp-note">
-          구간 거리는 화면 상수입니다. 마지막 지점은 다음 구간이 없어 –이며
-          0km 가 아닙니다. 서핑 · 갯벌 · 온천은 수집 항목이 아닙니다(저장 활동:
-          수영 · 래프팅 · 휴식).
+          {session.route?.route_calculated
+            ? `출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, ${session.route.optimality === "provisional_missing_comparison_evidence" ? "일부 비교 자료가 부족한 임시 결과입니다." : "전체 지역의 최적 경로를 뜻하지 않습니다."}`
+            : "이동시간과 도로 경로는 아직 계산하지 않았습니다."}{" "}
+          {stops.length === 0 &&
+            "추천에서 장소를 고르거나 지도에서 코스에 넣어 주세요."}
         </p>
       </div>
 
       <div className="mp-actions">
-        <button type="button" className="mp-secondary" disabled>
+        <a className="mp-secondary" href="#recommend">
           <Icon name="transit" size={16} />
-          길찾기 앱으로
-        </button>
-        <button type="button" className="mp-primary" disabled>
+          추천에서 편집
+        </a>
+        <button
+          type="button"
+          className="mp-primary"
+          disabled={!session.planInput || Boolean(session.plan?.plan_id)}
+          onClick={onSave}
+        >
           <Icon name="save" size={16} />
-          내 코스에 저장
+          {session.plan?.plan_id ? "저장됨" : "내 코스에 저장"}
         </button>
       </div>
       <p className="mp-note" style={{ marginTop: 0 }}>
-        <StateChip kind="uncollected" /> 경로 계산 · 길찾기 연동 · 코스 저장은
-        아직 구현되지 않았습니다.
+        <StateChip kind="partial" /> 도로 선은 실제 길찾기 응답이 있는 구간만
+        표시합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지
+        않습니다.
       </p>
     </>
   );
 }
 
 export function MapPage() {
-  const [view, setView] = useState<View>("spots");
-  const [selectedSpotId, setSelectedSpotId] = useState(SPOTS[0].id);
-  const spot = SPOTS.find((item) => item.id === selectedSpotId) ?? SPOTS[0];
-
+  const session = useTravelSession();
+  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
+    "plan_id",
+  );
+  const savedPlan = useResource<TripPlan>(
+    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+      ? `travel/plans/${planId}`
+      : null,
+  );
+  useEffect(() => {
+    if (savedPlan.data)
+      setTravelSession({
+        plan: savedPlan.data,
+        planInput: {
+          request: savedPlan.data.request,
+          stops: savedPlan.data.input_stops,
+        },
+        recommendation: null,
+        route: null,
+      });
+  }, [savedPlan.data]);
+  const [view, setView] = useState<View>(() =>
+    new URLSearchParams(window.location.hash.split("?")[1]).get("view") ===
+    "course"
+      ? "course"
+      : "spots",
+  );
+  const [search, setSearch] = useState("강릉");
+  const places = useResource<RowPage<Place>>(
+    "datasets/spots?page_size=100&q=" + encodeURIComponent(search),
+  );
+  const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
+    const value = Number(
+      new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
+    );
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  });
+  const coursePlaces = usePlacesById(
+    view === "course"
+      ? (session.planInput?.stops.map((item) => item.spot_id) ?? [])
+      : selectedSpotId
+        ? [selectedSpotId]
+        : [],
+  );
+  const raw = [
+    ...new Map(
+      [...(places.data?.rows ?? []), ...coursePlaces.rows].map((item) => [
+        item.id,
+        item,
+      ]),
+    ).values(),
+  ];
+  const selected =
+    raw.find((item) => item.id === selectedSpotId) ??
+    raw.find((item) => item.type === "beach") ??
+    raw[0];
+  const conditions = useResource<Conditions>(conditionPath(selected?.id));
+  const spots = raw.map((item) => ({
+    ...item,
+    score:
+      item.id === selected?.id
+        ? (conditions.data?.environment_score ?? null)
+        : null,
+    waterTemp:
+      item.id === selected?.id
+        ? metricText(conditions.data, "water_temperature")
+        : "–",
+    airTemp:
+      item.id === selected?.id
+        ? metricText(conditions.data, "air_temperature")
+        : "–",
+    wind:
+      item.id === selected?.id
+        ? metricText(conditions.data, "wind_speed")
+        : "–",
+  }));
+  const spot = spots.find((item) => item.id === selected?.id);
+  const action = useAction();
+  const [originId, setOriginId] = useState("");
+  const [departure, setDeparture] = useState(
+    () =>
+      `${session.planInput?.request.dates[0] ?? kstDate()}T${timeLabel(new Date(Date.now() + 600000).toISOString())}`,
+  );
+  const add = () =>
+    void action.run(async (signal) => {
+      if (!spot) return;
+      const input = session.planInput ?? {
+        request: {
+          dates: [kstDate()],
+          region: "강릉",
+          preferred_tags: [],
+          activity: "relax" as const,
+          transport: "driving" as const,
+        },
+        stops: [],
+      };
+      if (input.stops.some((stop) => stop.spot_id === spot.id)) {
+        setView("course");
+        return;
+      }
+      if (input.stops.length >= 5)
+        throw new Error(
+          "경로 후보는 최대 5곳입니다. 추천에서 코스를 다시 골라 주세요.",
+        );
+      const planInput = {
+        request: input.request,
+        stops: [
+          ...input.stops,
+          {
+            item_id: `map-${spot.id}`,
+            spot_id: spot.id,
+            day: input.request.dates[0],
+            stay_minutes: 60,
+          },
+        ],
+      };
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans/draft",
+        "POST",
+        planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        setTravelSession({
+          plan,
+          planInput,
+          route: null,
+          recommendation: null,
+        });
+        setView("course");
+      }
+    });
+  const favorite = () =>
+    void action.run(async (signal) => {
+      if (!spot) return;
+      await travelJson(
+        import.meta.env.BASE_URL,
+        "travel/signals",
+        "POST",
+        { kind: "favorite", action: "like", spot_id: spot.id },
+        signal,
+      );
+      if (!signal.aborted) window.location.hash = "#favorites";
+    });
+  const save = () =>
+    void action.run(async (signal) => {
+      if (!session.planInput) return;
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans",
+        "POST",
+        session.planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        window.history.replaceState(
+          null,
+          "",
+          `#map?view=course&plan_id=${plan.plan_id}`,
+        );
+        setTravelSession({ plan });
+      }
+    });
+  const route = () =>
+    void action.run(async (signal) => {
+      const origin = raw.find((item) => item.id === Number(originId));
+      if (!origin || !departure || !session.planInput)
+        throw new Error("출발지·출발시각·방문 장소를 선택해 주세요.");
+      const request = {
+        ...session.planInput.request,
+        dates: [departure.slice(0, 10)],
+        departure_time: departure.slice(11),
+        origin: { label: origin.name, spot_id: origin.id },
+        must_include: session.planInput.stops.map((item) => item.spot_id),
+      };
+      const recommendations = await travelJson<RecommendationResult>(
+        import.meta.env.BASE_URL,
+        "travel/recommendations",
+        "POST",
+        { request, limit: 5 },
+        signal,
+      );
+      const ranks = recommendations.recommendations
+        .filter((item) => request.must_include.includes(item.spot_id))
+        .map((item) => item.rank);
+      if (
+        ranks.length !== request.must_include.length ||
+        !recommendations.selection_token
+      )
+        throw new Error(
+          "선택 장소 일부를 현재 조건에서 경로 후보로 확인하지 못했습니다. 후보를 다시 선택해 주세요.",
+        );
+      const result = await travelJson<RouteResult>(
+        import.meta.env.BASE_URL,
+        "travel/routes/recommend",
+        "POST",
+        {
+          selection_token: recommendations.selection_token,
+          candidate_ranks: ranks,
+          stop_count: ranks.length,
+          include_geometry: true,
+        },
+        signal,
+      );
+      if (!signal.aborted)
+        setTravelSession({
+          recommendation: recommendations,
+          route: result,
+          ...(result.plan_input
+            ? { planInput: result.plan_input, plan: null }
+            : {}),
+        });
+    });
   return (
     <article className="map-page">
       <div className="mp-frame">
         <Stage
           view={view}
-          selectedSpotId={selectedSpotId}
+          spots={spots}
+          selectedSpotId={selected?.id ?? null}
           onSelectSpot={setSelectedSpotId}
+          search={search}
+          setSearch={(value) => {
+            setSearch(value);
+            setSelectedSpotId(null);
+          }}
         />
-
         <div className="mp-sheet">
           <div className="mp-handle" aria-hidden="true" />
-
           <div className="mp-switch" role="group" aria-label="지도 보기 전환">
-            <button
-              type="button"
-              className={"mp-switch-item" + (view === "spots" ? " is-on" : "")}
-              aria-pressed={view === "spots"}
-              onClick={() => setView("spots")}
-            >
-              지점 보기
-            </button>
-            <button
-              type="button"
-              className={"mp-switch-item" + (view === "course" ? " is-on" : "")}
-              aria-pressed={view === "course"}
-              onClick={() => setView("course")}
-            >
-              코스 경로
-            </button>
+            {(["spots", "course"] as const).map((key) => (
+              <button
+                type="button"
+                key={key}
+                className={"mp-switch-item" + (view === key ? " is-on" : "")}
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+              >
+                {key === "spots" ? "지점 보기" : "코스 경로"}
+              </button>
+            ))}
           </div>
-
-          {view === "spots" ? <SpotSheet spot={spot} /> : <CourseSheet />}
-
-          {TODO_SCREENS.map((item) => (
-            <div className="mp-slot mp-todo" key={item.title}>
+          <fieldset
+            disabled={action.busy}
+            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+          >
+            {view === "spots" ? (
+              spot ? (
+                <SpotSheet
+                  spot={spot}
+                  conditions={conditions.data}
+                  onAdd={add}
+                  onFavorite={favorite}
+                />
+              ) : (
+                <div className="mp-card">
+                  {places.loading ? "장소 조회 중" : "검색 결과 없음"}
+                </div>
+              )
+            ) : (
+              <CourseSheet onSave={save} />
+            )}
+            <p
+              className="mp-note"
+              role={
+                action.error ||
+                savedPlan.error ||
+                places.error ||
+                coursePlaces.error ||
+                conditions.error
+                  ? "alert"
+                  : "status"
+              }
+            >
+              {action.error ||
+                savedPlan.error ||
+                places.error ||
+                coursePlaces.error ||
+                conditions.error ||
+                (action.busy
+                  ? "서버에 요청 중입니다…"
+                  : `검색 결과 ${raw.length}곳 · 최대 100곳`)}{" "}
+              {session.route && !session.route.route_calculated
+                ? `경로 미계산: ${session.route.reason_codes.join(" · ")}`
+                : ""}
+            </p>
+            <div className="mp-slot mp-todo">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  route();
+                }}
+              >
+                <b>최적경로 탐색</b>
+                <br />
+                <label>
+                  출발지{" "}
+                  <select
+                    aria-label="출발지"
+                    value={originId}
+                    onChange={(event) => setOriginId(event.target.value)}
+                  >
+                    <option value="">등록 장소 선택</option>
+                    {raw.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <br />
+                <label>
+                  출발시각 · KST{" "}
+                  <input
+                    type="datetime-local"
+                    value={departure}
+                    onChange={(event) => setDeparture(event.target.value)}
+                    required
+                  />
+                </label>
+                <br />
+                <button
+                  type="submit"
+                  className="mp-secondary"
+                  disabled={!session.planInput}
+                >
+                  선택 코스 경로 계산
+                </button>
+              </form>
+            </div>
+            <div className="mp-slot mp-todo">
               <div>
-                <b>{item.title}</b>
+                <b>편의시설 필터</b>
                 <br />
-                {item.detail}
+                샤워장 · 주차 · 카페 · 반려동물 가능
                 <br />
-                화면 미작성
+                시설 근거별 필터 화면 미작성
               </div>
             </div>
-          ))}
-
+          </fieldset>
           <AppTabBar active="map" />
         </div>
       </div>

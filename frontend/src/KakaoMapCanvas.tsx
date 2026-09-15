@@ -4,6 +4,8 @@ import { loadKakaoMaps, type KakaoCustomOverlay } from "./kakaoMaps";
 import { MAP_LOCATIONS } from "./mapLocations";
 import "./kakaoMap.css";
 
+const NO_PATHS: readonly (readonly (readonly number[])[])[] = [];
+
 interface MapMarker {
   id: string;
   latitude: number;
@@ -16,8 +18,9 @@ interface MountedMarker {
   overlay: KakaoCustomOverlay;
 }
 
-export function KakaoMapCanvas({ markers, selectedId, renderMarker }: {
+export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS }: {
   markers: readonly MapMarker[];
+  paths?: readonly (readonly (readonly number[])[])[];
   selectedId: string | null;
   renderMarker: (id: string) => ReactNode;
 }) {
@@ -46,9 +49,11 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker }: {
         });
         const bounds = new sdk.LatLngBounds();
         const mounted: MountedMarker[] = [];
+        const lines: { setMap(map: null): void }[] = [];
         const resize = new ResizeObserver(() => fit());
         cleanup = () => {
           resize.disconnect();
+          lines.forEach(line => line.setMap(null));
           mounted.forEach(({ overlay }) => overlay.setMap(null));
           element.replaceChildren();
         };
@@ -65,6 +70,13 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker }: {
             }),
           });
         }
+        for (const path of paths) {
+          if (path.some(point => point.length !== 2 || !point.every(Number.isFinite) || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90)) continue;
+          const points = path.map(point => new sdk.LatLng(point[1], point[0]));
+          if (points.length < 2 || !sdk.Polyline) continue;
+          points.forEach(point => bounds.extend(point));
+          lines.push(new sdk.Polyline({ map, path: points, strokeWeight: 4, strokeColor: "#1d4ed8", strokeOpacity: 0.85 }));
+        }
         function fit() {
           if (controller.signal.aborted || !element!.clientWidth || !element!.clientHeight) return;
           map.relayout();
@@ -74,6 +86,7 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker }: {
           const stacked = panel && panel.width > element!.clientWidth * 0.8;
           const edge = panel ? 48 : 16;
           const markerHeight = Math.max(0, ...mounted.map(({ element: content }) => content.offsetHeight));
+          if (bounds.isEmpty()) return;
           map.setBounds(bounds, markerHeight + 16, stacked ? edge : (panel?.width ?? 0) + edge,
             stacked ? panel.height + edge : edge, edge);
         }
@@ -91,7 +104,7 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker }: {
       controller.abort();
       cleanup();
     };
-  }, [attempt, markers]);
+  }, [attempt, markers, paths]);
 
   useEffect(() => {
     // Portal contents are mounted after the SDK creates its empty containers.

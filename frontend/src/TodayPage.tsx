@@ -1,28 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { gradeOf } from "./groupAGrade";
 import { useResource } from "./useResource";
-import type { RowsResult } from "./data";
+import { useProductData, useTodayData } from "./useProductData";
+import {
+  calendarDays,
+  conditionPath,
+  periodPath,
+  dateLabel,
+  timeLabel,
+  formatValue,
+  metricText,
+  evidenceText,
+  qualityGrade,
+  qualityValues,
+  type Place,
+  type Conditions,
+  type Forecast,
+  type TideResult,
+  type QualityRow,
+} from "./productData";
 import { AppTabBar } from "./appTabBar";
 import "./todayPage.css";
-
-// Group A: "오늘" 통합 페이지. A1(허브 요약)·A2(7일 예보)·A6(물때)·A7(첫
-// 입수)·A8(수질 신뢰도)를 화면 이동 없이 한 페이지의 섹션 스택으로 합친
-// 화면입니다. 각 섹션의 「자세히 →」는 기존 A 화면 해시 라우트로 갑니다.
-//
-// 데이터 연결 상태
-//  - 지점(장소명·주소·좌표·검증 상태): `/api/data/datasets/spots` 실연동.
-//  - 그 외(점수·수온·파고·강수·조위·수질·첫 입수): 저장된 값이 없습니다.
-//    AGENTS.md 상 점수·안전 판정은 별도 구현·검증 전까지 unknown 으로 남기고
-//    수집은 점수화가 아니므로, 아래 상수는 전부 레이아웃 확인용 예시이며
-//    화면에 「예시 데이터」/「수집 미구현」 칩으로 표기합니다. 합성 값을 실제
-//    관측·안전 판단으로 제시하지 않습니다.
-//
-// 등급 판정·등급명·원본 색·NULL 처리는 groupAGrade.ts 를 단일 출처로 쓰고,
-// 레이어별 칩 표면(배경/글자)만 todayPage.css 가 등급 key 로 정의합니다.
-
-const HERO_DATE = "9월 15일";
-const SPOTS_QUERY = "datasets/spots?page_size=100&q=강릉";
 
 type IconName =
   | "sun"
@@ -45,7 +44,9 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   wave: <path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3" />,
-  thermometer: <path d="M12 3a2 2 0 0 1 2 2v8.5a4 4 0 1 1-4 0V5a2 2 0 0 1 2-2z" />,
+  thermometer: (
+    <path d="M12 3a2 2 0 0 1 2 2v8.5a4 4 0 1 1-4 0V5a2 2 0 0 1 2-2z" />
+  ),
   quality: (
     <>
       <path d="M12 3s5.5 6 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9 12 3 12 3z" />
@@ -115,7 +116,13 @@ function Icon({
 /** 등급 아이콘은 순서가 형태로도 읽히도록 고정입니다 -- 별(매우 좋음) ·
  *  체크(양호) · 이중선(보통) · 삼각 경고(주의) · 금지(나쁨) · 점선
  *  원(평가값 없음). 색만으로 판단을 전달하지 않기 위한 이중화입니다. */
-function GradeIcon({ gradeKey, size = 13 }: { gradeKey: string; size?: number }) {
+function GradeIcon({
+  gradeKey,
+  size = 13,
+}: {
+  gradeKey: string;
+  size?: number;
+}) {
   const shared = {
     width: size,
     height: size,
@@ -236,165 +243,129 @@ function SectionHead({
   );
 }
 
-// ── 예시 상수 (저장된 값 없음) ───────────────────────────────
+const ACTIVITY_ROWS = [
+  { name: "수영", id: "swim" },
+  { name: "래프팅", id: "rafting" },
+  { name: "온천", id: "onsen" },
+] as const;
+const TIDE_ACTIVITIES = [
+  { name: "갯벌 체험", icon: "mudflat" },
+  { name: "래프팅", icon: "rafting" },
+  { name: "튜브 물놀이", icon: "tube" },
+] as const;
 
-interface SpotExample {
-  id: string;
-  /** `/api/data/datasets/spots` 의 장소명과 맞추기 위한 부분 문자열. */
-  match: string;
-  fallbackName: string;
-  score: number | null;
-  waterTemp: string;
-}
-
-const SPOT_EXAMPLES: SpotExample[] = [
-  { id: "gyeongpo", match: "경포", fallbackName: "경포해변", score: 72, waterTemp: "22.1°C" },
-  { id: "anmok", match: "안목", fallbackName: "안목해변", score: 68, waterTemp: "24.8°C" },
-  { id: "sacheonjin", match: "사천진", fallbackName: "사천진해변", score: 54, waterTemp: "19.4°C" },
-];
-
-const ACTIVITY_EXAMPLES: { name: string; score: number | null; collected: boolean }[] = [
-  { name: "수영", score: 82, collected: true },
-  { name: "래프팅", score: 86, collected: true },
-  { name: "온천", score: 70, collected: false },
-];
-
-interface ForecastDay {
-  id: string;
-  weekday: string;
-  dateLabel: string;
-  score: number | null;
-}
-
-const FORECAST_DAYS: ForecastDay[] = [
-  { id: "d0", weekday: "오늘", dateLabel: "9/15", score: 82 },
-  { id: "d1", weekday: "내일", dateLabel: "9/16", score: 74 },
-  { id: "d2", weekday: "토", dateLabel: "9/17", score: 58 },
-  { id: "d3", weekday: "일", dateLabel: "9/18", score: 34 },
-  { id: "d4", weekday: "월", dateLabel: "9/19", score: 66 },
-  { id: "d5", weekday: "화", dateLabel: "9/20", score: null },
-  { id: "d6", weekday: "수", dateLabel: "9/21", score: 71 },
-];
-
-const TIDE = {
-  nextFlood: "12:34",
-  levelCm: 96,
-  activities: [
-    { name: "갯벌 체험", icon: "mudflat" as IconName, fit: true, when: "간조 ±2h", collected: false },
-    { name: "래프팅", icon: "rafting" as IconName, fit: true, when: "밀물 시작", collected: true },
-    { name: "튜브 물놀이", icon: "tube" as IconName, fit: false, when: "만조 무렵", collected: false },
-  ],
-};
-
-/** 첫 입수 비교는 day-of-year 차이로만 계산합니다(윤년 보정 없음). */
-const FIRST_SWIM = {
-  thisYear: { date: "5월 18일", doy: 138, waterTemp: "18.3°C" },
-  lastYear: { year: 2025, doy: 132 },
-  thresholdTemp: "18.0°C",
-};
-
-const QUALITY_CONFIDENCE = [
-  { label: "탁도", value: "3.2 NTU", confidence: 0.82 },
-  { label: "용존산소", value: "7.8 mg/L", confidence: 0.78 },
-  { label: "pH", value: "7.6", confidence: 0.85 },
-];
-
-const UNLINKED_ITEMS = [
-  "조위 — 국립해양조사원 연동 전",
-  "수질 수집 — 수집 작업 미구현",
-  "첫 입수 알림 트리거 — 발송 기능 미구현",
-];
-
-// ── 섹션 ────────────────────────────────────────────────────
-
-function Hero() {
-  const heroScore = 82;
+function Hero({
+  place,
+  conditions,
+  quality,
+}: {
+  place?: Place;
+  conditions?: Conditions;
+  quality: string;
+}) {
+  const heroScore = conditions?.environment_score ?? null;
   return (
     <header className="td-hero">
       <div className="td-sbar">
-        <span>9:41</span>
+        <span>{timeLabel(new Date().toISOString())}</span>
         <span className="td-sbar-mark">TODAY</span>
         <span>강릉</span>
       </div>
       <div className="td-hero-inner">
-        <p className="td-lbl">{HERO_DATE} · 경포해변 예보 기준</p>
+        <p className="td-lbl">
+          {dateLabel()} · {place?.name ?? "장소 확인 중"} 관측 기준
+        </p>
         <div className="td-hero-row">
           <h1 className="td-hero-sentence">
-            오늘은 수영하기
+            오늘의 수영 조건
             <br />
-            좋은 날입니다
+            자료를 확인하세요
           </h1>
           <div className="td-hero-score">
-            <div className="td-num td-hero-score-num">{heroScore}</div>
+            <div className="td-num td-hero-score-num">{heroScore ?? "–"}</div>
             <GradeChip score={heroScore} glass bare />
           </div>
         </div>
         <div className="td-hero-tiles">
           <div className="td-tile">
             <Icon name="sun" size={17} className="td-tile-icon" />
-            <div className="td-num td-tile-value">맑음</div>
-            <div className="td-tile-name">날씨</div>
+            <div className="td-num td-tile-value">
+              {metricText(conditions, "air_temperature")}
+            </div>
+            <div className="td-tile-name">기온</div>
           </div>
           <div className="td-tile">
             <Icon name="wave" size={17} className="td-tile-icon" />
-            <div className="td-num td-tile-value">0.6m</div>
+            <div className="td-num td-tile-value">
+              {metricText(conditions, "wave_height")}
+            </div>
             <div className="td-tile-name">파고</div>
           </div>
           <div className="td-tile">
             <Icon name="thermometer" size={17} className="td-tile-icon" />
-            <div className="td-num td-tile-value">22.1°</div>
+            <div className="td-num td-tile-value">
+              {metricText(conditions, "water_temperature")}
+            </div>
             <div className="td-tile-name">수온</div>
           </div>
           <div className="td-tile is-empty">
             <Icon name="quality" size={17} className="td-tile-icon" />
-            <div className="td-num td-tile-value">–</div>
+            <div className="td-num td-tile-value">{quality}</div>
             <div className="td-tile-name">수질</div>
           </div>
         </div>
         <p className="td-hero-note">
-          날씨 · 파고 · 강수는 경포해변 예보 값이며 다른 지점의 실측값이
-          아닙니다. 점수 · 수온 · 안전 상태 · 신뢰도는 서로 다른 값이며 하나로
-          요약하지 않습니다. 수질은 저장된 값이 없어 –이며 0점 · 정상 ·
-          안전이라는 뜻이 아닙니다. 위 수치는 전부 예시 데이터입니다.
+          {evidenceText(conditions)} 안전 상태:{" "}
+          {conditions?.safety_status ?? "unknown"}. 값이 없으면 –로 표시하며
+          안전 판정을 만들지 않습니다.
         </p>
       </div>
     </header>
   );
 }
 
-function SpotSection() {
-  const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
-  const spots = useResource<RowsResult>(SPOTS_QUERY);
+function SpotComparisonRow({
+  spot,
+  selected,
+  onSelect,
+}: {
+  spot: Place;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const conditions = useResource<Conditions>(conditionPath(spot.id));
+  const score = conditions.data?.environment_score ?? null;
+  const grade = gradeOf(score);
+  return (
+    <button
+      type="button"
+      className={"td-spot-row" + (selected ? " is-selected" : "")}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
+      <span className="td-score-badge" data-grade={grade.key}>
+        {score ?? "–"}
+      </span>
+      <span className="td-spot-body">
+        <span className="td-spot-name">{spot.name}</span>
+        <span className="td-spot-vals">
+          <GradeIcon gradeKey={grade.key} size={12} />
+          <span>
+            {grade.label} · 수온{" "}
+            {metricText(conditions.data, "water_temperature")}
+          </span>
+          <StateChip kind={conditions.data ? "live" : "no_data"} />
+        </span>
+      </span>
+    </button>
+  );
+}
 
-  useEffect(() => {
-    if (spots.error)
-      console.warn(
-        "[TodayPage] 장소 카탈로그 조회 실패 · path=%s · %s · 지점명은 예시 상수로 표시합니다.",
-        SPOTS_QUERY,
-        spots.error,
-      );
-  }, [spots.error]);
-
-  const rows = spots.data?.rows ?? [];
-  const resolved = SPOT_EXAMPLES.map((spot) => {
-    const row = rows.find(
-      (item) => typeof item.name === "string" && item.name.includes(spot.match),
-    );
-    return {
-      ...spot,
-      name: typeof row?.name === "string" ? row.name : spot.fallbackName,
-      address: typeof row?.address === "string" ? row.address : null,
-      region: typeof row?.region === "string" ? row.region : null,
-      verification:
-        typeof row?.catalog_verification === "string"
-          ? row.catalog_verification
-          : null,
-      linked: row !== undefined,
-    };
-  });
-  const selected = resolved.find((spot) => spot.id === selectedSpotId) ?? null;
-  const linkedCount = resolved.filter((spot) => spot.linked).length;
-
+function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
+  const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
+  const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
+  const selected = resolved.find((spot) => spot.id === selectedSpotId);
+  const conditions = useResource<Conditions>(conditionPath(selected?.id));
   return (
     <section>
       <SectionHead
@@ -404,38 +375,18 @@ function SpotSection() {
       />
       <div className="td-card">
         <div className="td-rows">
-          {resolved.map((spot) => {
-            const grade = gradeOf(spot.score);
-            return (
-              <button
-                type="button"
-                key={spot.id}
-                className={
-                  "td-spot-row" + (spot.id === selectedSpotId ? " is-selected" : "")
-                }
-                aria-pressed={spot.id === selectedSpotId}
-                onClick={() =>
-                  setSelectedSpotId((current) =>
-                    current === spot.id ? null : spot.id,
-                  )
-                }
-              >
-                <span className="td-score-badge" data-grade={grade.key}>
-                  {spot.score === null ? "–" : spot.score}
-                </span>
-                <span className="td-spot-body">
-                  <span className="td-spot-name">{spot.name}</span>
-                  <span className="td-spot-vals">
-                    <GradeIcon gradeKey={grade.key} size={12} />
-                    <span>
-                      {grade.label} · 수온 {spot.waterTemp}
-                    </span>
-                    <StateChip kind={spot.linked ? "live" : "example"} />
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+          {resolved.map((spot) => (
+            <SpotComparisonRow
+              key={spot.id}
+              spot={spot}
+              selected={spot.id === selectedSpotId}
+              onSelect={() =>
+                setSelectedSpotId((current) =>
+                  current === spot.id ? null : spot.id,
+                )
+              }
+            />
+          ))}
         </div>
 
         {selected && (
@@ -444,48 +395,56 @@ function SpotSection() {
               <dt>장소명</dt>
               <dd>
                 {selected.name}
-                {selected.linked ? " (수집 DB)" : " (예시 상수)"}
+                (수집 DB)
               </dd>
               <dt>지역</dt>
               <dd>{selected.region ?? "–"}</dd>
               <dt>주소</dt>
               <dd>{selected.address ?? "–"}</dd>
               <dt>검증 상태</dt>
-              <dd>{selected.verification ?? "–"}</dd>
+              <dd>{selected.catalog_verification ?? "–"}</dd>
               <dt>수영 점수</dt>
               <dd>
-                {selected.score === null ? "–" : selected.score} ·{" "}
-                {gradeOf(selected.score).label} · 예시 데이터
+                {conditions.data?.environment_score ?? "–"} · 수온{" "}
+                {metricText(conditions.data, "water_temperature")} ·{" "}
+                {conditions.error ?? evidenceText(conditions.data)}
               </dd>
             </dl>
           </div>
         )}
 
         <p className="td-note">
-          지점별로 저장된 값은 수영 점수와 수온뿐입니다. 장소명 · 지역 · 주소 ·
-          검증 상태만 수집 DB(<code>spots</code>)에서 읽어옵니다.{" "}
-          {spots.loading
-            ? "장소 카탈로그를 불러오는 중입니다."
-            : spots.error
-              ? `장소 카탈로그를 불러오지 못했습니다(${spots.error}) — 아래 지점명은 예시 상수입니다.`
-              : `강릉 검색 결과 ${rows.length}건 중 ${linkedCount}개 지점이 연결되었습니다.`}{" "}
-          점수 · 수온은 저장·검증된 값이 아니며 안전 판단에 쓸 수 없습니다.
+          {status} 장소를 선택하면 해당 지점의 조건 근거를 조회합니다. 종합
+          점수는 검증 전까지 –로 표시합니다.
         </p>
       </div>
     </section>
   );
 }
 
-function ActivitySection() {
+function ActivitySection({ id }: { id?: number }) {
+  const states = [
+    useResource<Conditions>(conditionPath(id, "swim")),
+    useResource<Conditions>(conditionPath(id, "rafting")),
+    useResource<Conditions>(conditionPath(id, "onsen")),
+  ];
+  const activities = ACTIVITY_ROWS.map((item, index) => ({
+    ...item,
+    score: states[index].data?.environment_score ?? null,
+  }));
   return (
     <section>
-      <SectionHead label="활동별 점수 · 경포해변 예보" />
+      <SectionHead label="활동별 점수 · 선택 장소 관측" />
       <div className="td-card">
         <div className="td-acts">
-          {ACTIVITY_EXAMPLES.map((activity) => {
+          {activities.map((activity) => {
             const grade = gradeOf(activity.score);
             return (
-              <div className="td-act" key={activity.name} data-grade={grade.key}>
+              <div
+                className="td-act"
+                key={activity.name}
+                data-grade={grade.key}
+              >
                 <div className="td-act-name">{activity.name}</div>
                 <div className="td-num td-act-score">
                   <GradeIcon gradeKey={grade.key} size={12} />
@@ -497,26 +456,38 @@ function ActivitySection() {
           })}
         </div>
         <p className="td-note">
-          <StateChip kind="example" /> 저장된 활동은 수영 · 래프팅 · 휴식
-          3종입니다. 온천은 수집 항목이 아니므로 위 점수는 예시입니다.
+          <StateChip kind="partial" /> 활동별 지원 여부와 환경 근거를
+          조회합니다. 종합 점수는 미검증이며 조건 일치 점수와 다릅니다.{" "}
+          {states
+            .map((state) => state.error)
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
     </section>
   );
 }
 
-function ForecastSection() {
-  const [forecastDayId, setForecastDayId] = useState(FORECAST_DAYS[0].id);
-  const selected =
-    FORECAST_DAYS.find((day) => day.id === forecastDayId) ?? FORECAST_DAYS[0];
-  const maxScore = Math.max(...FORECAST_DAYS.map((day) => day.score ?? 0), 1);
+function ForecastSection({
+  rows,
+  now,
+  status,
+}: {
+  rows: Forecast[];
+  now: string;
+  status: string;
+}) {
+  const days = calendarDays(now, 7);
+  const [forecastDayId, setForecastDayId] = useState(days[0].id);
+  const selected = days.find((day) => day.id === forecastDayId) ?? days[0];
+  const maxScore = Math.max(...days.map((day) => day.score ?? 0), 1);
 
   return (
     <section>
       <SectionHead label="7일 예보" suffix="A2" />
       <div className="td-card">
         <div className="td-bars" role="group" aria-label="날짜 선택">
-          {FORECAST_DAYS.map((day) => {
+          {days.map((day) => {
             const grade = gradeOf(day.score);
             return (
               <button
@@ -528,7 +499,9 @@ function ForecastSection() {
                 data-grade={grade.key}
                 aria-pressed={day.id === forecastDayId}
                 aria-label={`${day.weekday} ${day.dateLabel} · ${
-                  day.score === null ? "평가값 없음" : `${day.score}점 ${grade.label}`
+                  day.score === null
+                    ? "평가값 없음"
+                    : `${day.score}점 ${grade.label}`
                 }`}
                 onClick={() => setForecastDayId(day.id)}
               >
@@ -560,112 +533,200 @@ function ForecastSection() {
         </div>
 
         <p className="td-note">
-          값이 없는 날은 <b>–</b>이며 0점이 아닙니다. 막대 길이는 각 날짜 점수의
-          상대 위치이며 점수 기여도가 아닙니다. <StateChip kind="example" />
+          {status}{" "}
+          {rows
+            .filter(
+              (row) =>
+                row.target_start_at.slice(0, 10) === selected.id ||
+                new Date(row.target_start_at).toLocaleDateString("sv-SE", {
+                  timeZone: "Asia/Seoul",
+                }) === selected.id,
+            )
+            .map(
+              (row) =>
+                `${row.station_name} · ${row.provider} · ${timeLabel(row.target_start_at)} · ${row.state} · ${row.inputs.map((input) => `${input.name}: ${["current", "recorded"].includes(input.state) && row.state !== "stale" ? formatValue(input.numeric_value, input.unit ?? "") : "–"}`).join(" / ")}`,
+            )
+            .join(" / ") || "첫 100건에 선택 날짜의 예보가 없습니다."}{" "}
+          조회는 첫 100건입니다. 예보 수집은 점수 계산이 아니므로 날짜별 점수는
+          –입니다.
         </p>
       </div>
     </section>
   );
 }
 
-function TideSection() {
+function OperatingRow({
+  activity,
+  id,
+  now,
+}: {
+  activity: (typeof TIDE_ACTIVITIES)[number];
+  id?: number;
+  now: string;
+}) {
+  const windows = useResource<{
+    rows: { state: string; start_at: string; end_at: string; scope: string }[];
+  }>(
+    activity.icon === "tube"
+      ? null
+      : periodPath("tides/windows", id, now, 1, activity.icon),
+  );
+  const active = windows.data?.rows.find(
+    (row) => row.state === "official_operating_window",
+  );
+  return (
+    <div className={"td-tide-row" + (active ? "" : " is-off")}>
+      <span className="td-badge-round">
+        <Icon name={activity.icon} size={14} />
+      </span>
+      <span className="td-tide-name">{activity.name}</span>
+      <span className={"td-fit-chip" + (active ? "" : " is-off")}>
+        {active ? "공식 운영" : "확인 필요"}
+      </span>
+      <span className="td-tide-when" title={active?.scope}>
+        {windows.error
+          ? "조회 실패"
+          : active
+            ? `${timeLabel(active.start_at)}–${timeLabel(active.end_at)}`
+            : "운영정보 없음"}
+      </span>
+    </div>
+  );
+}
+
+function TideSection({
+  tides,
+  status,
+  id,
+  now,
+}: {
+  tides?: TideResult;
+  status: string;
+  id?: number;
+  now: string;
+}) {
   return (
     <section>
       <SectionHead label="물때" suffix="A6" />
       <div className="td-card">
         <div className="td-tide-now">
-          <span className="td-tide-pill is-now">썰물 (지금)</span>
+          <span className="td-tide-pill is-now">
+            간조 {timeLabel(tides?.next_low?.event_at)}
+          </span>
           <span className="td-tide-arrow" aria-hidden="true">
             →
           </span>
-          <span className="td-tide-pill">밀물 {TIDE.nextFlood}</span>
+          <span className="td-tide-pill">
+            만조 {timeLabel(tides?.next_high?.event_at)}
+          </span>
           <span className="td-tide-level">
-            조위 <b className="td-num">{TIDE.levelCm}cm</b>
+            다음 만조 높이{" "}
+            <b className="td-num">
+              {tides?.next_high?.height ?? "–"}
+              {tides?.next_high?.unit ?? ""}
+            </b>
           </span>
         </div>
         <div className="td-rows td-tide-rows">
-          {TIDE.activities.map((activity) => (
-            <div
-              className={"td-tide-row" + (activity.fit ? "" : " is-off")}
+          {TIDE_ACTIVITIES.map((activity) => (
+            <OperatingRow
               key={activity.name}
-            >
-              <span className="td-badge-round">
-                <Icon name={activity.icon} size={14} />
-              </span>
-              <span className="td-tide-name">{activity.name}</span>
-              <span className={"td-fit-chip" + (activity.fit ? "" : " is-off")}>
-                {activity.fit ? "적합" : "부적합"}
-              </span>
-              <span className="td-tide-when">{activity.when}</span>
-            </div>
+              activity={activity}
+              id={id}
+              now={now}
+            />
           ))}
         </div>
         <p className="td-note">
-          <StateChip kind="uncollected" /> 조위는 아직 실연동되지 않았습니다. 위
-          시각 · 조위 · 적합 여부는 예시이며 새로운 안전 판정이 아닙니다. 갯벌
-          체험 · 튜브 물놀이는 수집 항목이 아닙니다(저장 활동: 수영 · 래프팅 ·
-          휴식).
+          <StateChip kind={tides?.rows.length ? "live" : "no_data"} /> {status}{" "}
+          공식 조석 예측의 간조·만조 시각입니다. 사건 시각만으로 현재 조류나
+          활동 적합 여부를 판단하지 않습니다. {tides?.next_high?.station_name}
         </p>
       </div>
     </section>
   );
 }
 
-function FirstSwimSection() {
-  const diff = FIRST_SWIM.thisYear.doy - FIRST_SWIM.lastYear.doy;
-  const compare =
-    diff === 0
-      ? `${FIRST_SWIM.lastYear.year}년과 같은 날`
-      : diff > 0
-        ? `${FIRST_SWIM.lastYear.year}년보다 ${diff}일 늦음`
-        : `${FIRST_SWIM.lastYear.year}년보다 ${-diff}일 빠름`;
-
+function FirstSwimSection({ id }: { id?: number }) {
+  const subscriptions = useResource<{
+    rows: {
+      id: string;
+      spot_id: number;
+      year: number;
+      minimum_temperature_c: number;
+      condition_state: string;
+      last_evaluated_at: string | null;
+    }[];
+  }>("notifications/subscriptions?limit=100&offset=0");
+  const subscription = subscriptions.data?.rows.find(
+    (row) =>
+      row.spot_id === id &&
+      row.year ===
+        Number(
+          new Date()
+            .toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })
+            .slice(0, 4),
+        ),
+  );
   return (
     <section>
-      <SectionHead label="올해 첫 입수" suffix="A7" />
+      <SectionHead
+        label="올해 첫 입수"
+        suffix="A7"
+        href="#first-swim"
+        linkLabel="내 알림 조회 →"
+      />
       <div className="td-card">
         <div className="td-swim">
           <span className="td-swim-badge">
             <Icon name="sun" size={20} />
           </span>
           <div>
-            <div className="td-swim-date">{FIRST_SWIM.thisYear.date}</div>
+            <div className="td-swim-date">
+              {subscription ? "기준 관측 알림" : "–"}
+            </div>
             <div className="td-swim-sub">
-              수온 {FIRST_SWIM.thisYear.waterTemp}로 기준(
-              {FIRST_SWIM.thresholdTemp}) 첫 돌파 · {compare}
+              {subscription
+                ? `선택 기준 ${subscription.minimum_temperature_c}°C · ${subscription.condition_state} · 최근 평가 ${timeLabel(subscription.last_evaluated_at)}`
+                : "이 장소의 올해 알림 구독이 없습니다."}
             </div>
           </div>
         </div>
         <p className="td-note">
-          <StateChip kind="example" /> 날짜 · 기준 수온은 저장된 관측이 아니며,
-          연도 비교는 day-of-year 차이({FIRST_SWIM.thisYear.doy} −{" "}
-          {FIRST_SWIM.lastYear.doy})로만 계산한 값입니다.
+          <StateChip kind={subscription ? "live" : "no_data"} />{" "}
+          {subscriptions.error ??
+            "개인 구독의 평가 상태입니다. 첫 입수일과 전년 비교는 관측 이력이 입증하지 않아 표시하지 않습니다."}
         </p>
       </div>
     </section>
   );
 }
 
-function QualitySection() {
+function QualitySection({
+  rows,
+  status,
+}: {
+  rows: QualityRow[];
+  status: string;
+}) {
   return (
     <section>
       <SectionHead label="수질 신뢰도" suffix="A8" />
       <div className="td-card">
-        {QUALITY_CONFIDENCE.map((item) => (
+        {qualityValues(rows).map((item) => (
           <div className="td-conf-row" key={item.label}>
             <span>
               {item.label} {item.value}
             </span>
             <b className="td-conf-value" style={{ color: "#4a6d8c" }}>
-              신뢰도 {item.confidence.toFixed(2)}
+              신뢰도 {item.confidence?.toFixed(2) ?? "–"}
             </b>
           </div>
         ))}
         <p className="td-note">
-          <StateChip kind="uncollected" /> 신뢰도는 점수 · 안전 판정과 다른
-          값이며, 색(<code>#4a6d8c</code>)도 등급 팔레트와 분리했습니다. 수질
-          수집이 구현되지 않아 위 값은 예시입니다. 히어로의 수질 타일이 –인 것과
-          같은 이유입니다.
+          <StateChip kind={rows.length ? "live" : "no_data"} /> {status} 공식
+          측정값만 표시하며, 충돌·시효 만료·자료 없음은 –로 남깁니다. 신뢰도
+          모델은 미검증입니다.
         </p>
       </div>
     </section>
@@ -673,6 +734,11 @@ function QualitySection() {
 }
 
 function UnlinkedAlert() {
+  const items = [
+    "종합 환경·안전 점수 — 검증된 모델 없음",
+    "첫 입수일·전년 비교 — 연속 관측 이력 확인 필요",
+    "수질 신뢰도 — 검증된 모델 없음",
+  ];
   return (
     <div className="td-card td-alert" role="note">
       <div className="td-alert-head">
@@ -680,32 +746,70 @@ function UnlinkedAlert() {
         <span>아직 실연동되지 않은 항목</span>
       </div>
       <ul>
-        {UNLINKED_ITEMS.map((item) => (
+        {items.map((item) => (
           <li key={item}>{item}</li>
         ))}
       </ul>
       <p className="td-note">
-        이 페이지에서 수집 DB로 읽는 값은 장소 카탈로그(장소명 · 지역 · 주소 ·
-        검증 상태)뿐입니다. 나머지 수치 · 시각은 레이아웃 확인용 예시이며 안전
-        판단에 쓸 수 없습니다. 값이 없거나 unknown인 상태는 안전하다는 뜻이
-        아닙니다.
+        장소·조건·공식 예보·물때·수질 비교·개인 알림을 각각 조회합니다. 빈 값과
+        unknown은 안전함을 뜻하지 않습니다.
       </p>
     </div>
   );
 }
 
 function TodayScreen() {
+  const { now, place, places, conditions } = useProductData();
+  const { forecasts, tides, quality } = useTodayData(place?.id, now);
   return (
     <article className="today-page">
       <div className="td-frame">
-        <Hero />
+        <Hero
+          quality={qualityGrade(quality.data?.rows ?? [])}
+          place={place}
+          conditions={conditions.data}
+        />
         <div className="td-body">
-          <SpotSection />
-          <ActivitySection />
-          <ForecastSection />
-          <TideSection />
-          <FirstSwimSection />
-          <QualitySection />
+          <SpotSection
+            rows={places.data?.rows ?? []}
+            status={
+              places.error ??
+              conditions.error ??
+              (places.loading ? "장소 조회 중" : "실제 장소 카탈로그")
+            }
+          />
+          <ActivitySection id={place?.id} />
+          <ForecastSection
+            rows={forecasts.data?.rows ?? []}
+            now={now}
+            status={
+              forecasts.error ??
+              (forecasts.loading
+                ? "예보 조회 중"
+                : (forecasts.data?.status ?? "장소 선택 필요"))
+            }
+          />
+          <TideSection
+            id={place?.id}
+            now={now}
+            tides={tides.data}
+            status={
+              tides.error ??
+              (tides.loading
+                ? "물때 조회 중"
+                : (tides.data?.status ?? "장소 선택 필요"))
+            }
+          />
+          <FirstSwimSection id={place?.id} />
+          <QualitySection
+            rows={quality.data?.rows ?? []}
+            status={
+              quality.error ??
+              (quality.loading
+                ? "수질 조회 중"
+                : (quality.data?.status ?? "장소 선택 필요"))
+            }
+          />
           <UnlinkedAlert />
           <AppTabBar active="today" />
         </div>
