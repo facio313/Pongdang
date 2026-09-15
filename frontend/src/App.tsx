@@ -7,7 +7,7 @@ import { DataOrigin, type Origin } from "./DataOrigin";
 import { WaterIndexHubPage } from "./WaterIndexHubPage";
 import { WaterIndexMapPage } from "./WaterIndexMapPage";
 import { WaterForecastPage } from "./WaterForecastPage";
-import { LivecamHubPage } from "./LivecamHubPage";
+import { LivecamPreviewPage } from "./LivecamPreviewPage";
 import { TideTimerPage } from "./TideTimerPage";
 import { FirstSwimPage } from "./FirstSwimPage";
 import { WaterQualityPage } from "./WaterQualityPage";
@@ -16,7 +16,7 @@ const previewPages = {
   "water-index": { label: "Water Index", render: () => <WaterIndexHubPage /> },
   "water-index-map": { label: "지도 배치", render: () => <WaterIndexMapPage /> },
   "water-forecast": { label: "Water Forecast", render: () => <WaterForecastPage /> },
-  livecam: { label: "라이브캠", render: () => <LivecamHubPage /> },
+  livecam: { label: "웹캠 목록", render: () => <LivecamPreviewPage /> },
   tide: { label: "물때 타이머", render: () => <TideTimerPage /> },
   "first-swim": { label: "첫 입수", render: () => <FirstSwimPage /> },
   "water-quality": { label: "수질 교차검증", render: () => <WaterQualityPage /> },
@@ -26,6 +26,7 @@ type PreviewKey = keyof typeof previewPages;
 
 function pageFromHash() {
   const key = window.location.hash.replace(/^#/, "");
+  if (key === "livecam-test") return "livecam";
   if (key === "info" || key === "collector") return "info";
   if (key in previewPages) return key;
   return "data";

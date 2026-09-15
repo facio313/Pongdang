@@ -10,6 +10,7 @@ from app.config import Settings
 from app.data_reader import create_data_router
 from app.database import check_database
 from app.forecast.api import create_forecast_router
+from app.livecams.preview import create_preview_router
 from app.livecams.service import create_livecam_router
 from app.notifications.api import create_router as create_notifications_router
 from app.quality.api import create_router as create_quality_router
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(create_forecast_router(settings))
     app.include_router(create_twin_router(settings))
     app.include_router(create_livecam_router(settings))
+    app.include_router(create_preview_router(settings))
     app.include_router(create_tides_router(settings))
     app.include_router(create_notifications_router(settings))
     app.include_router(create_quality_router(settings))

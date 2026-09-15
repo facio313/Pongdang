@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -52,6 +52,31 @@ class Settings(BaseSettings):
     notifications_from_email: str = ""
     notifications_delivery_enabled: bool = False
     livecam_allowed_hosts: str = ""
+    windy_webcams_api_key: SecretStr = SecretStr("")
+    windy_webcams_radii_km: str = "2,5,10"
+    windy_webcams_daily_budget: int = Field(default=30, ge=0, le=100)
+    windy_webcams_refresh_hours: int = Field(default=24, ge=6, le=168)
+    windy_webcams_timeout_seconds: float = Field(default=8, ge=1, le=15)
+
+    @field_validator("windy_webcams_radii_km")
+    @classmethod
+    def validate_windy_radii(cls, value):
+        radii = [float(r) for r in value.split(",")]
+        if (
+            not 1 <= len(radii) <= 3
+            or radii != sorted(set(radii))
+            or any(not 0 < r <= 10 for r in radii)
+        ):
+            raise ValueError("Use one to three increasing radii, at most 10 km")
+        return value
+
+    @field_validator("windy_webcams_api_key", mode="before")
+    @classmethod
+    def trim_windy_key(cls, value):
+        if isinstance(value, SecretStr):
+            value = value.get_secret_value()
+        return value.strip() if isinstance(value, str) else value
+
     ai_provider: Literal["disabled", "openai"] = "disabled"
     ai_model: str = Field(default="", max_length=100)
     ai_pricing_model: str = Field(default="", max_length=100)
