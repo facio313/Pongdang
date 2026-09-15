@@ -12,9 +12,15 @@ import {
 import { AppTabBar } from "./appTabBar";
 import { useResource } from "./useResource";
 import { useAction } from "./useAction";
+import { useConditionDays } from "./useConditionDays";
+import { ConditionScoreDetails } from "./ConditionScoreDetails";
+import type { Activity } from "./aiApi";
 import {
   calendarDays,
   conditionPath,
+  conditionScore,
+  conditionScoreText,
+  conditionTargetInRange,
   dateLabel,
   kstDate,
   metricText,
@@ -351,10 +357,10 @@ function TasteStep({
               </div>
               <div className="rc-stop-place">{card.place}</div>
               <p className="rc-note">
-                오늘 적합도 {card.score === null ? "–" : card.score} ·{" "}
+                장소 선택 전 점수 {card.score === null ? "–" : card.score} ·{" "}
                 {grade.label}
                 {card.score === null &&
-                  " — 이 활동은 저장된 적합도가 없습니다. 0점이 아닙니다."}
+                  " — 실제 장소와 날짜를 고르면 조건 점수를 조회합니다."}
               </p>
               <div className="rc-swipe-actions">
                 <button type="button" className="rc-secondary" onClick={onPass}>
@@ -561,10 +567,10 @@ function ChatStep({
                 </div>
               ))}
               <p className="rc-note">
-                첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 점수
-                기여 비율은 제공되지 않아 막대 길이를 만들지 않습니다. 추천
+                첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
                 순서는 취향 일치 기준이며 안전 점수가 아닙니다.
               </p>
+              <ConditionScoreDetails data={conditions.data} className="rc-note" />
             </div>
             <div className="rc-stack">
               <button type="button" className="rc-primary" onClick={onDone}>
@@ -583,6 +589,47 @@ function ChatStep({
 }
 
 // ── 4. B2 코스 결과 ────────────────────────────────────────
+
+interface CourseStopData {
+  spotId: number;
+  at: string;
+  time: string;
+  name: string;
+  icon: IconName;
+  place: string;
+  basis: string;
+  basisChip: string;
+}
+
+function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activity }) {
+  const targetValid = conditionTargetInRange(stop.at);
+  const conditions = useResource<Conditions>(targetValid ? conditionPath(stop.spotId, activity, stop.at) : null);
+  const score = conditionScore(conditions.data);
+  const grade = gradeOf(score);
+  return (
+    <div className="rc-stop">
+      <div className="rc-stop-time">{stop.time}</div>
+      <div className="rc-stop-rail">
+        <span className="rc-stop-dot" style={{ background: grade.color }} />
+      </div>
+      <div className="rc-stop-body">
+        <div className="rc-stop-head">
+          <span className="rc-stop-badge"><Icon name={stop.icon} size={15} /></span>
+          <span className="rc-stop-name">{stop.name}</span>
+          <GradeChip score={score} />
+        </div>
+        <div className="rc-stop-place">{stop.place}</div>
+        <div className="rc-stop-basis">{stop.basis}</div>
+        <div className="rc-stop-chips">
+          <span className="rc-basis-chip">{stop.basisChip}</span>
+          <StateChip kind={conditions.data?.condition_score?.status === "evaluated" ? "live" : "partial"} />
+        </div>
+        <p className="rc-note">{dateLabel(stop.at)} {timeLabel(stop.at)} KST 예보 · {targetValid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
+        <ConditionScoreDetails data={conditions.data} className="rc-note" />
+      </div>
+    </div>
+  );
+}
 
 function CourseStep({
   dayIndex,
@@ -606,26 +653,36 @@ function CourseStep({
   statusText: string;
 }) {
   const session = useTravelSession();
-  const days = calendarDays(new Date().toISOString(), 5).map((day) => ({
+  const [now] = useState(() => new Date().toISOString());
+  const firstItem = planItems(session.plan)[0];
+  const firstId = firstItem?.spot_id ?? session.recommendation?.recommendations[0]?.spot_id;
+  const activity = session.plan?.request.activity ?? session.recommendation?.request.activity ?? "relax";
+  const days = useConditionDays(firstId, now, activity, 5).map((day) => ({
     ...day,
     name: day.weekday,
   }));
   const day = days[dayIndex];
+  const selectedAt = (session.plan?.days[0]?.date ?? session.plan?.request.dates[0] ?? session.recommendation?.request.dates[0] ?? day.id) + "T12:00:00+09:00";
+  const firstAt = firstItem?.arrival_at ?? selectedAt;
+  const firstConditions = useResource<Conditions>(conditionTargetInRange(firstAt) ? conditionPath(firstId, activity, firstAt) : null);
+  const firstScore = conditionScore(firstConditions.data);
   const stops = session.plan
-    ? planItems(session.plan).map((item) => ({
+    ? session.plan.days.flatMap((savedDay) => savedDay.items.map((item) => ({
+        spotId: item.spot_id,
+        at: item.arrival_at ?? savedDay.date + "T12:00:00+09:00",
         time: timeLabel(item.arrival_at),
         name: item.name,
         icon: "pin" as IconName,
-        score: null,
         place: placeRoleLabel(item.role),
         basis: unknownConditionsText(item.unknown_conditions) || "선택한 실제 장소",
         basisChip: "저장 일정",
-      }))
+      })))
     : (session.recommendation?.recommendations ?? []).map((item) => ({
+        spotId: item.spot_id,
+        at: selectedAt,
         time: `후보 ${item.rank}`,
         name: item.name,
         icon: "pin" as IconName,
-        score: null,
         place: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
         basis: `${item.reason} 미확인: ${unknownConditionsText(item.unknown_conditions) || "없음"}`,
         basisChip:
@@ -655,9 +712,9 @@ function CourseStep({
             </div>
             <div style={{ textAlign: "right", flex: "none" }}>
               <div className="rc-num rc-hero-score-num">
-                {day.score === null ? "–" : day.score}
+                {firstScore ?? "–"}
               </div>
-              <GradeChip score={day.score} glass bare />
+              <GradeChip score={firstScore} glass bare />
             </div>
           </div>
           <div className="rc-days" role="group" aria-label="날짜 선택">
@@ -684,8 +741,10 @@ function CourseStep({
             ))}
           </div>
           <p className="rc-hero-note">
-            날짜를 바꾸면 해당 날짜의 장소·활동 후보를 새로 조회합니다. 종합
-            점수는 제공하지 않으며, 저장된 일정의 날짜는 상세에 표시합니다.
+            상단과 날짜별 점수는 첫 장소 {stops[0]?.name ?? "선택 전"}의 활동 조건 참고값입니다.
+            날짜별 막대는 정오 예보이며, 장소별 점수는 각 일정 시각을 사용합니다.
+            날짜를 바꾸면 해당 날짜의 장소·활동 후보를 새로 조회합니다.{" "}
+            {conditionScoreText(firstConditions.data)} {firstConditions.error}
           </p>
         </div>
       </header>
@@ -733,35 +792,7 @@ function CourseStep({
             </p>
 
             <div className="rc-card rc-timeline">
-              {stops.map((stop) => {
-                const grade = gradeOf(stop.score);
-                return (
-                  <div className="rc-stop" key={stop.time}>
-                    <div className="rc-stop-time">{stop.time}</div>
-                    <div className="rc-stop-rail">
-                      <span
-                        className="rc-stop-dot"
-                        style={{ background: grade.color }}
-                      />
-                    </div>
-                    <div className="rc-stop-body">
-                      <div className="rc-stop-head">
-                        <span className="rc-stop-badge">
-                          <Icon name={stop.icon} size={15} />
-                        </span>
-                        <span className="rc-stop-name">{stop.name}</span>
-                        <GradeChip score={stop.score} />
-                      </div>
-                      <div className="rc-stop-place">{stop.place}</div>
-                      <div className="rc-stop-basis">{stop.basis}</div>
-                      <div className="rc-stop-chips">
-                        <span className="rc-basis-chip">{stop.basisChip}</span>
-                        <StateChip kind="partial" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {stops.map((stop, index) => <CourseStop key={`${stop.spotId}:${stop.at}:${index}`} stop={stop} activity={activity} />)}
             </div>
 
             <div className="rc-card">
@@ -837,6 +868,19 @@ function RealertStep({
   onBack: () => void;
 }) {
   const session = useTravelSession();
+  const previousItem = planItems(session.plan)[0];
+  const previousRequest = session.plan?.request ?? session.recommendation?.request;
+  const previousConditions = useResource<Conditions>(conditionPath(
+    previousItem?.spot_id ?? session.recommendation?.recommendations[0]?.spot_id,
+    previousRequest?.activity ?? "relax",
+    previousItem?.arrival_at ?? (previousRequest?.dates[0] ? previousRequest.dates[0] + "T12:00:00+09:00" : undefined),
+  ));
+  const nextConditions = useResource<Conditions>(conditionPath(
+    proposal?.recommendations[0]?.spot_id, proposal?.request.activity ?? "relax",
+    proposal?.request.dates[0] ? proposal.request.dates[0] + "T12:00:00+09:00" : undefined,
+  ));
+  const previousScore = conditionScore(previousConditions.data);
+  const nextScore = conditionScore(nextConditions.data);
   const previous =
     planItems(session.plan)
       .map((item) => item.name)
@@ -870,15 +914,15 @@ function RealertStep({
               {proposal?.status ?? "조회 중"}
             </span>
             <span className="rc-change-scores">
-              <span className="rc-change-from">–</span>
+              <span className="rc-change-from">{previousScore ?? "–"}</span>
               <span aria-hidden="true">→</span>
-              <span className="rc-num rc-change-to">–</span>
-              <GradeChip score={null} glass bare />
+              <span className="rc-num rc-change-to">{nextScore ?? "–"}</span>
+              <GradeChip score={nextScore} glass bare />
             </span>
           </div>
           <p className="rc-hero-note">
-            직접 요청한 최신 추천입니다. 조건 변화나 안전성 향상을 확인했다는
-            뜻은 아닙니다.
+            각 코스 첫 장소의 활동 조건 참고값입니다. 직접 요청한 최신 추천이며,
+            확보한 분야가 다르면 점수를 직접 비교할 수 없습니다.
           </p>
         </div>
       </header>
@@ -892,7 +936,8 @@ function RealertStep({
             <div className="rc-swap-col">
               <div className="rc-swap-when">기존</div>
               <div className="rc-swap-what">{previous}</div>
-              <GradeChip score={null} />
+              <GradeChip score={previousScore} />
+              <p className="rc-note">{conditionScoreText(previousConditions.data)} {previousConditions.error}</p>
             </div>
             <span aria-hidden="true">→</span>
             <div className="rc-swap-col">
@@ -902,7 +947,8 @@ function RealertStep({
                   .map((item) => item.name)
                   .join(" · ") || "새 후보 없음"}
               </div>
-              <GradeChip score={null} />
+              <GradeChip score={nextScore} />
+              <p className="rc-note">{conditionScoreText(nextConditions.data)} {nextConditions.error}</p>
             </div>
           </div>
           <p className="rc-note">

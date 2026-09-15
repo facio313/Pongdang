@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { loadKakaoMaps, type KakaoCustomOverlay } from "./kakaoMaps";
+import { KakaoMapsLoadError, loadKakaoMaps, type KakaoCustomOverlay } from "./kakaoMaps";
 import { MAP_LOCATIONS } from "./mapLocations";
 import "./kakaoMap.css";
 
@@ -94,10 +94,12 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
         resize.observe(element);
         setResult({ attempt, markers: mounted, fit });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         cleanup();
         if (!controller.signal.aborted) {
-          setResult({ attempt, markers: [], error: "카카오 지도를 불러오지 못했습니다. 지도 사용 설정이나 네트워크 연결을 확인해 주세요." });
+          setResult({ attempt, markers: [], error: error instanceof KakaoMapsLoadError
+            ? error.message
+            : "카카오 지도를 불러오지 못했습니다. 지도 사용 설정이나 네트워크 연결을 확인해 주세요." });
         }
       });
     return () => {

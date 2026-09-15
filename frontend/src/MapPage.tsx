@@ -4,21 +4,25 @@ import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
 import { usePlacesById } from "./usePlacesById";
 import { useResource } from "./useResource";
+import { useConditions } from "./useConditions";
 import { useAction } from "./useAction";
+import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import {
-  conditionPath,
+  conditionScore,
+  productPlaces,
   kstDate,
   metricText,
   evidenceText,
   timeLabel,
   type Place,
-  type RowPage,
+  type ClassifiedWaterPlace,
   type Conditions,
 } from "./productData";
 import {
   directionLink,
   planItems,
   travelJson,
+  routeReasonsText,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
@@ -225,9 +229,10 @@ function SpotSheet({
         </div>
 
         <p className="mp-note">
-          {evidenceText(conditions)} 안전 상태 unknown은 판정 없음이며 안전함이
+          지도 점수는 선택한 장소를 조회한 값입니다. {evidenceText(conditions)} 안전 상태 unknown은 판정 없음이며 안전함이
           아닙니다.
         </p>
+        <ConditionScoreDetails data={conditions} className="mp-note" />
       </div>
 
       <div className="mp-actions">
@@ -368,9 +373,10 @@ export function MapPage() {
       : "spots",
   );
   const [search, setSearch] = useState("강릉");
-  const places = useResource<RowPage<Place>>(
-    "datasets/spots?page_size=100&q=" + encodeURIComponent(search),
+  const waterCatalog = useResource<ClassifiedWaterPlace[]>(
+    "livecams/preview/places?q=" + encodeURIComponent(search),
   );
+  const places = { ...waterCatalog, data: waterCatalog.data ? productPlaces(waterCatalog.data) : undefined };
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
@@ -396,12 +402,12 @@ export function MapPage() {
     raw.find((item) => item.id === selectedSpotId) ??
     raw.find((item) => item.type === "beach") ??
     raw[0];
-  const conditions = useResource<Conditions>(conditionPath(selected?.id));
+  const conditions = useConditions(selected?.id);
   const spots = raw.map((item) => ({
     ...item,
     score:
       item.id === selected?.id
-        ? (conditions.data?.environment_score ?? null)
+        ? conditionScore(conditions.data)
         : null,
     waterTemp:
       item.id === selected?.id
@@ -624,7 +630,7 @@ export function MapPage() {
                   ? "서버에 요청 중입니다…"
                   : `검색 결과 ${raw.length}곳 · 최대 100곳`)}{" "}
               {session.route && !session.route.route_calculated
-                ? `경로 미계산: ${session.route.reason_codes.join(" · ")}`
+                ? `경로 미계산: ${routeReasonsText(session.route.reason_codes)}`
                 : ""}
             </p>
             <div className="mp-slot mp-todo">

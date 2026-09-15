@@ -22,8 +22,32 @@ test('explicit POST uses the base path and only the selected spot, no API key', 
 test('failures and malformed results never surface upstream payloads', async () => {
   const signal = new AbortController().signal;
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"PRIVATE_SECRET"}', { status: 502 })), error => !error.message.includes('PRIVATE_SECRET'));
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"constructor"}', { status: 502 })), /웹캠 조회에 실패/);
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WINDY_NOT_CONFIGURED"}', { status: 503 })), /연동 미설정/);
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{}')), /응답 형식/);
+});
+
+test('webcam diagnostics retain authentication failures during backoff and local budget reset time', async () => {
+  const signal = new AbortController().signal;
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WINDY_BACKOFF"}', {
+    status: 429, headers: { 'X-Webcam-Failure-Code': 'WINDY_HTTP_401', 'Retry-After': '900' },
+  })), error => /Webcams API 전용 키/.test(error.message) && /15분/.test(error.message));
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WINDY_DAILY_BUDGET"}', {
+    status: 429, headers: { 'Retry-After': '120' },
+  })), error => /퐁당 서버에 설정된/.test(error.message) && /2분/.test(error.message));
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WINDY_BACKOFF"}', {
+    status: 429, headers: { 'X-Webcam-Failure-Code': 'PRIVATE_SECRET', 'Retry-After': 'PRIVATE_SECRET' },
+  })), error => !error.message.includes('PRIVATE_SECRET'));
+});
+
+test('SSO expiry and network timeouts explain the action without leaking redirected HTML', async () => {
+  const signal = new AbortController().signal;
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('PRIVATE_SSO_HTML', { status: 401 })), /다시 로그인/);
+  const redirected = new Response('PRIVATE_SSO_HTML', { headers: { 'Content-Type': 'text/html' } });
+  Object.defineProperty(redirected, 'redirected', { value: true });
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => redirected), error => /다시 로그인/.test(error.message) && !error.message.includes('PRIVATE'));
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => { throw new TypeError('PRIVATE_TRANSPORT_ERROR'); }), error => /서버에 연결하지 못했습니다/.test(error.message) && !error.message.includes('PRIVATE'));
+  await assert.rejects(requestWebcamPreview('/', undefined, AbortSignal.abort(), async () => { throw new DOMException('PRIVATE', 'AbortError'); }), /요청이 취소/);
 });
 
 test('preview allows only unexpired official timelapse embeds', () => {
@@ -41,16 +65,55 @@ test('catalog remounts share one request and do not prefetch subsequent pages', 
   const fetcher = async (url, init) => {
     calls++;
     assert.equal(url, '/pongdang/api/data/livecams/preview');
-    assert.deepEqual(JSON.parse(init.body), { page: 2, category: 'coast' });
+    assert.deepEqual(JSON.parse(init.body), { page: 2, shuffle_seed: 77, category: 'coast' });
     return new Promise(done => { resolve = done; });
   };
-  const first = loadWebcamCatalog('/pongdang/', 2, 'coast', fetcher);
-  const second = loadWebcamCatalog('/pongdang/', 2, 'coast', fetcher);
+  const first = loadWebcamCatalog('/pongdang/', 2, 'coast', 77, fetcher);
+  const second = loadWebcamCatalog('/pongdang/', 2, 'coast', 77, fetcher);
   assert.equal(first, second);
   assert.equal(calls, 1);
   resolve(new Response(JSON.stringify({ contract_version: 'livecams.preview.v1', rows: [] })));
   await Promise.all([first, second]);
   assert.equal(calls, 1);
+});
+
+test('different shuffles queue behind an active lookup and preserve their own results', async () => {
+  const pending = new Map();
+  const bodies = [];
+  let startedSecond;
+  const secondStarted = new Promise(resolve => { startedSecond = resolve; });
+  const fetcher = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    bodies.push(body);
+    if (body.shuffle_seed === 13) startedSecond();
+    return new Promise(resolve => pending.set(body.shuffle_seed, resolve));
+  };
+  const first = loadWebcamCatalog('/random/', 1, '', 12, fetcher);
+  const shuffled = loadWebcamCatalog('/random/', 1, '', 13, fetcher);
+  assert.notEqual(first, shuffled);
+  assert.deepEqual(bodies, [{ page: 1, shuffle_seed: 12 }]);
+  pending.get(12)(new Response(JSON.stringify({
+    contract_version: 'livecams.preview.v1', rows: [], shuffle_seed: 12,
+  })));
+  assert.equal((await first).shuffle_seed, 12);
+  await secondStarted;
+  assert.deepEqual(bodies, [{ page: 1, shuffle_seed: 12 }, { page: 1, shuffle_seed: 13 }]);
+  pending.get(13)(new Response(JSON.stringify({
+    contract_version: 'livecams.preview.v1', rows: [], shuffle_seed: 13,
+  })));
+  assert.equal((await shuffled).shuffle_seed, 13);
+});
+
+test('a failed catalog lookup does not block the next queued shuffle', async () => {
+  let failFirst;
+  const first = loadWebcamCatalog('/retry/', 1, '', 1, async () => new Promise(resolve => { failFirst = resolve; }));
+  const failed = assert.rejects(first, /조회에 실패/);
+  const second = loadWebcamCatalog('/retry/', 1, '', 2, async () => new Response(JSON.stringify({
+    contract_version: 'livecams.preview.v1', rows: [], shuffle_seed: 2,
+  })));
+  failFirst(new Response('{}', { status: 503 }));
+  await failed;
+  assert.equal((await second).shuffle_seed, 2);
 });
 
 test('provider categories are readable without inventing missing classifications', () => {

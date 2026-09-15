@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, StrictFloat, model_validator
 
+from app.water_index.activity_score import ActivityScore
 from app.water_index.models import Activity, Record
 
 CONTRACT = "water-conditions.v1"
@@ -258,7 +259,13 @@ class ConditionMetric(Record):
     value: Finite | None
     station_id: int
     station_name: str | None
-    relation: Literal["station_observation_point", "representative_station"]
+    relation: Literal[
+        "station_observation_point",
+        "representative_station",
+        "nearby_station_context",
+        "containing_forecast_grid",
+    ]
+    distance_km: Annotated[Finite, Field(ge=0)] | None = None
     mapping_id: str | None
     spatial_scope: str | None
     status: Literal[
@@ -306,7 +313,9 @@ class ConditionsEnvelope(Record):
     safety_status: Literal["restricted", "caution", "unknown"]
     restriction_refs: Annotated[tuple[str, ...], Field(max_length=100)]
     environment_score: None = None
+    condition_score: ActivityScore | None = None
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
+    context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
     missing_metrics: tuple[MetricName, ...]
     required_evidence: tuple[str, ...]
     reason_codes: tuple[str, ...]
@@ -315,7 +324,7 @@ class ConditionsEnvelope(Record):
     def available_at_cutoff(self):
         if self.mode == "observation" and self.at > self.as_of:
             raise ValueError("An observation cannot establish future conditions")
-        for metric in self.metrics:
+        for metric in (*self.metrics, *self.context_metrics):
             if metric.status != "available":
                 continue
             source = metric.evidence[0]

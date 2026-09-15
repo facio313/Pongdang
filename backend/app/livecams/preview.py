@@ -1,5 +1,6 @@
 """Explicit on-demand Windy reads; temporary cache only, no schema or DB writes."""
 
+import hashlib
 import logging
 import math
 import re
@@ -11,7 +12,6 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from psycopg.types.json import Jsonb
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 from starlette.concurrency import run_in_threadpool
 
@@ -38,11 +38,14 @@ class PreviewRequest(BaseModel):
     spot_id: int | None = Field(default=None, gt=0, le=2**53 - 1)
     page: int = Field(default=1, ge=1, le=5)
     category: Category | None = None
+    shuffle_seed: int = Field(default=0, ge=0, le=2**32 - 1, strict=True)
 
     @model_validator(mode="after")
     def separate_scopes(self):
-        if self.spot_id is not None and (self.page != 1 or self.category is not None):
-            raise ValueError("Place queries do not support catalog paging or filters")
+        if self.spot_id is not None and (
+            self.page != 1 or self.category is not None or self.shuffle_seed != 0
+        ):
+            raise ValueError("Place queries do not support catalog options")
         return self
 
 
@@ -91,7 +94,9 @@ class PreviewResult(PreviewSnapshot):
     has_more: bool = False
     category: Category | None = None
     matched_total: int = 0
-    matching_status: Literal["available", "unavailable"] = "available"
+    matching_status: Literal["available", "unavailable", "not_requested"] = "available"
+    ordering: Literal["random"] | None = None
+    shuffle_seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
 
 
 async def read_preview_places(reader, *, q="", spot_id=None):
@@ -108,66 +113,22 @@ async def read_preview_places(reader, *, q="", spot_id=None):
         ).fetchall()
 
 
-async def read_catalog_matches(reader, cameras):
-    """Nearest real beach/valley within 10 km, with at most 100 output rows/query."""
-    located = [
-        dict(camera_id=c.provider_camera_id, lat=c.latitude, lng=c.longitude)
-        for c in cameras
-        if c.latitude is not None
-        and c.longitude is not None
-        and (c.latitude, c.longitude) != (0, 0)
-    ]
-    matches = {}
-    if not located:
-        return matches
-    async with reader.connection() as connection:
-        for start in range(0, len(located), 100):
-            rows = await (
-                await connection.execute(
-                    f"""WITH places AS MATERIALIZED ({PLACE_SELECT})
-                    SELECT c.camera_id, nearest.*
-                    FROM jsonb_to_recordset(%s) AS c(
-                        camera_id text, lat double precision, lng double precision)
-                    JOIN LATERAL (
-                        SELECT p.id,p.name,p.place_kind,
-                            6371.0088 * 2 * asin(least(1.0, sqrt(
-                                power(sin(radians(p.lat-c.lat)/2),2)
-                                + cos(radians(c.lat))*cos(radians(p.lat))
-                                * power(sin(radians(p.lng-c.lng)/2),2)
-                            ))) AS distance_km
-                        FROM places p WHERE p.place_kind IS NOT NULL
-                        AND p.lat BETWEEN -90 AND 90
-                        AND p.lng BETWEEN -180 AND 180
-                        AND (p.lat != 0 OR p.lng != 0)
-                        AND p.lat BETWEEN c.lat-0.1 AND c.lat+0.1
-                        AND p.lng BETWEEN c.lng-0.2 AND c.lng+0.2
-                        ORDER BY distance_km,p.id LIMIT 1
-                    ) nearest ON nearest.distance_km <= 10
-                    LIMIT 100""",
-                    [Jsonb(located[start : start + 100])],
-                )
-            ).fetchall()
-            for row in rows:
-                matches[row["camera_id"]] = NearbyPlace.model_validate(row)
-    return matches
-
-
-def catalog_page(
-    snapshot, matches, *, page=1, category=None, matching_status="available"
-):
+def catalog_page(snapshot, *, page=1, category=None, shuffle_seed=0):
+    """Stable session order across cache refreshes, with no location read."""
     rows = [
         camera.model_copy(
-            update={"nearby_place": matches.get(camera.provider_camera_id)}
+            update={
+                "nearby_place": None,
+                "distance_km": None,
+                "relationship": "unknown",
+            }
         )
         for camera in snapshot.rows
         if category is None or category in camera.categories
     ]
     rows.sort(
         key=lambda c: (
-            c.nearby_place is None,
-            c.nearby_place.distance_km if c.nearby_place else float("inf"),
-            c.region or "",
-            c.title,
+            hashlib.sha256(f"{shuffle_seed}:{c.provider_camera_id}".encode()).digest(),
             c.provider_camera_id,
         )
     )
@@ -178,8 +139,10 @@ def catalog_page(
         page=page,
         category=category,
         has_more=page * 25 < len(rows),
-        matched_total=sum(c.nearby_place is not None for c in rows),
-        matching_status=matching_status,
+        matched_total=0,
+        matching_status="not_requested",
+        ordering="random",
+        shuffle_seed=shuffle_seed,
     )
 
 
@@ -193,6 +156,7 @@ class PreviewService:
         self.lock = threading.Lock()
         self.cache = OrderedDict()
         self.day, self.calls, self.last_call, self.blocked_until = None, 0, None, 0
+        self.blocked_reason = None
 
     def reserve(self):
         now = self.clock()
@@ -200,9 +164,18 @@ class PreviewService:
         if self.day != day:
             self.day, self.calls = day, 0
         if now < self.blocked_until:
-            raise WindyError("WINDY_BACKOFF", math.ceil(self.blocked_until - now))
+            raise WindyError(
+                "WINDY_BACKOFF",
+                math.ceil(self.blocked_until - now),
+                cause_code=self.blocked_reason,
+            )
         if self.calls >= self.settings.windy_webcams_daily_budget:
-            raise WindyError("WINDY_DAILY_BUDGET", 86400)
+            midnight = datetime.combine(
+                day + timedelta(days=1), datetime.min.time(), UTC
+            )
+            raise WindyError(
+                "WINDY_DAILY_BUDGET", math.ceil(midnight.timestamp() - now)
+            )
         if self.last_call is not None:
             self.sleep(max(0, 2 - (now - self.last_call)))
         self.calls += 1
@@ -230,7 +203,11 @@ class PreviewService:
                 return cached.model_copy(update={"cached": True})
             if place:
                 batch = discover(
-                    self.settings, place, client=self.client, reserve=self.reserve
+                    self.settings,
+                    place,
+                    client=self.client,
+                    reserve=self.reserve,
+                    accept=water_camera,
                 )
                 cameras = batch.webcams
                 search = batch.webcam_searches[0]
@@ -297,6 +274,7 @@ class PreviewService:
         except WindyError as exc:
             if exc.code not in {"WINDY_BACKOFF", "WINDY_DAILY_BUDGET"}:
                 self.blocked_until = self.clock() + exc.retry_seconds
+                self.blocked_reason = exc.code
             raise
         finally:
             self.lock.release()
@@ -307,7 +285,6 @@ def create_preview_router(
     *,
     service=None,
     read_places=read_preview_places,
-    read_matches=read_catalog_matches,
 ):
     router = APIRouter(prefix="/api/data/livecams/preview", tags=["livecam preview"])
     service = service or PreviewService(settings)
@@ -337,19 +314,11 @@ def create_preview_router(
             snapshot = await run_in_threadpool(service.query, place)
             if place:
                 return PreviewResult(**snapshot.model_dump(), page_size=50)
-            try:
-                matches = await read_matches(reader, snapshot.rows)
-                matching_status = "available"
-            except HTTPException as exc:
-                if exc.status_code != 503:
-                    raise
-                matches, matching_status = {}, "unavailable"
             return catalog_page(
                 snapshot,
-                matches,
                 page=body.page,
                 category=body.category,
-                matching_status=matching_status,
+                shuffle_seed=body.shuffle_seed,
             )
         except WindyError as exc:
             logging.getLogger(__name__).warning("Webcam preview: %s", exc.code)
@@ -360,8 +329,9 @@ def create_preview_router(
                 if exc.code == "WINDY_NOT_CONFIGURED"
                 else 502
             )
-            raise HTTPException(
-                status, exc.code, {"Retry-After": str(exc.retry_seconds)}
-            ) from None
+            headers = {"Retry-After": str(exc.retry_seconds)}
+            if exc.cause_code:
+                headers["X-Webcam-Failure-Code"] = exc.cause_code
+            raise HTTPException(status, exc.code, headers) from None
 
     return router

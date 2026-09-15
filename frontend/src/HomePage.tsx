@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { AiSuggestion, GradeChip, Icon, StateChip } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
@@ -7,6 +7,9 @@ import { useResource } from "./useResource";
 import { useProductData } from "./useProductData";
 import {
   dateLabel,
+  conditionScore,
+  conditionScoreText,
+  conditionModeLabel,
   timeLabel,
   metricText,
   evidenceText,
@@ -15,7 +18,9 @@ import {
   type QualityRow,
   type RowPage,
 } from "./productData";
-import { loadWebcamCatalog, type PreviewResult } from "./livecamPreviewApi";
+import { newWebcamShuffleSeed } from "./livecamPreviewApi";
+import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
+import { useWebcamCatalog } from "./useWebcamCatalog";
 import "./homePage.css";
 
 // Keep the product layout; only server evidence supplies condition values.
@@ -85,10 +90,10 @@ function Hero({
           </h1>
           <div className="hm-hero-score">
             <div className="hm-num hm-hero-score-num">
-              {conditions?.environment_score ?? "–"}
+              {conditionScore(conditions) ?? "–"}
             </div>
             <GradeChip
-              score={conditions?.environment_score ?? null}
+              score={conditionScore(conditions)}
               glass
               bare
             />
@@ -96,7 +101,7 @@ function Hero({
         </div>
 
         <p className="hm-hero-note">
-          {evidenceText(conditions)} 점수와 안전 상태는 별개입니다. 안전 상태:{" "}
+          {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
           {conditions?.safety_status ?? "unknown"}.
         </p>
       </div>
@@ -135,7 +140,7 @@ function GlanceCard({
       </div>
       <div className="hm-slot hm-graph-slot">시간대별 그래프 (09–18시)</div>
       <p className="hm-note">
-        <StateChip kind={conditions ? "live" : "no_data"} /> 관측 기준이며
+        <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
         강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. {statusText}
       </p>
     </div>
@@ -183,23 +188,13 @@ function RouteCard() {
 }
 
 function LivecamModule() {
-  const [result, setResult] = useState<PreviewResult>();
-  const [error, setError] = useState("");
-  useEffect(() => {
-    let active = true;
-    void loadWebcamCatalog(import.meta.env.BASE_URL, 1, "").then(
-      (data) => {
-        if (active) setResult(data);
-      },
-      (error) => {
-        if (active)
-          setError(error instanceof Error ? error.message : "웹캠 조회 실패");
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [shuffleSeed, setShuffleSeed] = useState(newWebcamShuffleSeed);
+  const { result, error, loading, expired, now } = useWebcamCatalog(1, "", shuffleSeed);
+  const cameras = (result?.rows ?? []).flatMap(camera => {
+    const player = previewPlayerUrl(camera, result!.valid_until, now);
+    const href = player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
+    return href ? [{ camera, href, label: player ? "타임랩스" : "원본 보기" }] : [];
+  }).slice(0, 3);
   return (
     <div className="hm-card">
       <div className="hm-card-top">
@@ -209,28 +204,30 @@ function LivecamModule() {
           </span>
           <div className="hm-card-title">라이브캠 물멍</div>
         </div>
-        <span className="pd-state-chip">
-          {result ? "Windy 조회" : "조회 대기"}
-        </span>
+        <button className="pd-state-chip" disabled={loading} onClick={() => setShuffleSeed(newWebcamShuffleSeed)}>다른 풍경 보기</button>
       </div>
       <div className="hm-cam-row">
-        {(result?.rows.slice(0, 3) ?? []).map((cam, index) => (
-          <a className="hm-cam" href="#livecam" key={cam.provider_camera_id}>
+        {cameras.map(({ camera: cam, href, label }, index) => (
+          <a className="hm-cam" href={href} target="_blank" rel="noopener noreferrer" key={cam.provider_camera_id}>
             <span
               className="hm-cam-thumb"
               style={{ background: CAM_BACKGROUNDS[index], display: "block" }}
             />
-            <span className="hm-cam-label">{cam.title}</span>
+            <span className="hm-cam-label">{cam.title} · {label}</span>
           </a>
         ))}
       </div>
       <p className="hm-note">
         {error ||
-          (result
-            ? "Windy의 실제 카메라 목록입니다. 배경은 영상 썸네일이 아니며 가까운 장소가 영상의 피사체임을 뜻하지 않습니다."
-            : "웹캠 목록을 불러오는 중입니다.")}{" "}
+          (loading
+            ? "물 풍경을 고르는 중입니다."
+            : cameras.length
+              ? "위치와 관계없이 고른 랜덤 물 풍경입니다. 카드를 누르면 해당 카메라가 열립니다. 배경은 영상 썸네일이 아닙니다."
+              : "현재 목록에 열 수 있는 물 풍경 카메라가 없습니다.")}{" "}
+        {expired && "목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
         <a href="#livecam">전체 라이브캠 →</a>
       </p>
+      <p className="hm-note">Webcams provided by <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a></p>
     </div>
   );
 }

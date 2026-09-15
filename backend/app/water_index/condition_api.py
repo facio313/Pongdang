@@ -18,7 +18,9 @@ from pydantic import (
 )
 
 from app.data_reader import DataReader
+from app.ingestion.weather import grid_coordinates
 from app.twin.api import station_links
+from app.water_index.activity_score import calculate_activity_score
 from app.water_index.api import WaterIndexRoute, error_response
 from app.water_index.conditions import (
     ACTIVITIES,
@@ -110,24 +112,27 @@ def group_metric(rows, link, q, at, as_of):
     status = "available"
     value = None
     # No averaging, revision fallback, grade conversion, or hidden unit guessing.
-    if any(r["revision_ambiguous"] for r in rows):
+    if any(
+        PRODUCT_ACTIVITIES.get(r["provider"])
+        and q.activity not in PRODUCT_ACTIVITIES[r["provider"]]
+        for r in rows
+    ):
+        status, reasons = "not_applicable", ["provider_activity_mismatch"]
+    elif (
+        q.activity == "rafting"
+        and name in {"water_temperature", "river_level", "river_flow"}
+        and link["kind"] not in {"river_level", "river_water_quality"}
+    ):
+        status, reasons = "not_applicable", ["river_station_scope_unconfirmed"]
+    elif name == "bath_water_temperature" and link["kind"] != "bath_water":
+        status, reasons = "not_applicable", ["bath_station_scope_unconfirmed"]
+    elif any(r["revision_ambiguous"] for r in rows):
         status, reasons = "unknown", ["revision_reactivation_history_unavailable"]
     elif len(rows) != 1:
         status, reasons = "conflict", ["conflicting_measurement_evidence"]
     else:
         row = rows[0]
-        allowed_product = PRODUCT_ACTIVITIES.get(row["provider"])
-        if allowed_product and q.activity not in allowed_product:
-            status, reasons = "not_applicable", ["provider_activity_mismatch"]
-        elif (
-            q.activity == "rafting"
-            and name in {"water_temperature", "river_level", "river_flow"}
-            and link["kind"] not in {"river_level", "river_water_quality"}
-        ):
-            status, reasons = "not_applicable", ["river_station_scope_unconfirmed"]
-        elif name == "bath_water_temperature" and link["kind"] != "bath_water":
-            status, reasons = "not_applicable", ["bath_station_scope_unconfirmed"]
-        elif row["is_missing"] or row["numeric_value"] is None:
+        if row["is_missing"] or row["numeric_value"] is None:
             status, reasons = "missing", ["numeric_measurement_missing"]
         elif not math.isfinite(row["numeric_value"]):
             status, reasons = "missing", ["nonfinite_measurement"]
@@ -166,14 +171,110 @@ def group_metric(rows, link, q, at, as_of):
         station_id=link["station_id"],
         station_name=link["name"],
         relation=link["relation"],
+        distance_km=link.get("distance_km"),
         mapping_id=link["mapping"]["mapping_id"] if link["mapping"] else None,
         spatial_scope=link["mapping"]["spatial_scope"]
         if link["mapping"]
-        else rows[0]["spatial_scope"],
+        else link.get("context_scope") or rows[0]["spatial_scope"],
         status=status,
         reason_codes=tuple(reasons),
         evidence=tuple(sources),
     )
+
+
+async def context_station_links(c, place, q, at, as_of):
+    """Read nearby station context, never register a representative mapping.
+
+    Only current metadata or metadata already known at an explicit historical
+    cutoff can be used. Geographic proximity never establishes activity support.
+    The containing KMA cell has an exact provider identity; other stations keep
+    their actual distance and are bounded to 10 km and six total links.
+    """
+    if (
+        place["lat"] is None
+        or place["lng"] is None
+        or (
+            q.as_of is not None
+            and (
+                place["catalog_verified_at"] is None
+                or place["catalog_verified_at"] > as_of
+            )
+        )
+    ):
+        return []
+    nx, ny = grid_coordinates(place["lat"], place["lng"])
+    providers = [
+        "kma_nowcast",
+        "kma_ultra_forecast",
+        "kma_short_forecast",
+        "kma_aws",
+        "kma_buoy",
+        "khoa_buoy_recent",
+        "khoa_water_temperature",
+        "khoa_tide_recent",
+        *(
+            provider
+            for provider, activities in PRODUCT_ACTIVITIES.items()
+            if q.activity in activities
+        ),
+    ]
+    metric_names = {m.name for m in ACTIVITIES[q.activity].metrics}
+    metric_names.update(
+        alias for alias, name in ALIASES.items() if name in metric_names
+    )
+    rows = await (
+        await c.execute(
+            "WITH stations AS (SELECT id AS station_id,provider,source_id,name,kind,"
+            "latitude,longitude,source_id=%s AND kind='weather_forecast_grid' AS grid,"
+            "CASE WHEN latitude IS NULL OR longitude IS NULL THEN NULL ELSE "
+            "6371*2*asin(sqrt(least(1.0,greatest(0.0,"
+            "power(sin(radians(latitude-%s)/2),2)+cos(radians(%s))*"
+            "cos(radians(latitude))*power(sin(radians(longitude-%s)/2),2))))) "
+            "END AS distance_km FROM pongdang_data.collection_station WHERE "
+            "fetched_at<=%s AND (source_valid_from IS NULL OR source_valid_from<=%s) "
+            "AND (source_valid_until IS NULL OR source_valid_until>%s)) "
+            "SELECT * FROM stations WHERE (grid OR distance_km<=10) "
+            "AND provider=ANY(%s) AND EXISTS (SELECT 1 FROM "
+            "pongdang_data.conditions_observationsnapshot snap JOIN "
+            "pongdang_data.conditions_observationmetric metric "
+            "ON metric.snapshot_id=snap.id WHERE snap.station_id=stations.station_id "
+            "AND snap.fetched_at<=%s AND metric.mode=%s "
+            "AND metric.name=ANY(%s)) ORDER BY grid DESC,"
+            "(replace(name,' ','')=replace(%s,' ','')) DESC,"
+            "distance_km NULLS LAST,station_id LIMIT 6",
+            [
+                f"kma-grid-{nx}-{ny}",
+                place["lat"],
+                place["lat"],
+                place["lng"],
+                as_of,
+                at,
+                at,
+                providers,
+                as_of,
+                q.mode,
+                sorted(metric_names),
+                place["name"],
+            ],
+        )
+    ).fetchall()
+    result = []
+    for row in rows:
+        product = PRODUCT_ACTIVITIES.get(row["provider"])
+        if product and q.activity not in product:
+            continue
+        row.update(
+            relation="containing_forecast_grid"
+            if row["grid"]
+            else "nearby_station_context",
+            mapping=None,
+            distance_km=None if row["grid"] else float(row["distance_km"]),
+            context_scope="장소가 포함된 기상청 5km 격자; 장소 실측 아님"
+            if row["grid"]
+            else "10km 이내 주변 관측소 자료; 장소 대표성 미확인",
+        )
+        result.append(row)
+    return result
 
 
 async def read_authority(c, q, at, as_of):
@@ -250,7 +351,7 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
     async with reader.connection() as c:
         place = await (
             await c.execute(
-                "SELECT id,name,catalog_verified_at "
+                "SELECT id,name,lat,lng,catalog_verified_at "
                 "FROM pongdang_data.spots_waterspot WHERE id=%s",
                 [q.spot_id],
             )
@@ -258,6 +359,8 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         if not place:
             raise HTTPException(404, "place_not_found")
         links = await station_links(c, [q.spot_id], q, at, as_of)
+        if not links:
+            links = await context_station_links(c, place, q, at, as_of)
         if len({link["station_id"] for link in links}) != len(links):
             raise HTTPException(422, "ambiguous_station_mapping")
         # Revision selection precedes missing/stale filtering. All tied latest
@@ -319,10 +422,16 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
     for row in rows:
         groups[(row["station_id"], ALIASES.get(row["name"], row["name"]))].append(row)
     link_by_id = {link["station_id"]: link for link in links}
-    metrics = tuple(
+    all_metrics = tuple(
         group_metric(values, link_by_id[station], q, at, as_of)
         for (station, _), values in sorted(groups.items())
     )
+    metrics = tuple(
+        m
+        for m in all_metrics
+        if m.relation in {"station_observation_point", "representative_station"}
+    )
+    context_metrics = tuple(m for m in all_metrics if m not in metrics)
     present = {m.name for m in metrics}
     name = place["name"]
     if q.as_of is not None and (
@@ -332,7 +441,7 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         reasons.append("historical_metadata_unavailable")
     if not metrics:
         reasons.append("no_mapped_measurements")
-    return ConditionsEnvelope(
+    result = ConditionsEnvelope(
         spot_id=q.spot_id,
         place_name=name,
         activity=q.activity,
@@ -343,9 +452,13 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         safety_status=safety,
         restriction_refs=tuple(restrictions),
         metrics=metrics,
+        context_metrics=context_metrics,
         missing_metrics=tuple(name for name in sorted(allowed) if name not in present),
         required_evidence=ACTIVITIES[q.activity].required_evidence,
         reason_codes=tuple(reasons),
+    )
+    return result.model_copy(
+        update={"condition_score": calculate_activity_score(result)}
     )
 
 

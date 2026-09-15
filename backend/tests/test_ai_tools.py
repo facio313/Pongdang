@@ -104,9 +104,17 @@ class FixtureReader:
                     dict(r, distance_km=1.4) for r in rows if r["spot_id"] != params[3]
                 ]
             return Cursor(rows)
-        if "SELECT id,name,catalog_verified_at" in sql:
+        if "SELECT id,name,lat,lng,catalog_verified_at" in sql:
             return Cursor(
-                [{"id": 1, "name": place()["name"], "catalog_verified_at": NOW}]
+                [
+                    {
+                        "id": 1,
+                        "name": place()["name"],
+                        "catalog_verified_at": NOW,
+                        "lat": place()["lat"],
+                        "lng": place()["lng"],
+                    }
+                ]
             )
         if "SELECT 1 FROM pongdang_data.spots_waterspot" in sql:
             return Cursor([{"one": 1}])

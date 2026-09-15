@@ -71,7 +71,8 @@
     "search": [
       "name",
       "region",
-      "catalog_source"
+      "catalog_source",
+      "address"
     ],
     "time": "catalog_verified_at"
   },

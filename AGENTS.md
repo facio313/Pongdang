@@ -18,10 +18,12 @@
   Windy lookup for the `#livecam` list (`#livecam-test` remains an alias).
   On entry, the water catalog combines only the first 25-camera page of each
   beach/coast/port/lake/river category, with no further provider pagination.
-  Filters and 25-row UI pages share the ten-minute cache. Existing collected
-  beach/valley places within 10 km are matched read-only and ranked first;
-  proximity never confirms the camera's subject. It returns normalized
-  real provider data with a temporary cache and performs no DB writes or seeding.
+  Filters, reshuffling and 25-row UI pages share the ten-minute cache. The
+  catalog uses a bounded uint32 shuffle_seed and provider camera identity for
+  stable random ordering across cache refreshes, without current-location or
+  collected-place matching and without DB reads. Explicit spot_id lookup and the
+  read-only places endpoint remain compatible. It returns normalized real provider data with a temporary
+  cache and performs no DB writes or seeding.
 - `app.ingestion` owns normalized evidence and atomic idempotent storage.
   `models.SourceBatch` is the live adapter contract; `worker` runs separately
   from FastAPI, with per-job DB locks, persisted due times, backoff and heartbeat.

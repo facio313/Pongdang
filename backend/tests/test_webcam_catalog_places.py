@@ -1,16 +1,9 @@
-"""Offline URL validation and disposable-database place matching."""
-
-import asyncio
+"""Offline provider URL validation for the location-independent camera catalog."""
 
 import pytest
-from pydantic import SecretStr
 
-from app.config import Settings
-from app.data_reader import DataReader
-from app.livecams.preview import PreviewCamera, read_catalog_matches
 from app.livecams.urls import windy_url
 from app.livecams.windy import normalize
-from app.schema import connect, initialize
 
 
 def api_row(camera_id=1179853135, **updates):
@@ -122,69 +115,3 @@ def test_current_api_response_urls_survive_normalization():
             windy_url(url, "1744175137", player_type="day")
     with pytest.raises(ValueError):
         windy_url(prefix + "day", "1744175137", player_type="live")
-
-
-@pytest.fixture
-def db():
-    s = Settings()
-    if s.postgres_db != "pongdang_test" or s.postgres_host not in {"127.0.0.1", "db"}:
-        pytest.fail("Only disposable pongdang_test is permitted")
-    initialize(s)
-    yield s.model_copy(update={"windy_webcams_api_key": SecretStr("OFFLINE_TEST_KEY")})
-    with connect(s) as c:
-        c.execute("DROP SCHEMA pongdang_data CASCADE")
-
-
-def add_place(db, *, kind="valley", coordinate=True):
-    with connect(db) as c:
-        spot = c.execute(
-            "INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng,region) "
-            "VALUES(%s,%s,%s,%s,'Fixture region') RETURNING id",
-            [
-                "OFFLINE FIXTURE · 계곡"
-                if kind == "valley"
-                else "OFFLINE FIXTURE · 해수욕장",
-                kind,
-                37.8 if coordinate else None,
-                128.9 if coordinate else None,
-            ],
-        ).fetchone()[0]
-    return dict(
-        id=spot, lat=37.8 if coordinate else None, lng=128.9 if coordinate else None
-    )
-
-
-def test_water_catalog_matches_nearest_real_place_without_first_page_bias(db):
-    with connect(db) as c:
-        c.execute("""INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng)
-            SELECT 'OFFLINE FIXTURE far beach ' || n, 'beach', 35, 127
-            FROM generate_series(1,110) n""")
-        c.execute("""INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng)
-            VALUES ('OFFLINE FIXTURE cafe','collection_place',37.8001,128.9),
-                   ('OFFLINE FIXTURE missing','beach',NULL,NULL),
-                   ('OFFLINE FIXTURE beyond 10km','beach',37.799,130)""")
-        before = c.execute(
-            "SELECT count(*) FROM pongdang_data.spots_waterspot"
-        ).fetchone()[0]
-    nearby = add_place(db)
-    cameras = [
-        PreviewCamera(**normalize(api_row(n, location=location)).model_dump())
-        for n, location in (
-            (1, dict(latitude=37.8001, longitude=128.9, country_code="KR")),
-            (2, dict(latitude=37.7, longitude=130, country_code="KR")),
-            (3, dict(country_code="KR")),
-            (4, dict(latitude=0, longitude=0, country_code="KR")),
-        )
-    ]
-    matches = asyncio.run(read_catalog_matches(DataReader(db), cameras))
-    assert set(matches) == {"1"}
-    assert matches["1"].id == nearby["id"]
-    assert matches["1"].place_kind == "valley"
-    assert 0.01 < matches["1"].distance_km < 0.02
-    with connect(db) as c:
-        assert (
-            c.execute("SELECT count(*) FROM pongdang_data.spots_waterspot").fetchone()[
-                0
-            ]
-            == before + 1
-        )

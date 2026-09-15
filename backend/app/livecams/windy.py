@@ -24,9 +24,10 @@ ENDPOINT = "https://api.windy.com/webcams/api/v3/webcams"
 
 
 class WindyError(ProviderError):
-    def __init__(self, code, retry_seconds=900):
+    def __init__(self, code, retry_seconds=900, *, cause_code=None):
         super().__init__(code)
         self.retry_seconds = max(60, min(604800, retry_seconds))
+        self.cause_code = cause_code
 
 
 def retry_after(value):
@@ -177,7 +178,7 @@ def normalize(row):
         raise WindyError("WINDY_INVALID_CAMERA") from None
 
 
-def discover(settings, place, *, client=None, reserve=lambda: None):
+def discover(settings, place, *, client=None, reserve=lambda: None, accept=None):
     client = client or WindyClient(settings)
     for radius in map(float, settings.windy_webcams_radii_km.split(",")):
         reserve()  # The caller enforces its request budget and pacing.
@@ -201,6 +202,14 @@ def discover(settings, place, *, client=None, reserve=lambda: None):
             old = cameras.setdefault(camera.provider_camera_id, camera)
             if old != camera:
                 raise WindyError("WINDY_CONFLICTING_CAMERA")
+        # A nearby city/airport camera must not prevent the water-only preview
+        # from checking the next configured radius. Validate conflicts first.
+        if accept is not None:
+            accepted = {
+                key: camera for key, camera in cameras.items() if accept(camera)
+            }
+            rejected += len(cameras) - len(accepted)
+            cameras = accepted
         if cameras:
             break
     now = datetime.now(UTC)

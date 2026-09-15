@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useResource } from "./useResource";
+import { useConditions } from "./useConditions";
 import {
-  conditionPath,
   periodPath,
-  type Conditions,
-  type Place,
+  productPlaces,
+  type ClassifiedWaterPlace,
   type RowPage,
   type Forecast,
   type TideResult,
@@ -12,14 +12,18 @@ import {
 } from "./productData";
 export function useProductData() {
   const [now] = useState(() => new Date().toISOString());
-  const places = useResource<RowPage<Place>>(
-    "datasets/spots?page_size=100&q=강릉",
+  // Provider category classification also includes collected search-result
+  // records whose region is empty and whose city appears only in the address.
+  // This read-only endpoint needs neither Windy credentials nor a provider call.
+  const catalog = useResource<ClassifiedWaterPlace[]>(
+    "livecams/preview/places?q=강릉",
   );
+  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data) : undefined };
   const rows = places.data?.rows ?? [];
   const place =
     rows.find((row) => row.name.includes("경포") && row.type === "beach") ??
     rows.find((row) => row.type === "beach");
-  const conditions = useResource<Conditions>(conditionPath(place?.id));
+  const conditions = useConditions(place?.id);
   return { now, places, place, conditions };
 }
 export function useTodayData(id: number | undefined, now: string) {

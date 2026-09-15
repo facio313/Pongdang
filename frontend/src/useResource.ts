@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { travelJson } from "./travelApi";
 
 export function useResource<T>(path: string | null, revision = 0) {
   const origin = "data";
@@ -13,19 +14,10 @@ export function useResource<T>(path: string | null, revision = 0) {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(
-          `${import.meta.env.BASE_URL}api/${origin}/${path}`,
-          { signal: controller.signal, cache: "no-store" },
+        const payload = await travelJson<T>(
+          import.meta.env.BASE_URL, path!, "GET", undefined, controller.signal,
         );
-        const payload = await response.json();
-        if (!response.ok)
-          throw new Error(
-            response.status === 401 ? "기존 SSO 로그인이 필요합니다."
-              : response.status === 403 ? "Pongdang 접근 권한을 확인해 주세요."
-              : response.status === 503 ? "서버 자료를 조회할 수 없습니다. 잠시 후 다시 시도해 주세요."
-              : "요청 조건을 확인해 주세요.",
-          );
-        if (!controller.signal.aborted) setResult({ key, data: payload as T });
+        if (!controller.signal.aborted) setResult({ key, data: payload });
       } catch (error) {
         if (!controller.signal.aborted)
           setResult({

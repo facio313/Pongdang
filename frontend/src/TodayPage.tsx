@@ -3,9 +3,13 @@ import { DataOrigin } from "./DataOrigin";
 import { gradeOf } from "./groupAGrade";
 import { useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
+import { useConditionDays } from "./useConditionDays";
+import { useConditions } from "./useConditions";
+import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import {
-  calendarDays,
-  conditionPath,
+  conditionScore,
+  conditionScoreText,
+  conditionModeLabel,
   periodPath,
   dateLabel,
   timeLabel,
@@ -245,6 +249,9 @@ function SectionHead({
 
 const ACTIVITY_ROWS = [
   { name: "수영", id: "swim" },
+  { name: "서핑", id: "surf" },
+  { name: "휴식", id: "relax" },
+  { name: "갯벌 체험", id: "mudflat" },
   { name: "래프팅", id: "rafting" },
   { name: "온천", id: "onsen" },
 ] as const;
@@ -263,7 +270,7 @@ function Hero({
   conditions?: Conditions;
   quality: string;
 }) {
-  const heroScore = conditions?.environment_score ?? null;
+  const heroScore = conditionScore(conditions);
   return (
     <header className="td-hero">
       <div className="td-sbar">
@@ -273,7 +280,7 @@ function Hero({
       </div>
       <div className="td-hero-inner">
         <p className="td-lbl">
-          {dateLabel()} · {place?.name ?? "장소 확인 중"} 관측 기준
+          {dateLabel()} · {place?.name ?? "장소 확인 중"} {conditionModeLabel(conditions)} 기준
         </p>
         <div className="td-hero-row">
           <h1 className="td-hero-sentence">
@@ -315,7 +322,7 @@ function Hero({
           </div>
         </div>
         <p className="td-hero-note">
-          {evidenceText(conditions)} 안전 상태:{" "}
+          {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
           {conditions?.safety_status ?? "unknown"}. 값이 없으면 –로 표시하며
           안전 판정을 만들지 않습니다.
         </p>
@@ -333,8 +340,8 @@ function SpotComparisonRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const conditions = useResource<Conditions>(conditionPath(spot.id));
-  const score = conditions.data?.environment_score ?? null;
+  const conditions = useConditions(spot.id);
+  const score = conditionScore(conditions.data);
   const grade = gradeOf(score);
   return (
     <button
@@ -365,7 +372,7 @@ function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
   const selected = resolved.find((spot) => spot.id === selectedSpotId);
-  const conditions = useResource<Conditions>(conditionPath(selected?.id));
+  const conditions = useConditions(selected?.id);
   return (
     <section>
       <SectionHead
@@ -405,17 +412,18 @@ function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
               <dd>{selected.catalog_verification ?? "–"}</dd>
               <dt>수영 점수</dt>
               <dd>
-                {conditions.data?.environment_score ?? "–"} · 수온{" "}
+                {conditionScore(conditions.data) ?? "–"} · 수온{" "}
                 {metricText(conditions.data, "water_temperature")} ·{" "}
                 {conditions.error ?? evidenceText(conditions.data)}
               </dd>
             </dl>
+            <ConditionScoreDetails data={conditions.data} className="td-note" />
           </div>
         )}
 
         <p className="td-note">
-          {status} 장소를 선택하면 해당 지점의 조건 근거를 조회합니다. 종합
-          점수는 검증 전까지 –로 표시합니다.
+          {status} 장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다.
+          자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.
         </p>
       </div>
     </section>
@@ -424,20 +432,26 @@ function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
 
 function ActivitySection({ id }: { id?: number }) {
   const states = [
-    useResource<Conditions>(conditionPath(id, "swim")),
-    useResource<Conditions>(conditionPath(id, "rafting")),
-    useResource<Conditions>(conditionPath(id, "onsen")),
+    useConditions(id, "swim"),
+    useConditions(id, "surf"),
+    useConditions(id, "relax"),
+    useConditions(id, "mudflat"),
+    useConditions(id, "rafting"),
+    useConditions(id, "onsen"),
   ];
   const activities = ACTIVITY_ROWS.map((item, index) => ({
     ...item,
-    score: states[index].data?.environment_score ?? null,
+    score: conditionScore(states[index].data),
+    data: states[index].data,
+    error: states[index].error,
   }));
   return (
     <section>
-      <SectionHead label="활동별 점수 · 선택 장소 관측" />
+      <SectionHead label="활동별 점수 · 선택 장소 조건" />
       <div className="td-card">
-        <div className="td-acts">
-          {activities.map((activity) => {
+        {[activities.slice(0, 3), activities.slice(3)].map((group, index) => (
+        <div className="td-acts" key={index}>
+          {group.map((activity) => {
             const grade = gradeOf(activity.score);
             return (
               <div
@@ -451,33 +465,49 @@ function ActivitySection({ id }: { id?: number }) {
                   {activity.score === null ? "–" : activity.score}
                 </div>
                 <div className="td-act-label">{grade.label}</div>
+                <div className="td-act-label">
+                  {activity.data?.condition_score ? `${Math.round(activity.data.condition_score.coverage * 100)}% 근거` : "근거 미확인"}
+                </div>
+                <div className="td-act-label">
+                  {activity.data?.support_status === "supported" ? "활동 지원 확인" : activity.data?.support_status === "unsupported" ? "활동 미지원" : "지원 미확인"}
+                </div>
               </div>
             );
           })}
         </div>
+        ))}
         <p className="td-note">
-          <StateChip kind="partial" /> 활동별 지원 여부와 환경 근거를
-          조회합니다. 종합 점수는 미검증이며 조건 일치 점수와 다릅니다.{" "}
+          <StateChip kind="partial" /> 활동별 참고 점수입니다. 일부 근거로 계산한
+          값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.{" "}
           {states
             .map((state) => state.error)
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {activities.map((activity) => (
+          <details key={activity.id} className="td-note">
+            <summary>{activity.name} 분야별 근거 확인</summary>
+            {activity.error && <p>{activity.error}</p>}
+            <ConditionScoreDetails data={activity.data} />
+          </details>
+        ))}
       </div>
     </section>
   );
 }
 
 function ForecastSection({
+  id,
   rows,
   now,
   status,
 }: {
+  id?: number;
   rows: Forecast[];
   now: string;
   status: string;
 }) {
-  const days = calendarDays(now, 7);
+  const days = useConditionDays(id, now);
   const [forecastDayId, setForecastDayId] = useState(days[0].id);
   const selected = days.find((day) => day.id === forecastDayId) ?? days[0];
   const maxScore = Math.max(...days.map((day) => day.score ?? 0), 1);
@@ -523,6 +553,8 @@ function ForecastSection({
             );
           })}
         </div>
+        <ConditionScoreDetails data={selected.data} className="td-note" />
+        {selected.error && <p className="td-note">{selected.error}</p>}
 
         <div className="td-bar-detail">
           <span>
@@ -533,7 +565,9 @@ function ForecastSection({
         </div>
 
         <p className="td-note">
-          {status}{" "}
+          {selected.score !== null
+            ? "점수는 위 상세의 관측소·격자 예보 근거로 계산했습니다."
+            : status === "no_forecast_data" ? "장소에 직접 연결된 예보 목록 없음." : status}{" "}
           {rows
             .filter(
               (row) =>
@@ -546,9 +580,9 @@ function ForecastSection({
               (row) =>
                 `${row.station_name} · ${row.provider} · ${timeLabel(row.target_start_at)} · ${row.state} · ${row.inputs.map((input) => `${input.name}: ${["current", "recorded"].includes(input.state) && row.state !== "stale" ? formatValue(input.numeric_value, input.unit ?? "") : "–"}`).join(" / ")}`,
             )
-            .join(" / ") || "첫 100건에 선택 날짜의 예보가 없습니다."}{" "}
-          조회는 첫 100건입니다. 예보 수집은 점수 계산이 아니므로 날짜별 점수는
-          –입니다.
+            .join(" / ") || "장소에 직접 연결된 예보 목록(첫 100건)에는 선택 날짜의 자료가 없습니다."}{" "}
+          직접 연결된 목록은 첫 100건입니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한
+          수집 예보로 계산합니다. 해당 시각의 근거가 없으면 –입니다.
         </p>
       </div>
     </section>
@@ -735,7 +769,7 @@ function QualitySection({
 
 function UnlinkedAlert() {
   const items = [
-    "종합 환경·안전 점수 — 검증된 모델 없음",
+    "공식 안전 판정 — 활동 조건 참고 점수와 별도 확인 필요",
     "첫 입수일·전년 비교 — 연속 관측 이력 확인 필요",
     "수질 신뢰도 — 검증된 모델 없음",
   ];
@@ -780,6 +814,7 @@ function TodayScreen() {
           />
           <ActivitySection id={place?.id} />
           <ForecastSection
+            id={place?.id}
             rows={forecasts.data?.rows ?? []}
             now={now}
             status={

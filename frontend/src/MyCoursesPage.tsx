@@ -4,8 +4,10 @@ import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
 import { AppTabBar } from "./appTabBar";
 import { useResource } from "./useResource";
 import { planItems, type TripPlan } from "./travelApi";
+import type { Activity } from "./aiApi";
+import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { setTravelSession } from "./travelSession";
-import { timeLabel } from "./productData";
+import { timeLabel, conditionPath, conditionScore, conditionTargetInRange, type Conditions } from "./productData";
 import { useAction } from "./useAction";
 import "./myCoursesPage.css";
 
@@ -20,6 +22,18 @@ const TODO_SCREENS = [
     href: "#travel-history",
   },
 ];
+
+function PlanStopScore({ id, name, at, activity }: { id: number; name: string; at: string; activity: Activity }) {
+  const valid = conditionTargetInRange(at);
+  const conditions = useResource<Conditions>(valid ? conditionPath(id, activity, at) : null);
+  return (
+    <details className="mc-note">
+      <summary>{name} · 장소별 조건 {conditionScore(conditions.data) ?? "–"}점</summary>
+      <p>{at} · 저장 일정 시각의 예보입니다. {valid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
+      <ConditionScoreDetails data={conditions.data} />
+    </details>
+  );
+}
 
 export function MyCoursesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -43,7 +57,6 @@ export function MyCoursesPage() {
       .map((item) => item.name)
       .join(" · "),
     date: plan.request.dates.join(" · ") || null,
-    score: null as number | null,
     alarm:
       sessions.data?.rows.some(
         (session) =>
@@ -54,6 +67,14 @@ export function MyCoursesPage() {
     plan,
   }));
   const selected = courses.find((course) => course.id === selectedId) ?? null;
+  const selectedStops = selected?.plan.days.flatMap((day) => day.items.map((item) => ({
+    ...item, at: item.arrival_at ?? day.date + "T12:00:00+09:00",
+  }))) ?? [];
+  const first = selectedStops[0];
+  const firstTargetValid = conditionTargetInRange(first?.at);
+  const selectedConditions = useResource<Conditions>(firstTargetValid
+    ? conditionPath(first?.spot_id, selected?.plan.request.activity ?? "relax", first?.at) : null);
+  const selectedScore = conditionScore(selectedConditions.data);
 
   return (
     <article className="my-courses-page">
@@ -87,8 +108,9 @@ export function MyCoursesPage() {
             {sessions.error} {share.error}
           </p>
           {courses.map((course) => {
-            const grade = gradeOf(course.score);
             const isSelected = course.id === selectedId;
+            const score = isSelected ? selectedScore : null;
+            const grade = gradeOf(score);
             return (
               <button
                 type="button"
@@ -102,14 +124,14 @@ export function MyCoursesPage() {
                 }
               >
                 <span className="mc-score-badge" data-grade={grade.key}>
-                  {course.score === null ? "–" : course.score}
+                  {score ?? "–"}
                 </span>
                 <span className="mc-row-body">
                   <span className="mc-row-name">{course.name}</span>
                   <span className="mc-row-meta">
                     <GradeIcon gradeKey={grade.key} size={12} />
                     <span>
-                      {grade.label} · {course.parts} · {course.date ?? "날짜 –"}
+                      {isSelected ? `첫 장소 참고 · ${grade.label}` : "선택하면 점수 조회"} · {course.parts} · {course.date ?? "날짜 –"}
                     </span>
                   </span>
                 </span>
@@ -126,9 +148,9 @@ export function MyCoursesPage() {
             <div className="mc-detail">
               <div className="mc-detail-title">{selected.name}</div>
               <dl>
-                <dt>점수</dt>
+                <dt>첫 장소 참고점수</dt>
                 <dd>
-                  <GradeChip score={selected.score} />
+                  <GradeChip score={selectedScore} />
                 </dd>
                 <dt>구성</dt>
                 <dd>{selected.parts}</dd>
@@ -147,6 +169,14 @@ export function MyCoursesPage() {
                 {selected.plan.unresolved.join(" · ") || "없음"}. 종합 안전
                 점수는 제공하지 않습니다.
               </p>
+              <p className="mc-note">
+                {first?.name ?? "첫 장소 없음"} · {first?.at ?? "일정 시각 없음"}.{" "}
+                {firstTargetValid ? selectedConditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다."}
+              </p>
+              <ConditionScoreDetails data={selectedConditions.data} className="mc-note" />
+              {selectedStops.map((stop) => <PlanStopScore
+                key={stop.item_id} id={stop.spot_id} name={stop.name} at={stop.at} activity={selected.plan.request.activity}
+              />)}
               <div className="mc-detail-actions">
                 <button
                   type="button"

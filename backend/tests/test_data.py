@@ -27,8 +27,11 @@ def data_settings():
         options="-c search_path=pongdang_data",
     ) as connection:
         connection.execute(
-            "INSERT INTO spots_waterspot (id,name,region,catalog_source) VALUES "
-            "(1,'테스트 해변','강릉','KHOA'),(2,'100% 테스트','속초','TourAPI')"
+            "INSERT INTO spots_waterspot "
+            "(id,name,region,catalog_source,address,type) VALUES "
+            "(1,'테스트 해변','강릉','KHOA',NULL,'beach'),"
+            "(2,'100% 테스트','','KAKAO_LOCAL',"
+            "'강원특별자치도 강릉시 테스트 주소','beach_search_result')"
         )
         connection.execute(
             "INSERT INTO conditions_pipelineheartbeat "
@@ -90,6 +93,17 @@ def test_pagination_filter_search_and_null_values(client):
     forecast = client.get("/api/data/datasets/forecasts").json()["rows"][0]
     assert forecast["score"] is None
     assert forecast["availability"] == "unavailable"
+
+
+def test_region_search_finds_provider_places_with_address_but_empty_region(client):
+    result = client.get("/api/data/datasets/spots", params={"q": "강릉"})
+    assert result.status_code == 200
+    rows = result.json()["rows"]
+    assert {row["id"] for row in rows} == {1, 2}
+    place = next(row for row in rows if row["id"] == 2)
+    assert place["region"] == ""
+    assert place["type"] == "beach_search_result"
+    assert "강릉" not in place["name"]
 
 
 @pytest.mark.parametrize(

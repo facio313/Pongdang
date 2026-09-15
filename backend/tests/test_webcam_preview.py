@@ -2,6 +2,7 @@
 
 import io
 import json
+from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -11,7 +12,6 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.livecams.preview import (
     WATER_CATEGORIES,
-    NearbyPlace,
     PreviewService,
     create_preview_router,
 )
@@ -87,12 +87,9 @@ def service(client=None, **settings):
     )
 
 
-def app_client(s, read_places=None, read_matches=None):
+def app_client(s, read_places=None):
     async def forbidden(*args, **kwargs):
         raise AssertionError("Catalog must not read the place picker")
-
-    async def no_matches(*args):
-        return {}
 
     app = FastAPI()
     app.include_router(
@@ -100,7 +97,6 @@ def app_client(s, read_places=None, read_matches=None):
             s.settings,
             service=s,
             read_places=read_places or forbidden,
-            read_matches=read_matches or no_matches,
         )
     )
     return TestClient(app)
@@ -124,6 +120,10 @@ def test_country_preview_works_without_webcam_schema_and_redacts_payloads():
     assert second.json()["valid_until"] == first.json()["valid_until"]
     assert s.client.calls == ["sample"] * 5
     assert first.headers["cache-control"] == "no-store"
+    assert first.json()["ordering"] == "random"
+    assert first.json()["shuffle_seed"] == 0
+    assert first.json()["matching_status"] == "not_requested"
+    assert first.json()["matched_total"] == 0
 
 
 def test_expired_success_is_not_extended_or_returned_after_failure():
@@ -161,7 +161,10 @@ def test_provider_failures_are_explicit_and_backed_off(code, status):
     assert response.status_code == status and response.json()["detail"] == code
     assert int(response.headers["retry-after"]) >= 60
     assert not s.cache
-    assert http.post("/api/data/livecams/preview", json={}).status_code == 429
+    waiting = http.post("/api/data/livecams/preview", json={})
+    assert waiting.status_code == 429
+    assert waiting.json()["detail"] == "WINDY_BACKOFF"
+    assert waiting.headers["x-webcam-failure-code"] == code
     assert len(s.client.calls) == 1
 
 
@@ -200,6 +203,23 @@ def test_place_lookup_uses_collected_coordinates_and_only_nearby_relationship():
     assert s.client.calls == [(37.8, 128.9, 2.0)]
     assert response.json()["rows"][0]["relationship"] == "nearby"
     assert response.json()["place"]["id"] == 7
+    assert response.json()["ordering"] is None
+    assert response.json()["shuffle_seed"] is None
+
+
+def test_collected_water_place_picker_does_not_require_windy_key_or_provider_calls():
+    reads = []
+
+    async def read(_reader, **kwargs):
+        reads.append(kwargs)
+        return [place()]
+
+    s = service(windy_webcams_api_key="")
+    response = app_client(s, read).get("/api/data/livecams/preview/places?q=경포")
+    assert response.status_code == 200
+    assert response.json()[0]["id"] == 7
+    assert reads == [{"q": "경포"}]
+    assert not s.client.calls
 
 
 def test_empty_nearby_expands_only_three_radii_and_caches_empty_success():
@@ -209,6 +229,53 @@ def test_empty_nearby_expands_only_three_radii_and_caches_empty_success():
     assert [item[2] for item in s.client.calls] == [2, 5, 10]
     assert s.query(place()).cached
     assert len(s.client.calls) == 3
+
+
+def test_water_preview_continues_past_nearby_non_water_cameras():
+    class Nearby(Client):
+        def nearby(self, lat, lng, radius):
+            self.calls.append((lat, lng, radius))
+            rows = [camera(categories=[{"id": "city"}])]
+            if radius >= 5:
+                rows.append(camera(webcamId=43, categories=[{"id": "coast"}]))
+            return dict(total=len(rows), webcams=rows)
+
+    s = service(Nearby())
+    result = s.query(place())
+    assert [row.provider_camera_id for row in result.rows] == ["43"]
+    assert result.radius_km == 5
+    assert [item[2] for item in s.client.calls] == [2, 5]
+    assert s.query(place()).cached
+    assert len(s.client.calls) == 2
+
+
+def test_non_water_only_results_search_all_three_radii_before_caching_empty():
+    s = service(Client([camera(categories=[{"id": "airport"}, {"id": "coast"}])]))
+    result = s.query(place())
+    assert result.rows == []
+    assert [item[2] for item in s.client.calls] == [2, 5, 10]
+    assert s.query(place()).cached
+    assert len(s.client.calls) == 3
+
+
+def test_daily_budget_retry_after_tracks_utc_reset_and_no_upstream_call():
+    now = [datetime(2026, 9, 16, 23, 30, tzinfo=UTC).timestamp()]
+    s = PreviewService(
+        config(windy_webcams_daily_budget=5),
+        client=Client(),
+        clock=lambda: now[0],
+        sleep=lambda _: None,
+    )
+    assert app_client(s).post("/api/data/livecams/preview", json={}).status_code == 200
+    now[0] += 601
+    response = app_client(s).post("/api/data/livecams/preview", json={})
+    assert response.status_code == 429
+    assert response.json()["detail"] == "WINDY_DAILY_BUDGET"
+    assert int(response.headers["retry-after"]) == 1199
+    assert len(s.client.calls) == 5
+    now[0] += 1199
+    assert app_client(s).post("/api/data/livecams/preview", json={}).status_code == 200
+    assert len(s.client.calls) == 10
 
 
 @pytest.mark.parametrize(
@@ -238,6 +305,12 @@ def test_get_and_arbitrary_queries_do_not_trigger_provider():
         {"category": "landscape"},
         {"page": 6},
         {"spot_id": 7, "page": 2},
+        {"spot_id": 7, "shuffle_seed": 1},
+        {"shuffle_seed": -1},
+        {"shuffle_seed": 2**32},
+        {"shuffle_seed": True},
+        {"shuffle_seed": 1.5},
+        {"shuffle_seed": "1"},
     ):
         assert http.post("/api/data/livecams/preview", json=body).status_code == 422
     assert (
@@ -339,36 +412,96 @@ def test_only_water_categories_survive_including_mixed_port_but_not_airport():
     assert [c.provider_camera_id for c in s.query(place()).rows] == ["5"]
 
 
-def test_nearby_collected_places_rank_before_unmatched_and_failure_stays_explicit():
-    s = service(Client([camera(webcamId=n) for n in range(1, 31)]))
+def test_catalog_random_pages_and_filters_share_order_cache_and_never_open_db(
+    monkeypatch,
+):
+    class Catalog(Client):
+        def list_page(self, page=1, category=None):
+            self.calls.append((page, category))
+            start = WATER_CATEGORIES.index(category) * 25 + 1
+            rows = [
+                camera(webcamId=n, categories=[{"id": category}])
+                for n in range(start, start + 25)
+            ]
+            return dict(total=25, webcams=rows)
 
-    async def matches(*args):
-        return {
-            "30": NearbyPlace(
-                id=99, name="Existing beach", place_kind="beach", distance_km=2
+    def forbidden_connection(*args, **kwargs):
+        raise AssertionError("Random catalog must not connect to the database")
+
+    monkeypatch.setattr(
+        "app.livecams.preview.DataReader.connection", forbidden_connection
+    )
+    s = service(Catalog())
+    http = app_client(s)
+
+    def fetch(page=1, seed=17, category=None):
+        body = {"page": page, "shuffle_seed": seed}
+        if category:
+            body["category"] = category
+        response = http.post("/api/data/livecams/preview", json=body)
+        assert response.status_code == 200
+        return response.json()
+
+    first = fetch()
+    repeated = fetch()
+
+    def ids(result):
+        return [row["provider_camera_id"] for row in result["rows"]]
+
+    assert ids(first) == ids(repeated)
+    pages = [fetch(page) for page in range(1, 6)]
+    ordered_ids = [identifier for page in pages for identifier in ids(page)]
+    assert len(ordered_ids) == len(set(ordered_ids)) == 125
+    assert all(
+        page["shuffle_seed"] == 17 and page["ordering"] == "random" for page in pages
+    )
+    assert pages[-1]["has_more"] is False
+    assert all(
+        row["nearby_place"] is None
+        and row["distance_km"] is None
+        and row["relationship"] == "unknown"
+        for page in pages
+        for row in page["rows"]
+    )
+    coast = fetch(category="coast")
+    assert ids(coast) == [
+        identifier for identifier in ordered_ids if 26 <= int(identifier) <= 50
+    ]
+    assert ids(fetch(seed=2**32 - 1)) != ids(first)
+    assert ids(fetch(seed=2**32 - 1)) == ids(fetch(seed=2**32 - 1))
+    assert coast["matching_status"] == "not_requested" and coast["matched_total"] == 0
+    assert first["cached"] is False and repeated["cached"] is True
+    assert len(s.client.calls) == 5
+
+
+def test_cache_refresh_preserves_same_seed_order_and_provider_metadata():
+    class Catalog(Client):
+        def list_page(self, page=1, category=None):
+            self.calls.append((page, category))
+            start = 1 if category == "beach" else 26
+            rows = (
+                [camera(webcamId=n) for n in range(start, start + 25)]
+                if category in {"beach", "coast"}
+                else []
             )
-        }
+            return dict(total=len(rows), webcams=rows)
 
-    result = (
-        app_client(s, read_matches=matches)
-        .post("/api/data/livecams/preview", json={})
-        .json()
+    now = [1_800_000_000.0]
+    s = PreviewService(
+        config(), client=Catalog(), clock=lambda: now[0], sleep=lambda _: None
     )
-    assert result["rows"][0]["provider_camera_id"] == "30"
-    assert result["rows"][0]["nearby_place"]["id"] == 99
-    assert result["rows"][0]["relationship"] == "unknown"
-    assert result["matched_total"] == 1 and result["matching_status"] == "available"
-
-    async def unavailable(*args):
-        raise HTTPException(503, "Database unavailable")
-
-    failed = (
-        app_client(s, read_matches=unavailable)
-        .post("/api/data/livecams/preview", json={})
-        .json()
-    )
-    assert failed["matching_status"] == "unavailable" and failed["total"] == 30
-    assert failed["matched_total"] == 0 and failed["cached"]
+    http = app_client(s)
+    first = http.post("/api/data/livecams/preview", json={"shuffle_seed": 5}).json()
+    now[0] += 601
+    refreshed = http.post("/api/data/livecams/preview", json={"shuffle_seed": 5}).json()
+    assert first["fetched_at"] != refreshed["fetched_at"]
+    assert first["rows"] == refreshed["rows"]
+    second_page = http.post(
+        "/api/data/livecams/preview", json={"page": 2, "shuffle_seed": 5}
+    ).json()
+    ids = [row["provider_camera_id"] for row in first["rows"] + second_page["rows"]]
+    assert len(ids) == len(set(ids)) == 50
+    assert len(s.client.calls) == 10
 
 
 def test_partial_water_fetch_failure_never_caches_incomplete_success():

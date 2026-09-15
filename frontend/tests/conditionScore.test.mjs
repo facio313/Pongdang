@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { conditionScore, conditionScoreText, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, productPlaces } from '../src/productData.ts';
+
+const index = {
+  label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
+  coverage: 0.75, available_components: 3, total_components: 4,
+  reason_codes: ['activity_support_unknown'],
+  components: [
+    { metric: 'water_temperature', label: '수온', value: 21.3, unit: '°C', score: 62, weight: 1, reason_codes: [] },
+    { metric: 'wind_speed', label: '풍속', value: null, unit: 'm/s', score: null, weight: 1, reason_codes: ['measurement_not_collected'] },
+  ],
+};
+
+test('provider-classified water places retain actual IDs and empty regions without requiring raw beach type', () => {
+  const place = { id: 71, name: '경포', place_kind: 'beach', region: '', address: '강원특별자치도 강릉시 창해로', lat: 37.8, lng: 128.9 };
+  const page = productPlaces([place]);
+  assert.equal(page.rows[0].type, 'beach');
+  assert.equal(page.rows[0].id, 71);
+  assert.equal(page.rows[0].name, '경포');
+  assert.equal(page.rows[0].region, '');
+  assert.equal(page.rows[0].catalog_verification, null);
+  assert.equal(page.total, 1);
+});
+
+test('display uses the new computed condition index while missing legacy safety scores stay unknown', () => {
+  assert.equal(conditionScore({ environment_score: null, condition_score: index }), 76.3);
+  assert.equal(conditionScore({ environment_score: 99 }), null);
+  assert.equal(conditionScore(undefined), null);
+  assert.equal(conditionScore({ condition_score: { ...index, score: 0, status: 'evaluated' } }), 0);
+  for (const score of [null, undefined, NaN, Infinity, -1, 101, '85'])
+    assert.equal(conditionScore({ condition_score: { ...index, score } }), null);
+  for (const status of ['blocked', 'unavailable'])
+    assert.equal(conditionScore({ condition_score: { ...index, status } }), null);
+});
+
+test('partial score includes actual coverage, missing fields and its non-safety meaning', () => {
+  const text = conditionScoreText({ condition_score: index });
+  assert.match(text, /76.3점/);
+  assert.match(text, /75% \(3\/4개\)/);
+  assert.match(text, /일부 근거로 계산/);
+  assert.match(text, /안전 판정이 아닙니다/);
+  assert.match(text, /활동 지원 여부 미확인/);
+  const components = conditionComponentsText({ condition_score: index });
+  assert.match(components, /수온 21.3°C → 62점/);
+  assert.match(components, /풍속 – → – · 아직 수집된 측정값 없음/);
+  assert.match(conditionScoreText({ condition_score: { ...index, status: 'blocked', score: null } }), /공식 제한 또는 활동 미지원으로 계산 보류/);
+});
+
+test('date scores request selected KST forecast rather than current observations', () => {
+  const path = conditionPath(42, 'surf', '2026-09-17T12:00:00+09:00');
+  const params = new URLSearchParams(path.split('?')[1]);
+  assert.equal(params.get('spot_id'), '42');
+  assert.equal(params.get('activity'), 'surf');
+  assert.equal(params.get('mode'), 'forecast');
+  assert.equal(params.get('at'), '2026-09-17T12:00:00+09:00');
+  const now = Date.parse('2026-09-17T12:00:00+09:00');
+  assert.equal(conditionTargetInRange(undefined, now), false);
+  assert.equal(conditionTargetInRange('not-a-date', now), false);
+  assert.equal(conditionTargetInRange('2026-08-01T12:00:00+09:00', now), false);
+  assert.equal(conditionTargetInRange('2026-09-18T12:00:00+09:00', now), true);
+});
+
+test('nearby context scores show the actual context source and server-evaluated measurement', () => {
+  const data = {
+    mode: 'forecast', at: '2026-09-17T03:00:00Z', metrics: [],
+    context_metrics: [{ station_name: '공식 관측소', relation: 'nearby_station_context',
+      evidence: [{ provider: 'khoa_beach', observed_at: '2026-09-17T03:00:00Z' }] }],
+    condition_score: { ...index, components: [{ ...index.components[0], status: 'evaluated' }] },
+  };
+  assert.equal(metricText(data, 'water_temperature'), '21.3°C');
+  assert.match(evidenceText(data), /주변 관측소 참고 공식 관측소/);
+  assert.doesNotMatch(evidenceText(data), /근거 없음/);
+  assert.equal(metricText({ ...data, condition_score: { ...index, components: [{ ...index.components[0], status: 'unavailable' }] } }, 'water_temperature'), '–');
+});
+
+test('current score expiry follows its evaluated station evidence, excluding unused stale fields', () => {
+  const data = {
+    metrics: [{ name: 'air_temperature', station_id: 1, evidence: [{ valid_until: '2026-09-16T01:00:00Z' }] }],
+    context_metrics: [{ name: 'water_temperature', station_id: 2, evidence: [{ valid_until: '2026-09-17T04:00:00Z' }] }],
+    condition_score: { ...index, components: [{ ...index.components[0], station_id: 2, status: 'evaluated' }] },
+  };
+  assert.equal(conditionScoreExpiry(data), Date.parse('2026-09-17T04:00:00Z'));
+  assert.equal(conditionScoreExpiry(undefined), undefined);
+  assert.equal(conditionScoreExpiry({ ...data, condition_score: { components: [] } }), undefined);
+});

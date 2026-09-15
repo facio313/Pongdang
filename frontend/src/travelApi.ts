@@ -25,6 +25,26 @@ export function placeRoleLabel(role: string): string {
   };
   return labels[role] ?? "용도 미확인";
 }
+
+export function routeReasonsText(reasons: string[]): string {
+  const labels: Record<string, string> = {
+    route_provider_unconfigured: "서버의 카카오 길찾기 REST 키 설정이 필요합니다",
+    route_provider_disabled: "운영 설정에서 길찾기가 비활성화되어 있습니다",
+    route_provider_authentication_failed: "카카오 길찾기 인증에 실패했습니다. 서버 REST 키와 서비스 권한을 확인해야 합니다",
+    route_transport_not_configured: "현재 자동 경로 계산은 자동차 이동만 지원합니다",
+    route_date_required: "경로를 계산할 여행 날짜를 선택해 주세요",
+    route_origin_and_departure_required: "출발지와 출발 시각을 입력해 주세요",
+    route_departure_in_past: "출발 시각이 지났습니다. 앞으로의 시각을 선택해 주세요",
+    origin_coordinates_required: "출발지 좌표가 없어 경로를 계산할 수 없습니다",
+    must_include_not_in_selected_candidates: "필수 방문 장소를 후보에 포함해 주세요",
+    insufficient_verified_candidates_for_stop_count: "선택한 방문 수를 채울 수 있는 장소 근거가 부족합니다",
+    no_verifiable_feasible_route: "현재 요청 조건과 경로 응답으로 확인할 수 있는 코스가 없습니다",
+    environment_or_route_comparison_incomplete: "일부 환경 또는 경로 비교 자료가 없습니다",
+    visit_support_and_total_cost_unverified: "실제 이용 가능 여부와 총비용은 별도 확인이 필요합니다",
+    reference_time_matrix_estimate: "요청 출발시각 기준의 예상 경로입니다",
+  };
+  return reasons.map(reason => Object.hasOwn(labels, reason) ? labels[reason] : "경로 조건을 확인해 주세요").join(" · ");
+}
 export interface Preference {
   tags: string[];
   companion_type?: string | null;
@@ -153,7 +173,24 @@ export async function travelJson<T>(
           body: JSON.stringify(body),
         }),
   });
+  // The ingress can redirect an expired session to an HTML login page with 200.
+  // Do not parse that page as API data or report a successful private operation.
+  if (response.redirected || (response.ok && response.headers.get("content-type")?.includes("text/html"))) {
+    throw new Error("SSO 로그인 화면으로 이동했습니다. 기존 로그인을 확인한 뒤 다시 시도해 주세요.");
+  }
   if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const detail = payload !== null && typeof payload === "object" && "detail" in payload
+      ? payload.detail : undefined;
+    const configurationMessages: Record<string, string> = {
+      AUTH_NOT_CONFIGURED: "Pongdang의 SSO 로그인 연동이 설정되지 않았습니다. 운영자의 로그인 연동 설정이 필요합니다.",
+      SSO_ORIGINS_NOT_CONFIGURED: "SSO에서 허용할 요청 출처가 설정되지 않아 저장·추천 요청을 처리할 수 없습니다. 운영자의 설정이 필요합니다.",
+      TRAVEL_STORAGE_UNAVAILABLE: "여행 데이터 저장소에 연결하지 못했습니다. 운영 DB와 초기화 상태를 확인해야 합니다.",
+      route_calculation_timeout: "길찾기 응답이 지연되어 계산을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    };
+    if (response.status === 503 && typeof detail === "string" && Object.hasOwn(configurationMessages, detail)) {
+      throw new Error(configurationMessages[detail]);
+    }
     const messages: Record<number, string> = {
       401: "기존 SSO 로그인이 필요합니다.",
       403: "Pongdang 접근 권한이나 요청 출처를 확인해 주세요.",
