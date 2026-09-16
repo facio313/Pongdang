@@ -20,7 +20,7 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-tile-value").nth(1)).toHaveText("0.4m");
   await expect(page.locator(".hm-tile-value").nth(2)).toHaveText("0mm/1h");
   await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("2등급 · 과거");
-  await expect(page.locator(".hm-body")).toContainText("300일 전 과거 자료");
+  await expect(page.locator(".home-page .pd-body")).toContainText("300일 전 과거 자료");
   await expect(page.locator(".hm-hero-visual")).toContainText("기온 24.7°C");
   await expect(page.getByRole("table", { name: "오늘 시간대별 수집 예보" })).toBeVisible();
   await page.getByRole("link", { name: "오늘", exact: true }).click();
@@ -133,9 +133,9 @@ test("forecast date changes display that date's server score and clear unavailab
   await expect(page.locator(".td-bar-score").nth(1)).toHaveText("–");
   await page.locator(".td-bar").nth(1).click();
   await expect(page.locator(".td-bar-detail")).toContainText("평가값 없음");
-  await expect(page.locator(".td-bar-detail .td-grade-chip-num")).toHaveText("–");
+  await expect(page.locator(".td-bar-detail .pd-grade-chip-num")).toHaveText("–");
   await page.locator(".td-bar").first().click();
-  await expect(page.locator(".td-bar-detail .td-grade-chip-num")).toHaveText("64.2");
+  await expect(page.locator(".td-bar-detail .pd-grade-chip-num")).toHaveText("64.2");
   expect(new Set(targetDates.filter((value) => value.endsWith("T03:00:00.000Z"))).size).toBe(7);
 });
 
@@ -162,14 +162,14 @@ test("saved course scores use its actual date and never query unsupported histor
   expect(targets).toEqual([]);
   await page.locator(".mc-row").first().click();
   await expect(page.locator(".mc-row").first().locator(".mc-score-badge")).toHaveText("73.5");
-  await expect(page.locator(".mc-detail")).toContainText("첫 장소 참고점수");
-  await expect(page.locator(".mc-detail")).toContainText(savedAt);
+  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("첫 장소 참고점수");
+  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText(savedAt);
   expect(targets.length).toBeGreaterThan(0);
   expect(targets.every((target) => target === savedAt)).toBe(true);
   targets.length = 0;
   await page.locator(".mc-row").nth(1).click();
   await expect(page.locator(".mc-row").nth(1).locator(".mc-score-badge")).toHaveText("–");
-  await expect(page.locator(".mc-detail")).toContainText("현재 기준 앞뒤 31일");
+  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("현재 기준 앞뒤 31일");
   expect(targets).toEqual([]);
 });
 
@@ -254,7 +254,7 @@ test("preference → recommendation → persisted plan → selected plan detail"
   await expect(page.locator(".mc-row")).toHaveCount(1);
   await page.reload();
   await page.locator(".mc-row").click();
-  await expect(page.locator(".mc-detail")).toContainText("OFFLINE TEST");
+  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("OFFLINE TEST");
   await page.getByRole("link", { name: "코스 상세 열기" }).click();
   await expect(page.locator(".rc-stop-name").first()).toContainText(
     "OFFLINE TEST",
@@ -302,7 +302,7 @@ test("map adds an actual place and requests a route only on explicit submit", as
   );
   expect(routeCalls).toBe(1);
   await expect(
-    page.locator(".mp-note").filter({ hasText: "출발 기준 교통 자료" }),
+    page.locator(".map-page .pd-note").filter({ hasText: "출발 기준 교통 자료" }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/map-connected.png",
@@ -331,7 +331,7 @@ test("empty and unauthenticated data stay explicit", async ({ page }) => {
   );
   await page.goto("#my-courses");
   await expect(page.locator(".mc-row")).toHaveCount(0);
-  await expect(page.locator(".mc-note").first()).toContainText(
+  await expect(page.locator(".mc-lead").first()).toContainText(
     "기존 SSO 로그인이 필요합니다.",
   );
 });
@@ -354,7 +354,7 @@ test("chat answers reach the travel contract and the actual response is displaye
   );
   await page.getByRole("button", { name: "대중교통", exact: true }).click();
   const result = await (await response).json();
-  await expect(page.locator(".rc-frame")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
   expect(body?.travel?.request?.transport).toBe("transit");
   expect(body?.travel?.request?.companion_type).toBe("solo");
   await expect(page.locator(".pd-ai-basis")).toContainText(result.answer);

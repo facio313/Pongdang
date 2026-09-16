@@ -21,8 +21,8 @@ test("home uses the selected fallback beach ID, name and conditions consistently
   expect(ids.length).toBeGreaterThan(0);
   expect(new Set(ids)).toEqual(new Set([987]));
   await page.goto("#today");
-  await expect(page.locator(".td-hero .td-lbl")).toContainText(beach.name);
-  await expect(page.locator(".td-sbar")).toContainText("부산");
+  await expect(page.locator(".td-hero .pd-lbl")).toContainText(beach.name);
+  await expect(page.locator(".td-hero .pd-header")).toContainText("부산");
 });
 
 test("default beach errors are visible and never leave the placeholder checking state", async ({ page }) => {

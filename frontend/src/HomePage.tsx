@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { AiSuggestion, GradeChip, Icon, StateChip } from "./pongdangUi";
-import { AppTabBar } from "./appTabBar";
+import { AppHeader, AppShell } from "./AppShell";
 import { useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import { useProductData } from "./useProductData";
@@ -55,12 +55,8 @@ function Hero({
   onOpenMenu: () => void;
 }) {
   return (
-    <header className="hm-hero">
-      <div className="hm-sbar">
-        <span>{timeLabel(new Date().toISOString())}</span>
-        <span className="hm-sbar-mark">PONGDANG</span>
-        <span>홈</span>
-      </div>
+    <header className="pd-hero">
+      <AppHeader title="홈" time={timeLabel(new Date().toISOString())} onCobalt />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
           <button
@@ -71,13 +67,13 @@ function Hero({
           >
             <Icon name="menu" size={18} />
           </button>
-          <span className="hm-lbl hm-hero-place">
+          <span className="pd-lbl hm-hero-place">
             <Icon name="pin" size={12} />
             {placeName} · {HERO_DATE}
           </span>
         </div>
 
-        <div className="hm-slot is-on-cobalt hm-hero-visual">
+        <div className="pd-slot is-on-cobalt hm-hero-visual">
           <div>
             <div>{conditionModeLabel(conditions)} 기준 날씨와 바다</div>
             <p>기온 {metricText(conditions, "air_temperature")} · 수온 {metricText(conditions, "water_temperature")}</p>
@@ -93,7 +89,7 @@ function Hero({
             자료를 확인하세요
           </h1>
           <div className="hm-hero-score">
-            <div className="hm-num hm-hero-score-num">
+            <div className="pd-num hm-hero-score-num">
               {conditionScore(conditions) ?? "–"}
             </div>
             <GradeChip
@@ -137,22 +133,22 @@ function GlanceCard({
     { name: "수질 · 최근 검사", value: quality },
   ];
   return (
-    <div className="hm-card">
-      <div className="hm-card-title">오늘 한눈에</div>
+    <div className="pd-card">
+      <div className="pd-card-title">오늘 한눈에</div>
       <div className="hm-tiles">
         {tiles.map((tile) => (
           <div
             className={"hm-tile" + (tile.value === "–" ? " is-empty" : "")}
             key={tile.name}
           >
-            <div className="hm-num hm-tile-value">{tile.value}</div>
+            <div className="pd-num hm-tile-value">{tile.value}</div>
             <div className="hm-tile-name">{tile.name}</div>
           </div>
         ))}
       </div>
-      <WaterQualityDetails data={qualityData} error={qualityError} className="hm-note" />
+      <WaterQualityDetails data={qualityData} error={qualityError} className="pd-note" />
       <HourlyConditions id={spotId} now={now} />
-      <p className="hm-note">
+      <p className="pd-note">
         <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
         강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. {statusText}
       </p>
@@ -162,14 +158,14 @@ function GlanceCard({
 
 function TasteBanner() {
   return (
-    <div className="hm-card">
+    <div className="pd-card">
       <AiSuggestion
         headline="취향만 알려주면 코스를 짜드려요"
         basis={
           "선택한 취향과 실제 장소 카탈로그, 해당 시각의 환경 근거를 비교합니다. 추천 이유와 미확인 조건은 결과에서 함께 확인하세요."
         }
       />
-      <a className="hm-primary" href="#recommend">
+      <a className="pd-primary hm-cta" href="#recommend">
         취향 고르기 →
       </a>
     </div>
@@ -179,20 +175,20 @@ function TasteBanner() {
 function RouteCard() {
   const session = useTravelSession();
   return (
-    <div className="hm-card">
+    <div className="pd-card">
       <div className="hm-card-top">
-        <div className="hm-card-title">물놀이 최적경로</div>
+        <div className="pd-card-title">물놀이 최적경로</div>
         <StateChip kind="partial" />
       </div>
-      <div className="hm-slot hm-route-slot">
+      <div className="pd-slot hm-route-slot">
         {session.route?.route
           ? `${session.route.route.items.map((item) => item.name).join(" → ")} · 예상 이동 ${session.route.route.travel_minutes}분`
           : "추천에서 장소를 고르고 지도에서 경로를 요청하세요"}
       </div>
-      <a className="hm-secondary" href="#map?view=course">
+      <a className="pd-secondary hm-cta" href="#map?view=course">
         경로 탐색 →
       </a>
-      <p className="hm-note">
+      <p className="pd-note">
         추천에서 고른 실제 장소를 지도에서 확인하고, 출발지를 정해 경로를 요청할
         수 있습니다.
       </p>
@@ -209,28 +205,28 @@ function LivecamModule() {
     return href ? [{ camera, href, label: player ? "타임랩스" : "원본 보기" }] : [];
   }).slice(0, 3);
   return (
-    <div className="hm-card">
+    <div className="pd-card">
       <div className="hm-card-top">
-        <div className="hm-card-top" style={{ gap: 8 }}>
+        <div className="hm-card-top hm-card-top-tight">
           <span className="hm-badge-round">
             <Icon name="livecam" size={16} />
           </span>
-          <div className="hm-card-title">라이브캠 물멍</div>
+          <div className="pd-card-title">라이브캠 물멍</div>
         </div>
-        <button className="pd-state-chip" disabled={loading} onClick={() => setShuffleSeed(newWebcamShuffleSeed)}>다른 풍경 보기</button>
+        <button className="pd-state-chip pd-tap" disabled={loading} onClick={() => setShuffleSeed(newWebcamShuffleSeed)}>다른 풍경 보기</button>
       </div>
       <div className="hm-cam-row">
         {cameras.map(({ camera: cam, href, label }, index) => (
           <a className="hm-cam" href={href} target="_blank" rel="noopener noreferrer" key={cam.provider_camera_id}>
             <span
               className="hm-cam-thumb"
-              style={{ background: CAM_BACKGROUNDS[index], display: "block" }}
+              style={{ background: CAM_BACKGROUNDS[index] }}
             />
             <span className="hm-cam-label">{cam.title} · {label}</span>
           </a>
         ))}
       </div>
-      <p className="hm-note">
+      <p className="pd-note">
         {error ||
           (loading
             ? "물 풍경을 고르는 중입니다."
@@ -240,12 +236,22 @@ function LivecamModule() {
         {expired && "목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
         <a href="#livecam">전체 라이브캠 →</a>
       </p>
-      <p className="hm-note">Webcams provided by <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a></p>
+      <p className="pd-note">Webcams provided by <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a></p>
     </div>
   );
 }
 
 function SideMenu({ onClose }: { onClose: () => void }) {
+  // 메뉴는 뷰포트 전체를 덮으므로(.hm-menu 가 position: fixed), 열려 있는
+  // 동안 뒤 본문이 따라 스크롤되지 않게 잠급니다.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
   return (
     <>
       <button
@@ -257,7 +263,7 @@ function SideMenu({ onClose }: { onClose: () => void }) {
       <div className="hm-menu" role="dialog" aria-label="사이드 메뉴">
         <div className="hm-menu-head">
           <div className="hm-menu-head-top">
-            <span className="hm-sbar-mark">PONGDANG</span>
+            <span className="pd-header-mark">PONGDANG</span>
             <button
               type="button"
               className="hm-menu-close"
@@ -318,13 +324,16 @@ function HomeScreen() {
 
   return (
     <article className="home-page">
-      <div className="hm-frame">
-        <Hero
-          placeName={displayName}
-          conditions={conditions.data}
-          onOpenMenu={() => setMenuOpen(true)}
-        />
-        <div className="hm-body">
+      <AppShell
+        tab="home"
+        hero={
+          <Hero
+            placeName={displayName}
+            conditions={conditions.data}
+            onOpenMenu={() => setMenuOpen(true)}
+          />
+        }
+      >
           <GlanceCard
             quality={quality.loading ? "조회 중" : quality.error ? "조회 실패"
               : waterQualityLabel(quality.data)}
@@ -341,11 +350,9 @@ function HomeScreen() {
           />
           <TasteBanner />
           <RouteCard />
-          <LivecamModule />
-          <AppTabBar active="home" />
-        </div>
+        <LivecamModule />
         {menuOpen && <SideMenu onClose={() => setMenuOpen(false)} />}
-      </div>
+      </AppShell>
     </article>
   );
 }

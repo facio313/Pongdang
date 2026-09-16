@@ -2,7 +2,12 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover 가 있어야 env(safe-area-inset-*) 가 실제 노치/홈
+         인디케이터 값으로 채워집니다. 없으면 항상 0 으로 떨어집니다. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <title>Pongdang</title>
   </head>
   <body>

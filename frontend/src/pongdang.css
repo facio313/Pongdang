@@ -1,0 +1,398 @@
+/* 퐁당 제품 화면(홈·오늘·추천·지도·내 코스)의 공용 토큰과 기본형입니다.
+   이전에는 이 블록이 페이지 CSS 5개에 그대로 복사돼 있었습니다. 단일 출처는
+   여기이며, 각 페이지 CSS 에는 그 화면에만 있는 것만 남깁니다.
+
+   styles.css 는 레거시 화면(#data·#dev·#livecam·#ai)이 함께 쓰므로 건드리지
+   않습니다. 제품 화면에만 필요한 전역 조정은 :has() 로 걸러 적용합니다. */
+
+.pd-app {
+  /* 밝은 레이어 (본문) */
+  --pd-mist: #eef4fb;
+  --pd-surface: #ffffff;
+  --pd-line: #dae7f5;
+  --pd-badge: #dfeaf7;
+  --pd-ink: #1b2c3d;
+  --pd-ink-2: #5c789a;
+  --pd-ink-3: #4c657f;
+  --pd-ink-mute: #8fa3b8;
+  --pd-blue: #4a86c8;
+  --pd-blue-deep: #2f6aa8;
+  --pd-conf: #4a6d8c;
+  --pd-alert: #ffe9e9;
+  --pd-alert-ink: #8d1616;
+
+  /* 글래스 레이어 (히어로) */
+  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  --pd-glass: rgba(255, 255, 255, 0.14);
+  --pd-glass-line: rgba(255, 255, 255, 0.4);
+  --pd-on-cobalt: #eef5ff;
+  --pd-on-cobalt-2: #c4dcf8;
+  --pd-sky: #9ed4ff;
+
+  /* 형태 */
+  --pd-r-hero: 22px;
+  --pd-r-card: 18px;
+  --pd-r-ctl: 14px;
+  --pd-r-pill: 999px;
+  --pd-shadow: 0 6px 20px rgba(20, 44, 72, 0.1);
+  --pd-shadow-hero: 0 14px 40px rgba(12, 38, 90, 0.28);
+  --pd-shadow-frame: 0 12px 34px rgba(16, 40, 80, 0.16);
+
+  /* 타이포 스케일. 핸드오프 규정상 모바일 본문은 13px 아래로 내려가지
+     않으며, 캡션도 11px 이 하한입니다. 화면마다 px 을 직접 쓰지 말고 이
+     변수를 쓰세요. */
+  --pd-fs-hero: 17px;
+  --pd-fs-body: 13.5px;
+  --pd-fs-sm: 13px;
+  --pd-fs-cap: 11px;
+
+  /* 최소 터치 타깃 */
+  --pd-touch: 44px;
+
+  /* 수치·라틴 전용. Space Grotesk 미설치 환경에서는 본문 폰트로 폴백하되
+     tabular-nums 로 자릿수 정렬은 유지합니다. */
+  --pd-font-num:
+    "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  color: var(--pd-ink);
+  font-size: var(--pd-fs-body);
+  display: flex;
+  justify-content: center;
+}
+
+.pd-app :focus-visible {
+  outline: 2px solid var(--pd-blue);
+  outline-offset: 2px;
+}
+.pd-app button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* ── 셸 ────────────────────────────────────────────────────
+   기본값은 실기기 기준(풀블리드)입니다. 목업 폰 프레임은 화면이 넓을 때만
+   덧입힙니다. styles.css 의 main 패딩도 제품 화면에서만 비웁니다. */
+
+main:has(.pd-app) {
+  padding: 0;
+}
+
+.pd-frame {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--pd-mist);
+}
+
+@media (min-width: 431px) {
+  .pd-app {
+    padding: 10px 14px 24px;
+  }
+  .pd-frame {
+    width: min(390px, 100%);
+    min-height: 0;
+    border-radius: 26px;
+    box-shadow: var(--pd-shadow-frame);
+  }
+}
+
+/* ── 헤더 ──────────────────────────────────────────────────
+   목업의 가짜 상태바(9:41)를 대신하는 실제 헤더입니다. 실기기에서는 OS 의
+   진짜 상태바가 위에 있으므로, 노치 높이만큼 안전 여백을 둡니다. */
+
+.pd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 18px 6px;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.pd-header.is-on-cobalt {
+  color: var(--pd-on-cobalt-2);
+}
+.pd-header-mark {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+/* 실기기에서는 바로 위에 OS 의 진짜 시계가 있으므로 숨깁니다. 목업 폰
+   프레임을 그리는 넓은 화면에서만 보여 프레임을 완성합니다. */
+.pd-header-time {
+  visibility: hidden;
+}
+@media (min-width: 431px) {
+  .pd-header-time {
+    visibility: visible;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── 기본형 ────────────────────────────────────────────────
+   이전 hm- · td- · rc- · mp- · mc- 접두사로 5벌 있던 것을 하나로 합쳤습니다. */
+
+.pd-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-card {
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-card);
+  box-shadow: var(--pd-shadow);
+  padding: 14px 16px;
+}
+.pd-card-title {
+  font-weight: 700;
+  font-size: var(--pd-fs-body);
+}
+.pd-num {
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pd-lbl {
+  font-size: var(--pd-fs-cap);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-ink-2);
+  margin: 0;
+}
+.pd-note {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+/* 아직 디자인이 확정되지 않은 자리입니다. 빈 채로 두지 않고 무엇이 들어올
+   자리인지 점선 슬롯으로 밝힙니다. */
+.pd-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--pd-r-card);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pd-ink-2);
+  font-size: var(--pd-fs-cap);
+  line-height: 1.6;
+  padding: 8px;
+}
+.pd-slot.is-on-cobalt {
+  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--pd-on-cobalt-2);
+}
+
+/* 히어로는 화면당 하나, 상단에만 둡니다. 그라디언트는 이 레이어 전용입니다. */
+.pd-hero {
+  background: var(--pd-cobalt);
+  color: var(--pd-on-cobalt);
+  border-radius: 0 0 var(--pd-r-hero) var(--pd-r-hero);
+  box-shadow: var(--pd-shadow-hero);
+  padding-bottom: 20px;
+}
+
+/* ── 터치 타깃 ─────────────────────────────────────────────
+   누를 수 있는 것은 44px 이상이어야 합니다. 본문 안에 섞여 흐르는 인라인
+   링크는 줄 높이를 깨뜨리므로 .pd-inline 으로 뺍니다. */
+
+.pd-app button,
+.pd-app a[href],
+.pd-app summary,
+.pd-app [role="button"] {
+  min-height: var(--pd-touch);
+}
+.pd-app .pd-inline,
+.pd-app a[href].pd-inline {
+  min-height: 0;
+}
+
+/* 칩처럼 작아야 하는 컨트롤용. 보이는 크기는 그대로 두고 누를 수 있는
+   범위만 44px 로 넓힙니다. */
+.pd-app .pd-tap {
+  position: relative;
+  min-height: 0;
+}
+.pd-app .pd-tap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: 100%;
+  min-width: var(--pd-touch);
+  height: var(--pd-touch);
+}
+
+/* ── 등급 칩 · 데이터 상태 칩 (pongdangUi.tsx 가 쓰는 클래스) ──
+   등급 판정과 등급명·원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   레이어별 칩 표면(배경/글자)만 등급 key 로 고릅니다. */
+
+.pd-app [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.pd-app [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.pd-app [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.pd-app [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.pd-app [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.pd-app [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+.pd-app .is-glass[data-grade="excellent"] {
+  --g-bg: #bcd4ff;
+  --g-ink: #0f2f7a;
+}
+.pd-app .is-glass[data-grade="good"] {
+  --g-bg: #8fe3f0;
+  --g-ink: #06303a;
+}
+.pd-app .is-glass[data-grade="fair"] {
+  --g-bg: #f0d28a;
+  --g-ink: #3d2a00;
+}
+.pd-app .is-glass[data-grade="caution"] {
+  --g-bg: #f6b08a;
+  --g-ink: #3d1500;
+}
+.pd-app .is-glass[data-grade="poor"] {
+  --g-bg: #f39a9a;
+  --g-ink: #3d0000;
+}
+.pd-app .is-glass[data-grade="unscored"] {
+  --g-bg: transparent;
+  --g-ink: var(--pd-on-cobalt);
+  border: 1px solid var(--pd-glass-line);
+}
+
+.pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: var(--pd-fs-cap);
+}
+.pd-grade-chip.is-glass.is-bare {
+  color: #bcd4ff;
+  border: 0;
+}
+.pd-grade-chip-num {
+  font-family: var(--pd-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.pd-state-chip.is-live {
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.pd-state-chip.is-alert {
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+}
+
+/* AI 제안 칩 — 규칙상 이 칩이 붙은 카드에는 같은 카드 안에 근거가 함께
+   있어야 합니다. pongdangUi 의 AiSuggestion 이 둘을 한 덩어리로 렌더합니다. */
+.pd-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pd-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-blue);
+  padding: 3px 10px;
+  border-radius: var(--pd-r-pill);
+  white-space: nowrap;
+}
+.pd-ai-headline {
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink-3);
+}
+.pd-ai-basis {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+/* ── 공용 버튼 ─────────────────────────────────────────── */
+
+.pd-primary,
+.pd-secondary {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 48px;
+  font-weight: 700;
+  font-size: var(--pd-fs-body);
+  border-radius: var(--pd-r-ctl);
+  text-decoration: none;
+  cursor: pointer;
+}
+.pd-primary {
+  background: var(--pd-blue);
+  color: #fff;
+}
+.pd-secondary {
+  border: 1px solid var(--pd-line);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-app *,
+  .pd-app *::before,
+  .pd-app *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

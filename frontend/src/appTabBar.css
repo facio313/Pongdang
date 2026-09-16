@@ -1,11 +1,13 @@
 /* 공용 하단 인디케이터(탭바) · 홈/오늘/추천/지도/내 코스 5화면이 함께 씁니다.
-   --pd-* 토큰은 각 페이지 루트(.home-page 등)에 선언되어 있고 탭바는 그 안에서
-   렌더되므로 상속으로 받습니다. 토큰이 없는 곳에서도 깨지지 않도록 폴백을 둡니다. */
+   --pd-* 토큰은 셸 루트(.pd-app, pongdang.css)에 선언되어 있고 탭바는 그 안에서
+   렌더되므로 상속으로 받습니다. */
 
 /* 탭바는 화면 하단에 고정합니다. 고정하면 흐름에서 빠지므로, 슬롯이 같은
-   자리를 대신 차지해 마지막 카드가 탭바에 가리지 않게 합니다. */
+   자리를 대신 차지해 마지막 카드가 탭바에 가리지 않게 합니다. 슬롯은 컨테이너
+   이기도 해서, 탭바 폭을 아래 100cqw 로 실측해 갑니다. 예전에는 main 패딩을
+   손으로 뺀 상수를 썼는데, 그 상수가 조용히 어긋나는 원인이었습니다. */
 .pd-tabbar-slot {
-  height: 58px;
+  height: 64px;
   container-type: inline-size;
 }
 
@@ -14,10 +16,8 @@
   left: 50%;
   bottom: max(10px, env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
-  /* 프레임 폭 min(390px,100%) 에서 main 좌우 여백(14px)과 본문 패딩(18px)을
-     뺀 값. 컨테이너 쿼리를 지원하면 아래 100cqw 가 슬롯 실측 폭으로
-     덮어씁니다. */
-  width: min(354px, 100vw - 64px);
+  width: calc(100% - 32px);
+  max-width: 358px;
   z-index: 5;
   background: var(--pd-surface, #ffffff);
   border-radius: var(--pd-r-card, 18px);
@@ -27,22 +27,24 @@
   box-shadow:
     0 -2px 8px rgba(16, 40, 80, 0.06),
     0 10px 30px rgba(16, 40, 80, 0.24);
-  padding: 6px 8px;
+  padding: 4px 6px;
   display: flex;
 }
 
 @supports (width: 100cqw) {
   .pd-tabbar {
-    width: 100cqw;
+    width: calc(100cqw - 32px);
   }
 }
 
 .pd-tab {
   flex: 1;
   min-width: 0;
-  padding: 12px 0;
+  min-height: var(--pd-touch, 44px);
+  display: grid;
+  place-items: center;
   text-align: center;
-  font-size: 9.5px;
+  font-size: var(--pd-fs-cap, 11px);
   color: var(--pd-ink-2, #5c789a);
   text-decoration: none;
 }

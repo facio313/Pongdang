@@ -12,7 +12,7 @@ function ForecastHour({ id, day, hour }: { id?: number; day: string; hour: strin
 }
 
 export function HourlyConditions({ id, now }: { id?: number; now: string }) {
-  return <div className="hm-slot">
+  return <div className="pd-slot">
     <table aria-label="오늘 시간대별 수집 예보">
       <caption>오늘 시간대별 예보 (09–18시)</caption>
       <thead><tr><th scope="col">시각</th><th scope="col">수온</th><th scope="col">파고</th><th scope="col">강수량</th></tr></thead>
