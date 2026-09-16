@@ -1,0 +1,348 @@
+/* 데스크탑 추천(18b)에만 있는 것들. 페이지 루트(.pd-desktop)로 스코프하고
+   접두사는 .rd- 로 나눠 모바일 .rc-* 와 겹치지 않게 합니다. */
+
+.pd-desktop .rd-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding: 2px 0 0;
+}
+.pd-desktop .rd-hero-lead {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 30px;
+}
+.pd-desktop .rd-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .rd-hero-title {
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.22;
+  margin: 12px 0 0;
+}
+.pd-desktop .rd-hero-note {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--dk-onc-2);
+  max-width: 60ch;
+  margin: 12px 0 0;
+}
+.pd-desktop .rd-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: 10px;
+}
+.pd-desktop .rd-hero-metrics {
+  flex: none;
+  display: flex;
+  padding-bottom: 34px;
+}
+.pd-desktop .rd-hero-metrics > * {
+  padding: 0 22px;
+  text-align: right;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.pd-desktop .rd-hero-metrics > :first-child {
+  border-left: 0;
+}
+.pd-desktop .rd-hero-metrics > :last-child {
+  padding-right: 0;
+}
+.pd-desktop .rd-metric-name {
+  font-size: 10.5px;
+  color: var(--dk-onc-2);
+}
+.pd-desktop .rd-metric-value {
+  font-size: 30px;
+  margin-top: 4px;
+}
+
+.pd-desktop .rd-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rd-row-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 14px;
+}
+.pd-desktop .rd-row-foot .rd-note {
+  flex: 1;
+}
+
+/* ── 1 · 취향 ──────────────────────────────────────────
+   선택은 색 하나로 말하지 않습니다 -- 색 + ✓ 아이콘 두 겹입니다. */
+
+.pd-desktop .rd-tastes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-desktop .rd-taste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  background: #e7ecf2;
+  padding: 11px 16px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .rd-taste.is-on {
+  color: #fff;
+  background: var(--dk-blue);
+}
+.pd-desktop .rd-taste img {
+  display: block;
+}
+.pd-desktop .rd-remake {
+  background: var(--dk-blue);
+  font-size: 12px;
+  padding: 11px 18px;
+}
+
+/* ── 2 · 대화로 좁히기 ─────────────────────────────────── */
+
+.pd-desktop .rd-modes {
+  display: inline-flex;
+  background: #e7eef7;
+  border-radius: var(--dk-r-pill);
+  padding: 3px;
+}
+.pd-desktop .rd-mode {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: var(--dk-r-pill);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rd-mode.is-on {
+  background: #fff;
+  color: var(--dk-ink);
+}
+.pd-desktop .rd-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+  padding: 0 6px 0 16px;
+  height: 52px;
+}
+.pd-desktop .rd-field-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--dk-ink);
+}
+.pd-desktop .rd-send {
+  font-size: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+.pd-desktop .rd-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+.pd-desktop .rd-prompt {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  background: #dfeaf7;
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+}
+
+.pd-desktop .rd-answer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.pd-desktop .rd-answer-head img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .rd-answer-text {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.pd-desktop .rd-basis {
+  margin-top: 14px;
+  border-top: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .rd-basis-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .rd-basis-row:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .rd-basis-name {
+  width: 96px;
+  flex: none;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rd-basis-value {
+  font-size: 15px;
+}
+.pd-desktop .rd-basis-note {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+
+/* ── 3 · 만들어진 코스 ─────────────────────────────────── */
+
+.pd-desktop .rd-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-desktop .rd-step-no {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: #1b5fc0;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+}
+.pd-desktop .rd-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--dk-rule-weak);
+  display: block;
+}
+.pd-desktop .rd-step-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+.pd-desktop .rd-step-body img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .rd-step-name {
+  font-weight: 700;
+  font-size: 18px;
+}
+.pd-desktop .rd-step-when {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 3px;
+}
+.pd-desktop .rd-step-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--g-ink);
+}
+.pd-desktop .rd-step-score-num {
+  font-size: 22px;
+}
+.pd-desktop .rd-step-score-grade {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+/* 값이 없는 칸은 등급명 대신 **없는 이유**를 적습니다. */
+.pd-desktop .rd-step-score-note {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+
+/* ── 4 · 지도 미리보기 ─────────────────────────────────── */
+
+.pd-desktop .rd-map {
+  position: relative;
+  height: 300px;
+  background: #dfe8f2;
+  overflow: hidden;
+}
+.pd-desktop .rd-map-badge {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 4;
+  background: rgba(15, 47, 122, 0.82);
+  color: var(--dk-onc);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 6px 12px;
+  border-radius: var(--dk-r-pill);
+}
+/* 이 지도의 핀은 점수가 아니라 **순서**입니다. */
+.pd-desktop .rd-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1b5fc0;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  border: 2px solid #fff;
+}
+.pd-desktop .rd-legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 12px;
+}
+.pd-desktop .rd-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.pd-desktop .rd-legend-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1b5fc0;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+}
+.pd-desktop .rd-legend-note {
+  margin-left: auto;
+}
+
+@media (max-width: 1240px) {
+  .pd-desktop .rd-hero-title {
+    font-size: 34px;
+  }
+  .pd-desktop .rd-hero-mascot {
+    width: 140px;
+    height: 140px;
+  }
+}

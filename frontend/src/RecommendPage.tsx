@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
+import { RecommendDesktop } from "./RecommendDesktop";
+import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import {
   AiSuggestion,
@@ -1355,11 +1357,14 @@ function RecommendScreen() {
 }
 
 export function RecommendPage() {
+  // 같은 라우트(#recommend)에서 폭으로 레이아웃을 갈아 끼웁니다. 데스크탑은
+  // 모바일의 여러 단계를 한 페이지 세로 흐름으로 접은 구성입니다.
+  const isDesktop = useIsDesktop();
   // 이 화면은 실제 수집 데이터만 읽습니다. 상단 「데이터 구분」이 더미로
   // 선택돼 있어도 `/api/data` 로 고정합니다(`/api/demo` 는 은퇴해 404).
   return (
     <DataOrigin.Provider value="data">
-      <RecommendScreen />
+      {isDesktop ? <RecommendDesktop /> : <RecommendScreen />}
     </DataOrigin.Provider>
   );
 }
