@@ -1,0 +1,173 @@
+/* 개발 · 검증용 프리미티브 미리보기(#desktop-kit) 전용 스타일입니다.
+   공용 토큰은 pongdangDesktop.css 의 .pd-desktop 에서 상속받습니다. 이 파일에는
+   이 화면에만 있는 것만 둡니다. */
+
+.dk-kit-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding-bottom: 60px;
+}
+.dk-kit-hero > :first-child {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 22px;
+}
+.dk-kit-hero-kick {
+  color: var(--dk-sky);
+}
+.dk-kit-hero-title {
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1.16;
+  margin: 12px 0 0;
+}
+.dk-kit-hero-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+.dk-kit-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -58px;
+}
+.dk-kit-hero-metrics {
+  display: flex;
+  flex: none;
+  padding-bottom: 26px;
+}
+.dk-kit-hero-metrics > * {
+  padding: 0 22px;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.dk-kit-hero-metrics > :first-child {
+  border-left: 0;
+}
+.dk-kit-metric-value {
+  font-size: 30px;
+  line-height: 1.1;
+}
+.dk-kit-metric-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--dk-onc-2);
+  margin-top: 8px;
+}
+
+.dk-kit-spot-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.dk-kit-spot-category {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 4px;
+}
+.dk-kit-spot-score {
+  margin-top: 12px;
+}
+
+.dk-kit-lead {
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.35;
+}
+.dk-kit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.dk-kit-taste {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: var(--dk-r-pill);
+  background: #e7ecf2;
+  color: var(--dk-ink-3);
+}
+.dk-kit-taste.is-on {
+  background: var(--dk-blue);
+  color: #ffffff;
+}
+.dk-kit-taste img {
+  display: block;
+}
+
+.dk-kit-ai {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.dk-kit-ai-mascot {
+  display: block;
+  flex: none;
+}
+
+.dk-kit-slot {
+  min-height: 120px;
+}
+
+.dk-kit-mascots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 14px;
+}
+.dk-kit-mascot {
+  margin: 0;
+  text-align: center;
+}
+.dk-kit-mascot img {
+  display: block;
+  margin: 0 auto;
+}
+.dk-kit-mascot figcaption {
+  font-size: 10.5px;
+  color: var(--dk-ink-2);
+  margin-top: 4px;
+}
+
+.dk-kit-surface-nav {
+  border-bottom: 1px solid var(--dk-rule);
+}
+.dk-kit-surface-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  margin: 0;
+  padding: 14px var(--dk-pad) 20px;
+}
+.dk-kit-crumb {
+  color: var(--dk-ink);
+}
+
+@media (max-width: 1079px) {
+  .dk-kit-hero {
+    flex-wrap: wrap;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+  /* 제목·버튼 묶음이 한 줄을 통째로 차지해야 마스코트가 버튼 위로 겹치지
+     않습니다. flex:1 만으로는 같은 줄에 남습니다. */
+  .dk-kit-hero > :first-child {
+    flex: 1 1 100%;
+    padding-bottom: 0;
+  }
+  .dk-kit-hero-title {
+    font-size: 34px;
+  }
+  .dk-kit-hero-mascot {
+    width: 140px;
+    height: 140px;
+    margin-bottom: -38px;
+  }
+  .dk-kit-hero-metrics {
+    padding-bottom: 12px;
+  }
+}

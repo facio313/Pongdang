@@ -92,10 +92,27 @@ main:has(.pd-app) {
     padding: 10px 14px 24px;
   }
   .pd-frame {
-    width: min(390px, 100%);
+    width: min(520px, 100%);
     min-height: 0;
     border-radius: 26px;
     box-shadow: var(--pd-shadow-frame);
+  }
+}
+
+/* 태블릿 구간(768~1079px). 데스크탑 분기(1080px, useIsDesktop.ts)에는 아직
+   못 미치므로 모바일 마크업을 그대로 쓰되, 폰 목업 폭에 가둬 두지 않고 한 단계
+   넓혀 본문 여백을 늘립니다. 마크업을 세 벌로 늘리지 않기 위한 절충이며,
+   레이아웃 문법은 모바일 그대로입니다(카드 스택 + 하단 탭바). */
+@media (min-width: 768px) {
+  .pd-app {
+    padding: 18px 20px 28px;
+  }
+  .pd-frame {
+    width: min(640px, 100%);
+  }
+  .pd-body {
+    padding: 22px 24px;
+    gap: 14px;
   }
 }
 

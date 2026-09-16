@@ -1,0 +1,548 @@
+/* 데스크탑(≥1080px) 화면의 공용 토큰과 레이아웃 프리미티브입니다.
+   핸드오프 「구현 가이드 — 데스크탑 · 모바일」 §2 의 값을 그대로 옮겼습니다.
+
+   데스크탑은 모바일을 넓힌 것이 아닙니다 -- 문법이 다릅니다.
+     모바일  : 흰 카드 + radius 18 + 그림자 스택
+     데스크탑: 카드도 그림자도 없이 괘선(1px)과 여백으로만 구분
+   그래서 모바일 셸(.pd-app, pongdang.css)과 토큰을 공유하지 않고 형제로 둡니다.
+   두 루트가 겹쳐 쓰이는 일은 없습니다.
+
+   styles.css 는 레거시 화면(#data · #dev · #livecam · #ai)이 함께 쓰므로 여기서
+   건드리지 않고, 제품 화면에만 필요한 전역 조정은 :has() 로 걸러 적용합니다. */
+
+.pd-desktop {
+  /* 여백 · 괘선 -- 데스크탑에서 구분을 만드는 것은 이 둘뿐입니다. */
+  --dk-pad: 56px;
+  --dk-rule: rgba(27, 44, 61, 0.16); /* 섹션 경계 */
+  --dk-rule-weak: rgba(27, 44, 61, 0.1); /* 열 분할 */
+  --dk-line: #dae7f5; /* 목록 행 */
+
+  /* 밝은 레이어 */
+  --dk-surface: #ffffff;
+  --dk-mist: #eef4fb;
+  --dk-ink: #1b2c3d;
+  --dk-ink-2: #5c789a;
+  --dk-ink-3: #4c657f;
+  --dk-blue: #4a86c8;
+  --dk-deep: #2f6aa8;
+
+  /* 신뢰도 전용색. 등급 팔레트(groupAGrade.ts)와 반드시 분리합니다 --
+     신뢰도는 점수 · 수온 · 안전 상태와 서로 다른 값이며 하나로 요약하지
+     않습니다(핸드오프 데이터 표기 규칙 6). */
+  --dk-conf: #4a6d8c;
+
+  --dk-alert: #8d1616;
+  --dk-alert-bg: #ffe9e9;
+
+  /* 코발트 레이어(히어로). 모바일 --pd-cobalt 와 각도 · 정지점이 다릅니다.
+     디자인 원본이 다른 값이므로 통합하지 않습니다. */
+  --dk-cobalt: linear-gradient(170deg, #1b5fc0 0%, #2a86d6 62%, #5eb1e8 100%);
+  --dk-glass: rgba(255, 255, 255, 0.14);
+  --dk-glass-line: rgba(255, 255, 255, 0.4);
+  --dk-onc: #eef5ff;
+  --dk-onc-2: #c4dcf8;
+  --dk-onc-mute: rgba(238, 245, 255, 0.74);
+  --dk-sky: #9ed4ff;
+
+  /* 형태. 카드 radius 는 없습니다 -- 데스크탑에 카드가 없기 때문입니다. */
+  --dk-r-ctl: 14px;
+  --dk-r-pill: 999px;
+
+  /* 수치 · 라틴 전용. Space Grotesk 미설치 환경에서는 본문 폰트로 폴백하되
+     tabular-nums 로 자릿수 정렬은 유지합니다. */
+  --dk-font-num:
+    "Space Grotesk", "Noto Sans KR Variable", system-ui, sans-serif;
+
+  background: var(--dk-surface);
+  color: var(--dk-ink);
+  font-size: 13px;
+}
+
+/* 1440 이 디자인 기준 폭입니다. 그보다 넓어지면 좌우 56px 여백을 유지한 채
+   본문만 늘어나고, 1600 에서 멈춥니다. */
+.pd-desktop-page {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+main:has(.pd-desktop) {
+  padding: 0;
+}
+
+.pd-desktop :focus-visible {
+  outline: 2px solid var(--dk-blue);
+  outline-offset: 2px;
+}
+.pd-desktop button {
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* 수치는 Space Grotesk 700 + tabular-nums 고정입니다. 히어로의 큰 숫자부터
+   목록의 작은 숫자까지 전부 이 클래스를 씁니다. */
+.pd-dk-num {
+  font-family: var(--dk-font-num);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 상단 인라인 네비 ──────────────────────────────────────
+   모바일 하단 탭바와 같은 목록(appNav.ts)을 다르게 그린 것입니다. */
+
+.pd-dk-nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 24px var(--dk-pad) 0;
+}
+.pd-dk-nav-mark {
+  font-family: var(--dk-font-num);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.22em;
+  color: var(--dk-onc);
+}
+.pd-dk-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  font-weight: 500;
+  font-size: 12.5px;
+}
+.pd-dk-nav-link {
+  color: var(--dk-onc-mute);
+  text-decoration: none;
+  padding-bottom: 6px;
+}
+.pd-dk-nav-link[aria-current="page"] {
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--dk-sky);
+}
+.pd-dk-nav-context {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--dk-onc-2);
+}
+
+/* 흰 배경 위에 얹히는 변형(명소 상세처럼 코발트 히어로가 없는 화면). */
+.pd-dk-nav.is-on-surface {
+  padding: 22px var(--dk-pad) 18px;
+  border-bottom: 1px solid var(--dk-rule);
+}
+.pd-dk-nav.is-on-surface .pd-dk-nav-mark {
+  color: var(--dk-deep);
+}
+.pd-dk-nav.is-on-surface .pd-dk-nav-link {
+  color: var(--dk-ink-2);
+}
+.pd-dk-nav.is-on-surface .pd-dk-nav-link[aria-current="page"] {
+  color: var(--dk-ink);
+  box-shadow: inset 0 -2px 0 var(--dk-blue);
+}
+.pd-dk-nav.is-on-surface .pd-dk-nav-context {
+  color: var(--dk-ink-2);
+}
+
+/* ── 히어로 ────────────────────────────────────────────────
+   코발트 면이 흰 본문으로 넘어가는 경계를 물결 SVG 가 만듭니다. 모바일처럼
+   라운드 하단으로 끊지 않습니다. */
+
+.pd-dk-hero {
+  position: relative;
+  background: var(--dk-cobalt);
+  color: var(--dk-onc);
+}
+.pd-dk-hero-body {
+  position: relative;
+  z-index: 1;
+  padding: 26px var(--dk-pad) 0;
+}
+/* 얇은 띠 히어로(지도 · 내 코스)는 본문 패딩을 줄여 씁니다. */
+.pd-dk-hero.is-band .pd-dk-hero-body {
+  padding: 18px var(--dk-pad) 20px;
+}
+.pd-dk-hero-wave {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 58px;
+}
+
+/* 홈 히어로만 쓰는 애니메이션 파도 2겹. 2880 폭 SVG 를 하단에 절대배치하고
+   가로로 흘립니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. */
+.pd-dk-hero-anim {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 96px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pd-dk-hero-anim svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2880px;
+  height: 96px;
+}
+.pd-dk-hero-anim .pd-dk-wave-back {
+  opacity: 0.34;
+  animation: pd-dk-wave-back 17s linear infinite;
+}
+.pd-dk-hero-anim .pd-dk-wave-front {
+  animation: pd-dk-wave-front 11s linear infinite;
+}
+@keyframes pd-dk-wave-back {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-960px);
+  }
+}
+@keyframes pd-dk-wave-front {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-720px);
+  }
+}
+
+/* ── LabelRow — 데스크탑 본문의 기본 단위 ─────────────────
+   왼쪽 200px 라벨 열 + 오른쪽 본문. 행마다 하단 괘선으로 끊습니다. */
+
+.pd-dk-row {
+  display: grid;
+  grid-template-columns: var(--dk-row-columns, 200px 1fr);
+  gap: 44px;
+  padding: 28px var(--dk-pad) 26px;
+  border-bottom: 1px solid var(--dk-rule);
+}
+.pd-dk-row-label {
+  min-width: 0;
+}
+.pd-dk-kick {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dk-ink-2);
+}
+.pd-dk-row-title {
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.35;
+  margin: 8px 0 0;
+}
+.pd-dk-row-chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.pd-dk-row-desc {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--dk-ink-2);
+  margin: 10px 0 0;
+}
+.pd-dk-row-link {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--dk-deep);
+  text-decoration: none;
+  margin-top: 12px;
+}
+.pd-dk-row-link:hover {
+  color: #0f2f7a;
+}
+.pd-dk-row-body {
+  min-width: 0;
+}
+
+/* 오른쪽 본문을 세로 괘선으로 나눌 때 씁니다. 자식 사이에만 선이 서도록
+   첫 칸의 왼쪽 선과 패딩은 지웁니다. */
+.pd-dk-split {
+  display: grid;
+  grid-template-columns: var(--dk-split-columns, repeat(auto-fit, minmax(0, 1fr)));
+}
+.pd-dk-split > * {
+  min-width: 0;
+  border-left: 1px solid var(--dk-rule-weak);
+  padding: 0 26px;
+}
+.pd-dk-split > :first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.pd-dk-split > :last-child {
+  padding-right: 0;
+}
+
+/* ── FootNote — 화면 최하단 ──────────────────────────────
+   미연동 항목과 「안전 판단에 쓸 수 없음」 문구는 생략하지 않습니다
+   (핸드오프 데이터 표기 규칙 3). */
+
+.pd-dk-foot {
+  padding: 22px var(--dk-pad) 40px;
+  border-top: 1px solid var(--dk-rule);
+}
+.pd-dk-foot-missing {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dk-alert);
+}
+.pd-dk-foot.is-alert .pd-dk-foot-missing {
+  background: var(--dk-alert-bg);
+  border-radius: var(--dk-r-ctl);
+  padding: 12px 16px;
+}
+.pd-dk-foot-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  max-width: 104ch;
+  margin: 6px 0 0;
+}
+.pd-dk-foot.is-alert .pd-dk-foot-note {
+  margin-top: 10px;
+}
+
+/* ── 버튼 ──────────────────────────────────────────────────
+   카드가 없으므로 버튼이 면을 가진 유일한 요소입니다. 그림자는 없습니다. */
+
+.pd-desktop .pd-dk-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 12px 20px;
+  border-radius: var(--dk-r-ctl);
+  background: var(--dk-deep);
+  color: #ffffff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pd-desktop .pd-dk-button.is-pill {
+  border-radius: var(--dk-r-pill);
+  font-size: 11.5px;
+  padding: 10px 18px;
+}
+.pd-desktop .pd-dk-button.is-quiet {
+  background: var(--dk-surface);
+  color: var(--dk-deep);
+  border: 1px solid var(--dk-line);
+}
+/* 코발트 위에 놓이는 버튼 2종(흰 면 · 유리). */
+.pd-desktop .pd-dk-button.is-on-cobalt {
+  background: var(--dk-onc);
+  color: #0f2f7a;
+}
+.pd-desktop .pd-dk-button.is-glass {
+  background: var(--dk-glass);
+  color: var(--dk-onc);
+  border: 1px solid var(--dk-glass-line);
+}
+
+/* ── 등급 칩 표면 ─────────────────────────────────────────
+   등급 판정 · 등급명 · 원본 색은 groupAGrade.ts 가 단일 출처이고, 여기서는
+   데스크탑 레이어의 칩 표면(배경/글자)만 등급 key 로 고릅니다. 값은
+   pongdang.css 의 모바일 규칙과 같습니다 -- 등급 표기는 화면 폭에 따라
+   달라지면 안 되기 때문입니다. pongdangUi.tsx 의 GradeChip · StateChip ·
+   AiSuggestion 을 데스크탑에서도 그대로 씁니다. */
+
+.pd-desktop [data-grade="excellent"] {
+  --g-bg: #dbe6ff;
+  --g-ink: #1d3fa8;
+}
+.pd-desktop [data-grade="good"] {
+  --g-bg: #d6eff5;
+  --g-ink: #0b6c84;
+}
+.pd-desktop [data-grade="fair"] {
+  --g-bg: #f7ead0;
+  --g-ink: #7a4a06;
+}
+.pd-desktop [data-grade="caution"] {
+  --g-bg: #fbe0d3;
+  --g-ink: #963009;
+}
+.pd-desktop [data-grade="poor"] {
+  --g-bg: #fbd9d9;
+  --g-ink: #8d1616;
+}
+.pd-desktop [data-grade="unscored"] {
+  --g-bg: #e7ecf2;
+  --g-ink: #4b5563;
+}
+.pd-desktop .is-glass[data-grade="unscored"] {
+  --g-bg: transparent;
+  --g-ink: var(--dk-onc);
+  border: 1px solid var(--dk-glass-line);
+}
+
+.pd-desktop .pd-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--dk-r-pill);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  white-space: nowrap;
+}
+.pd-desktop .pd-grade-chip.is-bare {
+  background: none;
+  padding: 0;
+  font-size: 11.5px;
+}
+.pd-desktop .pd-grade-chip-num {
+  font-family: var(--dk-font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 데스크탑 점수 표기(DesktopScore). 칩과 달리 배경을 깔지 않고 등급 색을
+   글자에 직접 씁니다 -- 데스크탑에는 면이 없기 때문입니다. --g-ink 는 위
+   [data-grade] 규칙이 채웁니다. */
+.pd-dk-score {
+  color: var(--g-ink);
+}
+.pd-dk-score.is-right {
+  text-align: right;
+}
+.pd-dk-score-num {
+  font-size: var(--dk-score-size, 40px);
+  line-height: 1;
+}
+.pd-dk-score-grade {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.pd-dk-score.is-right .pd-dk-score-grade {
+  justify-content: flex-end;
+}
+
+.pd-desktop .pd-state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+  background: #e7ecf2;
+  color: #4b5563;
+  white-space: nowrap;
+}
+.pd-desktop .pd-state-chip.is-live {
+  background: #dfeaf7;
+  color: var(--dk-deep);
+}
+.pd-desktop .pd-state-chip.is-alert {
+  background: var(--dk-alert-bg);
+  color: var(--dk-alert);
+}
+
+.pd-desktop .pd-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pd-desktop .pd-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-blue);
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+  white-space: nowrap;
+}
+.pd-desktop .pd-ai-headline {
+  font-size: 12.5px;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .pd-ai-basis {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+
+/* 아직 디자인이 확정되지 않은 자리입니다. 빈 채로 두지 않고 무엇이 들어올
+   자리인지 점선 슬롯으로 밝힙니다. */
+.pd-dk-slot {
+  border: 1.5px dashed #b9cede;
+  border-radius: var(--dk-r-ctl);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--dk-ink-2);
+  font-size: 11.5px;
+  line-height: 1.7;
+  padding: 12px;
+}
+.pd-dk-slot.is-on-cobalt {
+  border-color: var(--dk-glass-line);
+  color: var(--dk-onc-2);
+}
+
+/* ── 좁아질 때 ─────────────────────────────────────────────
+   분기 기준은 1080px 이고 그 아래는 모바일 레이아웃이 뜨므로, 이 구간은
+   데스크탑 레이아웃이 잠깐 좁아지는 경우(#desktop-kit 처럼 폭 분기를 쓰지
+   않는 화면)를 위한 안전망입니다. 라벨 열을 본문 위로 접습니다. */
+
+@media (max-width: 1079px) {
+  .pd-desktop {
+    --dk-pad: 24px;
+  }
+  .pd-dk-row {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .pd-dk-split {
+    grid-template-columns: 1fr;
+  }
+  .pd-dk-split > * {
+    border-left: 0;
+    border-top: 1px solid var(--dk-rule-weak);
+    padding: 16px 0 0;
+  }
+  .pd-dk-split > :first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* pongdang.css 의 감속 규칙은 .pd-app 스코프이므로 여기에 다시 선언합니다. */
+@media (prefers-reduced-motion: reduce) {
+  .pd-desktop *,
+  .pd-desktop *::before,
+  .pd-desktop *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

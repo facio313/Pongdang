@@ -37,6 +37,23 @@
   }
 }
 
+/* 프레임이 넓어지는 구간(pongdang.css 의 431px · 768px 계단)에서 탭바가 가운데
+   358px 에만 머물지 않도록 상한을 같이 올립니다. 폭 자체는 위 100cqw 가 프레임
+   에서 실측하므로, 여기서는 상한만 프레임 폭 - 32px 로 맞춥니다. */
+@media (min-width: 431px) {
+  .pd-tabbar {
+    max-width: 488px;
+  }
+}
+@media (min-width: 768px) {
+  .pd-tabbar {
+    max-width: 608px;
+  }
+}
+
+/* 6칸이 되면서 390px 폭에서 「내 코스」가 줄바꿈되지 않도록 라벨을 9.5px 로
+   내렸습니다(핸드오프 지정값). pongdang.css 의 11px 캡션 하한은 읽는 문장에
+   대한 것이고, 탭 라벨은 한 단어이면서 44px 터치 타깃이 따로 보장됩니다. */
 .pd-tab {
   flex: 1;
   min-width: 0;
@@ -44,9 +61,10 @@
   display: grid;
   place-items: center;
   text-align: center;
-  font-size: var(--pd-fs-cap, 11px);
+  font-size: 9.5px;
   color: var(--pd-ink-2, #5c789a);
   text-decoration: none;
+  white-space: nowrap;
 }
 .pd-tab[aria-current="page"] {
   color: var(--pd-blue-deep, #2f6aa8);
