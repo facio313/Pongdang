@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
-import { AppTabBar } from "./appTabBar";
+import { AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
@@ -95,13 +95,10 @@ function Stage({
   );
   return (
     <div className="mp-stage">
-      <div className="mp-sbar">
-        <span>{timeLabel(new Date().toISOString())}</span>
-        <span className="mp-sbar-mark">
-          {view === "spots" ? "지도" : "코스 지도"}
-        </span>
-        <span>강릉</span>
-      </div>
+      <AppHeader
+        title={view === "spots" ? "지도" : "코스 지도"}
+        time={timeLabel(new Date().toISOString())}
+      />
 
       {view === "spots" ? (
         <label className="mp-searchbar">
@@ -113,15 +110,7 @@ function Stage({
             maxLength={100}
             placeholder="물놀이 할 곳 찾기"
             aria-label="장소명·지역 검색"
-            style={{
-              border: 0,
-              padding: 0,
-              minWidth: 0,
-              width: "100%",
-              background: "transparent",
-              color: "inherit",
-              font: "inherit",
-            }}
+            className="mp-search-input"
           />
         </label>
       ) : (
@@ -131,7 +120,7 @@ function Stage({
         </div>
       )}
 
-      <div className="mp-slot mp-tile-slot">
+      <div className="pd-slot mp-tile-slot">
         <KakaoMapCanvas
           markers={markers}
           paths={paths}
@@ -146,7 +135,7 @@ function Stage({
                 className={
                   "mp-pin" + (spot.id === selectedSpotId ? " is-selected" : "")
                 }
-                style={{ position: "relative", transform: "none" }}
+                data-inline-pin="true"
                 aria-pressed={spot.id === selectedSpotId}
                 aria-label={spot.name}
                 onClick={() => onSelectSpot(spot.id)}
@@ -194,7 +183,7 @@ function SpotSheet({
   ];
   return (
     <>
-      <div className="mp-card">
+      <div className="pd-card">
         <div className="mp-spot-head">
           <div>
             <div className="mp-spot-name">{spot.name}</div>
@@ -202,7 +191,7 @@ function SpotSheet({
           </div>
           <div className="mp-spot-score">
             <div
-              className="mp-num mp-spot-score-num"
+              className="pd-num mp-spot-score-num"
               style={{ color: gradeOf(spot.score).color }}
             >
               {spot.score === null ? "–" : spot.score}
@@ -215,7 +204,7 @@ function SpotSheet({
           {tiles.map((tile) => (
             <div className="mp-tile" key={tile.name}>
               <Icon name={tile.icon} size={15} className="mp-tile-icon" />
-              <div className="mp-num mp-tile-value">{tile.value}</div>
+              <div className="pd-num mp-tile-value">{tile.value}</div>
               <div className="mp-tile-name">{tile.name}</div>
             </div>
           ))}
@@ -229,16 +218,16 @@ function SpotSheet({
           <StateChip kind="live" />
         </div>
 
-        <p className="mp-note">
+        <p className="pd-note">
           지도 점수는 선택한 장소를 조회한 값입니다. {evidenceText(conditions)} 안전 상태 unknown은 판정 없음이며 안전함이
           아닙니다.
         </p>
-        <ConditionScoreDetails data={conditions} className="mp-note" />
+        <ConditionScoreDetails data={conditions} className="pd-note" />
       </div>
 
       <div className="mp-actions">
         <a
-          className="mp-secondary"
+          className="pd-secondary mp-action"
           href={href ?? undefined}
           aria-disabled={!href}
           target="_blank"
@@ -247,12 +236,12 @@ function SpotSheet({
           <Icon name="transit" size={16} />
           길찾기
         </a>
-        <button type="button" className="mp-primary" onClick={onAdd}>
+        <button type="button" className="pd-primary mp-action" onClick={onAdd}>
           <Icon name="course" size={16} />
           코스에 넣기
         </button>
       </div>
-      <p className="mp-note" style={{ marginTop: 0 }}>
+      <p className="pd-note mp-actions-note">
         <StateChip kind="live" /> 카카오 지도에 등록 좌표를 전달합니다. 코스에
         넣으면 저장 전 일정에 추가합니다.{" "}
         <a
@@ -295,9 +284,9 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
         }));
   return (
     <>
-      <div className="mp-card">
+      <div className="pd-card">
         <div className="mp-card-top">
-          <div className="mp-card-title">이동 순서</div>
+          <div className="pd-card-title">이동 순서</div>
           <StateChip kind="live" />
         </div>
         <div className="mp-rows">
@@ -312,7 +301,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
             </div>
           ))}
         </div>
-        <p className="mp-note">
+        <p className="pd-note">
           {session.route?.route_calculated
             ? `출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, ${session.route.optimality === "provisional_missing_comparison_evidence" ? "일부 비교 자료가 부족한 임시 결과입니다." : "전체 지역의 최적 경로를 뜻하지 않습니다."}`
             : "이동시간과 도로 경로는 아직 계산하지 않았습니다."}{" "}
@@ -322,13 +311,13 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
       </div>
 
       <div className="mp-actions">
-        <a className="mp-secondary" href="#recommend">
+        <a className="pd-secondary mp-action" href="#recommend">
           <Icon name="transit" size={16} />
           추천에서 편집
         </a>
         <button
           type="button"
-          className="mp-primary"
+          className="pd-primary mp-action"
           disabled={!session.planInput || Boolean(session.plan?.plan_id)}
           onClick={onSave}
         >
@@ -336,7 +325,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
           {session.plan?.plan_id ? "저장됨" : "내 코스에 저장"}
         </button>
       </div>
-      <p className="mp-note" style={{ marginTop: 0 }}>
+      <p className="pd-note mp-actions-note">
         <StateChip kind="partial" /> 도로 선은 실제 길찾기 응답이 있는 구간만
         표시합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지
         않습니다.
@@ -571,8 +560,11 @@ export function MapPage() {
     });
   return (
     <article className="map-page">
-      <div className="mp-frame">
-        <Stage
+      <AppShell
+        tab="map"
+        bare
+        hero={
+          <Stage
           view={view}
           spots={spots}
           selectedSpotId={selected?.id ?? null}
@@ -582,7 +574,9 @@ export function MapPage() {
             setSearch(value);
             setSelectedSpotId(null);
           }}
-        />
+          />
+        }
+      >
         <div className="mp-sheet">
           <div className="mp-handle" aria-hidden="true" />
           <div className="mp-switch" role="group" aria-label="지도 보기 전환">
@@ -598,10 +592,7 @@ export function MapPage() {
               </button>
             ))}
           </div>
-          <fieldset
-            disabled={action.busy}
-            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
-          >
+          <fieldset className="mp-fieldset" disabled={action.busy}>
             {view === "spots" ? (
               spot ? (
                 <SpotSheet
@@ -611,7 +602,7 @@ export function MapPage() {
                   onFavorite={favorite}
                 />
               ) : (
-                <div className="mp-card">
+                <div className="pd-card">
                   {places.loading ? "장소 조회 중" : "검색 결과 없음"}
                 </div>
               )
@@ -619,7 +610,7 @@ export function MapPage() {
               <CourseSheet onSave={save} />
             )}
             <p
-              className="mp-note"
+              className="pd-note"
               role={
                 action.error ||
                 savedPlan.error ||
@@ -642,7 +633,7 @@ export function MapPage() {
                 ? `경로 미계산: ${routeReasonsText(session.route.reason_codes)}`
                 : ""}
             </p>
-            <div className="mp-slot mp-todo">
+            <div className="pd-slot mp-todo">
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -679,14 +670,14 @@ export function MapPage() {
                 <br />
                 <button
                   type="submit"
-                  className="mp-secondary"
+                  className="pd-secondary mp-action"
                   disabled={!session.planInput}
                 >
                   선택 코스 경로 계산
                 </button>
               </form>
             </div>
-            <div className="mp-slot mp-todo">
+            <div className="pd-slot mp-todo">
               <div>
                 <b>편의시설 필터</b>
                 <br />
@@ -696,9 +687,8 @@ export function MapPage() {
               </div>
             </div>
           </fieldset>
-          <AppTabBar active="map" />
         </div>
-      </div>
+      </AppShell>
     </article>
   );
 }

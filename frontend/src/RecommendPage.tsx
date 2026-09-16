@@ -9,7 +9,7 @@ import {
   StateChip,
   type IconName,
 } from "./pongdangUi";
-import { AppTabBar } from "./appTabBar";
+import { AppHeader, AppShell } from "./AppShell";
 import { useResource } from "./useResource";
 import { useAction } from "./useAction";
 import { useConditionDays } from "./useConditionDays";
@@ -128,7 +128,7 @@ const CHAT_TURNS: { question: string; replies: string[] }[] = [
 
 function ExampleNote({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rc-note">
+    <p className="pd-note">
       <StateChip kind="partial" /> {children}
     </p>
   );
@@ -148,26 +148,29 @@ function EntryStep({
   onTags: () => void;
 }) {
   return (
-    <>
-      <header className="rc-hero">
-        <div className="rc-sbar">
-          <span>{timeLabel(new Date().toISOString())}</span>
-          <span className="rc-sbar-mark">추천</span>
-          <span>강릉</span>
-        </div>
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title="강릉"
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
         <div className="rc-hero-inner">
-          <p className="rc-lbl">{TODAY_LABEL} · 오늘 조건 반영</p>
+          <p className="pd-lbl">{TODAY_LABEL} · 오늘 조건 반영</p>
           <h1 className="rc-hero-title">
             취향에 맞는 일정을
             <br />
             만들어 드릴까요?
           </h1>
         </div>
-      </header>
-      <div className="rc-body">
-        <div className="rc-card">
+        </header>
+      }
+    >
+        <div className="pd-card">
           <div className="rc-card-top">
-            <div className="rc-card-title">내 취향</div>
+            <div className="pd-card-title">내 취향</div>
             <StateChip kind="uncollected" />
           </div>
           <div className="rc-tags">
@@ -201,23 +204,23 @@ function EntryStep({
               <div className="rc-fact-value">자동차 기본</div>
             </div>
           </div>
-          <p className="rc-note">
+          <p className="pd-note">
             선택한 태그는 이번 추천에 반영합니다. 취향 확정 버튼으로 저장하며,
             동행과 이동은 대화 답변으로 변경할 수 있습니다.
           </p>
         </div>
 
-        <div className="rc-card">
+        <div className="pd-card">
           <AiSuggestion
             headline="질문 3개 · 30초"
             basis={
               "실제 장소 카탈로그와 선택한 취향·날짜를 비교하고 확인되지 않은 환경 조건을 함께 표시합니다."
             }
           />
-          <div className="rc-card-title" style={{ marginTop: 10 }}>
+          <div className="pd-card-title rc-sub-title">
             일정 추천받기
           </div>
-          <div className="rc-stack" style={{ marginTop: 12 }}>
+          <div className="rc-stack">
             <button type="button" className="rc-primary" onClick={onChat}>
               대화로 추천받기 →
             </button>
@@ -225,14 +228,12 @@ function EntryStep({
               태그로 바로 받기
             </button>
           </div>
-          <p className="rc-note">
+          <p className="pd-note">
             추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 지도에서
             출발지를 고른 뒤 별도로 요청합니다.
           </p>
         </div>
-        <AppTabBar active="recommend" />
-      </div>
-    </>
+    </AppShell>
   );
 }
 
@@ -269,18 +270,20 @@ function TasteStep({
   const grade = gradeOf(card.score);
 
   return (
-    <>
-      <header className="rc-hero">
-        <div className="rc-sbar">
-          <span>{timeLabel(new Date().toISOString())}</span>
-          <span className="rc-sbar-mark">MY TASTE</span>
-          <span>STEP {tasteStep} / 3</span>
-        </div>
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title={`STEP ${tasteStep} / 3`}
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack}>
             ← 추천 처음으로
           </button>
-          <p className="rc-lbl" style={{ marginTop: 6 }}>
+          <p className="pd-lbl rc-hero-lbl">
             STEP {tasteStep} ·{" "}
             {tasteStep === 1 ? "태그" : tasteStep === 2 ? "활동 카드" : "요약"}
           </p>
@@ -297,15 +300,15 @@ function TasteStep({
             <span className={tasteStep >= 3 ? "is-on" : ""} />
           </div>
         </div>
-      </header>
-
-      <div className="rc-body">
+        </header>
+      }
+    >
         {tasteStep === 1 && (
           <>
-            <div className="rc-card">
+            <div className="pd-card">
               {TAG_GROUPS.map((group) => (
                 <div key={group.label}>
-                  <p className="rc-lbl" style={{ marginTop: 14 }}>
+                  <p className="pd-lbl rc-group-lbl">
                     {group.label}
                   </p>
                   <div className="rc-tags">
@@ -345,8 +348,8 @@ function TasteStep({
 
         {tasteStep === 2 && (
           <>
-            <div className="rc-card">
-              <div className="rc-slot rc-photo-slot">
+            <div className="pd-card">
+              <div className="pd-slot rc-photo-slot">
                 활동 사진 영역
                 <br />
                 (에셋 미확보 · 별도 작업)
@@ -356,7 +359,7 @@ function TasteStep({
                 <GradeChip score={card.score} />
               </div>
               <div className="rc-stop-place">{card.place}</div>
-              <p className="rc-note">
+              <p className="pd-note">
                 장소 선택 전 점수 {card.score === null ? "–" : card.score} ·{" "}
                 {grade.label}
                 {card.score === null &&
@@ -370,7 +373,7 @@ function TasteStep({
                   좋아요
                 </button>
               </div>
-              <p className="rc-note">
+              <p className="pd-note">
                 {Math.min(cardIndex + 1, SWIPE_CARDS.length)} /{" "}
                 {SWIPE_CARDS.length}
                 번째 카드입니다. <StateChip kind="partial" />
@@ -388,11 +391,11 @@ function TasteStep({
 
         {tasteStep === 3 && (
           <>
-            <div className="rc-card">
-              <div className="rc-card-title">좋아요 한 활동</div>
+            <div className="pd-card">
+              <div className="pd-card-title">좋아요 한 활동</div>
               <div className="rc-liked-list">
                 {liked.length === 0 ? (
-                  <p className="rc-note" style={{ margin: 0 }}>
+                  <p className="pd-note rc-note-flush">
                     좋아요 한 활동이 없습니다. 선택 없이도 다음으로 갈 수
                     있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.
                   </p>
@@ -404,12 +407,12 @@ function TasteStep({
                   ))
                 )}
               </div>
-              <div className="rc-card-title" style={{ marginTop: 14 }}>
+              <div className="pd-card-title rc-group-title">
                 고른 태그
               </div>
               <div className="rc-liked-list">
                 {tags.length === 0 ? (
-                  <p className="rc-note" style={{ margin: 0 }}>
+                  <p className="pd-note rc-note-flush">
                     고른 태그가 없습니다.
                   </p>
                 ) : (
@@ -439,9 +442,7 @@ function TasteStep({
             </div>
           </>
         )}
-        <AppTabBar active="recommend" />
-      </div>
-    </>
+    </AppShell>
   );
 }
 
@@ -481,13 +482,15 @@ function ChatStep({
     { name: "수질", value: "–" },
   ];
   return (
-    <>
-      <header className="rc-hero">
-        <div className="rc-sbar">
-          <span>{timeLabel(new Date().toISOString())}</span>
-          <span className="rc-sbar-mark">CONCIERGE</span>
-          <span>강릉</span>
-        </div>
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title="강릉"
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
         <div className="rc-bot-head">
           <span className="rc-bot-avatar">
             <Icon name="sparkle" size={21} />
@@ -505,9 +508,9 @@ function ChatStep({
             ← 추천 처음으로
           </button>
         </div>
-      </header>
-
-      <div className="rc-body">
+        </header>
+      }
+    >
         <div className="rc-chat">
           {CHAT_TURNS.slice(0, Math.min(turn + 1, CHAT_TURNS.length)).map(
             (item, index) => (
@@ -516,10 +519,7 @@ function ChatStep({
                   <div className="rc-bubble">{item.question}</div>
                 </div>
                 {answers[index] && (
-                  <div
-                    className="rc-bubble-row is-user"
-                    style={{ marginTop: 10 }}
-                  >
+                  <div className="rc-bubble-row is-user">
                     <div className="rc-bubble is-user">{answers[index]}</div>
                   </div>
                 )}
@@ -545,7 +545,7 @@ function ChatStep({
           <>
             {/* 4번째 턴에서 근거 카드를 노출합니다. 추천 문장과 같은 카드
                 안에 사용 지표 · 시각 · 출처가 함께 있어야 합니다. */}
-            <div className="rc-card">
+            <div className="pd-card">
               <AiSuggestion
                 headline="답변을 반영한 추천"
                 basis={
@@ -566,11 +566,11 @@ function ChatStep({
                   </span>
                 </div>
               ))}
-              <p className="rc-note">
+              <p className="pd-note">
                 첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
                 순서는 취향 일치 기준이며 안전 점수가 아닙니다.
               </p>
-              <ConditionScoreDetails data={conditions.data} className="rc-note" />
+              <ConditionScoreDetails data={conditions.data} className="pd-note" />
             </div>
             <div className="rc-stack">
               <button type="button" className="rc-primary" onClick={onDone}>
@@ -582,9 +582,7 @@ function ChatStep({
             </div>
           </>
         )}
-        <AppTabBar active="recommend" />
-      </div>
-    </>
+    </AppShell>
   );
 }
 
@@ -624,8 +622,8 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
           <span className="rc-basis-chip">{stop.basisChip}</span>
           <StateChip kind={conditions.data?.condition_score?.status === "evaluated" ? "live" : "partial"} />
         </div>
-        <p className="rc-note">{dateLabel(stop.at)} {timeLabel(stop.at)} KST 예보 · {targetValid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
-        <ConditionScoreDetails data={conditions.data} className="rc-note" />
+        <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} KST 예보 · {targetValid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
+        <ConditionScoreDetails data={conditions.data} className="pd-note" />
       </div>
     </div>
   );
@@ -692,26 +690,28 @@ function CourseStep({
   const hasForecast = stops.length > 0;
 
   return (
-    <>
-      <header className="rc-hero">
-        <div className="rc-sbar">
-          <span>{timeLabel(new Date().toISOString())}</span>
-          <span className="rc-sbar-mark">MY COURSE</span>
-          <span>강릉</span>
-        </div>
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title="강릉"
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack}>
             ← 추천 처음으로
           </button>
-          <div className="rc-hero-row" style={{ marginTop: 6 }}>
+          <div className="rc-hero-row">
             <div>
-              <p className="rc-lbl">
+              <p className="pd-lbl">
                 {session.plan?.request.dates.join(" · ") ?? day.dateLabel}
               </p>
               <h1 className="rc-hero-title">선택한 물 코스</h1>
             </div>
-            <div style={{ textAlign: "right", flex: "none" }}>
-              <div className="rc-num rc-hero-score-num">
+            <div className="rc-hero-score">
+              <div className="pd-num rc-hero-score-num">
                 {firstScore ?? "–"}
               </div>
               <GradeChip score={firstScore} glass bare />
@@ -747,34 +747,32 @@ function CourseStep({
             {conditionScoreText(firstConditions.data)} {firstConditions.error}
           </p>
         </div>
-      </header>
-
-      <div className="rc-body">
+        </header>
+      }
+    >
         {!hasForecast ? (
           /* 예보가 없는 날에는 코스를 만들지 않습니다. 없는 근거로 일정을
              지어내지 않고 빈 상태만 보여주며, 공유 · 저장 · 대안 행은
              숨깁니다. */
           <>
-            <div className="rc-card rc-empty">
+            <div className="pd-card rc-empty">
               <span className="rc-empty-icon">
                 <GradeIcon gradeKey="unscored" size={28} />
               </span>
               <div className="rc-empty-title">추천 장소가 없습니다</div>
-              <p className="rc-note">
+              <p className="pd-note">
                 <StateChip kind="no_data" />{" "}
                 {statusText ||
                   "선택한 조건에 맞는 후보가 없습니다. 취향이나 날짜를 바꿔 다시 조회해 주세요."}
               </p>
               <button
                 type="button"
-                className="rc-secondary"
-                style={{ marginTop: 14 }}
+                className="rc-secondary rc-empty-cta"
                 onClick={() => setDayIndex(0)}
               >
                 오늘 다시 조회 →
               </button>
             </div>
-            <AppTabBar active="recommend" />
           </>
         ) : (
           <>
@@ -791,23 +789,23 @@ function CourseStep({
               KST. 환경 미확인 조건은 각 후보에서 확인하세요.
             </p>
 
-            <div className="rc-card rc-timeline">
+            <div className="pd-card rc-timeline">
               {stops.map((stop, index) => <CourseStop key={`${stop.spotId}:${stop.at}:${index}`} stop={stop} activity={activity} />)}
             </div>
 
-            <div className="rc-card">
-              <div className="rc-card-title">조건이 바뀌면 어떻게 하나요?</div>
-              <p className="rc-note">
+            <div className="pd-card">
+              <div className="pd-card-title">조건이 바뀌면 어떻게 하나요?</div>
+              <p className="pd-note">
                 다시 조회할 때 최신 환경 근거와 같은 취향을 비교합니다. 장소
                 추천은 안전 판정이 아니며, 새 후보는 확인 후 적용합니다.
               </p>
               {altOpen && (
-                <p className="rc-note">
+                <p className="pd-note">
                   새 후보를 조회해도 기존 저장 코스는 유지됩니다. 대안 적용 시
                   서버가 최신 제한과 일정 충돌을 다시 확인합니다.
                 </p>
               )}
-              <div className="rc-stack" style={{ marginTop: 10 }}>
+              <div className="rc-stack">
                 <button
                   type="button"
                   className="rc-secondary"
@@ -844,15 +842,13 @@ function CourseStep({
                 {saved ? "저장됨" : "내 코스에 저장"}
               </button>
             </div>
-            <p className="rc-note" style={{ marginTop: 0 }}>
+            <p className="pd-note rc-note-flush-top">
               <StateChip kind="live" /> {statusText} 장소 후보 순서는 이동
               경로가 아닙니다. 실제 경로는 지도에서 요청하세요.
             </p>
-            <AppTabBar active="recommend" />
           </>
         )}
-      </div>
-    </>
+    </AppShell>
   );
 }
 
@@ -890,18 +886,20 @@ function RealertStep({
       .join(" · ") ||
     "기존 후보 없음";
   return (
-    <>
-      <header className="rc-hero">
-        <div className="rc-sbar">
-          <span>{timeLabel(new Date().toISOString())}</span>
-          <span className="rc-sbar-mark">UPDATE</span>
-          <span>강릉</span>
-        </div>
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title="강릉"
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack}>
             ← 코스로 돌아가기
           </button>
-          <p className="rc-lbl" style={{ marginTop: 6 }}>
+          <p className="pd-lbl rc-hero-lbl">
             최신 조건 조회 · {timeLabel(proposal?.queried_at)}
           </p>
           <h1 className="rc-hero-title">
@@ -916,7 +914,7 @@ function RealertStep({
             <span className="rc-change-scores">
               <span className="rc-change-from">{previousScore ?? "–"}</span>
               <span aria-hidden="true">→</span>
-              <span className="rc-num rc-change-to">{nextScore ?? "–"}</span>
+              <span className="pd-num rc-change-to">{nextScore ?? "–"}</span>
               <GradeChip score={nextScore} glass bare />
             </span>
           </div>
@@ -925,9 +923,10 @@ function RealertStep({
             확보한 분야가 다르면 점수를 직접 비교할 수 없습니다.
           </p>
         </div>
-      </header>
-      <div className="rc-body">
-        <div className="rc-card rc-alert">
+        </header>
+      }
+    >
+        <div className="pd-card rc-alert">
           <div className="rc-alert-head">
             <Icon name="warning" size={15} />
             <span>일정 대안 확인</span>
@@ -937,7 +936,7 @@ function RealertStep({
               <div className="rc-swap-when">기존</div>
               <div className="rc-swap-what">{previous}</div>
               <GradeChip score={previousScore} />
-              <p className="rc-note">{conditionScoreText(previousConditions.data)} {previousConditions.error}</p>
+              <p className="pd-note">{conditionScoreText(previousConditions.data)} {previousConditions.error}</p>
             </div>
             <span aria-hidden="true">→</span>
             <div className="rc-swap-col">
@@ -948,14 +947,14 @@ function RealertStep({
                   .join(" · ") || "새 후보 없음"}
               </div>
               <GradeChip score={nextScore} />
-              <p className="rc-note">{conditionScoreText(nextConditions.data)} {nextConditions.error}</p>
+              <p className="pd-note">{conditionScoreText(nextConditions.data)} {nextConditions.error}</p>
             </div>
           </div>
-          <p className="rc-note">
+          <p className="pd-note">
             {proposal?.recommendations.map((item) => item.reason).join(" ") ||
               proposal?.clarification}
           </p>
-          <div className="rc-actions" style={{ marginTop: 12 }}>
+          <div className="rc-actions">
             <button type="button" className="rc-secondary" onClick={onBack}>
               그대로 두기
             </button>
@@ -969,9 +968,7 @@ function RealertStep({
             </button>
           </div>
         </div>
-        <AppTabBar active="recommend" />
-      </div>
-    </>
+    </AppShell>
   );
 }
 
@@ -1260,12 +1257,8 @@ function RecommendScreen() {
           session.recommendation?.status ??
           ""));
   return (
-    <article className="recommend-page">
-      <div className="rc-frame" aria-busy={action.busy}>
-        <fieldset
-          disabled={action.busy}
-          style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
-        >
+    <article className="recommend-page" aria-busy={action.busy}>
+      <fieldset className="rc-fieldset" disabled={action.busy}>
           {step === "entry" && (
             <EntryStep
               tags={selectedTags}
@@ -1347,14 +1340,16 @@ function RecommendScreen() {
           requestedPlan.loading ||
           requestedPlan.error ||
           (step === "entry" && profile.error)) && (
-          <p className="rc-note" role={action.error ? "alert" : "status"}>
+          <p
+            className={"rc-status" + (action.error ? " is-error" : "")}
+            role={action.error ? "alert" : "status"}
+          >
             {status ||
               (requestedPlan.loading
                 ? "저장 상세를 불러오는 중입니다."
                 : profile.error)}
           </p>
         )}
-      </div>
     </article>
   );
 }
