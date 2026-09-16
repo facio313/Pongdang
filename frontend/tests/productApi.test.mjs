@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calendarDays, conditionPath, metricText, qualityValues, qualityGrade, kstDate } from '../src/productData.ts';
+import { calendarDays, conditionPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription } from '../src/productData.ts';
 import { travelJson, recommendationPlan, selectedActivities, directionLink } from '../src/travelApi.ts';
 
 test('product dates use KST, including midnight and year boundaries', () => {
@@ -52,4 +52,30 @@ test('server-selected context displays wave and zero rainfall without scoring ra
   assert.equal(metricText(data, 'wave_height'), '0.4m');
   assert.equal(metricText(data, 'precipitation'), '0mm/1h');
   assert.equal(metricText({ ...data, display_metrics: data.display_metrics.map(m => ({ ...m, status: 'conflict' })) }, 'precipitation'), '–');
+});
+
+test('water quality always labels historical station samples and never fills invalid grades', () => {
+  const data = { status: 'historical', grade: 2, label: '좋음', wqi: null, station_name: '강릉4', relation: 'nearby_station_context', distance_km: 1.94, observed_at: '2025-11-19T15:00:00Z', age_days: 300 };
+  assert.equal(waterQualityLabel(data), '2등급 · 과거');
+  assert.match(waterQualityDescription(data), /강릉4 관측소 1.9km · 2025-11-20 검사 · 300일 전 과거 자료/);
+  assert.match(waterQualityDescription(data), /오늘 해변의 수질·입수 안전 판정은 아닙니다/);
+  for (const grade of [0, 6, NaN, 2.5, null]) assert.equal(waterQualityLabel({ ...data, grade }), '검사 자료 없음');
+  assert.equal(waterQualityLabel({ ...data, status: 'conflict' }), '자료 상충');
+  assert.equal(waterQualityLabel({ ...data, grade: null, status: 'unsupported' }), '평가 기준 없음');
+  assert.equal(waterQualityLabel(undefined), '검사 자료 없음');
+});
+
+test('forecast display preserves rainfall categories and maximum wave labels', () => {
+  const rainfall = { state: 'recorded', numeric_value: null, text_value: 'PCP=강수없음', unit: 'mm/1h' };
+  assert.equal(forecastInputText(rainfall, 'available'), 'PCP=강수없음');
+  assert.equal(forecastInputText({ ...rainfall, numeric_value: 0 }, 'available'), '0mm/1h');
+  assert.equal(forecastInputText(rainfall, 'stale'), '–');
+  assert.equal(forecastInputText({ ...rainfall, state: 'missing' }, 'available'), '–');
+  const data = { metrics: [], display_metrics: [
+    { name: 'precipitation', status: 'text', value: null, text_value: '1.0mm 미만', unit: 'mm/1h' },
+    { name: 'maximum_wave_height', status: 'provisional', value: 0.4, unit: 'm' },
+  ] };
+  assert.equal(metricText(data, 'precipitation'), '1.0mm 미만');
+  assert.equal(metricText(data, 'wave_height'), '최대 0.4m');
+  assert.equal(metricText({ ...data, metrics: [{ name: 'wave_height', status: 'conflict', value: null, unit: 'm' }] }, 'wave_height'), '–');
 });

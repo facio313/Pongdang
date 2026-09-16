@@ -5,6 +5,8 @@ import { AppTabBar } from "./appTabBar";
 import { useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import { useProductData } from "./useProductData";
+import { WaterQualityDetails } from "./WaterQualityDetails";
+import { HourlyConditions } from "./HourlyConditions";
 import {
   dateLabel,
   conditionScore,
@@ -13,10 +15,9 @@ import {
   timeLabel,
   metricText,
   evidenceText,
-  qualityGrade,
+  waterQualityLabel,
   type Conditions,
-  type QualityRow,
-  type RowPage,
+  type WaterQualityGrade,
 } from "./productData";
 import { newWebcamShuffleSeed } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
@@ -77,9 +78,12 @@ function Hero({
         </div>
 
         <div className="hm-slot is-on-cobalt hm-hero-visual">
-          파도 · 날씨 애니메이션 시각화 영역
-          <br />
-          (해 · 비 · 파고 종합, 위치 기반 · 별도 작업)
+          <div>
+            <div>{conditionModeLabel(conditions)} 기준 날씨와 바다</div>
+            <p>기온 {metricText(conditions, "air_temperature")} · 수온 {metricText(conditions, "water_temperature")}</p>
+            <p>파고 {metricText(conditions, "wave_height")} · 바람 {metricText(conditions, "wind_speed")}</p>
+            <p>1시간 강수량 {metricText(conditions, "precipitation")}</p>
+          </div>
         </div>
 
         <div className="hm-hero-row">
@@ -113,16 +117,24 @@ function GlanceCard({
   statusText,
   conditions,
   quality,
+  qualityData,
+  qualityError,
+  spotId,
+  now,
 }: {
   statusText: string;
   conditions?: Conditions;
   quality: string;
+  qualityData?: WaterQualityGrade;
+  qualityError?: string;
+  spotId?: number;
+  now: string;
 }) {
   const tiles = [
     { name: "수온", value: metricText(conditions, "water_temperature") },
     { name: "파고", value: metricText(conditions, "wave_height") },
     { name: "강수", value: metricText(conditions, "precipitation") },
-    { name: "수질", value: quality },
+    { name: "수질 · 최근 검사", value: quality },
   ];
   return (
     <div className="hm-card">
@@ -138,7 +150,8 @@ function GlanceCard({
           </div>
         ))}
       </div>
-      <div className="hm-slot hm-graph-slot">시간대별 그래프 (09–18시)</div>
+      <WaterQualityDetails data={qualityData} error={qualityError} className="hm-note" />
+      <HourlyConditions id={spotId} now={now} />
       <p className="hm-note">
         <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
         강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. {statusText}
@@ -298,9 +311,9 @@ function SideMenu({ onClose }: { onClose: () => void }) {
 
 function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { place, places, conditions, displayName, selectionMessage } = useProductData();
-  const quality = useResource<RowPage<QualityRow>>(
-    place ? `quality/comparisons?spot_id=${place.id}&page_size=100` : null,
+  const { now, place, places, conditions, displayName, selectionMessage } = useProductData();
+  const quality = useResource<WaterQualityGrade>(
+    place ? `quality/grade?spot_id=${place.id}` : null,
   );
 
   return (
@@ -314,8 +327,11 @@ function HomeScreen() {
         <div className="hm-body">
           <GlanceCard
             quality={quality.loading ? "조회 중" : quality.error ? "조회 실패"
-              : qualityGrade(quality.data?.rows ?? []) === "–" ? "공식 등급 없음"
-              : qualityGrade(quality.data?.rows ?? [])}
+              : waterQualityLabel(quality.data)}
+            qualityData={quality.data}
+            qualityError={quality.error}
+            spotId={place?.id}
+            now={now}
             conditions={conditions.data}
             statusText={
               places.error ??

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { travelJson } from "./travelApi";
+import { queueResourceRead } from "./resourceQueue";
 
 export function useResource<T>(path: string | null, revision = 0) {
   const origin = "data";
@@ -15,9 +16,9 @@ export function useResource<T>(path: string | null, revision = 0) {
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]);
     async function load() {
       try {
-        const payload = await travelJson<T>(
+        const payload = await queueResourceRead(signal, () => travelJson<T>(
           import.meta.env.BASE_URL, path!, "GET", undefined, signal,
-        );
+        ));
         if (!controller.signal.aborted) setResult({ key, data: payload });
       } catch (error) {
         if (!controller.signal.aborted)

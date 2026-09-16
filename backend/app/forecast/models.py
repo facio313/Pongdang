@@ -51,7 +51,11 @@ class ForecastView(ForecastRecord):
     available_at: AwareDatetime
     requested_spot_id: int = Field(gt=0)
     mapping_evidence_ref: str | None = Field(default=None, max_length=200)
-    spatial_relation: Literal["station_observation_point", "representative_station"]
+    spatial_relation: Literal[
+        "station_observation_point",
+        "representative_station",
+        "containing_forecast_grid",
+    ]
     state: Literal["stale", "partial", "available"]
     reason_codes: tuple[str, ...] = Field(max_length=100)
 

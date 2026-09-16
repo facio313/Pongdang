@@ -19,11 +19,16 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-tile-value").first()).toHaveText("21.3°C");
   await expect(page.locator(".hm-tile-value").nth(1)).toHaveText("0.4m");
   await expect(page.locator(".hm-tile-value").nth(2)).toHaveText("0mm/1h");
-  await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("공식 등급 없음");
+  await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("2등급 · 과거");
+  await expect(page.locator(".hm-body")).toContainText("300일 전 과거 자료");
+  await expect(page.locator(".hm-hero-visual")).toContainText("기온 24.7°C");
+  await expect(page.getByRole("table", { name: "오늘 시간대별 수집 예보" })).toBeVisible();
   await page.getByRole("link", { name: "오늘", exact: true }).click();
   await expect(page.locator(".td-hero-score-num")).toHaveText(String(conditions.condition_score.score));
   await expect(page.locator(".td-hero-note")).toContainText("대표 관측소");
   await expect(page.locator(".td-tile-value").nth(2)).toHaveText("21.3°C");
+  await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
+  await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
   await expect(page.locator(".td-act")).toHaveCount(6);
   await page.getByText("수영 분야별 근거 확인", { exact: true }).click();
   const activityDetails = page.locator("details").filter({ has: page.getByText("수영 분야별 근거 확인", { exact: true }) });
@@ -76,7 +81,8 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   await page.route("**/api/data/water-index/conditions?**", async (route) => {
     const url = new URL(route.request().url());
     const mode = url.searchParams.get("mode");
-    if (mode === "forecast") forecasts++;
+    // Fixed-hour forecast rows are independent from the hero's fallback.
+    if (mode === "forecast" && url.searchParams.get("at")?.endsWith("Z")) forecasts++;
     await route.fulfill({ json: {
       spot_id: Number(url.searchParams.get("spot_id")), activity: url.searchParams.get("activity"),
       place_name: "OFFLINE TEST", mode, at: url.searchParams.get("at") ?? new Date().toISOString(),
@@ -174,6 +180,10 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   let release!: () => void;
   const refresh = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/api/data/water-index/conditions?**", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("mode") === "forecast") {
+      await route.continue();
+      return;
+    }
     const number = ++requests;
     if (number > 1) await refresh;
     await route.fulfill({ json: {

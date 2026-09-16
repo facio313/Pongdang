@@ -8,7 +8,7 @@ import {
   type RowPage,
   type Forecast,
   type TideResult,
-  type QualityRow,
+  type WaterQualityGrade,
 } from "./productData";
 export interface DefaultPlaceSelection {
   place: ClassifiedWaterPlace | null;
@@ -34,8 +34,8 @@ export function useTodayData(id: number | undefined, now: string) {
     periodPath("water-forecast/forecasts", id, now),
   );
   const tides = useResource<TideResult>(periodPath("tides/events", id, now, 2));
-  const quality = useResource<RowPage<QualityRow>>(
-    id ? `quality/comparisons?spot_id=${id}&page_size=100` : null,
+  const quality = useResource<WaterQualityGrade>(
+    id ? `quality/grade?spot_id=${id}` : null,
   );
   return { forecasts, tides, quality };
 }

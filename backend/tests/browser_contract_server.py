@@ -11,7 +11,7 @@ from test_condition_score_integration import ACTIVITIES, source, station
 from test_travel_keywords_routes import RoutesFixture
 
 from app.config import Settings
-from app.ingestion.models import Place, SourceBatch, Value
+from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
@@ -97,6 +97,37 @@ def test_app():
                     valid_until=now + timedelta(days=1),
                 )
             ]
+        ),
+    )
+    # Historical lab evidence tests the public read path; never loaded by app startup.
+    lab = Station(
+        source_id="browser-quality",
+        name="OFFLINE TEST 수질 관측소",
+        kind="marine_water_quality",
+        latitude=37.801,
+        longitude=128.901,
+    )
+    store_batch(
+        settings,
+        SourceBatch(
+            provider="koem_water_quality",
+            fetched_at=now,
+            readings=[
+                Reading(
+                    source_id="browser-quality-sample",
+                    station=lab,
+                    observed_at=now - timedelta(days=300),
+                    valid_until=now - timedelta(days=299),
+                    spatial_scope="OFFLINE TEST lab sample",
+                    values=[
+                        Value(
+                            name="official_wqi_grade", numeric_value=2, text_value="2"
+                        ),
+                        Value(name="water_layer", text_value="surface"),
+                        Value(name="ph", numeric_value=8.1),
+                    ],
+                )
+            ],
         ),
     )
     routing.KakaoDirections = lambda *_: RoutesFixture()

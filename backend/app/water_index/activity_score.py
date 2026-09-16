@@ -314,7 +314,15 @@ def _provisional_value(metric: ConditionMetric, evidence: ConditionsEnvelope):
         return None, ("conflicting_measurement_evidence",)
     value = sources[0].numeric_value
     if (
-        metric.name in {"wind_speed", "wave_height", "wave_period", "precipitation"}
+        metric.name
+        in {
+            "wind_speed",
+            "wave_height",
+            "maximum_wind_speed",
+            "maximum_wave_height",
+            "wave_period",
+            "precipitation",
+        }
         and value < 0
     ):
         return None, ("measurement_out_of_domain",)

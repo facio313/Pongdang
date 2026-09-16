@@ -6,6 +6,7 @@ from pydantic import AwareDatetime, field_validator
 
 from app.data_reader import DataReader
 from app.forecast.storage import select_forecasts
+from app.tides.context import mark_context, nearby_tide_station
 from app.tides.models import TideEnvelope, WindowEnvelope
 from app.tides.service import tide_event
 from app.tides.storage import read_windows
@@ -58,9 +59,26 @@ def create_tides_router(settings):
                 page_size=query.page_size,
                 provider="khoa_tide_extrema",
             )
+            station = None
+            source_spot = query.spot_id
+            if selected["status"] == "no_forecast_data":
+                station = await nearby_tide_station(c, query.spot_id, as_of)
+                if station:
+                    source_spot = station["spot_id"]
+                    selected = await select_forecasts(
+                        c,
+                        spot_id=source_spot,
+                        as_of=as_of,
+                        from_at=query.from_at,
+                        until_at=query.until_at,
+                        activity=query.activity,
+                        page=query.page,
+                        page_size=query.page_size,
+                        provider="khoa_tide_extrema",
+                    )
             future = await select_forecasts(
                 c,
-                spot_id=query.spot_id,
+                spot_id=source_spot,
                 as_of=as_of,
                 from_at=reference,
                 until_at=query.until_at,
@@ -69,6 +87,9 @@ def create_tides_router(settings):
                 page_size=100,
                 provider="khoa_tide_extrema",
             )
+            if station:
+                mark_context(selected, station, query.spot_id)
+                mark_context(future, station, query.spot_id)
         rows = [tide_event(f, reference) for f in selected["rows"]]
         next_events = [tide_event(f, reference) for f in future["rows"]]
         next_events = [

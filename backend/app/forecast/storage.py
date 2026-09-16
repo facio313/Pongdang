@@ -7,6 +7,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from app.ingestion.errors import SourceScopeTooLargeError
+from app.ingestion.weather import grid_coordinates
 from app.schema import connect
 from app.water_index.adapters import input_from_records
 from app.water_index.sources import stable_id
@@ -187,12 +188,24 @@ async def select_forecasts(
     """Select one immutable revision per source as known at the requested cutoff."""
     from fastapi import HTTPException
 
-    if not await (
+    place = await (
         await connection.execute(
-            "SELECT id FROM pongdang_data.spots_waterspot WHERE id=%s", [spot_id]
+            "SELECT id,lat,lng,catalog_verified_at "
+            "FROM pongdang_data.spots_waterspot WHERE id=%s",
+            [spot_id],
         )
-    ).fetchone():
+    ).fetchone()
+    if not place:
         raise HTTPException(404, "등록된 장소가 없습니다.")
+    grid_id = None
+    if (
+        place["lat"] is not None
+        and place["lng"] is not None
+        and place["catalog_verified_at"] is not None
+        and place["catalog_verified_at"] <= as_of
+    ):
+        nx, ny = grid_coordinates(place["lat"], place["lng"])
+        grid_id = f"kma-grid-{nx}-{ny}"
     query = (
         "WITH latest AS (SELECT DISTINCT ON (f.source_key) f.* "
         "FROM pongdang_data.forecast_revision f WHERE f.available_at<=%(as_of)s "
@@ -202,7 +215,11 @@ async def select_forecasts(
         "AND m.valid_from<=f.target_start_at AND m.valid_until>=f.target_end_at "
         "AND m.payload->'activities' ? %(activity)s "
         "AND NOT EXISTS (SELECT 1 FROM pongdang_data.water_index_station_mapping n "
-        "WHERE n.supersedes_id=m.mapping_id AND n.available_at<=%(as_of)s))) "
+        "WHERE n.supersedes_id=m.mapping_id AND n.available_at<=%(as_of)s)) "
+        "OR (f.provider IN ('kma_short_forecast','kma_ultra_forecast') "
+        "AND EXISTS (SELECT 1 FROM pongdang_data.collection_station st "
+        "WHERE st.id=f.station_id AND st.kind='weather_forecast_grid' "
+        "AND st.source_id=%(grid_id)s AND st.fetched_at<=%(as_of)s))) "
         "AND (%(provider)s::text IS NULL OR f.provider=%(provider)s) "
         "AND (f.provider NOT IN ('khoa_beach','khoa_surfing','khoa_mudflat') "
         "OR f.provider=CASE %(activity)s WHEN 'swim' THEN 'khoa_beach' "
@@ -223,6 +240,7 @@ async def select_forecasts(
         "spot": spot_id,
         "activity": activity,
         "provider": provider,
+        "grid_id": grid_id,
         "from": from_at,
         "until": until_at,
         "limit": page_size,
@@ -273,6 +291,9 @@ async def select_forecasts(
         if missing:
             reasons.append("provider_value_missing")
         payload = record.model_dump(mode="json")
+        grid_context = record.spot_id != spot_id and not saved["mapping_evidence_ref"]
+        if grid_context:
+            reasons.append("containing_forecast_grid")
         payload.update(
             {
                 "revision_id": saved["revision_id"],
@@ -284,6 +305,8 @@ async def select_forecasts(
                 "mapping_evidence_ref": saved["mapping_evidence_ref"],
                 "spatial_relation": "station_observation_point"
                 if record.spot_id == spot_id
+                else "containing_forecast_grid"
+                if grid_context
                 else "representative_station",
             }
         )

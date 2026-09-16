@@ -17,7 +17,10 @@ class TideEvent(Record):
     station_id: int = Field(gt=0)
     station_code: str
     station_name: str
-    spatial_relation: Literal["station_observation_point", "representative_station"]
+    spatial_relation: Literal[
+        "station_observation_point", "representative_station", "nearby_station_context"
+    ]
+    distance_km: float | None = Field(default=None, ge=0, le=50)
     mapping_evidence_ref: str | None = Field(default=None, max_length=200)
     spatial_scope: str
     provider: str

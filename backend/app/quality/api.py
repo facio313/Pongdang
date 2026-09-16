@@ -10,6 +10,8 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from app.auth import Principal, require_principal
 from app.data_reader import DataReader
+from app.quality.grade_reader import read_grade
+from app.quality.grading import QualityGradeEnvelope
 from app.quality.models import (
     ComparisonEnvelope,
     ObservationInput,
@@ -33,12 +35,26 @@ class QualityQuery(BaseModel):
     page_size: int = Field(default=25, ge=1, le=100)
 
 
+class GradeQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    spot_id: int = Field(gt=0)
+
+
 def create_router(settings):
     router = APIRouter(
         prefix="/api/data/quality", tags=["water-quality"], route_class=WaterIndexRoute
     )
     reader = DataReader(settings)
     auth = require_principal(settings)
+
+    @router.get("/grade", response_model=QualityGradeEnvelope)
+    async def grade(request: Request, query: Annotated[GradeQuery, Query()]):
+        if len(request.query_params) != len(request.query_params.multi_items()):
+            return error_response(
+                422, "invalid_request", "수질 조회 조건이 올바르지 않습니다."
+            )
+        async with reader.connection() as connection:
+            return await read_grade(connection, query.spot_id, datetime.now(UTC))
 
     @router.get("/comparisons", response_model=ComparisonEnvelope)
     async def comparisons(request: Request, query: Annotated[QualityQuery, Query()]):

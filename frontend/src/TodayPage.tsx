@@ -6,6 +6,7 @@ import { useProductData, useTodayData } from "./useProductData";
 import { useConditionDays } from "./useConditionDays";
 import { useConditions } from "./useConditions";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
+import { WaterQualityDetails } from "./WaterQualityDetails";
 import {
   conditionScore,
   conditionScoreText,
@@ -13,16 +14,15 @@ import {
   periodPath,
   dateLabel,
   timeLabel,
-  formatValue,
+  forecastInputText,
   metricText,
   evidenceText,
-  qualityGrade,
-  qualityValues,
+  waterQualityLabel,
   type Place,
   type Conditions,
   type Forecast,
   type TideResult,
-  type QualityRow,
+  type WaterQualityGrade,
 } from "./productData";
 import { AppTabBar } from "./appTabBar";
 import "./todayPage.css";
@@ -320,7 +320,7 @@ function Hero({
           <div className="td-tile is-empty">
             <Icon name="quality" size={17} className="td-tile-icon" />
             <div className="td-num td-tile-value">{quality}</div>
-            <div className="td-tile-name">수질</div>
+            <div className="td-tile-name">수질 · 최근 검사</div>
           </div>
         </div>
         <p className="td-hero-note">
@@ -569,7 +569,7 @@ function ForecastSection({
         <p className="td-note">
           {selected.score !== null
             ? "점수는 위 상세의 관측소·격자 예보 근거로 계산했습니다."
-            : status === "no_forecast_data" ? "장소에 직접 연결된 예보 목록 없음." : status}{" "}
+            : status === "no_forecast_data" ? "연결된 관측소·격자 예보 없음." : status}{" "}
           {rows
             .filter(
               (row) =>
@@ -580,10 +580,10 @@ function ForecastSection({
             )
             .map(
               (row) =>
-                `${row.station_name} · ${row.provider} · ${timeLabel(row.target_start_at)} · ${row.state} · ${row.inputs.map((input) => `${input.name}: ${["current", "recorded"].includes(input.state) && row.state !== "stale" ? formatValue(input.numeric_value, input.unit ?? "") : "–"}`).join(" / ")}`,
+                `${row.station_name} · ${row.provider} · ${timeLabel(row.target_start_at)} · ${row.state} · ${row.inputs.map((input) => `${input.name}: ${forecastInputText(input, row.state)}`).join(" / ")}`,
             )
-            .join(" / ") || "장소에 직접 연결된 예보 목록(첫 100건)에는 선택 날짜의 자료가 없습니다."}{" "}
-          직접 연결된 목록은 첫 100건입니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한
+            .join(" / ") || "예보 목록(첫 100건)에는 선택 날짜의 자료가 없습니다."}{" "}
+          관측소·해당 기상 격자의 목록은 첫 100건입니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한
           수집 예보로 계산합니다. 해당 시각의 근거가 없으면 –입니다.
         </p>
       </div>
@@ -676,7 +676,10 @@ function TideSection({
         <p className="td-note">
           <StateChip kind={tides?.rows.length ? "live" : "no_data"} /> {status}{" "}
           공식 조석 예측의 간조·만조 시각입니다. 사건 시각만으로 현재 조류나
-          활동 적합 여부를 판단하지 않습니다. {tides?.next_high?.station_name}
+          활동 적합 여부를 판단하지 않습니다.{" "}
+          {(tides?.next_high ?? tides?.next_low)?.station_name}{" "}
+          {(tides?.next_high ?? tides?.next_low)?.spatial_relation === "nearby_station_context" &&
+            `주변 관측소 참고 ${(tides?.next_high ?? tides?.next_low)?.distance_km?.toFixed(1)}km · 해당 해변의 직접 예측이 아닙니다.`}
         </p>
       </div>
     </section>
@@ -739,31 +742,18 @@ function FirstSwimSection({ id }: { id?: number }) {
 }
 
 function QualitySection({
-  rows,
-  status,
+  data,
+  error,
 }: {
-  rows: QualityRow[];
-  status: string;
+  data?: WaterQualityGrade;
+  error?: string;
 }) {
   return (
     <section>
-      <SectionHead label="수질 신뢰도" suffix="A8" />
+      <SectionHead label="수질 등급 · 최근 검사" suffix="A8" />
       <div className="td-card">
-        {qualityValues(rows).map((item) => (
-          <div className="td-conf-row" key={item.label}>
-            <span>
-              {item.label} {item.value}
-            </span>
-            <b className="td-conf-value" style={{ color: "#4a6d8c" }}>
-              신뢰도 {item.confidence?.toFixed(2) ?? "–"}
-            </b>
-          </div>
-        ))}
-        <p className="td-note">
-          <StateChip kind={rows.length ? "live" : "no_data"} /> {status} 공식
-          측정값만 표시하며, 충돌·시효 만료·자료 없음은 –로 남깁니다. 신뢰도
-          모델은 미검증입니다.
-        </p>
+        <div className="td-conf-row"><b>{error ? "조회 실패" : waterQualityLabel(data)}</b><span>{data?.label}</span></div>
+        <WaterQualityDetails data={data} error={error} className="td-note" />
       </div>
     </section>
   );
@@ -773,13 +763,13 @@ function UnlinkedAlert() {
   const items = [
     "공식 안전 판정 — 활동 조건 참고 점수와 별도 확인 필요",
     "첫 입수일·전년 비교 — 연속 관측 이력 확인 필요",
-    "수질 신뢰도 — 검증된 모델 없음",
+    "오늘의 해수욕장 위생 수질 — 최신 대장균·장구균 검사 필요",
   ];
   return (
     <div className="td-card td-alert" role="note">
       <div className="td-alert-head">
         <Icon name="warning" size={15} />
-        <span>아직 실연동되지 않은 항목</span>
+        <span>추가 근거가 필요한 항목</span>
       </div>
       <ul>
         {items.map((item) => (
@@ -801,7 +791,7 @@ function TodayScreen() {
     <article className="today-page">
       <div className="td-frame">
         <Hero
-          quality={qualityGrade(quality.data?.rows ?? [])}
+          quality={quality.loading ? "조회 중" : quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
           place={place}
           displayName={displayName}
           conditions={conditions.data}
@@ -840,13 +830,8 @@ function TodayScreen() {
           />
           <FirstSwimSection id={place?.id} />
           <QualitySection
-            rows={quality.data?.rows ?? []}
-            status={
-              quality.error ??
-              (quality.loading
-                ? "수질 조회 중"
-                : (quality.data?.status ?? "장소 선택 필요"))
-            }
+            data={quality.data}
+            error={quality.error}
           />
           <UnlinkedAlert />
           <AppTabBar active="today" />

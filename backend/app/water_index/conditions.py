@@ -24,6 +24,8 @@ MetricName = Literal[
     "relative_humidity",
     "wind_speed",
     "wave_height",
+    "maximum_wave_height",
+    "maximum_wind_speed",
     "wave_period",
     "precipitation",
     "river_level",
@@ -74,6 +76,13 @@ METRICS = {
         ),
         ("relative_humidity", "상대습도", "%", "제공기관의 상대습도입니다."),
         ("wind_speed", "풍속", "m/s", "제공기관의 풍속. 돌풍과 구분합니다."),
+        ("maximum_wind_speed", "최대 풍속", "m/s", "예보 구간의 최대 풍속입니다."),
+        (
+            "maximum_wave_height",
+            "최대 파고",
+            "m",
+            "예보 구간의 최대 파고입니다. 유의파고와 구분합니다.",
+        ),
         (
             "wave_height",
             "파고",
@@ -300,6 +309,13 @@ class ConditionMetric(Record):
         return self
 
 
+class DisplayMetric(ConditionMetric):
+    """Presentation value with explicit provisional or categorical provenance."""
+
+    status: Literal["available", "provisional", "text"]
+    text_value: str | None = None
+
+
 class ConditionsEnvelope(Record):
     contract_version: Literal["water-conditions.v1"] = CONTRACT
     model: ConditionModel = Field(default_factory=ConditionModel)
@@ -316,7 +332,7 @@ class ConditionsEnvelope(Record):
     condition_score: ActivityScore | None = None
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
     context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
-    display_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
+    display_metrics: Annotated[tuple[DisplayMetric, ...], Field(max_length=100)] = ()
     missing_metrics: tuple[MetricName, ...]
     required_evidence: tuple[str, ...]
     reason_codes: tuple[str, ...]

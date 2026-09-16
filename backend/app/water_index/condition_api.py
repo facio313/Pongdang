@@ -29,6 +29,7 @@ from app.water_index.conditions import (
     ConditionMetric,
     ConditionsEnvelope,
     Criterion,
+    DisplayMetric,
     ScoreEnvelope,
     SourceValue,
     calculate_conditions,
@@ -90,6 +91,8 @@ UNITS = {
     "relative_humidity": {"%"},
     "wind_speed": {"m/s"},
     "wave_height": {"m"},
+    "maximum_wave_height": {"m"},
+    "maximum_wind_speed": {"m/s"},
     "wave_period": {"s"},
     "precipitation": {"mm/1h"},
     "river_level": {"m"},
@@ -347,6 +350,12 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         allowed = set(metric_names)
     # Weather display is independent of the activity score components.
     requested = allowed | {"precipitation"}
+    if q.mode == "forecast":
+        requested |= {
+            f"maximum_{name}"
+            for name in ("wave_height", "wind_speed")
+            if name in allowed
+        }
     source_names = sorted(
         requested | {alias for alias, name in ALIASES.items() if name in requested}
     )
@@ -398,7 +407,9 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
                 "AND active.state<>'superseded' AND active.fetched_at<s.fetched_at) "
                 "AS revision_ambiguous,dense_rank() OVER (PARTITION BY "
                 "s.station_id,k.name ORDER BY COALESCE(m.observed_at,s.observed_at) "
-                "DESC) AS target_rank FROM revisions s JOIN slots k ON "
+                "DESC,CASE WHEN k.mode='forecast' AND s.provider IN "
+                "('kma_short_forecast','kma_ultra_forecast') THEN s.issued_at END "
+                "DESC NULLS LAST) AS target_rank FROM revisions s JOIN slots k ON "
                 "k.station_id=s.station_id AND k.provider=s.provider AND "
                 "k.source_key=COALESCE(s.source_record_id,s.provider_record_id) "
                 "LEFT JOIN pongdang_data.conditions_observationmetric m "
@@ -468,13 +479,26 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
     display = []
     for name in sorted(requested):
         candidates = [m for m in (*metrics, *context_metrics) if m.name == name]
-        selected, value, _ = select_metric(candidates, result)
-        if (
-            selected is not None
-            and selected.status == "available"
-            and value is not None
-        ):
-            display.append(selected)
+        selected, value, warnings = select_metric(candidates, result)
+        if selected is not None and value is not None:
+            display.append(
+                DisplayMetric(
+                    **{
+                        **selected.model_dump(),
+                        "value": value,
+                        "status": "available"
+                        if selected.status == "available"
+                        else "provisional",
+                        "reason_codes": warnings,
+                    }
+                )
+            )
+        elif name == "precipitation":
+            from app.water_index.precipitation_display import select_precipitation_text
+
+            text_metric = select_precipitation_text(candidates, result)
+            if text_metric:
+                display.append(text_metric)
     return result.model_copy(
         update={
             "condition_score": calculate_activity_score(result),

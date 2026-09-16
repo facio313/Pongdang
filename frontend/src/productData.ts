@@ -26,6 +26,7 @@ export interface Metric {
   unit: string;
   status: string;
   station_id: number;
+  text_value?: string | null;
   station_name: string | null;
   relation: string;
   spatial_scope: string | null;
@@ -159,6 +160,12 @@ export interface Forecast {
     state: string;
   }[];
 }
+export function forecastInputText(input: Forecast["inputs"][number], forecastState: string) {
+  if (forecastState === "stale" || !["current", "recorded"].includes(input.state)) return "–";
+  return input.numeric_value !== null
+    ? formatValue(input.numeric_value, input.unit ?? "")
+    : input.text_value?.trim() || "–";
+}
 export interface TideEvent {
   event_id: string;
   kind: string;
@@ -168,6 +175,8 @@ export interface TideEvent {
   station_name: string;
   state: string;
   provider: string;
+  spatial_relation?: string;
+  distance_km?: number | null;
 }
 export interface TideResult {
   rows: TideEvent[];
@@ -191,6 +200,33 @@ export interface QualityRow {
       sampled_at: string;
     }[];
   }[];
+}
+export interface WaterQualityGrade {
+  status: "available" | "historical" | "no_data" | "conflict" | "unsupported";
+  grade: number | null;
+  label: string | null;
+  wqi: number | null;
+  basis: "official_grade" | "official_wqi_index" | "none";
+  station_name: string | null;
+  relation: "station_observation_point" | "nearby_station_context" | null;
+  distance_km: number | null;
+  observed_at: string | null;
+  age_days: number | null;
+  method_version: string;
+  reason_codes: string[];
+  measurements: { item: string; value: number | null; unit: string | null; layer: string | null; is_missing: boolean }[];
+}
+export function waterQualityLabel(data?: WaterQualityGrade) {
+  return data?.grade != null && Number.isInteger(data.grade) && data.grade >= 1 && data.grade <= 5 && ["available", "historical"].includes(data.status)
+    ? `${data.grade}등급${data.status === "historical" ? " · 과거" : ""}`
+    : data?.status === "conflict" ? "자료 상충" : data?.status === "unsupported" ? "평가 기준 없음" : "검사 자료 없음";
+}
+export function waterQualityDescription(data?: WaterQualityGrade) {
+  if (!data) return "수질 검사 자료를 조회하고 있습니다.";
+  if (data.status === "unsupported") return "해양 WQI는 하천·계곡에 적용하지 않습니다. 이 장소의 별도 수질 평가 기준이 필요합니다.";
+  if (!data.station_name || !data.observed_at) return "10km 안에 수집된 해양 수질 검사 자료가 없습니다.";
+  const location = data.relation === "nearby_station_context" ? `주변 ${data.station_name} 관측소${data.distance_km != null ? ` ${data.distance_km.toFixed(1)}km` : ""}` : `${data.station_name} 관측소`;
+  return `${location} · ${kstDate(data.observed_at)} 검사${data.status === "historical" ? ` · ${data.age_days}일 전 과거 자료` : ""}. ${data.grade != null ? `${data.grade}등급 ${data.label ?? ""}` : "등급을 확인할 수 없습니다"}${data.wqi != null ? ` · WQI ${data.wqi}` : ""}. 해역의 생태 수질 등급이며 오늘 해변의 수질·입수 안전 판정은 아닙니다.`;
 }
 export type RowPage<T> = { rows: T[]; total: number; status?: string };
 export const kstDate = (value: Date | string = new Date()) =>
@@ -274,9 +310,13 @@ export function metricText(data: Conditions | undefined, name: string) {
   const item = metric(data, name);
   if (item) return formatValue(item.value, item.unit);
   const displayed = data?.display_metrics?.find((value) =>
-    value.name === name && value.status === "available" && value.value !== null,
+    value.name === name && ((["available", "provisional"].includes(value.status) && value.value !== null) || (value.status === "text" && value.text_value)),
   );
-  if (displayed) return formatValue(displayed.value, displayed.unit);
+  if (displayed) return displayed.status === "text" ? displayed.text_value! : formatValue(displayed.value, displayed.unit);
+  if (["wave_height", "wind_speed"].includes(name) && ![...(data?.metrics ?? []), ...(data?.context_metrics ?? [])].some(m => m.name === name)) {
+    const maximum = data?.display_metrics?.find(m => m.name === `maximum_${name}` && ["available", "provisional"].includes(m.status) && m.value !== null);
+    if (maximum) return `최대 ${formatValue(maximum.value, maximum.unit)}`;
+  }
   // Context or provisional forecast values are displayed only when the server
   // explicitly evaluated that component, with its context/limitations alongside.
   const component = data?.condition_score?.components.find((value) =>

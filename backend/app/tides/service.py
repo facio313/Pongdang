@@ -78,6 +78,7 @@ def tide_event(forecast, reference_at):
         "station_code": forecast["station_code"],
         "station_name": forecast["station_name"],
         "spatial_relation": forecast["spatial_relation"],
+        "distance_km": forecast.get("distance_km"),
         "mapping_evidence_ref": forecast.get("mapping_evidence_ref"),
         "spatial_scope": forecast["spatial_scope"],
         "provider": forecast["provider"],

@@ -18,7 +18,8 @@ test("home uses the selected fallback beach ID, name and conditions consistently
   await expect(page.locator(".hm-hero-place")).toContainText(beach.name);
   await expect(page.locator(".hm-hero-score-num")).toHaveText("73");
   await expect(page.locator(".home-page")).toContainText("경포 자료가 부족");
-  expect(ids).toEqual([987]);
+  expect(ids.length).toBeGreaterThan(0);
+  expect(new Set(ids)).toEqual(new Set([987]));
   await page.goto("#today");
   await expect(page.locator(".td-hero .td-lbl")).toContainText(beach.name);
   await expect(page.locator(".td-sbar")).toContainText("부산");
