@@ -1,0 +1,513 @@
+/* 데스크탑 오늘(18e)에만 있는 것들. 토큰과 프리미티브(.pd-dk-*)는
+   pongdangDesktop.css 가 단일 출처입니다. 카드 · 그림자는 쓰지 않습니다.
+
+   등급 색은 groupAGrade.ts 가 판정하고 pongdangDesktop.css 의 [data-grade]
+   규칙이 --g-ink 로 내려줍니다. 여기서 색을 새로 정하지 않습니다. */
+
+/* LabelRow 가 아닌 구간(히어로 직후 2열 · 주간 예보)도 좌우 56px 을 지킵니다. */
+.pd-desktop .td-section {
+  padding: 14px var(--dk-pad) 28px;
+}
+.pd-desktop .td-compare {
+  display: grid;
+  grid-template-columns: 1.18fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+
+.pd-desktop .td-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pd-desktop .td-head-link {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  text-decoration: none;
+}
+.pd-desktop .td-head-note {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-note {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--dk-ink-2);
+  margin: 12px 0 0;
+}
+
+/* ── 히어로 ────────────────────────────────────────────── */
+
+.pd-desktop .td-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding: 20px 0 0;
+}
+.pd-desktop .td-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -4px;
+}
+.pd-desktop .td-hero-lead {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 12px;
+}
+.pd-desktop .td-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .td-hero-title {
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.24;
+  margin: 12px 0 0;
+}
+/* 점수 옆이 아니라 제목 아래에 둡니다 -- 「예시 데이터」라는 사실이 점수보다
+   먼저 읽혀야 하기 때문입니다. */
+.pd-desktop .td-hero-chip {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0f2f7a;
+  background: #bcd4ff;
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .td-hero-score {
+  flex: none;
+  text-align: right;
+  padding: 0 32px 12px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.34);
+}
+.pd-desktop .td-hero-score-num {
+  font-size: 106px;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+.pd-desktop .td-hero-score-grade {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #d7e6ff;
+  margin-top: 6px;
+}
+.pd-desktop .td-hero-tiles {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 300px;
+  padding-bottom: 12px;
+}
+/* 히어로 위의 유리 타일. 본문에 카드가 없는 것과는 별개로, 코발트 면 위에서는
+   유리 타일을 씁니다(디자인 시스템 v2 의 글래스 레이어). */
+.pd-desktop .td-tile {
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-glass-line);
+  border-radius: var(--dk-r-ctl);
+  padding: 12px 14px;
+}
+.pd-desktop .td-tile-value {
+  font-size: 19px;
+  margin-top: 6px;
+}
+.pd-desktop .td-tile-name {
+  font-size: 10px;
+  color: var(--dk-onc-2);
+}
+
+/* ── 지점 비교 ─────────────────────────────────────────── */
+
+.pd-desktop .td-spot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .td-spot-score {
+  font-size: 36px;
+  line-height: 1;
+  min-width: 62px;
+  color: var(--g-ink);
+}
+.pd-desktop .td-spot-grade {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 12px;
+  min-width: 92px;
+  color: var(--g-ink);
+}
+.pd-desktop .td-spot-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .td-spot-name {
+  display: block;
+  font-weight: 700;
+  font-size: 16px;
+}
+.pd-desktop .td-spot-address {
+  display: block;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+/* 막대는 점수의 **상대 위치**입니다. 기여도가 아니라는 주석을 아래에 붙입니다. */
+.pd-desktop .td-spot-bar {
+  display: block;
+  width: 110px;
+  height: 8px;
+  flex: none;
+  background: rgba(27, 44, 61, 0.07);
+}
+.pd-desktop .td-spot-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--g-ink);
+}
+.pd-desktop .td-spot-temp {
+  width: 58px;
+  flex: none;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+
+/* ── 활동별 점수 ───────────────────────────────────────── */
+
+.pd-desktop .td-activities {
+  display: flex;
+  margin-top: 10px;
+}
+.pd-desktop .td-activity {
+  flex: 1;
+  text-align: center;
+  padding: 0 10px;
+  border-left: 1px solid var(--dk-line);
+}
+.pd-desktop .td-activity:first-child {
+  border-left: 0;
+}
+.pd-desktop .td-activity img {
+  display: block;
+  margin: 0 auto;
+}
+.pd-desktop .td-activity-score {
+  font-size: 30px;
+  color: var(--g-ink);
+}
+.pd-desktop .td-activity-name {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.pd-desktop .td-activity-grade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+
+/* ── 주간 예보 ─────────────────────────────────────────── */
+
+.pd-desktop .td-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: end;
+  margin-top: 14px;
+}
+.pd-desktop .td-day {
+  text-align: center;
+  background: var(--dk-mist);
+  border-radius: var(--dk-r-ctl);
+  padding: 12px 4px 14px;
+}
+.pd-desktop .td-day-score {
+  font-size: 22px;
+  color: var(--g-ink);
+}
+.pd-desktop .td-day-track {
+  height: 62px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-top: 8px;
+}
+.pd-desktop .td-day-bar {
+  display: block;
+  width: 14px;
+  border-radius: 7px;
+  background: var(--g-ink);
+}
+/* 값이 없는 날. 0 높이 막대는 「0점」으로 읽히므로 얇은 회색 기준선만 둡니다. */
+.pd-desktop .td-day-bar.is-empty {
+  height: 3px;
+  background: #b9cede;
+}
+.pd-desktop .td-day-weekday {
+  font-weight: 700;
+  font-size: 11.5px;
+  margin-top: 8px;
+}
+.pd-desktop .td-day-date {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-day-grade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--dk-ink-2);
+  margin-top: 4px;
+}
+
+/* ── 물때 ──────────────────────────────────────────────── */
+
+.pd-desktop .td-tide-state {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pd-desktop .td-tide-chip {
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--dk-deep);
+  background: #dfeaf7;
+  padding: 7px 14px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .td-tide-chip.is-now {
+  color: #fff;
+  background: var(--dk-blue);
+}
+.pd-desktop .td-tide-arrow {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-tide-level {
+  margin-left: auto;
+  font-size: 22px;
+}
+.pd-desktop .td-tide-level-name {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-tide-curve {
+  display: block;
+  width: 100%;
+  height: 64px;
+  margin-top: 12px;
+}
+.pd-desktop .td-tide-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-tide-axis-low {
+  margin-left: auto;
+  padding-right: 32%;
+}
+.pd-desktop .td-tide-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px;
+  margin-top: 20px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 18px;
+}
+.pd-desktop .td-tide-lists > :last-child {
+  border-left: 1px solid var(--dk-rule-weak);
+  padding-left: 30px;
+}
+.pd-desktop .td-tide-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.pd-desktop .td-tide-head .is-accent {
+  color: var(--dk-deep);
+}
+.pd-desktop .td-tide-when {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-tide-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .td-tide-row:last-child {
+  border-bottom: 0;
+}
+/* 부적합은 흐리게 두되 「부적합」이라는 글자로도 말합니다 -- 투명도만으로
+   판단을 전달하지 않습니다. */
+.pd-desktop .td-tide-row.is-unfit {
+  opacity: 0.62;
+}
+.pd-desktop .td-tide-row img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .td-tide-name {
+  flex: 1;
+  font-size: 13px;
+}
+.pd-desktop .td-tide-row.is-unfit .td-tide-name {
+  color: #4b5563;
+}
+.pd-desktop .td-tide-reason {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-tide-fit {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1d3fa8;
+}
+.pd-desktop .td-tide-row.is-unfit .td-tide-fit {
+  color: #4b5563;
+}
+
+/* ── 첫 입수 ───────────────────────────────────────────── */
+
+.pd-desktop .td-first-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pd-desktop .td-first-head img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .td-first-date {
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.1;
+}
+.pd-desktop .td-first-note {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 5px;
+}
+.pd-desktop .td-years {
+  margin-top: 16px;
+  border-top: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .td-year {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .td-year:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .td-year-label {
+  width: 38px;
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .td-year-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(27, 44, 61, 0.1);
+}
+.pd-desktop .td-year-fill {
+  display: block;
+  height: 100%;
+  background: var(--dk-blue);
+}
+.pd-desktop .td-year-date {
+  width: 36px;
+  flex: none;
+  text-align: right;
+  font-size: 12px;
+}
+
+/* ── 수질 출처 비교 ────────────────────────────────────── */
+
+.pd-desktop .td-quality-legend {
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-quality-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 0.8fr;
+  align-items: baseline;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .td-quality-row.is-head {
+  padding: 12px 0 8px;
+  border-bottom: 1px solid rgba(27, 44, 61, 0.22);
+  font-size: 10.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-quality-unit {
+  font-size: 10.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .td-quality-value {
+  font-size: 19px;
+}
+/* 신뢰도는 값과 다른 축입니다. 색을 등급 팔레트와 분리하려고 인라인으로
+   CONFIDENCE_COLOR 를 받습니다. */
+.pd-desktop .td-quality-confidence {
+  font-size: 10.5px;
+  font-weight: 400;
+}
+.pd-desktop .td-quality-spread {
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+
+/* ── 좁아질 때 ─────────────────────────────────────────── */
+
+@media (max-width: 1240px) {
+  .pd-desktop .td-hero-title {
+    font-size: 34px;
+  }
+  .pd-desktop .td-hero-score-num {
+    font-size: 78px;
+  }
+  .pd-desktop .td-hero-mascot {
+    width: 140px;
+    height: 140px;
+  }
+  .pd-desktop .td-hero-tiles {
+    width: 240px;
+  }
+  .pd-desktop .td-compare {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}

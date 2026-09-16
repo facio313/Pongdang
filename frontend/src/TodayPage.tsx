@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { DataOrigin } from "./DataOrigin";
+import { TodayDesktop } from "./TodayDesktop";
+import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
@@ -655,11 +657,14 @@ function TodayScreen() {
 }
 
 export function TodayPage() {
+  // 같은 라우트(#today)에서 폭으로 레이아웃을 갈아 끼웁니다. 데스크탑은
+  // 모바일을 넓힌 것이 아니라 문법이 다르므로 마크업을 공유하지 않습니다.
+  const isDesktop = useIsDesktop();
   // 이 화면은 실제 수집 데이터만 읽습니다. 상단 「데이터 구분」이 더미로
   // 선택돼 있어도 `/api/data` 로 고정합니다(`/api/demo` 는 은퇴해 404).
   return (
     <DataOrigin.Provider value="data">
-      <TodayScreen />
+      {isDesktop ? <TodayDesktop /> : <TodayScreen />}
     </DataOrigin.Provider>
   );
 }
