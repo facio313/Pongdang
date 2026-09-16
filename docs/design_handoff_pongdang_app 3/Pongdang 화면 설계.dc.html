@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/industry-edbc88cb-d75b-48e0-ac56-baf4cd502d38/styles.css">
+<script src="_ds/industry-edbc88cb-d75b-48e0-ac56-baf4cd502d38/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{
+--pd-mist:#eef4fb;--pd-surface:#fff;--pd-line:#dae7f5;--pd-badge:#dfeaf7;
+--pd-ink:#1b2c3d;--pd-ink-2:#5c789a;--pd-ink-3:#4c657f;
+--pd-blue:#4a86c8;--pd-blue-deep:#2f6aa8;--pd-conf:#4a6d8c;
+--pd-alert:#ffe9e9;--pd-alert-ink:#8d1616;
+--pd-cobalt:linear-gradient(160deg,#0f2f7a 0%,#1b5fc0 58%,#2a86d6 100%);
+--pd-glass:rgba(255,255,255,.14);--pd-glass-line:rgba(255,255,255,.4);
+--pd-on-cobalt:#eef5ff;--pd-on-cobalt-2:#c4dcf8;--pd-sky:#9ed4ff;
+--pd-r-hero:22px;--pd-r-card:18px;--pd-r-ctl:14px;--pd-r-pill:999px;
+--pd-shadow:0 6px 20px rgba(20,44,72,.10);--pd-shadow-hero:0 14px 40px rgba(12,38,90,.28);
+}
+body{margin:0;background:#e4ebf4;font-family:"Noto Sans KR",system-ui,sans-serif;color:var(--pd-ink)}
+a{color:var(--pd-blue-deep)}a:hover{color:#0f2f7a}
+.dv-turn{padding:40px 44px 34px;border-bottom:1px solid rgba(0,0,0,.1)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1b2c3d;color:#eef5ff;text-decoration:none;border-radius:4px}
+.dv-tname{font:700 13px/1.2 "Noto Sans KR",sans-serif}
+.dv-opts{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start;margin-top:22px}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1b2c3d;text-decoration:none;border-radius:4px}
+.dv-olabel{display:block;font:400 11.5px/1.5 "Noto Sans KR",sans-serif;color:rgba(27,44,61,.62);max-width:390px}
+.dv-olabel .dv-oid{display:inline-block;margin-right:7px;white-space:nowrap}
+.dv-olabel b{white-space:nowrap}
+.dv-opt:target .dv-oid{background:#4a86c8;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.6 "Noto Sans KR",sans-serif;color:rgba(27,44,61,.55)}
+.frame{width:390px;background:var(--pd-mist);border-radius:26px;box-shadow:0 12px 34px rgba(16,40,80,.16);overflow:hidden}
+.sbar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 6px;font-size:10.5px}
+.lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.card{background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 18px}
+.tabbar{background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:6px 8px;display:flex}
+.tab{flex:1;padding:8px 0;text-align:center;color:var(--pd-ink-2)}
+.tab-on{color:var(--pd-blue-deep)}
+.note{font-size:11px;color:var(--pd-ink-2);line-height:1.6}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.slot{border:1.5px dashed #b9cede;border-radius:var(--pd-r-card);display:grid;place-items:center;text-align:center;color:var(--pd-ink-2);font-size:11px;line-height:1.6}
+.slot-on-cobalt{border-color:rgba(255,255,255,.45);color:var(--pd-on-cobalt-2)}
+.fbox{background:var(--pd-surface);border-radius:var(--pd-r-ctl);box-shadow:var(--pd-shadow);padding:10px 12px;font-size:11.5px;font-weight:700;min-width:118px}
+.fmeta{font-size:10px;font-weight:400;color:var(--pd-ink-2);margin-top:2px}
+.farrow{display:grid;place-items:center;color:#8fa9c4;flex:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t12">
+<div class="dv-thd"><a class="dv-tid" href="#t12">12</a><span class="dv-tname">추천 플로우 — 페이지 순서대로 배치</span></div>
+<p style="margin:0;font-size:12.5px;color:rgba(27,44,61,.62);max-width:98ch">순서: <b><a class="dv-oid" href="#12a">12a</a> 추천 진입 → <a class="dv-oid" href="#4b">4b</a> 취향 고르기 → <a class="dv-oid" href="#4d">4d</a> 대화형 → <a class="dv-oid" href="#4c">4c</a> 코스 결과 → <a class="dv-oid" href="#12c">12c</a> 답변 노출 → <a class="dv-oid" href="#12d">12d</a> 지도 · 경로</b>. 가운데 세 단계는 <a href="#t8">8 라운드</a>의 기존 B 화면을 그대로 쓰고 여기서 복제하지 않았습니다. 새로 배치한 것은 진입(12a) · 답변 노출(12c) · 지도(12d) 세 장뿐입니다.</p>
+<div class="dv-opts" style="align-items:stretch">
+
+<div class="dv-opt" id="12a">
+<div class="dv-olabel"><a class="dv-oid" href="#12a">12a</a><b>1. 추천 진입</b> — 내 취향(수정 가능)과 일정 추천받기 두 블록으로 구성.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">추천</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">9월 15일 · 오늘 조건 반영</div>
+      <div style="font:700 21px/1.35 'Noto Sans KR';margin-top:8px">취향에 맞는 일정을<br>만들어 드릴까요?</div>
+    </div>
+  </div>
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px;min-height:430px">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:700;font-size:14px">내 취향</div><span style="font-size:11px;font-weight:700;color:var(--pd-blue-deep)">수정 →</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+        <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">수영 ✓</span>
+        <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">온천 ✓</span>
+        <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">카페 ✓</span>
+        <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:#e7ecf2;color:var(--pd-ink-2)">+ 더 고르기</span>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:12px">
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 10px"><div style="font-size:10px;color:var(--pd-ink-2)">동행</div><b style="font-size:12px">친구랑</b></div>
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 10px"><div style="font-size:10px;color:var(--pd-ink-2)">기간</div><b style="font-size:12px">하루</b></div>
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 10px"><div style="font-size:10px;color:var(--pd-ink-2)">이동</div><b style="font-size:12px">차량</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+        <span style="font-size:11.5px;color:var(--pd-ink-3)">질문 3개 · 30초</span>
+      </div>
+      <div style="font:700 16px/1.45 'Noto Sans KR';margin-top:10px">일정 추천받기</div>
+      <div class="note" style="margin-top:4px">대화로 조건을 좁히고, 오늘 데이터로 코스를 만듭니다.</div>
+      <button type="button" style="width:100%;height:48px;margin-top:12px;font:700 13.5px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">대화로 추천받기 →</button>
+      <button type="button" style="width:100%;height:44px;margin-top:8px;font:700 12.5px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">태그로 바로 받기</button>
+    </div>
+
+    <div class="card" style="padding:13px 15px;display:flex;flex-direction:row;align-items:center;gap:11px">
+      <span style="width:38px;height:38px;flex:none;border-radius:50%;background:#dbe6ff;display:grid;place-items:center;font:700 12.5px 'Space Grotesk',sans-serif;color:#1d3fa8">82</span>
+      <div style="flex:1;min-width:0"><b style="font-size:12.5px">지난번 코스 다시 보기</b><div style="font-size:11px;color:var(--pd-ink-2);margin-top:2px">서핑 · 갯벌 · 온천 · 9/13</div></div>
+      <span style="font-size:10px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill);flex:none">예시</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="12-ref" style="width:300px">
+<div class="dv-olabel"><a class="dv-oid" href="#12-ref">2·3·4</a>기존 B 화면을 그대로 씁니다 — 새로 그리지 않았습니다. 각 카드를 누르면 실제 화면으로 이동합니다.</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+  <a href="#4b" style="text-decoration:none;color:inherit">
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:13.5px">2. 취향 고르기</div><span class="dv-oid">4b</span></div>
+      <div style="font-size:11.5px;color:var(--pd-ink-3);margin-top:4px">B1 취향 수집 · 태그 → 카드 6장 → 요약</div>
+      <div style="font-size:11px;font-weight:700;color:var(--pd-blue-deep);margin-top:10px">8 라운드에서 열기 →</div>
+    </div>
+  </a>
+  <div style="display:flex;justify-content:center;color:#8fa9c4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></div>
+  <a href="#4d" style="text-decoration:none;color:inherit">
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:13.5px">3. 대화형 컨시어지</div><span class="dv-oid">4d</span></div>
+      <div style="font-size:11.5px;color:var(--pd-ink-3);margin-top:4px">B3 · 질문 3개로 조건 좁히고 근거 카드 노출</div>
+      <div style="font-size:11px;font-weight:700;color:var(--pd-blue-deep);margin-top:10px">8 라운드에서 열기 →</div>
+    </div>
+  </a>
+  <div style="display:flex;justify-content:center;color:#8fa9c4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></div>
+  <a href="#4c" style="text-decoration:none;color:inherit">
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:13.5px">4. 코스 결과</div><span class="dv-oid">4c</span></div>
+      <div style="font-size:11.5px;color:var(--pd-ink-3);margin-top:4px">B2 · 날짜 전환 + 시간 축 코스 + 근거</div>
+      <div style="font-size:11px;font-weight:700;color:var(--pd-blue-deep);margin-top:10px">8 라운드에서 열기 →</div>
+    </div>
+  </a>
+  <div class="note">4b · 4d · 4c는 <a href="#t8">8 라운드</a>의 화면이며 이 라운드에서 복제하지 않았습니다.</div>
+</div>
+</div>
+
+<div class="dv-opt" id="12c">
+<div class="dv-olabel"><a class="dv-oid" href="#12c">12c</a><b>5. 답변 노출</b> — 근거와 함께 코스를 제시하고, 지도로 넘어가는 버튼을 둡니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">추천 결과</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">친구랑 하루 · 수영 · 온천</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px">
+        <div style="font:700 20px/1.35 'Noto Sans KR'">파도 좋은 날,<br>서핑부터 시작해요</div>
+        <div style="text-align:right;flex:none"><div style="font:700 40px/1 'Space Grotesk',sans-serif">82</div><div style="font-size:10.5px;font-weight:700;color:#bcd4ff">매우 좋음</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px;min-height:430px">
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+        <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 10px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>파고 0.6m</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:72%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>수온 22.1°C</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:64%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-2)"><span>수질</span><b>수집 미구현</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"></div></div>
+      </div>
+    </div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="font-weight:700;font-size:13px">오늘의 코스 4곳</div><span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill);flex:none">예시 데이터</span></div>
+      <div class="note" style="margin-bottom:10px">취향은 수영이지만, 오늘 파고 0.6m로 <b>서핑 강습이 더 맞아</b> 첫 일정만 바꿨습니다. 서핑·갯벌은 아직 수집 항목이 아니라 예시입니다.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">09:20</span><span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7.5 14.5c1-6.5 6-11 12-10.5.5 6-4.5 10.5-11 11z"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></span><div style="flex:1;min-width:0"><b style="font-size:12.5px">서핑 강습</b><div style="font-size:10.5px;color:var(--pd-ink-2)">경포해변</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">12:00</span><span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3v5.5a2.6 2.6 0 0 0 5.2 0V3"/><path d="M9.1 11v10"/><path d="M16.8 3c-1.3 2.1-1.9 4.1-1.9 6.4 0 1.4.8 2.2 1.9 2.2s1.9-.8 1.9-2.2c0-2.3-.6-4.3-1.9-6.4z"/><path d="M16.8 11.6V21"/></svg></span><div style="flex:1;min-width:0"><b style="font-size:12.5px">점심 · 회센터</b><div style="font-size:10.5px;color:var(--pd-ink-2)">안목 항구</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">14:30</span><span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 11.5h18c0 4.7-4 8-9 8s-9-3.3-9-8z"/><path d="M12 19.5v-8M8.2 18.6l1.4-7.1M15.8 18.6l-1.4-7.1"/></svg></span><div style="flex:1;min-width:0"><b style="font-size:12.5px">갯벌 체험</b><div style="font-size:10.5px;color:var(--pd-ink-2)">사천진 갯벌</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">18:40</span><span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12.5h18v3.5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M8.5 9.5c0-1.6 1.3-2.1 1.3-3.6S8.5 3.6 8.5 3.6M14 9.5c0-1.6 1.3-2.1 1.3-3.6S14 3.6 14 3.6"/></svg></span><div style="flex:1;min-width:0"><b style="font-size:12.5px">온천 마무리</b><div style="font-size:10.5px;color:var(--pd-ink-2)">강릉 시내</div></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button type="button" style="flex:1;height:48px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">다른 코스</button>
+      <button type="button" style="flex:1.5;height:48px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg>지도에서 보기</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="12d">
+<div class="dv-olabel"><a class="dv-oid" href="#12d">12d</a><b>6. 지도 · 장소와 경로</b> — 코스 4곳을 순서대로 지도에 올리고, 하단 시트에 이동 순서를 둡니다.</div>
+<div class="frame">
+  <div style="position:relative;height:340px;background:#cddff0;background-image:repeating-linear-gradient(0deg,rgba(47,106,168,.10) 0 1px,transparent 1px 26px),repeating-linear-gradient(90deg,rgba(47,106,168,.10) 0 1px,transparent 1px 26px)">
+    <div class="sbar" style="color:var(--pd-ink-2);position:relative;z-index:2"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:var(--pd-ink)">코스 지도</span><span>강릉</span></div>
+    <div style="position:absolute;left:16px;right:16px;top:44px;z-index:2;display:flex;align-items:center;gap:8px;background:#fff;border-radius:var(--pd-r-pill);box-shadow:var(--pd-shadow);padding:10px 14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2f6aa8" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M6 8.4V14a4 4 0 0 0 4 4h5.6"/></svg>
+      <span style="font-size:12px;font-weight:700">오늘의 코스 · 4곳 · 12km</span>
+    </div>
+    <div class="slot" style="position:absolute;left:16px;right:16px;top:92px;bottom:22px;z-index:1;background:rgba(255,255,255,.35)">지도 타일 · 경로 선 렌더링 영역<br>(1 경포 → 2 안목 → 3 사천진 → 4 시내)</div>
+  </div>
+  <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px;min-height:280px;border-radius:var(--pd-r-hero) var(--pd-r-hero) 0 0;margin-top:-18px;background:var(--pd-mist);position:relative;z-index:3">
+    <div style="width:38px;height:4px;border-radius:2px;background:#c6d5e6;margin:0 auto 4px"></div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:700;font-size:13px">이동 순서</div><span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:var(--pd-blue);color:#fff;display:grid;place-items:center;font:700 11px 'Space Grotesk',sans-serif">1</span><div style="flex:1;min-width:0"><b style="font-size:12.5px">경포해변</b><div style="font-size:10.5px;color:var(--pd-ink-2)">09:20 서핑 · 주차 가능</div></div><span style="font-size:10.5px;color:var(--pd-ink-2)">4.2km</span></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:var(--pd-blue);color:#fff;display:grid;place-items:center;font:700 11px 'Space Grotesk',sans-serif">2</span><div style="flex:1;min-width:0"><b style="font-size:12.5px">안목 항구</b><div style="font-size:10.5px;color:var(--pd-ink-2)">12:00 점심 · 카페 8</div></div><span style="font-size:10.5px;color:var(--pd-ink-2)">5.1km</span></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:var(--pd-blue);color:#fff;display:grid;place-items:center;font:700 11px 'Space Grotesk',sans-serif">3</span><div style="flex:1;min-width:0"><b style="font-size:12.5px">사천진 갯벌</b><div style="font-size:10.5px;color:var(--pd-ink-2)">14:30 갯벌 · 간조 12:34</div></div><span style="font-size:10.5px;color:var(--pd-ink-2)">2.7km</span></div>
+        <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:var(--pd-blue);color:#fff;display:grid;place-items:center;font:700 11px 'Space Grotesk',sans-serif">4</span><div style="flex:1;min-width:0"><b style="font-size:12.5px">강릉 시내</b><div style="font-size:10.5px;color:var(--pd-ink-2)">18:40 온천 · 실내</div></div><span style="font-size:10.5px;color:var(--pd-ink-2)">–</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button type="button" style="flex:1;height:46px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">길찾기 앱으로</button>
+      <button type="button" style="flex:1.3;height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>내 코스에 저장</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">다음에 해볼 것: "<a class="dv-oid" href="#12d">12d</a> 경로 슬롯에 실제 지도 붙이기" · "각 장소 상세 화면도 배치" · "저장 후 알림 화면까지 이어 붙이기"</p>
+</section>
+
+<section class="dv-turn" id="t11" style="background:#e7eef7">
+<div class="dv-thd"><a class="dv-tid" href="#t11">11</a><span class="dv-tname">추천 탭 = AI 적용 화면 · 대화형 플로우</span></div>
+<p style="margin:0;font-size:12.5px;color:rgba(27,44,61,.62);max-width:98ch">추천 탭(<a href="#7c">7c</a>)을 AI가 적용되는 화면으로 정리했습니다. <b>진입 → 취향 고르기(대화) → 조건 좁히기(대화) → 근거와 함께 제안 → 코스 결과</b> 순서이며, 기존 컴포넌트(채팅 버블 · 응답 칩 · 근거 막대 카드 · 코스 타임라인)만 조합했습니다. 아래 화면에서 칩을 눌러 5단계를 그대로 따라갈 수 있습니다.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="11a">
+<div class="dv-olabel"><a class="dv-oid" href="#11a">11a</a><b>대화형 추천</b> — 한 화면에서 5단계. 칩을 누르면 다음 단계로 넘어갑니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:16px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">AI 추천</span><span>강릉</span></div>
+    <div style="padding:6px 20px 0">
+      <div style="display:flex;align-items:center;gap:11px">
+        <span style="width:40px;height:40px;flex:none;border-radius:12px;background:var(--pd-glass);border:1px solid var(--pd-glass-line);display:grid;place-items:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg></span>
+        <div style="flex:1;min-width:0"><div style="font:700 16px 'Noto Sans KR'">퐁당 컨시어지</div><div style="font-size:11px;color:var(--pd-on-cobalt-2);margin-top:2px">{{ aiStepLabel }}</div></div>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:14px">
+        <sc-for list="{{ aiBars }}" as="b" hint-placeholder-count="5">
+          <div style="flex:1;height:4px;border-radius:2px;background:{{ b.bg }}"></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:16px;min-height:520px;display:flex;flex-direction:column">
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+
+      <sc-if value="{{ aiIsIntro }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+          <div class="card" style="padding:16px 18px">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+            </div>
+            <div style="font:700 18px/1.45 'Noto Sans KR';margin-top:10px">취향 몇 가지만 알려주면<br>오늘 조건에 맞는 코스를 만들어요</div>
+            <div class="note" style="margin-top:8px">질문 3개 · 30초. 대화 대신 태그로 고르고 싶으면 아래에서 바꿀 수 있습니다.</div>
+            <div class="slot" style="height:84px;margin-top:12px">인트로 일러스트 영역 (별도 작업)</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aiIsChat }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:10px;animation:fadeUp .2s ease">
+          <sc-for list="{{ aiChat }}" as="m" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:{{ m.align }}">
+              <div style="max-width:80%;padding:11px 14px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font-size:12.5px;line-height:1.65;box-shadow:{{ m.shadow }}">{{ m.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aiIsEvidence }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:10px;animation:fadeUp .2s ease">
+          <sc-for list="{{ aiChat }}" as="m" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:{{ m.align }}">
+              <div style="max-width:80%;padding:11px 14px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font-size:12.5px;line-height:1.65;box-shadow:{{ m.shadow }}">{{ m.text }}</div>
+            </div>
+          </sc-for>
+          <div class="card" style="padding:15px 16px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 10px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px">
+              <div style="font:700 17px 'Noto Sans KR'">경포해변 · 수영</div>
+              <div style="font:700 19px 'Space Grotesk',sans-serif;color:#1d3fa8">82</div>
+              <div style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#1d3fa8"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg>매우 좋음</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+              <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>파고 0.6m</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:72%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>수온 22.1°C</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:64%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-2)"><span>수질</span><b>수집 미구현</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"></div></div>
+            </div>
+            <div class="note" style="margin-top:10px">막대는 점수 기여도가 아니라 지표 값의 위치입니다. 출처 · 기상청 · 국립해양조사원</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aiIsCourse }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+          <div class="card" style="padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="font-weight:700;font-size:14px">{{ aiCourseTitle }}</div>
+              <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill);flex:none">예시 데이터</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:3px">{{ aiCourseMeta }}</div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+              <sc-for list="{{ aiSteps }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px">
+                  <span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px;flex:none">{{ s.time }}</span>
+                  <span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)">
+                    <sc-if value="{{ s.isWave }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7.5 14.5c1-6.5 6-11 12-10.5.5 6-4.5 10.5-11 11z"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></sc-if>
+                    <sc-if value="{{ s.isFood }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3v5.5a2.6 2.6 0 0 0 5.2 0V3"/><path d="M9.1 11v10"/><path d="M16.8 3c-1.3 2.1-1.9 4.1-1.9 6.4 0 1.4.8 2.2 1.9 2.2s1.9-.8 1.9-2.2c0-2.3-.6-4.3-1.9-6.4z"/><path d="M16.8 11.6V21"/></svg></sc-if>
+                    <sc-if value="{{ s.isSpa }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12.5h18v3.5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M8.5 9.5c0-1.6 1.3-2.1 1.3-3.6S8.5 3.6 8.5 3.6M14 9.5c0-1.6 1.3-2.1 1.3-3.6S14 3.6 14 3.6"/></svg></sc-if>
+                    <sc-if value="{{ s.isFlat }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 11.5h18c0 4.7-4 8-9 8s-9-3.3-9-8z"/><path d="M12 19.5v-8M8.2 18.6l1.4-7.1M15.8 18.6l-1.4-7.1"/></svg></sc-if>
+                    <sc-if value="{{ s.isCafe }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M4 21h14"/></svg></sc-if>
+                    <sc-if value="{{ s.isWalk }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg></sc-if>
+                  </span>
+                  <div style="flex:1;min-width:0"><b style="font-size:12.5px">{{ s.title }}</b><div style="font-size:10.5px;color:var(--pd-ink-2)">{{ s.spot }} · {{ s.note }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ aiSaved }}" hint-placeholder-val="{{ false }}">
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:row;align-items:center;gap:11px">
+              <span style="width:32px;height:32px;flex:none;border-radius:50%;background:#dbe6ff;display:grid;place-items:center;color:#1d3fa8"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.4"/></svg></span>
+              <div style="flex:1;min-width:0"><b style="font-size:12.5px">내 코스에 저장했어요</b><div style="font-size:11px;color:var(--pd-ink-2);margin-top:2px">내 코스 탭에서 볼 수 있고, 조건이 바뀌면 알려드립니다</div></div>
+            </div>
+          </sc-if>
+          <div style="display:flex;gap:10px">
+            <button type="button" onClick="{{ aiNextCourse }}" style="flex:1;height:46px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">다른 코스</button>
+            <button type="button" onClick="{{ aiSave }}" style="flex:1.4;height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:{{ aiSaveBg }};color:#fff;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>{{ aiSaveLabel }}</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aiIsTag }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+          <div class="card" style="padding:16px 18px">
+            <div style="font-weight:700;font-size:14px">태그로 고르기</div>
+            <div class="note" style="margin-top:4px">대화 대신 한 화면에서 고릅니다. 전체 화면은 <a href="#t8">8 라운드 4b</a>.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">수영 ✓</span>
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">온천 ✓</span>
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:#e7ecf2;color:var(--pd-ink-2)">서핑</span>
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:#e7ecf2;color:var(--pd-ink-2)">갯벌 체험</span>
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:#e7ecf2;color:var(--pd-ink-2)">카페</span>
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 13px;border-radius:var(--pd-r-pill);background:#e7ecf2;color:var(--pd-ink-2)">아이 동반</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="padding-top:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <sc-for list="{{ aiChips }}" as="c" hint-placeholder-count="3">
+          <button type="button" onClick="{{ c.pick }}" style="font:700 12.5px 'Noto Sans KR';padding:10px 14px;border:0;border-radius:var(--pd-r-pill);background:{{ c.bg }};color:{{ c.fg }};cursor:pointer">{{ c.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" placeholder="직접 물어봐도 됩니다" style="flex:1;height:46px;padding:0 14px;font:400 12.5px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink)">
+        <button type="button" onClick="{{ aiReset }}" style="height:46px;padding:0 14px;font:700 12px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">처음</button>
+      </div>
+      <div class="note" style="margin-top:10px">대화 대신 태그로 고르는 화면(<a href="#t8">8 라운드 4b</a>)도 유지합니다 — 재방문 사용자는 태그가 더 빠릅니다.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="11b" style="width:620px">
+<div class="dv-olabel"><a class="dv-oid" href="#11b">11b</a><b>추천 탭 플로우</b> — 진입부터 저장까지, 대화가 어디에 놓이는지.</div>
+<div style="width:620px;background:var(--pd-mist);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:20px;display:flex;flex-direction:column;gap:14px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="fbox" style="background:var(--pd-badge)">추천 탭 진입<div class="fmeta">홈 배너 또는 인디케이터</div></div>
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox">인트로 · 취향 고르기 제안<div class="fmeta">11a 1단계</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:20px">
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></span>
+    <div class="fbox" style="background:#0f2f7a;color:var(--pd-on-cobalt)">대화 1 · 하고 싶은 것<div class="fmeta" style="color:var(--pd-on-cobalt-2)">응답 칩 3개</div></div>
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox" style="background:#0f2f7a;color:var(--pd-on-cobalt)">대화 2 · 동행과 시간<div class="fmeta" style="color:var(--pd-on-cobalt-2)">응답 칩 3개</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:20px">
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></span>
+    <div class="fbox">대화 3 · 근거와 함께 제안<div class="fmeta">11a 4단계 · 지표 막대</div></div>
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox">코스 결과<div class="fmeta">11a 5단계 · 4c</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:20px">
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></span>
+    <div class="fbox">내 코스에 저장<div class="fmeta">4e · 내 코스 탭</div></div>
+    <div class="fbox">B4 재추천 알림<div class="fmeta">조건 변화 시</div></div>
+  </div>
+  <div style="height:1px;background:var(--pd-line)"></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="fbox" style="background:#eef4fb">우회 경로</div>
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox">태그로 고르기<div class="fmeta">4b · 재방문 사용자</div></div>
+    <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox">코스 결과<div class="fmeta">4c</div></div>
+  </div>
+  <div class="note">대화는 <b>질문 3개까지</b>. 그 이상은 태그 화면으로 보내고, 모든 제안에는 「AI 제안」 칩과 근거를 같은 카드에 붙입니다. 값이 없는 지표는 빈 막대로 두고 추정하지 않습니다.</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">다음에 해볼 것: "대화 질문 문구 다시 써줘" · "<a class="dv-oid" href="#11a">11a</a> 인트로 일러스트 슬롯 채우기" · "대화 중 되돌리기(이전 답 수정) 넣어줘"</p>
+</section>
+
+<section class="dv-turn" id="t10" style="background:#dfe7f1">
+<div class="dv-thd"><a class="dv-tid" href="#t10">10</a><span class="dv-tname">홈 화면 + 5탭 인디케이터 + 사용자 플로우</span></div>
+<p style="margin:0;font-size:12.5px;color:rgba(27,44,61,.62);max-width:98ch">기존 컴포넌트(글래스 히어로 · 지표 타일 · 흰 카드 · 배너 CTA · 리스트 행 · 탭바)만 조합했습니다. <b>아직 없는 요소(파도 애니메이션 시각화, 지도 경로 렌더링, 시간대별 그래프)는 점선 슬롯으로 비워</b> 두었고, 그 안은 별도 디자인 작업 대상입니다. 인디케이터는 <b>홈 · 오늘 · 추천 · 지도 · 내 코스</b> 5개이며, 홈이 최우선 진입 화면입니다. 탭을 눌러 이동을 확인할 수 있습니다.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="10a">
+<div class="dv-olabel"><a class="dv-oid" href="#10a">10a</a><b>홈</b> — 시각화 슬롯 + 오늘 데이터 정리 + 취향 배너 + 최적경로. 하단 탭으로 오늘/추천/지도/내 코스 이동.</div>
+<div class="frame" style="position:relative">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">PONGDANG</span><span>{{ tabLabel }}</span></div>
+    <div style="padding:6px 20px 0">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" onClick="{{ openMenu }}" aria-label="메뉴 열기" style="width:34px;height:34px;flex:none;margin-left:-6px;display:grid;place-items:center;border:1px solid var(--pd-glass-line);border-radius:10px;background:var(--pd-glass);color:var(--pd-on-cobalt);cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h11"/></svg>
+        </button>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg>
+        <span class="lbl" style="color:var(--pd-sky)">강릉 경포해변 · 9월 15일</span>
+      </div>
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div class="slot slot-on-cobalt" style="height:150px;margin-top:12px">파도 · 날씨 애니메이션 시각화 영역<br>(해 · 비 · 파고 종합, 위치 기반)</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px">
+            <div style="font:700 17px/1.4 'Noto Sans KR'">오늘은 물놀이하기<br>아주 좋아요</div>
+            <div style="text-align:right;flex:none"><div style="font:700 44px/1 'Space Grotesk',sans-serif">82</div><div style="font-size:10.5px;font-weight:700;color:#bcd4ff">매우 좋음</div></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ notHome }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:12px">
+          <div style="font:700 20px/1.35 'Noto Sans KR'">{{ tabTitle }}</div>
+          <div style="font-size:12px;color:var(--pd-on-cobalt-2);margin-top:6px">{{ tabSub }}</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px;min-height:430px">
+
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+        <div class="card" style="padding:14px 16px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px">오늘 한눈에</div>
+          <div style="display:flex;gap:7px">
+            <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:10px 4px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6aa8" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 3a2 2 0 0 1 2 2v8.5a4 4 0 1 1-4 0V5a2 2 0 0 1 2-2z"/></svg><div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:3px">22.1°</div><div style="font-size:9.5px;color:var(--pd-ink-2)">수온</div></div>
+            <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:10px 4px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6aa8" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:3px">0.6m</div><div style="font-size:9.5px;color:var(--pd-ink-2)">파고</div></div>
+            <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:10px 4px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f6aa8" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 13h11a3.5 3.5 0 0 0 .4-6.98A5.5 5.5 0 0 0 7 5.2 3.8 3.8 0 0 0 6 13z"/><path d="M8 17v2M12 17v2M16 17v2"/></svg><div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:3px">10%</div><div style="font-size:9.5px;color:var(--pd-ink-2)">강수</div></div>
+            <div style="flex:1;background:#f4f6f9;border-radius:var(--pd-r-ctl);padding:10px 4px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fa3b8" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 3s5.5 6 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9 12 3 12 3z"/><path d="M9.4 12.6l1.9 1.9 3.5-3.7"/></svg><div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:3px;color:#8fa3b8">–</div><div style="font-size:9.5px;color:var(--pd-ink-2)">수질</div></div>
+          </div>
+          <div class="slot" style="height:72px;margin-top:12px">시간대별 그래프 영역 (09–18시)</div>
+          <div class="note" style="margin-top:8px">값이 없는 항목은 <b>–</b>로 두고 0·정상으로 바꾸지 않습니다. 예보이며 관측이 아닙니다.</div>
+        </div>
+
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+            <span style="font-size:11.5px;color:var(--pd-ink-3)">취향만 알려주면 코스를 짜드려요</span>
+          </div>
+          <button type="button" onClick="{{ goRec }}" style="width:100%;height:46px;margin-top:12px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">취향 고르기 →</button>
+        </div>
+
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-weight:700;font-size:13px">물놀이 최적경로</div>
+            <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+          </div>
+          <div class="slot" style="height:96px;margin-top:10px">지도 · 경로 렌더링 영역<br>(출발지 → 지점 3곳)</div>
+          <button type="button" onClick="{{ goMap }}" style="width:100%;height:46px;margin-top:12px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">경로 탐색 →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isToday }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+        <div class="card">
+          <div style="font-weight:700;font-size:13px;margin-bottom:10px">지점 비교</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ spotRows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px">
+                <span style="width:32px;height:32px;flex:none;border-radius:50%;background:{{ r.bg }};display:grid;place-items:center;font:700 11.5px 'Space Grotesk',sans-serif;color:{{ r.fg }}">{{ r.score }}</span>
+                <div style="flex:1;min-width:0"><b style="font-size:12.5px">{{ r.name }}</b><div style="font-size:11px;color:var(--pd-ink-2)">{{ r.grade }} · 수온 {{ r.temp }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px">세부 화면</div>
+          <div class="note">예보(A2) · 지도(A3·A4) · 라이브캠(A5) · 물때(A6) · 첫 입수(A7) · 수질(A8)은 아래 <a href="#t9">9 라운드</a>에 전체 화면이 있습니다.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRec }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span><span style="font-size:11.5px;color:var(--pd-ink-3)">파도 좋은 날, 서핑부터</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">09:20</span><b style="font-size:12.5px">서핑 강습</b><span style="font-size:11px;color:var(--pd-ink-2);margin-left:auto">경포해변</span></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">14:30</span><b style="font-size:12.5px">갯벌 체험</b><span style="font-size:11px;color:var(--pd-ink-2);margin-left:auto">사천진</span></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="font:700 11.5px 'Space Grotesk',sans-serif;width:38px">18:40</span><b style="font-size:12.5px">온천 마무리</b><span style="font-size:11px;color:var(--pd-ink-2);margin-left:auto">시내</span></div>
+          </div>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div class="note">취향 수집(B1) · 코스 결과(B2) · 컨시어지(B3) · 재추천(B4) · 내 코스(B5) 전체 화면은 <a href="#t8">8 라운드</a>에 있습니다.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease">
+        <div class="slot" style="height:220px">지도 타일 · 핀 · 경로 렌더링 영역</div>
+        <div class="card" style="padding:14px 16px">
+          <div style="font-weight:700;font-size:13px">경포해변</div>
+          <div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:2px">72 · 양호 · 수온 22.1°C</div>
+          <div class="note" style="margin-top:8px">지도 화면의 확정안은 <a href="#7b">7b</a>와 <a href="#t9">9 라운드 5c</a>에 있습니다.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMine }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px;animation:fadeUp .2s ease">
+        <sc-for list="{{ saved }}" as="c" hint-placeholder-count="3">
+          <div class="card" style="padding:13px 15px;display:flex;flex-direction:row;align-items:center;gap:12px">
+            <span style="width:40px;height:40px;flex:none;border-radius:50%;background:{{ c.bg }};display:grid;place-items:center;font:700 13px 'Space Grotesk',sans-serif;color:{{ c.fg }}">{{ c.score }}</span>
+            <div style="flex:1;min-width:0"><b style="font-size:13px">{{ c.title }}</b><div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:2px">{{ c.meta }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:5;background:rgba(15,47,122,.32);display:flex;animation:fadeUp .18s ease">
+        <div style="width:300px;background:var(--pd-mist);height:100%;display:flex;flex-direction:column;box-shadow:12px 0 34px rgba(12,38,90,.28)">
+          <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding:16px 18px 18px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div class="slot slot-on-cobalt" style="width:44px;height:44px;border-radius:50%;font-size:9px;flex:none">사진</div>
+                <div><div style="font:700 14px 'Noto Sans KR'">로그인해 주세요</div><div style="font-size:11px;color:var(--pd-on-cobalt-2);margin-top:2px">저장·알림은 로그인 후 사용</div></div>
+              </div>
+              <button type="button" onClick="{{ closeMenu }}" aria-label="메뉴 닫기" style="width:28px;height:28px;flex:none;border:0;border-radius:50%;background:var(--pd-glass);color:var(--pd-on-cobalt);font-size:14px;cursor:pointer">×</button>
+            </div>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+            <sc-for list="{{ menuItems }}" as="m" hint-placeholder-count="6">
+              <div class="card" style="padding:11px 13px;display:flex;flex-direction:row;align-items:center;gap:11px">
+                <span style="width:30px;height:30px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)">
+                  <sc-if value="{{ m.isSaved }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg></sc-if>
+                  <sc-if value="{{ m.isFav }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg></sc-if>
+                  <sc-if value="{{ m.isAlarm }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 10a6 6 0 0 1 12 0v5l2 2H4l2-2z"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0"/></svg></sc-if>
+                  <sc-if value="{{ m.isData }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg></sc-if>
+                  <sc-if value="{{ m.isHelp }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.4M12 7.6v.6"/></svg></sc-if>
+                  <sc-if value="{{ m.isSet }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M3 12h2.4M18.6 12H21M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg></sc-if>
+                </span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:700;font-size:12.5px">{{ m.label }}</div>
+                  <div style="font-size:10.5px;color:var(--pd-ink-2);margin-top:1px">{{ m.meta }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <div class="note" style="margin-top:2px">사이드 메뉴는 탭(대메뉴)에 넣지 않는 계정·설정·출처 항목만 담습니다.</div>
+          </div>
+        </div>
+        <button type="button" onClick="{{ closeMenu }}" aria-label="닫기" style="flex:1;border:0;background:transparent;cursor:pointer"></button>
+      </div>
+    </sc-if>
+
+    <div class="tabbar" style="margin-top:auto">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <button type="button" onClick="{{ t.pick }}" class="tab" style="border:0;background:none;cursor:pointer;font-family:inherit;color:{{ t.color }}">
+          <sc-if value="{{ t.isHome }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M4 11.5L12 4l8 7.5"/><path d="M6 11v9h12v-9"/></svg></sc-if>
+          <sc-if value="{{ t.isToday }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg></sc-if>
+          <sc-if value="{{ t.isRec }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg></sc-if>
+          <sc-if value="{{ t.isMap }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg></sc-if>
+          <sc-if value="{{ t.isMine }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 4h12v16l-6-4-6 4z"/></svg></sc-if>
+          <div style="font-size:9.5px;font-weight:{{ t.weight }};margin-top:3px">{{ t.label }}</div>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="10b" style="width:660px">
+<div class="dv-olabel"><a class="dv-oid" href="#10b">10b</a><b>사용자 플로우</b> — 홈 진입에서 각 탭·화면까지. 박스는 실제 화면 번호(<a href="#t8">8</a>·<a href="#t9">9</a> 라운드)와 연결됩니다.</div>
+<div style="width:660px;background:var(--pd-mist);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:20px">
+
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="fbox" style="background:var(--pd-badge);min-width:96px">앱 실행<div class="fmeta">위치 권한</div></div>
+    <span class="farrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+    <div class="fbox" style="background:#0f2f7a;color:var(--pd-on-cobalt);min-width:150px">홈 <a class="dv-oid" href="#10a" style="background:rgba(255,255,255,.18);color:#eef5ff">10a</a><div class="fmeta" style="color:var(--pd-on-cobalt-2)">종합 시각화 · 오늘 한눈에 · 취향 배너 · 최적경로</div></div>
+  </div>
+
+  <div style="display:flex;justify-content:center;margin:10px 0 2px;color:#8fa9c4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v15M7 14l5 5 5-5"/></svg></div>
+  <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd-ink-2);text-align:center;margin-bottom:10px">하단 인디케이터 5</div>
+
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+    <div class="fbox" style="text-align:center;min-width:0;background:var(--pd-badge)">홈</div>
+    <div class="fbox" style="text-align:center;min-width:0">오늘</div>
+    <div class="fbox" style="text-align:center;min-width:0">추천</div>
+    <div class="fbox" style="text-align:center;min-width:0">지도</div>
+    <div class="fbox" style="text-align:center;min-width:0">내 코스</div>
+  </div>
+
+  <div style="height:1px;background:var(--pd-line);margin:18px 0"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:82px">
+      <div class="fbox" style="min-width:74px;background:#eef4fb;margin-left:-82px">오늘</div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">A1 허브<div class="fmeta">5a</div></div>
+      <div class="fbox">A2 예보<div class="fmeta">5b</div></div>
+      <div class="fbox">A6 물때<div class="fmeta">5e</div></div>
+      <div class="fbox">A7 첫 입수<div class="fmeta">5f</div></div>
+      <div class="fbox">A8 수질<div class="fmeta">5g</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="fbox" style="min-width:74px;background:#eef4fb">추천</div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">B1 취향 수집<div class="fmeta">4b</div></div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">B2 코스 결과<div class="fmeta">4c</div></div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">B5 저장<div class="fmeta">4e</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:82px">
+      <div class="fbox">B3 컨시어지<div class="fmeta">4d</div></div>
+      <div class="fbox">B4 재추천 알림<div class="fmeta">4e</div></div>
+      <span style="font-size:10.5px;color:var(--pd-ink-2)">추천 탭 안에서 진입</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="fbox" style="min-width:74px;background:#eef4fb">지도</div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">A3·A4 지도<div class="fmeta">5c</div></div>
+      <div class="fbox">A5 라이브캠<div class="fmeta">5d</div></div>
+      <div class="fbox" style="border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">최적경로 화면<br><span class="fmeta">미작성</span></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="fbox" style="min-width:74px;background:#eef4fb">내 코스</div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">저장 목록<div class="fmeta">4e</div></div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">코스 상세<div class="fmeta">4c</div></div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:var(--pd-line);margin:18px 0"></div>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd-ink-2)">홈에서 나가는 두 갈래</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="fbox" style="background:var(--pd-blue);color:#fff">취향 고르기 배너</div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">추천 탭 · B1<div class="fmeta">4b</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="fbox">물놀이 최적경로<div class="fmeta">홈 카드</div></div>
+      <span class="farrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+      <div class="fbox">지도 탭 · 경로<div class="fmeta">5c + 미작성 화면</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="10c" style="width:980px">
+<div class="dv-olabel"><a class="dv-oid" href="#10c">10c</a><b>인디케이터별 페이지 정리</b> — 대메뉴 5개가 각각 어떤 페이지를 갖는지. 회색 점선은 아직 없는 화면입니다.</div>
+<div style="width:980px;background:var(--pd-mist);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:20px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start">
+
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <div class="fbox" style="min-width:0;background:#0f2f7a;color:var(--pd-on-cobalt);text-align:center">홈<div class="fmeta" style="color:var(--pd-on-cobalt-2)">진입 · 1depth</div></div>
+    <div class="fbox" style="min-width:0">종합 시각화<div class="fmeta">10a · 슬롯 비움</div></div>
+    <div class="fbox" style="min-width:0">오늘 한눈에<div class="fmeta">10a</div></div>
+    <div class="fbox" style="min-width:0">취향 고르기 배너<div class="fmeta">→ 추천</div></div>
+    <div class="fbox" style="min-width:0">최적경로 카드<div class="fmeta">→ 지도</div></div>
+    <div class="fbox" style="min-width:0;border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">시간대별 그래프<div class="fmeta">미작성</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <div class="fbox" style="min-width:0;background:var(--pd-badge);text-align:center">오늘<div class="fmeta">컨디션 데이터 A</div></div>
+    <div class="fbox" style="min-width:0">A1 Water Index 허브<div class="fmeta">5a</div></div>
+    <div class="fbox" style="min-width:0">A2 Water Forecast<div class="fmeta">5b</div></div>
+    <div class="fbox" style="min-width:0">A6 물때 타이머<div class="fmeta">5e</div></div>
+    <div class="fbox" style="min-width:0">A7 첫 입수 알림<div class="fmeta">5f</div></div>
+    <div class="fbox" style="min-width:0">A8 수질 교차검증<div class="fmeta">5g</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <div class="fbox" style="min-width:0;background:var(--pd-badge);text-align:center">추천<div class="fmeta">AI 추천 B</div></div>
+    <div class="fbox" style="min-width:0">B1 취향 수집<div class="fmeta">4b · 3단계</div></div>
+    <div class="fbox" style="min-width:0">B2 코스 결과<div class="fmeta">4c</div></div>
+    <div class="fbox" style="min-width:0">B3 컨시어지<div class="fmeta">4d</div></div>
+    <div class="fbox" style="min-width:0">B4 재추천 알림<div class="fmeta">4e</div></div>
+    <div class="fbox" style="min-width:0">코스 비교 3안<div class="fmeta">7c</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <div class="fbox" style="min-width:0;background:var(--pd-badge);text-align:center">지도<div class="fmeta">장소 · 실시간</div></div>
+    <div class="fbox" style="min-width:0">A3·A4 지도 · 수온<div class="fmeta">5c</div></div>
+    <div class="fbox" style="min-width:0">지점 상세 시트<div class="fmeta">7b</div></div>
+    <div class="fbox" style="min-width:0">A5 라이브캠<div class="fmeta">5d</div></div>
+    <div class="fbox" style="min-width:0;border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">최적경로 탐색<div class="fmeta">미작성</div></div>
+    <div class="fbox" style="min-width:0;border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">편의시설 필터<div class="fmeta">미작성</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <div class="fbox" style="min-width:0;background:var(--pd-badge);text-align:center">내 코스<div class="fmeta">저장 B5</div></div>
+    <div class="fbox" style="min-width:0">저장 목록<div class="fmeta">4e</div></div>
+    <div class="fbox" style="min-width:0">코스 상세<div class="fmeta">4c</div></div>
+    <div class="fbox" style="min-width:0;border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">공유 화면<div class="fmeta">미작성</div></div>
+    <div class="fbox" style="min-width:0;border:1.5px dashed #b9cede;box-shadow:none;background:transparent;font-weight:400;color:var(--pd-ink-2)">지난 코스 기록<div class="fmeta">미작성</div></div>
+  </div>
+
+  <div style="grid-column:1 / -1;height:1px;background:var(--pd-line);margin:4px 0"></div>
+
+  <div style="grid-column:1 / -1;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="fbox" style="background:#eef4fb">사이드 메뉴 <span style="font-weight:400;font-size:10px">(탭 밖)</span></div>
+    <div class="fbox">저장한 코스</div>
+    <div class="fbox">지점 즐겨찾기</div>
+    <div class="fbox">알림 설정<div class="fmeta">미구현</div></div>
+    <div class="fbox">데이터 출처·갱신</div>
+    <div class="fbox">이용 안내</div>
+    <div class="fbox">설정</div>
+  </div>
+  <div style="grid-column:1 / -1" class="note">규칙 — 탭은 <b>여행 흐름(오늘 → 추천 → 지도 → 내 코스)</b>만 담고, 계정·설정·데이터 출처처럼 흐름 밖 항목은 사이드 메뉴로 뺍니다. 한 페이지가 두 탭에 동시에 걸리면(예: 코스 상세) 저장 여부로 진입 경로를 나눕니다.</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">다음에 해볼 것: "홈 시각화 슬롯 디자인 시작" · "최적경로 화면 새로 설계" · "시간대별 그래프만 먼저" · "<a class="dv-oid" href="#10a">10a</a>를 7c 코스 우선과 합쳐줘"</p>
+</section>
+
+<section class="dv-turn" id="t7" style="background:#dfe7f1">
+<div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">메인 화면 구성 3안 — 무엇을 가장 먼저 보여줄까</span></div>
+<p style="margin:0;font-size:12.5px;color:rgba(27,44,61,.62);max-width:98ch">A(컨디션 데이터)와 B(AI 추천)를 한 앱으로 합칠 때, 홈이 <b>조건 / 장소 / 코스</b> 중 무엇을 먼저 말하는지에 따라 서비스 성격이 갈립니다. 「날씨 앱처럼 보인다」는 문제는 대부분 홈의 첫 화면에서 결정되므로, 세 안을 같은 데이터·같은 시스템으로 나란히 그렸습니다. 아래 8·9 라운드에 A·B 전체 화면이 함께 있습니다.</p>
+<div class="dv-opts">
+
+<!-- 7a -->
+<div class="dv-opt" id="7a">
+<div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a><b>조건 우선</b> — 오늘 점수를 히어로로. 정보 신뢰도는 가장 높지만 날씨·계기판 느낌이 가장 강합니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:22px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">PONGDANG</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">TODAY · 9월 15일 · 경포해변 예보 기준</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:56px;height:56px;flex:none;border-radius:16px;background:var(--pd-glass);border:1px solid var(--pd-glass-line);display:grid;place-items:center;color:var(--pd-on-cobalt)">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="6.6" r="1.9"/><path d="M3.5 12.5l4.5-1.6 4 2.1 4.5-3.5 3 1.5"/><path d="M2 18.5c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg>
+          </span>
+          <div><div style="font-size:11px;color:var(--pd-sky);font-weight:700">오늘의 추천 활동 · 수영</div><div style="font:700 19px/1.35 'Noto Sans KR';margin-top:3px">수영하기<br>아주 좋은 날이에요</div><div style="font-size:10.5px;color:var(--pd-on-cobalt-2);margin-top:5px">예보 값 · 지점별 점수가 아닙니다</div></div>
+        </div>
+        <div style="text-align:right;flex:none"><div style="font:700 46px/1 'Space Grotesk',sans-serif">82</div><div style="font-size:10.5px;font-weight:700;color:#bcd4ff">매우 좋음</div></div>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:16px">
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font:700 12.5px 'Space Grotesk',sans-serif;margin-top:3px">0.6m</div><div style="font-size:9px;color:var(--pd-on-cobalt-2)">파고</div></div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><path d="M12 3a2 2 0 0 1 2 2v8.5a4 4 0 1 1-4 0V5a2 2 0 0 1 2-2z"/></svg><div style="font:700 12.5px 'Space Grotesk',sans-serif;margin-top:3px">22.1°</div><div style="font-size:9px;color:var(--pd-on-cobalt-2)">수온</div></div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.4M12 18.6V21M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M3 12h2.4M18.6 12H21M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg><div style="font:700 12.5px 'Space Grotesk',sans-serif;margin-top:3px">맑음</div><div style="font-size:9px;color:var(--pd-on-cobalt-2)">날씨</div></div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center;opacity:.72"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><path d="M12 3s5.5 6 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9 12 3 12 3z"/><path d="M9.4 12.6l1.9 1.9 3.5-3.7"/></svg><div style="font:700 12.5px 'Space Grotesk',sans-serif;margin-top:3px">–</div><div style="font-size:9px;color:var(--pd-on-cobalt-2)">수질</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px;min-height:400px">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:700;font-size:14px">지점 비교 <span style="font-size:11px;font-weight:400;color:var(--pd-ink-2)">· 수영 점수</span></div><span style="font-size:11px;font-weight:700;color:var(--pd-blue-deep)">전체 지도 →</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:32px;height:32px;flex:none;border-radius:50%;background:#dbe6ff;display:grid;place-items:center;font:700 11.5px 'Space Grotesk',sans-serif;color:#1d3fa8">72</span><div style="flex:1"><b style="font-size:12.5px">경포해변</b><div style="font-size:11px;color:var(--pd-ink-2)">양호 · 수온 22.1°C</div></div></div>
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:32px;height:32px;flex:none;border-radius:50%;background:#d6eff5;display:grid;place-items:center;font:700 11.5px 'Space Grotesk',sans-serif;color:#0b6c84">68</span><div style="flex:1"><b style="font-size:12.5px">안목해변</b><div style="font-size:11px;color:var(--pd-ink-2)">양호 · 수온 24.8°C</div></div></div>
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px"><span style="width:32px;height:32px;flex:none;border-radius:50%;background:#f7ead0;display:grid;place-items:center;font:700 11.5px 'Space Grotesk',sans-serif;color:#7a4a06">54</span><div style="flex:1"><b style="font-size:12.5px">사천진해변</b><div style="font-size:11px;color:var(--pd-ink-2)">보통 · 수온 19.4°C</div></div></div>
+      </div>
+    </div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:700;font-size:14px">수영 말고 이런 것도</div><span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill);flex:none">예시 데이터</span></div>
+      <div class="note" style="margin-top:4px">아래 활동·점수는 화면 구성용 예시입니다. 저장된 활동은 수영·래프팅·휴식 3종이며, 서핑·SUP·갯벌은 아직 수집 항목이 아닙니다.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px">
+          <span style="width:32px;height:32px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7.5 14.5c1-6.5 6-11 12-10.5.5 6-4.5 10.5-11 11z"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></span>
+          <div style="flex:1;min-width:0"><b style="font-size:12.5px">서핑</b><div style="font-size:11px;color:var(--pd-ink-2)">경포해변 · 파고 0.6m</div></div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#1d3fa8;background:#dbe6ff;padding:4px 9px;border-radius:var(--pd-r-pill);flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg>86</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px">
+          <span style="width:32px;height:32px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="4.4" r="1.9"/><path d="M12 6.3v7.2"/><path d="M8.6 9.2l6.8-2.6"/><ellipse cx="12" cy="16.6" rx="8" ry="2.1"/></svg></span>
+          <div style="flex:1;min-width:0"><b style="font-size:12.5px">SUP</b><div style="font-size:11px;color:var(--pd-ink-2)">안목해변 · 수온 24.8°C</div></div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#0b6c84;background:#d6eff5;padding:4px 9px;border-radius:var(--pd-r-pill);flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>74</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 11px">
+          <span style="width:32px;height:32px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 11.5h18c0 4.7-4 8-9 8s-9-3.3-9-8z"/><path d="M12 19.5v-8M8.2 18.6l1.4-7.1M15.8 18.6l-1.4-7.1"/><path d="M10 8.5c0-1.6.9-2.5 2-2.5s2 .9 2 2.5"/></svg></span>
+          <div style="flex:1;min-width:0"><b style="font-size:12.5px">갯벌 체험</b><div style="font-size:11px;color:var(--pd-ink-2)">사천진 갯벌 · 간조 12:34</div></div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#0b6c84;background:#d6eff5;padding:4px 9px;border-radius:var(--pd-r-pill);flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>64</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#f4f6f9;border-radius:var(--pd-r-ctl);padding:9px 11px">
+          <span style="width:32px;height:32px;flex:none;border-radius:50%;background:#e7ecf2;display:grid;place-items:center;color:#4b5563"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 12.5h18v3.5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M8.5 9.5c0-1.6 1.3-2.1 1.3-3.6S8.5 3.6 8.5 3.6M14 9.5c0-1.6 1.3-2.1 1.3-3.6S14 3.6 14 3.6"/></svg></span>
+          <div style="flex:1;min-width:0"><b style="font-size:12.5px;color:#4b5563">온천</b><div style="font-size:11px;color:var(--pd-ink-2)">강릉 시내 · 실내</div></div>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:4px 9px;border-radius:var(--pd-r-pill);flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 9.5h14M5 15h14"/></svg>70</span>
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px">활동별 점수는 같은 조건을 활동 기준으로 다시 본 값이며, 지점 점수와 하나로 합치지 않습니다.</div>
+    </div>
+
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span><span style="font-size:11.5px;color:var(--pd-ink-3)">취향을 알려주면 코스도 짜드려요</span></div>
+      <button type="button" style="width:100%;height:46px;margin-top:12px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">취향 고르기 →</button>
+    </div>
+    <div class="tabbar" style="margin-top:auto">
+      <div class="tab tab-on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font-size:10px;font-weight:700;margin-top:3px">오늘</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg><div style="font-size:10px;margin-top:3px">추천</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg><div style="font-size:10px;margin-top:3px">지도</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 4h12v16l-6-4-6 4z"/></svg><div style="font-size:10px;margin-top:3px">내 코스</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 7b -->
+<div class="dv-opt" id="7b">
+<div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a><b>장소 우선</b> — 지도가 홈. 「어디로 갈까」에 바로 답하고, 조건은 선택한 지점의 카드로 따라옵니다. 지점을 눌러보세요.</div>
+<div class="frame">
+  <div style="position:relative;height:330px;background:#cddff0;background-image:repeating-linear-gradient(0deg,rgba(47,106,168,.10) 0 1px,transparent 1px 26px),repeating-linear-gradient(90deg,rgba(47,106,168,.10) 0 1px,transparent 1px 26px)">
+    <div class="sbar" style="color:var(--pd-ink-2);position:relative;z-index:2"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em;color:var(--pd-ink)">PONGDANG</span><span>강릉</span></div>
+    <div style="position:absolute;left:16px;right:16px;top:44px;display:flex;align-items:center;gap:8px;background:#fff;border-radius:var(--pd-r-pill);box-shadow:var(--pd-shadow);padding:10px 14px;z-index:2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5c789a" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+      <span style="font-size:12px;color:var(--pd-ink-2)">강릉에서 물놀이 할 곳 찾기</span>
+    </div>
+    <div style="position:absolute;left:10px;bottom:28px;z-index:2;font:600 9.5px 'Space Grotesk',sans-serif;letter-spacing:.1em;color:#2f6aa8;background:rgba(255,255,255,.8);padding:3px 8px;border-radius:var(--pd-r-pill)">KAKAO MAP TILES</div>
+    <sc-for list="{{ pins }}" as="p" hint-placeholder-count="3">
+      <button type="button" onClick="{{ p.pick }}" style="position:absolute;left:{{ p.x }};top:{{ p.y }};transform:translate(-50%,-50%);background:none;border:0;padding:0;cursor:pointer;text-align:center;font-family:inherit;z-index:1">
+        <span style="width:46px;height:46px;border-radius:50%;background:{{ p.ring }};display:grid;place-items:center;box-shadow:0 4px 12px rgba(16,40,80,.25)">
+          <span style="width:34px;height:34px;border-radius:50%;background:#fff;display:grid;place-items:center;font:700 13px 'Space Grotesk',sans-serif;color:{{ p.fg }}">{{ p.score }}</span>
+        </span>
+        <span style="display:block;margin-top:3px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.94);color:#1b2c3d;padding:2px 8px;border-radius:var(--pd-r-pill);white-space:nowrap;outline:{{ p.outline }}">{{ p.name }}</span>
+      </button>
+    </sc-for>
+  </div>
+  <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px;min-height:360px;border-radius:var(--pd-r-hero) var(--pd-r-hero) 0 0;margin-top:-18px;background:var(--pd-mist);position:relative">
+    <div style="width:38px;height:4px;border-radius:2px;background:#c6d5e6;margin:0 auto 4px"></div>
+    <div class="card" style="animation:fadeUp .2s ease">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div><div style="font:700 17px 'Noto Sans KR'">{{ selName }}</div><div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:2px">{{ selAddr }}</div></div>
+        <div style="text-align:right;flex:none"><div style="font:700 26px/1 'Space Grotesk',sans-serif;color:{{ selFg }}">{{ selScore }}</div><div style="font-size:10px;font-weight:700;color:{{ selFg }}">{{ selGrade }}</div></div>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:12px">
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><div style="font:700 13px 'Space Grotesk',sans-serif">{{ selTemp }}</div><div style="font-size:9.5px;color:var(--pd-ink-2)">수온</div></div>
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><div style="font:700 13px 'Space Grotesk',sans-serif">{{ selWave }}</div><div style="font-size:9.5px;color:var(--pd-ink-2)">파고</div></div>
+        <div style="flex:1;background:#eef4fb;border-radius:var(--pd-r-ctl);padding:9px 6px;text-align:center"><div style="font:700 13px 'Space Grotesk',sans-serif">{{ selWind }}</div><div style="font-size:9.5px;color:var(--pd-ink-2)">풍속</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span style="font-size:10px;font-weight:700;color:var(--pd-blue-deep);background:var(--pd-badge);padding:3px 9px;border-radius:var(--pd-r-pill)">{{ selBest }} 추천</span>
+        <span style="font-size:10px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+        <span style="font-size:10px;font-weight:700;color:var(--pd-alert-ink);background:var(--pd-alert);padding:3px 9px;border-radius:var(--pd-r-pill)">안전 판단 불가</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button type="button" style="flex:1;height:46px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;cursor:pointer;color:var(--pd-ink)">길찾기</button>
+        <button type="button" style="flex:1.3;height:46px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">코스에 넣기</button>
+      </div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2f6aa8" stroke-width="1.7" stroke-linecap="round"><path d="M6 4v5a3 3 0 0 0 3 3h9"/></svg><span style="font-size:11.5px;color:var(--pd-ink-3)">샤워장 2 · 주차 가능 · 카페 8</span></div>
+    </div>
+    <div class="tabbar" style="margin-top:auto">
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font-size:10px;margin-top:3px">오늘</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg><div style="font-size:10px;margin-top:3px">추천</div></div>
+      <div class="tab tab-on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg><div style="font-size:10px;font-weight:700;margin-top:3px">지도</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 4h12v16l-6-4-6 4z"/></svg><div style="font-size:10px;margin-top:3px">내 코스</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 7c -->
+<div class="dv-opt" id="7c">
+<div class="dv-olabel"><a class="dv-oid" href="#7c">7c</a><b>코스 우선</b> — 「오늘 이렇게 놀면 돼요」가 홈. 점수는 근거로 내려가고 여행 일정이 주인공입니다. 관광 공모전에 가장 맞는 안. 코스를 바꿔보세요.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">PONGDANG</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">오늘의 추천 코스 {{ courseIdx }} / 3</div>
+      <div style="font:700 22px/1.35 'Noto Sans KR';margin-top:8px">{{ courseTitle }}</div>
+      <div style="font-size:12px;color:var(--pd-on-cobalt-2);margin-top:6px">{{ courseSub }}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#0f2f7a;background:#eef5ff;padding:5px 11px;border-radius:var(--pd-r-pill)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg>오늘 조건 {{ courseScore }} · {{ courseGrade }}</span>
+        <span style="font-size:11px;color:var(--pd-on-cobalt-2)">{{ courseMeta }}</span>
+      </div>
+    </div>
+  </div>
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px;min-height:400px">
+    <div class="card" style="padding:14px 16px 6px;animation:fadeUp .2s ease">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex;gap:11px">
+          <div style="width:40px;flex:none;text-align:right;font:700 12px 'Space Grotesk',sans-serif;padding-top:4px">{{ s.time }}</div>
+          <div style="width:2px;background:#e7eef7;position:relative;flex:none;border-radius:1px"><span style="position:absolute;top:4px;left:-4px;width:10px;height:10px;border-radius:50%;background:{{ s.dot }};display:block"></span></div>
+          <div style="flex:1;min-width:0;padding:0 0 16px 2px">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="width:24px;height:24px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)">
+                <sc-if value="{{ s.isWave }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7.5 14.5c1-6.5 6-11 12-10.5.5 6-4.5 10.5-11 11z"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></sc-if>
+                <sc-if value="{{ s.isFood }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3v5.5a2.6 2.6 0 0 0 5.2 0V3"/><path d="M9.1 11v10"/><path d="M16.8 3c-1.3 2.1-1.9 4.1-1.9 6.4 0 1.4.8 2.2 1.9 2.2s1.9-.8 1.9-2.2c0-2.3-.6-4.3-1.9-6.4z"/><path d="M16.8 11.6V21"/></svg></sc-if>
+                <sc-if value="{{ s.isSpa }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12.5h18v3.5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M8.5 9.5c0-1.6 1.3-2.1 1.3-3.6S8.5 3.6 8.5 3.6M14 9.5c0-1.6 1.3-2.1 1.3-3.6S14 3.6 14 3.6"/></svg></sc-if>
+                <sc-if value="{{ s.isFlat }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 11.5h18c0 4.7-4 8-9 8s-9-3.3-9-8z"/><path d="M12 19.5v-8M8.2 18.6l1.4-7.1M15.8 18.6l-1.4-7.1"/></svg></sc-if>
+                <sc-if value="{{ s.isCafe }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M4 21h14"/></svg></sc-if>
+                <sc-if value="{{ s.isWalk }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg></sc-if>
+              </span>
+              <b style="font-size:13.5px">{{ s.title }}</b>
+            </div>
+            <div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:3px">{{ s.spot }} · {{ s.note }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button type="button" onClick="{{ nextCourse }}" style="flex:1;height:48px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">다른 코스</button>
+      <button type="button" style="flex:1.5;height:48px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>이 코스로 갈래요</button>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11.5px;color:var(--pd-ink-3)">왜 이 코스인가요? · 조건 근거 보기</span>
+        <span style="font-size:11.5px;font-weight:700;color:var(--pd-blue-deep)">펼치기 ▾</span>
+      </div>
+    </div>
+    <div class="tabbar" style="margin-top:auto">
+      <div class="tab tab-on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg><div style="font-size:10px;font-weight:700;margin-top:3px">추천</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font-size:10px;margin-top:3px">오늘</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg><div style="font-size:10px;margin-top:3px">지도</div></div>
+      <div class="tab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 4h12v16l-6-4-6 4z"/></svg><div style="font-size:10px;margin-top:3px">내 코스</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">다음에 해볼 것: "<a class="dv-oid" href="#7c">7c</a>로 가고 근거 펼친 상태도 보여줘" · "<a class="dv-oid" href="#7b">7b</a> 지도에 편의시설 필터 넣어줘" · "고른 안 기준으로 아래 A·B 화면 정리해줘"</p>
+</section>
+
+<section class="dv-turn" id="t8" style="padding-bottom:0">
+<div class="dv-thd"><a class="dv-tid" href="#t8">8</a><span class="dv-tname">B 그룹 — AI 추천·컨시어지 (B1~B5)</span></div>
+<p style="margin:0 0 6px;font-size:12.5px;color:rgba(27,44,61,.62)">아래는 기존 B 화면 문서 전체입니다.</p>
+<dc-import name="ScreensB" hint-size="100%,1100px"></dc-import>
+</section>
+
+<section class="dv-turn" id="t9" style="padding-bottom:0">
+<div class="dv-thd"><a class="dv-tid" href="#t9">9</a><span class="dv-tname">A 그룹 — 컨디션 데이터 (A1~A8)</span></div>
+<p style="margin:0 0 6px;font-size:12.5px;color:rgba(27,44,61,.62)">아래는 기존 A 화면 문서 전체입니다.</p>
+<dc-import name="ScreensA" hint-size="100%,1100px"></dc-import>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1000}}">
+const SPOTS = [
+  { id: "gyeongpo", name: "경포해변", addr: "강원 강릉시 저동", score: 72, grade: "양호", bg: "#d6eff5", fg: "#0b6c84", ring: "#0891b2", temp: "22.1°C", wave: "0.6m", wind: "3.2m/s", best: "수영", x: "40%", y: "40%" },
+  { id: "anmok", name: "안목해변", addr: "강원 강릉시 견소동", score: 68, grade: "양호", bg: "#d6eff5", fg: "#0b6c84", ring: "#0891b2", temp: "24.8°C", wave: "0.8m", wind: "4.0m/s", best: "SUP", x: "70%", y: "70%" },
+  { id: "sacheonjin", name: "사천진해변", addr: "강원 강릉시 사천면", score: 54, grade: "보통", bg: "#f7ead0", fg: "#7a4a06", ring: "#a16207", temp: "19.4°C", wave: "1.1m", wind: "5.4m/s", best: "산책", x: "22%", y: "74%" },
+];
+const COURSES = [
+  {
+    title: "파도 좋은 날, 서핑부터",
+    sub: "경포 서핑 → 안목 점심 → 갯벌 → 온천",
+    score: 82, grade: "매우 좋음", meta: "하루 · 친구와 · 이동 12km",
+    steps: [
+      { time: "09:20", title: "서핑 강습", spot: "경포해변", note: "파고 0.6m", cat: "wave" },
+      { time: "12:00", title: "점심 · 회센터", spot: "안목 항구", note: "도보 5분", cat: "food" },
+      { time: "14:30", title: "갯벌 체험", spot: "사천진 갯벌", note: "간조 12:34 이후", cat: "flat" },
+      { time: "18:40", title: "온천 마무리", spot: "강릉 시내", note: "일몰 19:02", cat: "spa" },
+    ],
+  },
+  {
+    title: "물멍하며 천천히",
+    sub: "카페거리 → 해변 산책 → 일몰",
+    score: 74, grade: "양호", meta: "반나절 · 부모님과 · 이동 6km",
+    steps: [
+      { time: "11:00", title: "카페 물멍", spot: "안목 커피거리", note: "바다 전망석", cat: "cafe" },
+      { time: "13:30", title: "점심 · 시장", spot: "중앙시장", note: "차로 10분", cat: "food" },
+      { time: "16:30", title: "해변 산책", spot: "경포해변", note: "바람 약함", cat: "walk" },
+    ],
+  },
+  {
+    title: "아이와 안전하게",
+    sub: "갯벌 → 점심 → 온천",
+    score: 64, grade: "양호", meta: "하루 · 아이 동반 · 이동 9km",
+    steps: [
+      { time: "10:30", title: "갯벌 체험", spot: "사천진 갯벌", note: "수심 낮음", cat: "flat" },
+      { time: "12:30", title: "점심 · 국수", spot: "사천면", note: "도보 3분", cat: "food" },
+      { time: "15:00", title: "온천", spot: "강릉 시내", note: "실내 · 비 대비", cat: "spa" },
+    ],
+  },
+];
+
+const TABS = [
+  { id: "home", label: "홈", title: "", sub: "" },
+  { id: "today", label: "오늘", title: "오늘의 물 상태", sub: "지점별 점수와 조건을 비교합니다" },
+  { id: "rec", label: "추천", title: "오늘의 추천 코스", sub: "취향과 오늘 조건으로 만든 일정" },
+  { id: "map", label: "지도", title: "강릉 물놀이 지도", sub: "지점 · 라이브캠 · 경로" },
+  { id: "mine", label: "내 코스", title: "내 코스", sub: "저장한 일정 3개" },
+];
+const SPOT_ROWS = [
+  { name: "경포해변", score: 72, grade: "양호", temp: "22.1°C", bg: "#d6eff5", fg: "#0b6c84" },
+  { name: "안목해변", score: 68, grade: "양호", temp: "24.8°C", bg: "#d6eff5", fg: "#0b6c84" },
+  { name: "사천진해변", score: 54, grade: "보통", temp: "19.4°C", bg: "#f7ead0", fg: "#7a4a06" },
+];
+const SAVED = [
+  { title: "오늘의 물 코스", meta: "서핑 · 갯벌 · 온천 · 9/15", score: "82", bg: "#dbe6ff", fg: "#1d3fa8" },
+  { title: "비 오는 날 실내", meta: "온천 · 시장 · 카페 · 9/18", score: "60", bg: "#d6eff5", fg: "#0b6c84" },
+  { title: "부모님과 반나절", meta: "해변 산책 · 카페 · 미정", score: "–", bg: "#e7ecf2", fg: "#4b5563" },
+];
+
+const AI_STEPS = [
+  { label: "시작 · 취향 고르기", chips: [["네, 시작할게요", "next"], ["태그로 고를게요", "tag"]] },
+  { label: "질문 1 / 3 · 하고 싶은 것", chips: [["물에 들어가고 싶어요", "next"], ["쉬면서 구경만", "next"], ["아이랑 갈 데", "next"]] },
+  { label: "질문 2 / 3 · 동행과 시간", chips: [["친구랑 하루", "next"], ["혼자 반나절", "next"], ["부모님과 하루", "next"]] },
+  { label: "질문 3 / 3 · 제안과 근거", chips: [["이대로 코스 만들기", "next"], ["다른 곳도 보여줘", "next"]] },
+  { label: "완료 · 오늘의 코스", chips: [["저장할게요", "save"], ["다시 물어보기", "reset"]] },
+  { label: "태그로 고르기", chips: [["이 취향으로 코스 만들기", "course"], ["대화로 돌아가기", "reset"]] },
+];
+const AI_TURNS = [
+  { bot: "안녕하세요! 오늘 강릉에서 뭘 하고 싶으세요?", answer: "물에 들어가고 싶어요" },
+  { bot: "좋아요. 누구와 얼마나 머무세요?", answer: "친구랑 하루" },
+  { bot: "오늘 조건으로는 경포해변 수영이 가장 잘 맞습니다. 근거를 같이 볼까요?", answer: "이대로 코스 만들기" },
+  { bot: "파고·수온은 적정 범위, 수질은 아직 수집 전입니다. 이대로 코스를 만들까요?", answer: "네" },
+];
+
+class Component extends DCLogic {
+  state = { spot: "gyeongpo", course: 0, tab: "home", menuOpen: false, ai: 0, aiCourse: 0, aiSaved: false };
+
+  renderVals() {
+    const s = this.state;
+    const tab = TABS.find((t) => t.id === s.tab) || TABS[0];
+    const sel = SPOTS.find((x) => x.id === s.spot) || SPOTS[0];
+    const c = COURSES[s.course];
+    return {
+      pins: SPOTS.map((x) => ({
+        name: x.name, score: x.score, fg: x.fg, x: x.x, y: x.y,
+        ring: "conic-gradient(" + x.ring + " 0 " + x.score + "%, #e7eef7 " + x.score + "% 100%)",
+        outline: x.id === s.spot ? "2px solid #2f6aa8" : "none",
+        pick: () => this.setState({ spot: x.id }),
+      })),
+      selName: sel.name, selAddr: sel.addr, selScore: sel.score, selGrade: sel.grade,
+      selFg: sel.fg, selTemp: sel.temp, selWave: sel.wave, selWind: sel.wind, selBest: sel.best,
+
+      courseIdx: s.course + 1,
+      courseTitle: c.title, courseSub: c.sub, courseScore: c.score,
+      courseGrade: c.grade, courseMeta: c.meta,
+      steps: c.steps.map((x) => ({
+        time: x.time, title: x.title, spot: x.spot, note: x.note,
+        dot: x.cat === "wave" ? "#1d4ed8" : x.cat === "flat" ? "#0891b2" : x.cat === "spa" ? "#4a86c8" : "#b9cede",
+        isWave: x.cat === "wave", isFood: x.cat === "food", isSpa: x.cat === "spa",
+        isFlat: x.cat === "flat", isCafe: x.cat === "cafe", isWalk: x.cat === "walk",
+      })),
+      nextCourse: () => this.setState((st) => ({ course: (st.course + 1) % COURSES.length })),
+
+      isHome: s.tab === "home", notHome: s.tab !== "home",
+      isToday: s.tab === "today", isRec: s.tab === "rec",
+      isMap: s.tab === "map", isMine: s.tab === "mine",
+      tabLabel: tab.label, tabTitle: tab.title, tabSub: tab.sub,
+      tabs: TABS.map((t) => ({
+        label: t.label,
+        color: t.id === s.tab ? "#2f6aa8" : "#5c789a",
+        weight: t.id === s.tab ? 700 : 400,
+        isHome: t.id === "home", isToday: t.id === "today", isRec: t.id === "rec",
+        isMap: t.id === "map", isMine: t.id === "mine",
+        pick: () => this.setState({ tab: t.id }),
+      })),
+      spotRows: SPOT_ROWS,
+      saved: SAVED,
+      goRec: () => this.setState({ tab: "rec" }),
+      goMap: () => this.setState({ tab: "map" }),
+
+      aiStepLabel: AI_STEPS[s.ai].label,
+      aiBars: AI_STEPS.slice(0, 5).map((x, i) => ({ bg: (s.ai === 5 ? i === 0 : i <= s.ai) ? "#eef5ff" : "rgba(255,255,255,.28)" })),
+      aiIsIntro: s.ai === 0,
+      aiIsChat: s.ai === 1 || s.ai === 2,
+      aiIsEvidence: s.ai === 3,
+      aiIsCourse: s.ai === 4,
+      aiIsTag: s.ai === 5,
+      aiCourseTitle: COURSES[s.aiCourse].title,
+      aiCourseMeta: COURSES[s.aiCourse].sub + " · " + COURSES[s.aiCourse].meta,
+      aiSteps: COURSES[s.aiCourse].steps.map((x) => ({
+        time: x.time, title: x.title, spot: x.spot, note: x.note,
+        isWave: x.cat === "wave", isFood: x.cat === "food", isSpa: x.cat === "spa",
+        isFlat: x.cat === "flat", isCafe: x.cat === "cafe", isWalk: x.cat === "walk",
+      })),
+      aiNextCourse: () => this.setState((st) => ({ aiCourse: (st.aiCourse + 1) % COURSES.length, aiSaved: false })),
+      aiSaved: s.aiSaved,
+      aiSave: () => this.setState({ aiSaved: true }),
+      aiSaveLabel: s.aiSaved ? "저장됨" : "내 코스에 저장",
+      aiSaveBg: s.aiSaved ? "#8fa3b8" : "#4a86c8",
+      aiChat: AI_TURNS.slice(0, s.ai).reduce((acc, t, i) => {
+        acc.push({ text: t.bot, align: "flex-start", bg: "#fff", fg: "#1b2c3d", radius: "18px 18px 18px 6px", shadow: "0 6px 20px rgba(20,44,72,.10)" });
+        if (i < s.ai - 1) acc.push({ text: t.answer, align: "flex-end", bg: "#4a86c8", fg: "#fff", radius: "18px 18px 6px 18px", shadow: "none" });
+        return acc;
+      }, []),
+      aiChips: AI_STEPS[s.ai].chips.map((c, i) => ({
+        label: c[0],
+        bg: i === 0 ? "#4a86c8" : "#dfeaf7",
+        fg: i === 0 ? "#fff" : "#2f6aa8",
+        pick: () => {
+          const act = c[1];
+          if (act === "next") this.setState((st) => ({ ai: Math.min(st.ai + 1, 4) }));
+          else if (act === "tag") this.setState({ ai: 5 });
+          else if (act === "course") this.setState({ ai: 4 });
+          else if (act === "save") this.setState({ aiSaved: true });
+          else this.setState({ ai: 0, aiSaved: false });
+        },
+      })),
+      aiReset: () => this.setState({ ai: 0, aiSaved: false }),
+
+      menuOpen: s.menuOpen,
+      openMenu: () => this.setState({ menuOpen: true }),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      menuItems: [
+        { label: "저장한 코스", meta: "내 코스 탭과 같은 목록 · 4e", isSaved: true },
+        { label: "지점 즐겨찾기", meta: "자주 가는 해변 고정", isFav: true },
+        { label: "알림 설정", meta: "조건 변화 · 첫 입수 알림 · 미구현", isAlarm: true },
+        { label: "데이터 출처와 갱신", meta: "기상청 · 국립해양조사원 · 갱신 시각", isData: true },
+        { label: "이용 안내", meta: "안전 판단 범위와 한계", isHelp: true },
+        { label: "설정", meta: "단위 · 언어 · 접근성", isSet: true },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

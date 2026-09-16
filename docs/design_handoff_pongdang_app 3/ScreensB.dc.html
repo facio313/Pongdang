@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/industry-edbc88cb-d75b-48e0-ac56-baf4cd502d38/styles.css">
+<script src="_ds/industry-edbc88cb-d75b-48e0-ac56-baf4cd502d38/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{
+--pd-mist:#eef4fb;--pd-surface:#fff;--pd-line:#dae7f5;--pd-badge:#dfeaf7;
+--pd-ink:#1b2c3d;--pd-ink-2:#5c789a;--pd-ink-3:#4c657f;
+--pd-blue:#4a86c8;--pd-blue-deep:#2f6aa8;
+--pd-alert:#ffe9e9;--pd-alert-ink:#8d1616;
+--pd-cobalt:linear-gradient(160deg,#0f2f7a 0%,#1b5fc0 58%,#2a86d6 100%);
+--pd-glass:rgba(255,255,255,.14);--pd-glass-line:rgba(255,255,255,.4);
+--pd-on-cobalt:#eef5ff;--pd-on-cobalt-2:#c4dcf8;--pd-sky:#9ed4ff;
+--pd-r-hero:22px;--pd-r-card:18px;--pd-r-ctl:14px;--pd-r-pill:999px;
+--pd-shadow:0 6px 20px rgba(20,44,72,.10);--pd-shadow-hero:0 14px 40px rgba(12,38,90,.28);
+}
+body{margin:0;background:#e4ebf4;font-family:"Noto Sans KR",system-ui,sans-serif;color:var(--pd-ink)}
+a{color:var(--pd-blue-deep)}a:hover{color:#0f2f7a}
+.dv-turn{padding:40px 44px 34px;border-bottom:1px solid rgba(0,0,0,.1)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1b2c3d;color:#eef5ff;text-decoration:none;border-radius:4px}
+.dv-tname{font:700 13px/1.2 "Noto Sans KR",sans-serif}
+.dv-opts{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start;margin-top:22px}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1b2c3d;text-decoration:none;border-radius:4px}
+.dv-olabel{display:block;font:400 11.5px/1.5 "Noto Sans KR",sans-serif;color:rgba(27,44,61,.62);max-width:390px}
+.dv-olabel .dv-oid{display:inline-block;margin-right:7px;white-space:nowrap}
+.dv-olabel b{white-space:nowrap}
+.dv-opt:target .dv-oid{background:#4a86c8;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.6 "Noto Sans KR",sans-serif;color:rgba(27,44,61,.55)}
+.frame{width:390px;background:var(--pd-mist);border-radius:26px;box-shadow:0 12px 34px rgba(16,40,80,.16);overflow:hidden}
+.sbar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 6px;font-size:10.5px}
+.lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">B 화면 설계 · 물안개 파스텔 × 코발트 글래스 적용 · 모바일 390</span></div>
+<p style="margin:0;font-size:12.5px;color:rgba(27,44,61,.62);max-width:96ch">합친 시스템(<a href="Pongdang 디자인 시스템 v2.dc.html">v2 시트</a>)을 그대로 적용했습니다. 각 화면 최상단에 <b>코발트 글래스 히어로 1개</b>, 그 아래 선택·근거·목록은 <b>물안개 파스텔 흰 카드</b>. 네 화면 모두 눌러볼 수 있습니다. B2~B5 항목명은 여전히 가정이며, 실제 명칭을 주시면 그대로 교체합니다.</p>
+<div class="dv-opts">
+
+<!-- ══ 4a HOME ══ -->
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a><b>오늘</b> — 진입 화면. 글래스 히어로가 오늘 지점·점수를 말하고, 아래 흰 카드가 B1 취향 수집으로 밀어줍니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:22px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">PONGDANG</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">TODAY · 9월 15일 월요일</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px">
+        <div>
+          <div style="font:700 22px/1.35 'Noto Sans KR'">오늘은 수영하기<br>아주 좋은 날이에요</div>
+          <div style="font-size:12px;color:var(--pd-on-cobalt-2);margin-top:8px">경포해변 기준 · 예보이며 관측이 아닙니다</div>
+        </div>
+        <div style="text-align:right;flex:none">
+          <div style="font:700 56px/1 'Space Grotesk',sans-serif">82</div>
+          <div style="font-size:11px;font-weight:700;color:#bcd4ff">매우 좋음</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:10px 8px;text-align:center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg>
+          <div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:4px">0.6m</div>
+          <div style="font-size:9.5px;color:var(--pd-on-cobalt-2)">파고</div>
+        </div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:10px 8px;text-align:center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><path d="M12 3a2 2 0 0 1 2 2v8.5a4 4 0 1 1-4 0V5a2 2 0 0 1 2-2z"/></svg>
+          <div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:4px">22.1°</div>
+          <div style="font-size:9.5px;color:var(--pd-on-cobalt-2)">수온</div>
+        </div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:10px 8px;text-align:center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.4M12 18.6V21M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M3 12h2.4M18.6 12H21M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+          <div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:4px">맑음</div>
+          <div style="font-size:9.5px;color:var(--pd-on-cobalt-2)">날씨</div>
+        </div>
+        <div style="flex:1;background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-ctl);padding:10px 8px;text-align:center;opacity:.72">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2v5l3 2"/></svg>
+          <div style="font:700 13px 'Space Grotesk',sans-serif;margin-top:4px">–</div>
+          <div style="font-size:9.5px;color:var(--pd-on-cobalt-2)">수질</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 18px">
+      <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+      <div style="font:700 17px/1.4 'Noto Sans KR';margin-top:10px">취향만 알려주면<br>오늘 코스를 짜드릴게요</div>
+      <div style="font-size:12px;color:var(--pd-ink-3);margin-top:6px">30초 · 6장만 넘기면 끝납니다.</div>
+      <button type="button" onClick="{{ goTaste }}" style="width:100%;height:48px;margin-top:14px;font:700 13.5px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">취향 고르기 →</button>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:14px">
+        <span style="width:34px;height:34px;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="9.6" r="6.4"/><path d="M12 6.2v3.4l2.6 1.8"/><path d="M2 19.5c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></span>
+        <div style="font-weight:700;font-size:13px;margin-top:10px">물때</div>
+        <div style="font-size:11.5px;color:var(--pd-ink-3);margin-top:3px">썰물 (지금)<br>12:34 간조부터 밀물</div>
+        <span style="display:inline-block;font-size:10px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill);margin-top:8px">예시 데이터</span>
+      </div>
+      <div style="flex:1;background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:14px">
+        <span style="width:34px;height:34px;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 8.5h3L8 6.5h8l1.5 2h3v10h-17z"/><circle cx="12" cy="13.2" r="3"/></svg></span>
+        <div style="font-weight:700;font-size:13px;margin-top:10px">라이브캠</div>
+        <div style="font-size:11.5px;color:var(--pd-ink-3);margin-top:3px">경포해변<br>맑음 · 수온 22.1°C</div>
+        <span style="display:inline-block;font-size:10px;font-weight:700;color:#4b5563;background:#e7ecf2;padding:3px 9px;border-radius:var(--pd-r-pill);margin-top:8px">수집 미구현</span>
+      </div>
+    </div>
+
+    <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:6px 8px;display:flex">
+      <div style="flex:1;padding:8px 0;text-align:center;color:var(--pd-blue-deep)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg><div style="font-size:10px;font-weight:700;margin-top:3px">오늘</div></div>
+      <div style="flex:1;padding:8px 0;text-align:center;color:var(--pd-ink-2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2v5l3 2"/></svg><div style="font-size:10px;margin-top:3px">추천</div></div>
+      <div style="flex:1;padding:8px 0;text-align:center;color:var(--pd-ink-2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg><div style="font-size:10px;margin-top:3px">지도</div></div>
+      <div style="flex:1;padding:8px 0;text-align:center;color:var(--pd-ink-2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto"><path d="M6 4h12v16l-6-4-6 4z"/></svg><div style="font-size:10px;margin-top:3px">내 코스</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 4b B1 ══ -->
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a><b>B1 취향 수집</b> — 태그로 빠르게 좁히고(1), 카드 6장으로 확정하고(2), 요약에서 되돌릴 수 있게(3). 히어로는 진행률을 겸합니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">MY TASTE</span><span>{{ tStepLabel }}</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">{{ tKicker }}</div>
+      <div style="font:700 21px/1.35 'Noto Sans KR';margin-top:8px">{{ tTitle }}</div>
+      <div style="font-size:12px;color:var(--pd-on-cobalt-2);margin-top:6px">{{ tSub }}</div>
+      <div style="display:flex;gap:5px;margin-top:16px">
+        <div style="flex:1;height:4px;border-radius:2px;background:{{ tBar1 }}"></div>
+        <div style="flex:1;height:4px;border-radius:2px;background:{{ tBar2 }}"></div>
+        <div style="flex:1;height:4px;border-radius:2px;background:{{ tBar3 }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:18px 18px 18px;min-height:470px;display:flex;flex-direction:column">
+    <sc-if value="{{ tIs1 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;flex:1;animation:fadeUp .2s ease">
+        <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 18px">
+          <div class="lbl" style="color:var(--pd-ink-2)">하고 싶은 것</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <sc-for list="{{ tagsWater }}" as="t" hint-placeholder-count="5">
+              <button type="button" onClick="{{ t.toggle }}" style="font:700 12.5px 'Noto Sans KR';padding:10px 14px;border:0;border-radius:var(--pd-r-pill);background:{{ t.bg }};color:{{ t.fg }};cursor:pointer">{{ t.text }}</button>
+            </sc-for>
+          </div>
+          <div class="lbl" style="color:var(--pd-ink-2);margin-top:16px">쉬기 · 구경</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <sc-for list="{{ tagsRest }}" as="t" hint-placeholder-count="4">
+              <button type="button" onClick="{{ t.toggle }}" style="font:700 12.5px 'Noto Sans KR';padding:10px 14px;border:0;border-radius:var(--pd-r-pill);background:{{ t.bg }};color:{{ t.fg }};cursor:pointer">{{ t.text }}</button>
+            </sc-for>
+          </div>
+          <div class="lbl" style="color:var(--pd-ink-2);margin-top:16px">조건</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <sc-for list="{{ tagsCond }}" as="t" hint-placeholder-count="4">
+              <button type="button" onClick="{{ t.toggle }}" style="font:700 12.5px 'Noto Sans KR';padding:10px 14px;border:0;border-radius:var(--pd-r-pill);background:{{ t.bg }};color:{{ t.fg }};cursor:pointer">{{ t.text }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding-top:16px">
+          <div style="font-size:11.5px;color:var(--pd-ink-3);margin-bottom:10px">{{ tPickSummary }}</div>
+          <button type="button" onClick="{{ tNext }}" style="width:100%;height:48px;font:700 13.5px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">다음 · 카드로 확정하기</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ tIs2 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;flex:1;animation:fadeUp .2s ease">
+        <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);overflow:hidden">
+          <div style="height:200px;background:linear-gradient(160deg,#cfe0f2,#a9c8e8);display:grid;place-items:center;color:#2f4a63">
+            <div style="text-align:center"><div style="font:700 12px 'Space Grotesk',sans-serif;letter-spacing:.14em">IMAGE</div><div style="font-size:11px;margin-top:3px">{{ cardName }} 사진 필요</div></div>
+          </div>
+          <div style="padding:14px 16px">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <div style="font:700 18px 'Noto Sans KR'">{{ cardName }}</div>
+              <div style="font-size:11.5px;color:var(--pd-ink-2)">{{ cardSpot }}</div>
+            </div>
+            <div style="font-size:12.5px;color:var(--pd-ink-3);margin-top:6px;line-height:1.6">{{ cardNote }}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:var(--pd-r-pill);background:{{ cardGradeBg }};color:{{ cardGradeFg }}">
+                <sc-if value="{{ cardIsExc }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l2.4 5 5.6.7-4 3.9 1 5.4-5-2.7-5 2.7 1-5.4-4-3.9 5.6-.7z"/></svg></sc-if>
+                <sc-if value="{{ cardIsGood }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></sc-if>
+                <sc-if value="{{ cardIsFair }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 9.5h14M5 15h14"/></svg></sc-if>
+                오늘 {{ cardScore }} · {{ cardGrade }}</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:4px 10px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button type="button" onClick="{{ cardPass }}" style="flex:1;height:48px;font:700 13.5px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">패스</button>
+          <button type="button" onClick="{{ cardLike }}" style="flex:1.4;height:48px;font:700 13.5px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">좋아요</button>
+        </div>
+        <button type="button" onClick="{{ tBack }}" style="margin-top:10px;font:700 12px 'Noto Sans KR';background:none;border:0;color:var(--pd-blue-deep);cursor:pointer;align-self:flex-start">← 이전</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ tIs3 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;flex:1;animation:fadeUp .2s ease">
+        <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 18px">
+          <div class="lbl" style="color:var(--pd-ink-2)">좋아요 한 활동</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <sc-for list="{{ liked }}" as="l" hint-placeholder-count="3">
+              <span style="font:700 12.5px 'Noto Sans KR';padding:9px 14px;border-radius:var(--pd-r-pill);background:var(--pd-blue);color:#fff">{{ l.name }}</span>
+            </sc-for>
+          </div>
+          <sc-if value="{{ noneLiked }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12.5px;color:var(--pd-ink-2);margin-top:8px">고른 활동이 없어 오늘 조건만으로 추천합니다.</div>
+          </sc-if>
+          <div style="height:1px;background:var(--pd-line);margin:16px 0"></div>
+          <div class="lbl" style="color:var(--pd-ink-2)">태그로 고른 것</div>
+          <div style="font-size:12.5px;color:var(--pd-ink-3);margin-top:6px;line-height:1.6">{{ tPickSummary }}</div>
+        </div>
+        <div style="margin-top:auto;padding-top:16px">
+          <button type="button" onClick="{{ tRestart }}" style="width:100%;height:48px;font:700 13.5px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer">오늘 코스 만들기 →</button>
+          <button type="button" onClick="{{ tBack }}" style="margin-top:10px;font:700 12px 'Noto Sans KR';background:none;border:0;color:var(--pd-blue-deep);cursor:pointer">← 다시 고르기</button>
+          <div style="font-size:11px;color:var(--pd-ink-2);margin-top:12px">취향은 추천 순서에만 쓰이며 안전 판정에는 쓰지 않습니다.</div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</div>
+
+<!-- ══ 4c B2 ══ -->
+<div class="dv-opt" id="4c">
+<div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a><b>B2 코스 결과</b> — 히어로에서 날짜를 고르고, 아래 흰 카드가 시간 축 코스와 근거를 보여줍니다. 예보 없는 날은 코스를 만들지 않습니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">MY COURSE</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <div><div class="lbl" style="color:var(--pd-sky)">{{ dDayLabel }}</div><div style="font:700 20px/1.35 'Noto Sans KR';margin-top:6px">{{ dHeadline }}</div></div>
+        <div style="text-align:right;flex:none"><div style="font:700 42px/1 'Space Grotesk',sans-serif">{{ dScoreText }}</div><div style="font-size:10.5px;font-weight:700;color:#bcd4ff">{{ dGrade }}</div></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:16px">
+        <sc-for list="{{ dDays }}" as="d" hint-placeholder-count="5">
+          <button type="button" onClick="{{ d.pick }}" style="flex:1;padding:8px 0 7px;border:1px solid {{ d.border }};border-radius:var(--pd-r-ctl);background:{{ d.bg }};color:{{ d.fg }};cursor:pointer;font-family:inherit">
+            <div style="font:700 13px 'Space Grotesk',sans-serif">{{ d.scoreText }}</div>
+            <div style="font-size:10px;font-weight:700;margin-top:2px">{{ d.weekday }}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:18px 18px 18px;min-height:470px;display:flex;flex-direction:column">
+    <div style="font-size:12px;color:var(--pd-ink-3);margin-bottom:12px">{{ dLede }}</div>
+
+    <sc-if value="{{ dHasCourse }}" hint-placeholder-val="{{ true }}">
+      <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 16px 6px">
+        <sc-for list="{{ dCourse }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;gap:12px">
+            <div style="width:42px;flex:none;text-align:right"><div style="font:700 12.5px 'Space Grotesk',sans-serif;color:var(--pd-ink)">{{ s.time }}</div></div>
+            <div style="width:2px;background:#e7eef7;position:relative;flex:none;border-radius:1px">
+              <span style="position:absolute;top:3px;left:-4px;width:10px;height:10px;border-radius:50%;background:{{ s.dot }};display:block"></span>
+            </div>
+            <div style="flex:1;min-width:0;padding:0 0 18px 2px">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <span style="width:26px;height:26px;flex:none;border-radius:50%;background:var(--pd-badge);display:grid;place-items:center;color:var(--pd-blue-deep)">
+                  <sc-if value="{{ s.isWave }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7.5 14.5c1-6.5 6-11 12-10.5.5 6-4.5 10.5-11 11z"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg></sc-if>
+                  <sc-if value="{{ s.isFlat }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 11.5h18c0 4.7-4 8-9 8s-9-3.3-9-8z"/><path d="M12 19.5v-8M8.2 18.6l1.4-7.1M15.8 18.6l-1.4-7.1"/><path d="M10 8.5c0-1.6.9-2.5 2-2.5s2 .9 2 2.5"/></svg></sc-if>
+                  <sc-if value="{{ s.isFood }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3v5.5a2.6 2.6 0 0 0 5.2 0V3"/><path d="M9.1 11v10"/><path d="M16.8 3c-1.3 2.1-1.9 4.1-1.9 6.4 0 1.4.8 2.2 1.9 2.2s1.9-.8 1.9-2.2c0-2.3-.6-4.3-1.9-6.4z"/><path d="M16.8 11.6V21"/></svg></sc-if>
+                  <sc-if value="{{ s.isSpa }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12.5h18v3.5a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M8.5 9.5c0-1.6 1.3-2.1 1.3-3.6S8.5 3.6 8.5 3.6M14 9.5c0-1.6 1.3-2.1 1.3-3.6S14 3.6 14 3.6"/></svg></sc-if>
+                  <sc-if value="{{ s.isCafe }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M4 21h14"/></svg></sc-if>
+                  <sc-if value="{{ s.isWalk }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20.5s5.6-5.9 5.6-9.5a5.6 5.6 0 1 0-11.2 0c0 3.6 5.6 9.5 5.6 9.5z"/><circle cx="12" cy="11" r="2"/></svg></sc-if>
+                </span>
+                <span style="font-weight:700;font-size:14px">{{ s.title }}</span>
+                <span style="font:700 13px 'Space Grotesk',sans-serif;color:{{ s.color }}">{{ s.score }}</span>
+                <span style="font-size:10.5px;font-weight:700;color:{{ s.color }}">{{ s.grade }}</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:2px">{{ s.spot }}</div>
+              <div style="font-size:12px;color:var(--pd-ink-3);margin-top:6px;line-height:1.6">{{ s.reason }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <span style="font-size:10px;font-weight:700;color:var(--pd-blue-deep);background:var(--pd-badge);padding:3px 9px;border-radius:var(--pd-r-pill)">{{ s.chip }}</span>
+                <span style="font-size:10px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:14px 16px;margin-top:12px">
+        <div style="font-size:12px;color:var(--pd-ink-3);line-height:1.6">{{ dAlt }}</div>
+        <button type="button" onClick="{{ dToggleAlt }}" style="margin-top:8px;font:700 12px 'Noto Sans KR';background:none;border:0;color:var(--pd-blue-deep);cursor:pointer;padding:0">{{ dAltCta }}</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button type="button" style="flex:1;height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="17" cy="6" r="2.6"/><circle cx="7" cy="12" r="2.6"/><circle cx="17" cy="18" r="2.6"/><path d="M9.3 10.8l5.4-3.2M9.3 13.2l5.4 3.2"/></svg>공유</button>
+        <button type="button" style="flex:1.4;height:46px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:var(--pd-blue);color:#fff;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>내 코스에 저장</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ dEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:26px 18px;text-align:center">
+        <span style="width:44px;height:44px;border-radius:50%;background:#e7ecf2;display:grid;place-items:center;margin:0 auto;color:#4b5563"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M8.6 12h6.8"/></svg></span>
+        <div style="font-weight:700;font-size:14px;margin-top:12px">저장된 예보가 없습니다</div>
+        <div style="font-size:12px;color:var(--pd-ink-3);margin-top:6px;line-height:1.6">값이 없는 날을 0점·안전으로 채우지 않기 때문에<br>코스를 만들지 않았습니다.</div>
+        <span style="display:inline-block;font-size:10.5px;font-weight:700;color:#4b5563;background:#fff;border:1px solid #cfd8e3;padding:4px 10px;border-radius:var(--pd-r-pill);margin-top:12px">no_data</span>
+      </div>
+      <button type="button" onClick="{{ dPickToday }}" style="width:100%;height:46px;margin-top:14px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">예보가 있는 날 보기 →</button>
+    </sc-if>
+  </div>
+</div>
+</div>
+
+<!-- ══ 4d B3 ══ -->
+<div class="dv-opt" id="4d">
+<div class="dv-olabel"><a class="dv-oid" href="#4d">4d</a><b>B3 컨시어지</b> — 대화는 밝은 레이어, 답변 근거는 흰 카드에 지표 막대로. 추천 문장에는 항상 「AI 제안」과 출처가 붙습니다.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:16px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">CONCIERGE</span><span>강릉</span></div>
+    <div style="padding:6px 20px 0;display:flex;align-items:center;gap:12px">
+      <span style="width:40px;height:40px;border-radius:12px;background:var(--pd-glass);border:1px solid var(--pd-glass-line);display:grid;place-items:center;flex:none"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 17c2 0 2-3 4-3s2 3 4 3 2-3 4-3 2 3 4 3 2-3 4-3"/></svg></span>
+      <div><div style="font:700 16px 'Noto Sans KR'">퐁당 컨시어지</div><div style="font-size:11px;color:var(--pd-on-cobalt-2);margin-top:2px">오늘 조건과 취향을 함께 봅니다</div></div>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 16px;min-height:500px;display:flex;flex-direction:column">
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ chat }}" as="m" hint-placeholder-count="3">
+        <div style="display:flex;justify-content:{{ m.align }}">
+          <div style="max-width:80%;padding:11px 14px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font-size:12.5px;line-height:1.65;box-shadow:{{ m.shadow }}">{{ m.text }}</div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ cHasEvidence }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:15px 16px;animation:fadeUp .2s ease">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:10.5px;font-weight:700;color:#2f6aa8;background:#fff;border:1px solid var(--pd-blue);padding:3px 10px;border-radius:var(--pd-r-pill)">AI 제안</span>
+            <span style="font-size:10.5px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 10px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px">
+            <div style="font:700 17px 'Noto Sans KR'">경포해변 · 서핑</div>
+            <div style="font:700 19px 'Space Grotesk',sans-serif;color:#1d3fa8">82</div>
+            <div style="font-size:10.5px;font-weight:700;color:#1d3fa8">매우 좋음</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>파고 0.6m</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:72%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-3)"><span>수온 22.1°C</span><b>적정</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"><div style="width:64%;height:100%;background:var(--pd-blue);border-radius:3px"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--pd-ink-2)"><span>수질</span><b>수집 미구현</b></div><div style="height:6px;background:#e7eef7;border-radius:3px;margin-top:4px"></div></div>
+          </div>
+          <div style="font-size:11px;color:var(--pd-ink-2);margin-top:10px">막대는 점수 기여도가 아니라 지표 값의 위치입니다. 출처 · 기상청 · 국립해양조사원</div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="padding-top:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <sc-for list="{{ cChips }}" as="c" hint-placeholder-count="3">
+          <button type="button" onClick="{{ c.pick }}" style="font:700 12.5px 'Noto Sans KR';padding:10px 14px;border:0;border-radius:var(--pd-r-pill);background:var(--pd-badge);color:var(--pd-blue-deep);cursor:pointer">{{ c.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" placeholder="직접 물어봐도 됩니다" style="flex:1;height:46px;padding:0 14px;font:400 12.5px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink)">
+        <button type="button" onClick="{{ cReset }}" style="height:46px;padding:0 14px;font:700 12px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">처음</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 4e B4·B5 ══ -->
+<div class="dv-opt" id="4e">
+<div class="dv-olabel"><a class="dv-oid" href="#4e">4e</a><b>B4 재추천 · B5 내 코스</b> — 조건이 바뀌면 히어로가 변경분만 말하고, 교체 버튼으로 코스를 갈아끼웁니다. 아래는 저장한 코스 목록.</div>
+<div class="frame">
+  <div style="background:var(--pd-cobalt);color:var(--pd-on-cobalt);padding-bottom:20px;border-radius:0 0 var(--pd-r-hero) var(--pd-r-hero);box-shadow:var(--pd-shadow-hero)">
+    <div class="sbar" style="color:var(--pd-on-cobalt-2)"><span>9:41</span><span style="font:700 11px 'Space Grotesk',sans-serif;letter-spacing:.12em">UPDATE</span><span>강릉</span></div>
+    <div style="padding:8px 20px 0">
+      <div class="lbl" style="color:var(--pd-sky)">조건 변화 · 10분 전</div>
+      <div style="font:700 20px/1.4 'Noto Sans KR';margin-top:8px">{{ rHeadline }}</div>
+      <div style="background:var(--pd-glass);border:1px solid var(--pd-glass-line);border-radius:var(--pd-r-card);padding:13px 14px;margin-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;color:var(--pd-on-cobalt-2)">파고 0.6m → <b style="color:var(--pd-on-cobalt)">1.2m</b></div>
+          <div style="display:flex;align-items:baseline;gap:6px"><span style="font:700 13px 'Space Grotesk',sans-serif;color:#bcd4ff">82</span><span style="font-size:11px;color:var(--pd-on-cobalt-2)">→</span><span style="font:700 20px 'Space Grotesk',sans-serif">{{ rScore }}</span></div>
+        </div>
+        <div style="font-size:11px;color:var(--pd-on-cobalt-2);margin-top:6px">{{ rNote }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:18px 18px 18px;min-height:470px;display:flex;flex-direction:column">
+    <div style="background:var(--pd-alert);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:16px 18px">
+      <div style="display:flex;align-items:center;gap:7px;color:var(--pd-alert-ink);margin-bottom:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4l8.5 15H3.5z"/><path d="M12 10v4M12 16.6v.6"/></svg><span class="lbl">바뀌는 일정 1개</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--pd-ink-2)">09:20 기존</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:2px;text-decoration:{{ rOldDeco }};color:{{ rOldColor }}">서핑 · 경포해변</div>
+          <div style="font-size:11px;color:var(--pd-ink-2);margin-top:2px">{{ rOldMeta }}</div>
+        </div>
+        <span style="color:var(--pd-ink-2);flex:none">→</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--pd-ink-2)">09:40 대안</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:2px;color:{{ rNewColor }}">SUP · 안목해변</div>
+          <div style="font-size:11px;color:var(--pd-ink-2);margin-top:2px">58 · 보통</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span style="font-size:10px;font-weight:700;color:var(--pd-blue-deep);background:var(--pd-badge);padding:3px 9px;border-radius:var(--pd-r-pill)">파고 기준</span>
+        <span style="font-size:10px;font-weight:700;color:#8d1616;background:#fbd9d9;padding:3px 9px;border-radius:var(--pd-r-pill)">안전 판단 불가</span>
+        <span style="font-size:10px;font-weight:700;color:#7a4a06;background:#f7ead0;padding:3px 9px;border-radius:var(--pd-r-pill)">예시 데이터</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button type="button" onClick="{{ rKeep }}" style="flex:1;height:46px;font:700 13px 'Noto Sans KR';border:1px solid var(--pd-line);border-radius:var(--pd-r-ctl);background:#fff;color:var(--pd-ink);cursor:pointer">{{ rKeepLabel }}</button>
+        <button type="button" onClick="{{ rSwap }}" style="flex:1.4;height:46px;font:700 13px 'Noto Sans KR';border:0;border-radius:var(--pd-r-ctl);background:{{ rSwapBg }};color:#fff;cursor:pointer">{{ rSwapLabel }}</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;color:var(--pd-ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span class="lbl">내 코스 · 저장 3</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ saved }}" as="c" hint-placeholder-count="3">
+          <div style="background:var(--pd-surface);border-radius:var(--pd-r-card);box-shadow:var(--pd-shadow);padding:13px 15px;display:flex;align-items:center;gap:12px">
+            <span style="width:42px;height:42px;flex:none;border-radius:50%;background:{{ c.bg }};display:grid;place-items:center;font:700 14px 'Space Grotesk',sans-serif;color:{{ c.fg }}">{{ c.score }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13.5px">{{ c.title }}</div>
+              <div style="font-size:11.5px;color:var(--pd-ink-2);margin-top:2px">{{ c.meta }}</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:{{ c.tagFg }};background:{{ c.tagBg }};padding:4px 10px;border-radius:var(--pd-r-pill);flex:none">{{ c.tag }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--pd-ink-2);margin-top:16px;line-height:1.6">알림은 저장한 코스에만 보냅니다. 조건 변화는 예보 갱신을 뜻하며 실시간 관측이 아닙니다.</div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">다음에 해볼 것: "B2~B5 실제 항목명으로 바꿔줘" · "<a class="dv-oid" href="#4c">4c</a>에 지도 뷰 추가" · "이 시스템으로 데스크탑(1180) 레이아웃 만들어줘" · "<a class="dv-oid" href="#4b">4b</a> 1단계를 스와이프만으로 줄여줘"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:980}}">
+const TAGS = {
+  water: ["서핑", "수영", "SUP", "갯벌 체험", "래프팅"],
+  rest: ["온천", "카페", "해변 산책", "일몰 보기"],
+  cond: ["아이 동반", "반려동물", "장비 대여", "비 와도 갈래요"],
+};
+const CARDS = [
+  { name: "서핑", spot: "경포해변", note: "파고 0.6m, 초급 강습도 열려 있어요.", score: 82, grade: "매우 좋음", bg: "#dbe6ff", fg: "#1d3fa8" },
+  { name: "갯벌 체험", spot: "사천진 갯벌", note: "간조 12:34 전후 2시간이 가장 좋아요.", score: 64, grade: "양호", bg: "#d6eff5", fg: "#0b6c84" },
+  { name: "온천", spot: "강릉 시내", note: "비 오는 날에도 계획이 흔들리지 않아요.", score: 70, grade: "양호", bg: "#d6eff5", fg: "#0b6c84" },
+  { name: "SUP", spot: "안목해변", note: "오후에 바람이 조금 올라옵니다.", score: 58, grade: "보통", bg: "#f7ead0", fg: "#7a4a06" },
+  { name: "계곡 트레킹", spot: "소금강", note: "수온이 낮아 입수보다 산책에 맞아요.", score: 54, grade: "보통", bg: "#f7ead0", fg: "#7a4a06" },
+  { name: "야간 해변 산책", spot: "안목 커피거리", note: "일몰 19:02, 조명 구간이 이어집니다.", score: 74, grade: "양호", bg: "#d6eff5", fg: "#0b6c84" },
+];
+const DAYS = [
+  { weekday: "오늘", score: 82, grade: "매우 좋음", color: "#1d3fa8" },
+  { weekday: "내일", score: 74, grade: "양호", color: "#0b6c84" },
+  { weekday: "토", score: 58, grade: "보통", color: "#7a4a06" },
+  { weekday: "일", score: 34, grade: "주의", color: "#963009" },
+  { weekday: "월", score: null, grade: "평가값 없음", color: "#4b5563" },
+];
+const COURSES = {
+  0: [
+    { cat: "wave", time: "09:20", title: "서핑 강습", spot: "경포해변", score: "82", grade: "매우 좋음", color: "#1d3fa8", reason: "파고 0.6m · 수온 22.1°C로 오늘 가장 좋은 조건입니다.", chip: "취향: 서핑" },
+    { cat: "food", time: "12:00", title: "점심 · 회센터", spot: "안목 항구", score: "–", grade: "적합도 없음", color: "#4b5563", reason: "식사 장소는 적합도를 계산하지 않습니다.", chip: "주변 카탈로그" },
+    { cat: "flat", time: "14:30", title: "갯벌 체험", spot: "사천진 갯벌", score: "64", grade: "양호", color: "#0b6c84", reason: "간조 12:34 이후 물이 빠져 접근이 쉬워집니다.", chip: "물때 기준" },
+    { cat: "spa", time: "18:40", title: "온천 마무리", spot: "강릉 시내", score: "70", grade: "양호", color: "#0b6c84", reason: "일몰 19:02 이후 이동 부담이 적습니다.", chip: "취향: 온천" },
+  ],
+  1: [
+    { cat: "wave", time: "10:00", title: "SUP", spot: "안목해변", score: "74", grade: "양호", color: "#0b6c84", reason: "파고 0.8m로 입문자도 무리 없는 범위입니다.", chip: "취향: SUP" },
+    { cat: "cafe", time: "13:30", title: "카페 물멍", spot: "안목 커피거리", score: "–", grade: "적합도 없음", color: "#4b5563", reason: "휴식 장소는 적합도를 계산하지 않습니다.", chip: "주변 카탈로그" },
+    { cat: "walk", time: "17:00", title: "해변 산책", spot: "경포해변", score: "70", grade: "양호", color: "#0b6c84", reason: "일몰 19:00 전후 바람이 가장 약합니다.", chip: "취향: 산책" },
+  ],
+  2: [
+    { cat: "flat", time: "11:00", title: "갯벌 체험", spot: "사천진 갯벌", score: "58", grade: "보통", color: "#7a4a06", reason: "간조 시간대는 맞지만 파고 1.1m로 여유를 두세요.", chip: "물때 기준" },
+    { cat: "spa", time: "15:00", title: "온천", spot: "강릉 시내", score: "65", grade: "양호", color: "#0b6c84", reason: "흐림 예보라 실내 일정을 늘렸습니다.", chip: "취향: 온천" },
+  ],
+  3: [
+    { cat: "spa", time: "10:00", title: "온천", spot: "강릉 시내", score: "60", grade: "양호", color: "#0b6c84", reason: "강수 확률 80%. 실내 활동을 앞으로 당겼습니다.", chip: "비 대응" },
+    { cat: "food", time: "13:00", title: "점심 · 시장", spot: "중앙시장", score: "–", grade: "적합도 없음", color: "#4b5563", reason: "식사 장소는 적합도를 계산하지 않습니다.", chip: "주변 카탈로그" },
+    { cat: "cafe", time: "15:00", title: "카페 물멍", spot: "안목 커피거리", score: "–", grade: "적합도 없음", color: "#4b5563", reason: "입수 활동은 파고 1.6m로 제외했습니다.", chip: "안전 판단 불가" },
+  ],
+};
+const SAVED = [
+  { title: "오늘의 물 코스", meta: "서핑 · 갯벌 · 온천 · 9/15", score: "82", bg: "#dbe6ff", fg: "#1d3fa8", tag: "알림 켬", tagBg: "#dbe6ff", tagFg: "#1d3fa8" },
+  { title: "비 오는 날 실내", meta: "온천 · 시장 · 카페 · 9/18", score: "60", bg: "#d6eff5", fg: "#0b6c84", tag: "알림 켬", tagBg: "#dbe6ff", tagFg: "#1d3fa8" },
+  { title: "부모님과 반나절", meta: "해변 산책 · 카페 · 미정", score: "–", bg: "#e7ecf2", fg: "#4b5563", tag: "날짜 없음", tagBg: "#e7ecf2", tagFg: "#4b5563" },
+];
+const CHAT_TURNS = [
+  { bot: "안녕하세요! 오늘 강릉에서 뭘 하고 싶으세요?", chips: ["물에 들어가고 싶어요", "쉬면서 구경만", "아이랑 갈 데"] },
+  { bot: "좋아요. 누구와 함께 가세요?", chips: ["혼자", "친구랑", "아이 동반"] },
+  { bot: "오늘 조건으로는 경포해변 서핑이 가장 잘 맞습니다. 근거를 같이 볼까요?", chips: ["근거 보여줘", "다른 곳도", "코스로 만들어줘"] },
+  { bot: "파고·수온은 적정 범위, 수질은 아직 수집 전입니다. 이대로 코스를 만들까요?", chips: ["코스 만들기", "처음부터"] },
+];
+const ANSWERS = ["물에 들어가고 싶어요", "친구랑", "근거 보여줘"];
+
+class Component extends DCLogic {
+  state = {
+    tStep: 1, tIdx: 0, liked: [], tags: ["서핑", "온천"],
+    dDay: 0, dAltOpen: false,
+    cTurn: 0,
+    rSwapped: false,
+  };
+
+  tagRow(list) {
+    return list.map((name) => {
+      const sel = this.state.tags.includes(name);
+      return {
+        text: sel ? name + " ✓" : name,
+        bg: sel ? "#4a86c8" : "#e7ecf2",
+        fg: sel ? "#fff" : "#5c789a",
+        toggle: () => this.setState((s) => ({
+          tags: s.tags.includes(name) ? s.tags.filter((t) => t !== name) : s.tags.concat(name),
+        })),
+      };
+    });
+  }
+
+  advance(liked) {
+    this.setState((s) => {
+      const nextLiked = liked ? s.liked.concat(liked) : s.liked;
+      const nextIdx = s.tIdx + 1;
+      if (nextIdx >= CARDS.length) return { liked: nextLiked, tStep: 3, tIdx: CARDS.length - 1 };
+      return { liked: nextLiked, tIdx: nextIdx };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const card = CARDS[Math.min(s.tIdx, CARDS.length - 1)];
+    const day = DAYS[s.dDay];
+    const course = COURSES[s.dDay] || [];
+    const pick = s.tags.length
+      ? "고른 취향 " + s.tags.length + "개 · " + s.tags.join(" · ")
+      : "고른 취향 없음 · 오늘 조건만으로 추천합니다";
+
+    const turnIdx = Math.min(s.cTurn, CHAT_TURNS.length - 1);
+    const chat = [];
+    for (let i = 0; i <= turnIdx; i++) {
+      chat.push({ text: CHAT_TURNS[i].bot, align: "flex-start", bg: "#fff", fg: "#1b2c3d", radius: "18px 18px 18px 6px", shadow: "0 6px 20px rgba(20,44,72,.10)" });
+      if (i < s.cTurn) chat.push({ text: ANSWERS[i] || "네", align: "flex-end", bg: "#4a86c8", fg: "#fff", radius: "18px 18px 6px 18px", shadow: "none" });
+    }
+
+    return {
+      tStepLabel: "STEP " + s.tStep + " / 3",
+      tKicker: s.tStep === 1 ? "STEP 1 · 태그" : s.tStep === 2 ? "STEP 2 · 카드" : "STEP 3 · 요약",
+      tTitle: s.tStep === 1 ? "뭘 하고 싶으세요?" : s.tStep === 2 ? "이런 활동, 어때요?" : "이렇게 이해했어요",
+      tSub: s.tStep === 1 ? "먼저 크게 좁히고, 다음 단계에서 확정합니다" : s.tStep === 2 ? (Math.min(s.tIdx + 1, CARDS.length) + " / " + CARDS.length + " · 좋아요만 코스에 씁니다") : "취향은 추천 순서에만 씁니다",
+      tBar1: "#eef5ff",
+      tBar2: s.tStep >= 2 ? "#eef5ff" : "rgba(255,255,255,.28)",
+      tBar3: s.tStep >= 3 ? "#eef5ff" : "rgba(255,255,255,.28)",
+      tIs1: s.tStep === 1, tIs2: s.tStep === 2, tIs3: s.tStep === 3,
+      tagsWater: this.tagRow(TAGS.water),
+      tagsRest: this.tagRow(TAGS.rest),
+      tagsCond: this.tagRow(TAGS.cond),
+      tPickSummary: pick,
+      tNext: () => this.setState({ tStep: 2, tIdx: 0, liked: [] }),
+      tBack: () => this.setState((st) => st.tStep === 3 ? { tStep: 2, tIdx: CARDS.length - 1 } : { tStep: st.tIdx > 0 ? 2 : 1, tIdx: Math.max(0, st.tIdx - 1) }),
+      tRestart: () => this.setState({ tStep: 1, tIdx: 0, liked: [] }),
+      cardName: card.name, cardSpot: card.spot, cardNote: card.note,
+      cardScore: card.score, cardGrade: card.grade, cardGradeBg: card.bg, cardGradeFg: card.fg,
+      cardIsExc: card.grade === "매우 좋음", cardIsGood: card.grade === "양호", cardIsFair: card.grade === "보통",
+      cardLike: () => this.advance(card.name),
+      cardPass: () => this.advance(null),
+      liked: s.liked.map((name) => ({ name })),
+      noneLiked: s.liked.length === 0,
+      goTaste: () => this.setState({ tStep: 1 }),
+
+      dDays: DAYS.map((d, i) => ({
+        weekday: d.weekday,
+        scoreText: d.score === null ? "–" : String(d.score),
+        bg: i === s.dDay ? "#eef5ff" : "rgba(255,255,255,.14)",
+        fg: i === s.dDay ? "#0f2f7a" : "#eef5ff",
+        border: i === s.dDay ? "#eef5ff" : "rgba(255,255,255,.4)",
+        pick: () => this.setState({ dDay: i, dAltOpen: false }),
+      })),
+      dDayLabel: day.weekday + " · 9월",
+      dScoreText: day.score === null ? "–" : String(day.score),
+      dGrade: day.grade,
+      dHeadline: day.score === null ? "예보가 없는 날" : (s.dDay === 3 ? "비 오는 날 실내 코스" : "오늘의 물 코스"),
+      dLede: course.length === 0
+        ? day.weekday + "은 저장된 예보가 없어 코스를 만들지 않았습니다."
+        : "취향 " + (s.tags.length || 0) + "개와 " + day.weekday + " 예보로 만든 코스입니다.",
+      dCourse: course.map((c) => ({
+        ...c, dot: c.color,
+        isWave: c.cat === "wave", isFlat: c.cat === "flat", isFood: c.cat === "food",
+        isSpa: c.cat === "spa", isCafe: c.cat === "cafe", isWalk: c.cat === "walk",
+      })),
+      dHasCourse: course.length > 0,
+      dEmpty: course.length === 0,
+      dAlt: s.dAltOpen
+        ? "파고가 1.0m를 넘으면 서핑을 안목 SUP(58 · 보통)으로 바꾸고, 1.5m를 넘으면 입수 활동을 모두 빼고 알려드립니다."
+        : "조건이 바뀌면 코스를 다시 짜드릴까요?",
+      dAltCta: s.dAltOpen ? "접기" : "대안 규칙 보기 →",
+      dToggleAlt: () => this.setState((st) => ({ dAltOpen: !st.dAltOpen })),
+      dPickToday: () => this.setState({ dDay: 0, dAltOpen: false }),
+
+      chat,
+      cChips: CHAT_TURNS[turnIdx].chips.map((label) => ({
+        label,
+        pick: () => this.setState((st) => ({ cTurn: Math.min(st.cTurn + 1, CHAT_TURNS.length - 1) })),
+      })),
+      cHasEvidence: s.cTurn >= 3,
+      cReset: () => this.setState({ cTurn: 0 }),
+
+      rHeadline: s.rSwapped ? "대안으로 바꿨어요" : "파고가 올라가 서핑 조건이 낮아졌어요",
+      rScore: s.rSwapped ? "58" : "46",
+      rNote: s.rSwapped ? "09:40 SUP · 안목해변으로 교체했습니다." : "파고 1.2m · 예보 갱신 기준. 실시간 관측이 아닙니다.",
+      rOldDeco: s.rSwapped ? "line-through" : "none",
+      rOldColor: s.rSwapped ? "#8fa3b8" : "#1b2c3d",
+      rOldMeta: s.rSwapped ? "취소됨" : "46 · 보통으로 하락",
+      rNewColor: s.rSwapped ? "#1b2c3d" : "#5c789a",
+      rKeepLabel: s.rSwapped ? "되돌리기" : "그대로 두기",
+      rSwapLabel: s.rSwapped ? "코스 저장됨" : "대안으로 바꾸기",
+      rSwapBg: s.rSwapped ? "#8fa3b8" : "#4a86c8",
+      rKeep: () => this.setState({ rSwapped: false }),
+      rSwap: () => this.setState({ rSwapped: true }),
+      saved: SAVED,
+    };
+  }
+}
+</script>
+</body>
+</html>
