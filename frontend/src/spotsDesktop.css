@@ -1,0 +1,405 @@
+/* 데스크탑 명소(19a 목록 · 19b 상세)에만 있는 것들. 페이지 루트로 스코프하고
+   접두사는 .sk- 로 나눠 모바일 .sp-* · .sd-* 와 겹치지 않게 합니다. */
+
+.pd-desktop .sk-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+}
+
+/* ── 19a 히어로 ────────────────────────────────────────── */
+
+.pd-desktop .sk-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+}
+.pd-desktop .sk-hero-lead {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 22px;
+}
+.pd-desktop .sk-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .sk-hero-title {
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.22;
+  margin: 12px 0 0;
+}
+.pd-desktop .sk-hero-count {
+  font-size: 30px;
+  color: var(--dk-onc-2);
+}
+.pd-desktop .sk-sorts {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+.pd-desktop .sk-sort {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--dk-onc);
+  border: 1px solid var(--dk-glass-line);
+  background: var(--dk-glass);
+  padding: 10px 18px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .sk-sort.is-on {
+  color: #0f2f7a;
+  background: var(--dk-onc);
+  border-color: transparent;
+}
+.pd-desktop .sk-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -6px;
+}
+
+/* ── 19a 카테고리 카운트 ───────────────────────────────── */
+
+.pd-desktop .sk-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.pd-desktop .sk-count {
+  font-size: 12px;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .sk-count.is-lead {
+  font-weight: 700;
+  color: var(--dk-deep);
+}
+.pd-desktop .sk-count-num {
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+
+/* ── 19a 괘선 행 목록 ──────────────────────────────────── */
+
+.pd-desktop .sk-row {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+/* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
+.pd-desktop .sk-row-photo {
+  width: 208px;
+  height: 130px;
+  flex: none;
+  border-radius: 0;
+}
+.pd-desktop .sk-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .sk-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.pd-desktop .sk-row-name {
+  font-size: 22px;
+}
+.pd-desktop .sk-row-category {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .sk-row-summary {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  margin: 7px 0 0;
+}
+.pd-desktop .sk-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.pd-desktop .sk-row-meta > span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.pd-desktop .sk-meta-name {
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .sk-meta-value {
+  font-size: 16px;
+}
+.pd-desktop .sk-meta-hours {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .sk-row-meta .is-open {
+  color: #0b6c84;
+}
+.pd-desktop .sk-row-meta .is-closed {
+  color: var(--dk-alert);
+}
+.pd-desktop .sk-row-score {
+  flex: none;
+  width: 150px;
+  text-align: right;
+  border-left: 1px solid var(--dk-rule-weak);
+  padding-left: 24px;
+}
+.pd-desktop .sk-row-link {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  text-decoration: none;
+  margin-top: 12px;
+}
+.pd-desktop .sk-list-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid var(--dk-rule);
+  padding-top: 16px;
+}
+.pd-desktop .sk-list-foot .sk-note {
+  flex: 1;
+}
+
+/* ── 19b 상세 ──────────────────────────────────────────── */
+
+.pd-desktop .sk-crumb-link {
+  color: inherit;
+  text-decoration: none;
+}
+.pd-desktop .sk-crumb-sep {
+  color: var(--dk-ink);
+}
+
+.pd-desktop .sk-detail {
+  display: grid;
+  grid-template-columns: 760px 1fr;
+  align-items: stretch;
+}
+.pd-desktop .sk-detail-photo {
+  position: relative;
+  height: 440px;
+  background: #dbe6ff;
+}
+.pd-desktop .sk-detail-slot {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  border-width: 0 1px 1px 0;
+}
+.pd-desktop .sk-detail-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 26px 30px;
+  background: linear-gradient(to top, rgba(4, 18, 44, 0.74), transparent);
+}
+.pd-desktop .sk-detail-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-desktop .sk-detail-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0f2f7a;
+  background: var(--dk-onc);
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .sk-detail-chip.is-example {
+  color: #7a4a06;
+  background: #f7ead0;
+}
+.pd-desktop .sk-detail-name {
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1.2;
+  color: #fff;
+  margin: 12px 0 0;
+}
+.pd-desktop .sk-detail-address {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
+  margin-top: 6px;
+}
+
+.pd-desktop .sk-detail-body {
+  padding: 30px var(--dk-pad) 30px 40px;
+  display: flex;
+  flex-direction: column;
+}
+.pd-desktop .sk-detail-score-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+.pd-desktop .sk-detail-confidence {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--dk-rule-weak);
+  padding: 0 0 6px 22px;
+}
+.pd-desktop .sk-confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 신뢰도는 점수 · 안전 판정과 다른 값입니다. 배경색은 groupAGrade.ts 의
+   CONFIDENCE_COLOR 를 인라인으로 받아 등급 팔레트와 섞이지 않게 합니다. */
+.pd-desktop .sk-confidence-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .sk-confidence-note {
+  margin: 9px 0 0;
+}
+
+.pd-desktop .sk-detail-table {
+  margin-top: 22px;
+  border-top: 1px solid var(--dk-rule);
+}
+.pd-desktop .sk-detail-tr {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .sk-detail-tr:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .sk-detail-th {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .sk-detail-td {
+  font-weight: 700;
+  font-size: 13px;
+  text-align: right;
+}
+.pd-desktop .sk-detail-td.is-open {
+  color: #0b6c84;
+}
+/* 값이 없으면 «–» 입니다. 0 · 없음 · 안전으로 치환하지 않습니다. */
+.pd-desktop .sk-detail-td.is-empty {
+  font-family: var(--dk-font-num);
+  color: #4b5563;
+}
+.pd-desktop .sk-detail-summary {
+  margin: 16px 0 0;
+}
+.pd-desktop .sk-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 22px;
+}
+.pd-desktop .sk-save {
+  border-color: var(--dk-blue);
+  padding: 13px 20px;
+}
+.pd-desktop .sk-detail-map-link {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  text-decoration: none;
+}
+
+/* KakaoMapCanvas 가 inset:0 으로 깔리므로 부모가 relative 여야 합니다. */
+.pd-desktop .sk-detail-map {
+  position: relative;
+  height: 330px;
+  background: #cfdcea;
+}
+.pd-desktop .sk-detail-map-empty {
+  height: 100%;
+  border-radius: 0;
+}
+.pd-desktop .sk-detail-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.2);
+}
+
+.pd-desktop .sk-nearby {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dk-line);
+  color: inherit;
+  text-decoration: none;
+}
+.pd-desktop .sk-nearby-score {
+  font-size: 24px;
+  min-width: 44px;
+  color: var(--g-ink);
+}
+.pd-desktop .sk-nearby-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .sk-nearby-name {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+}
+.pd-desktop .sk-nearby-meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+.pd-desktop .sk-nearby-note {
+  margin-top: 12px;
+}
+
+@media (max-width: 1240px) {
+  .pd-desktop .sk-detail {
+    grid-template-columns: 1fr;
+  }
+  .pd-desktop .sk-detail-photo {
+    height: 320px;
+  }
+  .pd-desktop .sk-detail-body {
+    padding: 26px var(--dk-pad) 30px;
+  }
+  .pd-desktop .sk-row-photo {
+    width: 160px;
+    height: 100px;
+  }
+  .pd-desktop .sk-hero-title {
+    font-size: 34px;
+  }
+}

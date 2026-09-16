@@ -1,0 +1,535 @@
+/* 명소 탭(20a 목록 · 20b 상세 · 20c 지도)에만 있는 것들. 토큰 · 프레임 · 헤더 ·
+   카드 · 칩 · 슬롯 같은 기본형은 pongdang.css 가 단일 출처이며 styles.css 는
+   수정하지 않습니다. 선택자에는 모두 페이지 루트를 붙여 pongdang.css 의
+   button/a 리셋보다 명시도를 높입니다. */
+
+/* ── 20a 목록 ─────────────────────────────────────────── */
+
+.spots-page .sp-hero-inner {
+  padding: 6px 20px 0;
+}
+.spots-page .sp-hero-kick {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pd-sky);
+}
+.spots-page .sp-hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.spots-page .sp-hero-title {
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.35;
+  margin: 0;
+}
+.spots-page .sp-hero-sub {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-on-cobalt-2);
+  margin-top: 5px;
+}
+.spots-page .sp-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -4px;
+}
+.spots-page .sp-sorts {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.spots-page .sp-sort {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-on-cobalt);
+  background: var(--pd-glass);
+  border: 1px solid var(--pd-glass-line);
+  padding: 7px 13px;
+  border-radius: var(--pd-r-pill);
+}
+.spots-page .sp-sort.is-on {
+  color: #0f2f7a;
+  background: var(--pd-on-cobalt);
+  border-color: transparent;
+}
+
+.spots-page .sp-source {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.spots-page .sp-source-note {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+
+.spots-page .sp-list {
+  padding: 4px 16px 6px;
+}
+.spots-page .sp-row {
+  display: flex;
+  gap: 11px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pd-line);
+  color: inherit;
+  text-decoration: none;
+}
+.spots-page .sp-row:last-of-type {
+  border-bottom: 0;
+}
+/* 사진은 아직 확보되지 않았습니다. 빈 채로 두지 않고 무엇이 들어올 자리인지
+   밝히는 점선 슬롯으로 둡니다(핸드오프 §5). */
+.spots-page .sp-row-photo {
+  width: 82px;
+  height: 82px;
+  flex: none;
+  border-radius: var(--pd-r-ctl);
+  font-size: 9.5px;
+  line-height: 1.5;
+  padding: 4px;
+}
+.spots-page .sp-row-body {
+  flex: 1;
+  min-width: 0;
+}
+.spots-page .sp-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.spots-page .sp-row-name {
+  font-size: var(--pd-fs-body);
+}
+.spots-page .sp-row-category {
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+}
+.spots-page .sp-row-score {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.spots-page .sp-row-score .pd-grade-chip {
+  font-size: 10.5px;
+  padding: 3px 8px;
+}
+.spots-page .sp-row-distance {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-3);
+}
+.spots-page .sp-row-operating {
+  display: block;
+  font-size: 10.5px;
+  color: var(--pd-ink-2);
+  margin-top: 6px;
+}
+.spots-page .sp-row-operating .is-open {
+  color: #0b6c84;
+}
+.spots-page .sp-row-operating .is-closed {
+  color: var(--pd-alert-ink);
+}
+.spots-page .sp-list-more {
+  padding-top: 8px;
+  border-top: 1px solid var(--pd-line);
+  margin: 0;
+}
+.spots-page .sp-map-link {
+  gap: 6px;
+  grid-auto-flow: column;
+}
+
+/* ── 20c 지도 ─────────────────────────────────────────── */
+
+.spots-page .sp-stage {
+  position: relative;
+  height: clamp(280px, 42dvh, 380px);
+  background-color: #cddff0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(47, 106, 168, 0.1) 0 1px,
+      transparent 1px 26px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(47, 106, 168, 0.1) 0 1px,
+      transparent 1px 26px
+    );
+}
+.spots-page .sp-stage .pd-header {
+  position: relative;
+  z-index: 2;
+}
+.spots-page .sp-stage .pd-header-mark {
+  color: var(--pd-ink);
+}
+.spots-page .sp-filters {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 34px);
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.spots-page .sp-filter {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-ink-3);
+  background: var(--pd-surface);
+  padding: 7px 12px;
+  border-radius: var(--pd-r-pill);
+  box-shadow: var(--pd-shadow);
+  text-decoration: none;
+}
+.spots-page .sp-filter.is-on {
+  color: #fff;
+  background: var(--pd-blue-deep);
+}
+.spots-page .sp-filter.is-link {
+  margin-left: auto;
+  color: var(--pd-blue-deep);
+}
+
+/* 지도 로딩/실패 안내(kakaoMap.css)는 기본값이 무대 좌상단이라 헤더와 필터를
+   덮습니다. 이 화면에서는 필터 줄 아래로 내립니다. */
+.spots-page .sp-stage .wim-map-status {
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 78px);
+  right: 14px;
+  left: 14px;
+  max-width: none;
+}
+
+.spots-page .sp-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 0;
+  cursor: pointer;
+}
+/* 핀도 색 하나로 판단을 전달하지 않습니다 -- 숫자가 핀 안에 있고, 등급명은
+   aria-label 과 아래 시트 목록이 함께 말합니다. */
+.spots-page .sp-pin-core {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--pd-font-num);
+  font-weight: 700;
+  font-size: var(--pd-fs-cap);
+  background: var(--g-bg);
+  color: var(--g-ink);
+  border: 2px solid var(--pd-surface);
+  box-shadow: var(--pd-shadow);
+}
+.spots-page .sp-pin-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pd-ink);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--pd-r-pill);
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.spots-page .sp-pin.is-selected .sp-pin-core {
+  outline: 2px solid var(--pd-blue-deep);
+  outline-offset: 1px;
+}
+
+.spots-page .sp-sheet-handle {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pd-line);
+  margin: 0 auto 10px;
+}
+.spots-page .sp-sheet-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.spots-page .sp-sheet-sort {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+}
+.spots-page .sp-sheet-list {
+  margin-top: 8px;
+}
+.spots-page .sp-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--pd-line);
+  color: inherit;
+  text-decoration: none;
+}
+.spots-page .sp-sheet-row:last-child {
+  border-bottom: 0;
+}
+.spots-page .sp-sheet-badge {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+}
+.spots-page .sp-sheet-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+}
+.spots-page .sp-sheet-meta {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--pd-ink-2);
+  margin-top: 2px;
+}
+.spots-page .sp-sheet-grade {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--pd-ink-2);
+}
+
+/* ── 20b 상세 ─────────────────────────────────────────── */
+
+.spot-detail .sd-hero {
+  position: relative;
+  height: 214px;
+  background: #dbe6ff;
+}
+.spot-detail .sd-hero-photo {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  border-width: 0 0 1.5px;
+}
+.spot-detail .sd-hero-bar {
+  position: relative;
+  z-index: 2;
+}
+.spot-detail .sd-hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 16px 20px;
+  background: linear-gradient(to top, rgba(4, 18, 44, 0.78), transparent);
+}
+.spot-detail .sd-hero-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.spot-detail .sd-hero-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0f2f7a;
+  background: var(--pd-on-cobalt);
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+}
+.spot-detail .sd-hero-chip.is-example {
+  color: #7a4a06;
+  background: #f7ead0;
+}
+.spot-detail .sd-hero-name {
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 1.3;
+  color: #fff;
+  margin: 8px 0 0;
+}
+.spot-detail .sd-hero-address {
+  font-size: var(--pd-fs-cap);
+  color: rgba(255, 255, 255, 0.88);
+  margin-top: 4px;
+}
+
+.spot-detail .sd-back {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.spot-detail .sd-score-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* 점수는 숫자 + 등급명 + 아이콘 + 색 네 겹입니다. --g-ink 는 pongdang.css 의
+   [data-grade] 규칙이 채웁니다. */
+.spot-detail .sd-score {
+  flex: none;
+  text-align: center;
+  color: var(--g-ink);
+}
+.spot-detail .sd-score-num {
+  font-size: 30px;
+  line-height: 1;
+}
+.spot-detail .sd-score-grade {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.spot-detail .sd-score-body {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--pd-line);
+  padding-left: 12px;
+}
+.spot-detail .sd-score-title {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+}
+.spot-detail .sd-score-basis {
+  margin-top: 4px;
+}
+/* 신뢰도는 점수 · 안전 상태와 다른 값이므로 전용색을 씁니다. 배경색은
+   groupAGrade.ts 의 CONFIDENCE_COLOR 를 인라인으로 받습니다 -- 등급 팔레트와
+   한 파일에 섞이지 않게 하기 위함입니다. */
+.spot-detail .sd-confidence {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+}
+.spot-detail .sd-confidence-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: var(--pd-r-pill);
+}
+.spot-detail .sd-confidence-note {
+  font-size: 10px;
+  color: var(--pd-ink-2);
+}
+
+.spot-detail .sd-info {
+  padding: 10px 16px;
+}
+.spot-detail .sd-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--pd-line);
+}
+.spot-detail .sd-info-row:last-child {
+  border-bottom: 0;
+}
+.spot-detail .sd-info-name {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.spot-detail .sd-info-value {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  text-align: right;
+}
+.spot-detail .sd-info-value.is-empty {
+  color: #4b5563;
+}
+
+.spot-detail .sd-section-title {
+  font-size: var(--pd-fs-cap);
+}
+.spot-detail .sd-summary {
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.spot-detail .sd-summary.is-open {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+.spot-detail .sd-more {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  margin-top: 8px;
+}
+
+.spot-detail .sd-location-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.spot-detail .sd-location-link {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+  text-decoration: none;
+}
+.spot-detail .sd-map-slot {
+  height: 104px;
+  margin-top: 9px;
+}
+
+.spot-detail .sd-actions {
+  display: flex;
+  gap: 8px;
+}
+.spot-detail .sd-add {
+  flex: 1;
+  min-height: 46px;
+}
+.spot-detail .sd-save {
+  width: 46px;
+  flex: none;
+  min-height: 46px;
+  color: var(--pd-blue-deep);
+}
+.spot-detail .sd-save[aria-pressed="true"] {
+  background: var(--pd-badge);
+}
+
+.spot-detail .sd-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: var(--pd-alert);
+  color: var(--pd-alert-ink);
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  line-height: 1.6;
+}
+.spot-detail .sd-alert svg {
+  flex: none;
+  margin-top: 2px;
+}

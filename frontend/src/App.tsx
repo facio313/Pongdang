@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { DataWorkspace } from "./DataWorkspace";
 import { DevIndexPage } from "./DevIndexPage";
+import { DesktopKitPage } from "./DesktopKitPage";
 import { AiConciergePage } from "./AiConciergePage";
 import { FeatureDataPage } from "./FeatureDataPage";
 import { LivecamPreviewPage } from "./LivecamPreviewPage";
@@ -11,12 +12,15 @@ import { TodayPage } from "./TodayPage";
 import { RecommendPage } from "./RecommendPage";
 import { MapPage } from "./MapPage";
 import { MyCoursesPage } from "./MyCoursesPage";
+import { SpotsPage } from "./SpotsPage";
 
-// 확정된 제품 화면 5개. 하단 공용 탭바(appTabBar.tsx)와 같은 키를 씁니다.
+// 확정된 제품 화면 6개. 하단 공용 탭바(appTabBar.tsx)·데스크탑 상단 네비와 같은
+// 키를 씁니다(appNav.ts).
 const productPages = {
   home: { label: "홈", render: () => <HomePage /> },
   today: { label: "오늘", render: () => <TodayPage /> },
   recommend: { label: "추천", render: () => <RecommendPage /> },
+  spots: { label: "명소", render: () => <SpotsPage /> },
   map: { label: "지도", render: () => <MapPage /> },
   "my-courses": { label: "내 코스", render: () => <MyCoursesPage /> },
 } as const;
@@ -26,6 +30,7 @@ type ProductKey = keyof typeof productPages;
 type Screen =
   | { kind: "product"; key: ProductKey }
   | { kind: "dev" }
+  | { kind: "desktop-kit" }
   | { kind: "route"; route: ReturnType<typeof readRoute> };
 
 /** 제품 화면(탭)은 여기서 먼저 받고, 나머지는 featureRoutes 의 readRoute 가
@@ -37,6 +42,8 @@ function screenFromHash(hash: string): Screen {
   if (Object.hasOwn(productPages, rawPage))
     return { kind: "product", key: rawPage as ProductKey };
   if (rawPage === "dev") return { kind: "dev" };
+  // 개발 전용. productPages 에 넣지 않으므로 탭바에는 나타나지 않습니다.
+  if (rawPage === "desktop-kit") return { kind: "desktop-kit" };
   const route = readRoute(hash);
   if (route.page === "data" && rawPage !== "data")
     return { kind: "product", key: "home" };
@@ -76,6 +83,8 @@ export default function App() {
           <Fragment key={window.location.hash}>{productPages[screen.key].render()}</Fragment>
         ) : screen.kind === "dev" ? (
           <DevIndexPage />
+        ) : screen.kind === "desktop-kit" ? (
+          <DesktopKitPage />
         ) : screen.route.page === "ai" ? (
           <AiConciergePage
             key={JSON.stringify(screen.route)}

@@ -290,10 +290,19 @@ export function GradeChip({
   score,
   glass = false,
   bare = false,
+  prefix,
+  label,
 }: {
   score: number | null;
   glass?: boolean;
   bare?: boolean;
+  /** 숫자 앞에 붙는 말. 명소 화면의 「퐁당 72 · 양호」처럼 이 점수가 무슨
+   *  점수인지 밝혀야 하는 자리에서 씁니다. */
+  prefix?: string;
+  /** 등급명을 덮어씁니다. 「산정 대상 아님」처럼 값이 없는 **이유**를 아는
+   *  경우에만 쓰며, 모르면 넘기지 말고 기본 등급명을 그대로 두세요. 등급
+   *  판정 자체는 여전히 groupAGrade.ts 가 합니다. */
+  label?: string;
 }) {
   const grade = gradeOf(score);
   return (
@@ -304,8 +313,11 @@ export function GradeChip({
       data-grade={grade.key}
     >
       <GradeIcon gradeKey={grade.key} />
-      <span className="pd-grade-chip-num">{score === null ? "–" : score}</span>
-      <span>{grade.label}</span>
+      <span className="pd-grade-chip-num">
+        {prefix ? prefix + " " : ""}
+        {score === null ? "–" : score}
+      </span>
+      <span>{label ?? grade.label}</span>
     </span>
   );
 }
