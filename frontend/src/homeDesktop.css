@@ -1,0 +1,487 @@
+/* 데스크탑 홈(18a)에만 있는 것들. 토큰과 프리미티브(.pd-dk-*)는
+   pongdangDesktop.css 가 단일 출처입니다. 카드 · 그림자는 쓰지 않습니다. */
+
+/* ── 히어로 ────────────────────────────────────────────── */
+
+.pd-desktop .hd-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding: 8px 0 78px;
+}
+.pd-desktop .hd-hero-lead {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .hd-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .hd-hero-title {
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1.2;
+  margin: 14px 0 0;
+}
+.pd-desktop .hd-hero-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.pd-desktop .hd-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -58px;
+}
+.pd-desktop .hd-hero-metrics {
+  display: flex;
+  flex: none;
+}
+.pd-desktop .hd-hero-metrics > * {
+  padding: 0 22px;
+  text-align: right;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.pd-desktop .hd-hero-metrics > :first-child {
+  border-left: 0;
+}
+.pd-desktop .hd-hero-metrics > :last-child {
+  padding-right: 0;
+}
+.pd-desktop .hd-metric-name {
+  font-size: 10.5px;
+  color: var(--dk-onc-2);
+}
+.pd-desktop .hd-metric-value {
+  font-size: 30px;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+/* 값이 없는 칸은 옅게 둡니다. 0 이 아니라 «–» 라는 것이 읽혀야 합니다. */
+.pd-desktop .hd-metric-value.is-empty {
+  color: var(--dk-onc-2);
+}
+
+/* ── 시간대별 막대 ─────────────────────────────────────
+   막대 높이는 **값의 상대 위치**이지 점수 기여도가 아닙니다. 그 사실을 옆
+   주석으로 항상 함께 적습니다. */
+
+.pd-desktop .hd-hours {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  align-items: end;
+  border-bottom: 1px solid rgba(27, 44, 61, 0.22);
+}
+.pd-desktop .hd-hour {
+  text-align: center;
+  padding: 0 6px;
+  border-left: 1px solid var(--dk-rule-weak);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-hour:first-child {
+  border-left: 0;
+}
+.pd-desktop .hd-hour-score {
+  font-size: 16px;
+}
+.pd-desktop .hd-hour-track {
+  height: 112px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-top: 8px;
+}
+.pd-desktop .hd-hour-bar {
+  display: block;
+  width: 14px;
+  background: currentColor;
+}
+/* 현재 시각 칸만 굵고 진하게. 색 하나로만 구분하지 않도록 크기도 같이
+   키웁니다. */
+.pd-desktop .hd-hour.is-now {
+  color: #0f2f7a;
+}
+.pd-desktop .hd-hour.is-now .hd-hour-score {
+  font-size: 22px;
+}
+.pd-desktop .hd-hour.is-now .hd-hour-bar {
+  width: 22px;
+}
+
+.pd-desktop .hd-hour-labels {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+}
+.pd-desktop .hd-hour-label {
+  text-align: center;
+  padding: 9px 6px 0;
+  border-left: 1px solid var(--dk-rule-weak);
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-hour-label:first-child {
+  border-left: 0;
+}
+.pd-desktop .hd-hour-label.is-now {
+  font-weight: 700;
+  color: #0f2f7a;
+}
+
+.pd-desktop .hd-hour-summary {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 14px;
+}
+.pd-desktop .hd-summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.pd-desktop .hd-summary-name {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-summary-value {
+  font-size: 20px;
+}
+.pd-desktop .hd-summary-value.is-empty {
+  color: #4b5563;
+}
+.pd-desktop .hd-hour-note {
+  flex: 1;
+  min-width: 200px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  text-align: right;
+}
+
+/* ── 해변 명소 4칸 ─────────────────────────────────────── */
+
+.pd-desktop .hd-beaches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+.pd-desktop .hd-beach {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+/* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
+.pd-desktop .hd-beach-photo {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+}
+.pd-desktop .hd-beach-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(27, 44, 61, 0.14);
+  padding-top: 9px;
+}
+.pd-desktop .hd-beach-name {
+  font-size: 15px;
+}
+.pd-desktop .hd-beach-category {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-beach-distance {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .hd-beach-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+}
+.pd-desktop .hd-beach-operating {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+
+.pd-desktop .hd-row-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 12px;
+  margin: 14px 0 0;
+}
+
+/* ── 취향 ──────────────────────────────────────────────── */
+
+.pd-desktop .hd-taste-lead {
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.4;
+}
+.pd-desktop .hd-taste-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.pd-desktop .hd-taste-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  background: #e7ecf2;
+  padding: 9px 14px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .hd-taste-chip.is-on {
+  color: #fff;
+  background: var(--dk-blue);
+}
+.pd-desktop .hd-taste-chip img {
+  display: block;
+}
+.pd-desktop .hd-taste-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.pd-desktop .hd-taste-reset {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  text-decoration: none;
+}
+
+.pd-desktop .hd-ai {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pd-desktop .hd-ai-mascot {
+  display: block;
+  flex: none;
+}
+.pd-desktop .hd-ai-headline {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.55;
+  margin-top: 8px;
+}
+.pd-desktop .hd-ai-basis {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  margin: 6px 0 0;
+}
+
+/* ── 취향에 맞는 명소 3칸 ──────────────────────────────── */
+
+.pd-desktop .hd-taste-spot {
+  display: flex;
+  gap: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+.pd-desktop .hd-taste-photo {
+  width: 118px;
+  height: 88px;
+  flex: none;
+  border-radius: 0;
+  font-size: 10.5px;
+}
+.pd-desktop .hd-taste-spot-name {
+  display: block;
+  font-weight: 700;
+  font-size: 16px;
+}
+.pd-desktop .hd-taste-spot-meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 3px;
+}
+.pd-desktop .hd-taste-spot-score {
+  display: block;
+  margin-top: 8px;
+}
+
+/* ── 최적경로 3스텝 ────────────────────────────────────── */
+
+.pd-desktop .hd-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-desktop .hd-step-no {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: #1b5fc0;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+}
+.pd-desktop .hd-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--dk-rule-weak);
+  display: block;
+}
+.pd-desktop .hd-step-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pd-desktop .hd-step-body img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .hd-step-name {
+  font-weight: 700;
+  font-size: 17px;
+}
+.pd-desktop .hd-step-activity {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+.pd-desktop .hd-step-time {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+.pd-desktop .hd-step-clock {
+  font-size: 16px;
+}
+.pd-desktop .hd-step-leg {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-course-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 14px;
+}
+.pd-desktop .hd-course-foot .hd-row-note {
+  flex: 1;
+  border-top: 0;
+  padding-top: 0;
+  margin: 0;
+}
+
+/* ── 라이브캠 3칸 ──────────────────────────────────────── */
+
+.pd-desktop .hd-cams {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.pd-desktop .hd-cam-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+}
+.pd-desktop .hd-cam-live {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 47, 122, 0.82);
+  color: var(--dk-onc);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .hd-cam-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6b5e;
+  display: block;
+}
+/* 송출이 없는 칸. 빈 화면을 검게 두지 않고 왜 없는지 적습니다. */
+.pd-desktop .hd-cam-frame.is-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  background: var(--dk-mist);
+  padding: 0 18px;
+}
+.pd-desktop .hd-cam-frame.is-empty img {
+  opacity: 0.6;
+}
+.pd-desktop .hd-cam-empty-title {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #4b5563;
+  margin-top: 4px;
+}
+.pd-desktop .hd-cam-empty-note {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 3px;
+}
+.pd-desktop .hd-cam-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 9px;
+  border-top: 1px solid rgba(27, 44, 61, 0.14);
+  padding-top: 9px;
+  font-size: 13px;
+}
+.pd-desktop .hd-cam-head.is-empty b {
+  color: #4b5563;
+}
+.pd-desktop .hd-cam-place {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .hd-cam-at {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dk-ink-2);
+}
+
+/* ── 좁아질 때 ─────────────────────────────────────────
+   분기 기준(1080px) 아래는 모바일 레이아웃이 뜨므로 여기는 1080~1240 구간에서
+   4칸 · 3칸 그리드가 찌그러지지 않게 하는 안전망입니다. */
+
+@media (max-width: 1240px) {
+  .pd-desktop .hd-hero-title {
+    font-size: 40px;
+  }
+  .pd-desktop .hd-hero-mascot {
+    width: 180px;
+    height: 180px;
+  }
+  .pd-desktop .hd-beaches {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
