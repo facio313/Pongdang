@@ -67,6 +67,7 @@ def test_app():
             Value(name="air_temperature", numeric_value=24.7, unit="degC"),
             Value(name="water_temperature", numeric_value=21.3, unit="degC"),
             Value(name="wave_height", numeric_value=0.4, unit="m"),
+            Value(name="precipitation", numeric_value=0, unit="mm/1h"),
         ],
         fetched_at=now,
     )

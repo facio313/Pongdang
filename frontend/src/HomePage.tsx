@@ -313,7 +313,9 @@ function HomeScreen() {
         />
         <div className="hm-body">
           <GlanceCard
-            quality={qualityGrade(quality.data?.rows ?? [])}
+            quality={quality.loading ? "조회 중" : quality.error ? "조회 실패"
+              : qualityGrade(quality.data?.rows ?? []) === "–" ? "공식 등급 없음"
+              : qualityGrade(quality.data?.rows ?? [])}
             conditions={conditions.data}
             statusText={
               places.error ??

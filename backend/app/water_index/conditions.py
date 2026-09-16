@@ -316,6 +316,7 @@ class ConditionsEnvelope(Record):
     condition_score: ActivityScore | None = None
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
     context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
+    display_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
     missing_metrics: tuple[MetricName, ...]
     required_evidence: tuple[str, ...]
     reason_codes: tuple[str, ...]

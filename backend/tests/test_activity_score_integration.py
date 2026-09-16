@@ -163,3 +163,76 @@ def test_irrelevant_activity_and_mode_stations_do_not_consume_context_limit(data
         assert {m["evidence"][0]["provider"] for m in view["context_metrics"]} == {
             "khoa_surfing"
         }
+
+
+def test_direct_place_get_fills_absent_wave_and_rain_from_context(database):
+    store_batch(
+        database,
+        source(
+            station_id="direct-beach",
+            provider="khoa_beach",
+            kind="beach",
+            values=[Value(name="water_temperature", numeric_value=24, unit="°C")],
+        ),
+    )
+    _, spot = station(database, "direct-beach")
+    store_batch(
+        database,
+        source(
+            station_id="nearby-buoy",
+            provider="khoa_buoy_recent",
+            values=[Value(name="wave_height", numeric_value=0.4, unit="m")],
+        ),
+    )
+    store_batch(
+        database,
+        source(
+            station_id="local-weather",
+            provider="kma_nowcast",
+            values=[Value(name="precipitation", numeric_value=0, unit="mm/1h")],
+        ),
+    )
+    before = counts(database)
+    with TestClient(create_app(database)) as client:
+        view = conditions(client, spot)
+    displayed = {m["name"]: m for m in view["display_metrics"]}
+    assert displayed["water_temperature"]["relation"] == "station_observation_point"
+    assert displayed["wave_height"]["value"] == 0.4
+    assert displayed["wave_height"]["relation"] == "nearby_station_context"
+    assert displayed["wave_height"]["distance_km"] == 0
+    assert displayed["precipitation"]["value"] == 0
+    assert view["condition_score"]["total_components"] == 4
+    assert "precipitation" not in {
+        c["metric"] for c in view["condition_score"]["components"]
+    }
+    assert counts(database) == before
+
+
+def test_stale_direct_wave_is_not_hidden_by_fresh_context(database):
+    now = datetime.now(UTC)
+    store_batch(
+        database,
+        source(
+            station_id="direct-beach",
+            provider="khoa_beach",
+            kind="beach",
+            observed_at=now - timedelta(hours=3),
+            valid_until=now - timedelta(hours=1),
+            values=[Value(name="wave_height", numeric_value=2, unit="m")],
+        ),
+    )
+    _, spot = station(database, "direct-beach")
+    store_batch(
+        database,
+        source(
+            station_id="nearby-buoy",
+            provider="khoa_buoy_recent",
+            values=[Value(name="wave_height", numeric_value=0.4, unit="m")],
+        ),
+    )
+    with TestClient(create_app(database)) as client:
+        view = conditions(client, spot)
+    assert view["metrics"][0]["status"] == "stale"
+    assert not any(m["name"] == "wave_height" for m in view["display_metrics"])
+    assert not any(m["name"] == "wave_height" for m in view["context_metrics"])
+    assert view["condition_score"]["score"] is None

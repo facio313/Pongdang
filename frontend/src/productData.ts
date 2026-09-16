@@ -29,6 +29,7 @@ export interface Metric {
   station_name: string | null;
   relation: string;
   spatial_scope: string | null;
+  distance_km?: number | null;
   evidence: {
     provider: string;
     observed_at: string;
@@ -49,6 +50,7 @@ export interface Conditions {
   condition_score?: ConditionScore;
   metrics: Metric[];
   context_metrics?: Metric[];
+  display_metrics?: Metric[];
   reason_codes: string[];
 }
 export interface ConditionScore {
@@ -123,7 +125,7 @@ export function conditionScoreText(data?: Conditions) {
 export function conditionScoreExpiry(data?: Conditions): number | undefined {
   const used = data?.condition_score?.components.filter((item) => item.status === "evaluated" && item.score !== null) ?? [];
   const expiries = [...(data?.metrics ?? []), ...(data?.context_metrics ?? [])]
-    .filter((metric) => used.some((item) => item.metric === metric.name && item.station_id === metric.station_id))
+    .filter((metric) => used.some((item) => item.metric === metric.name && item.station_id === metric.station_id) || data?.display_metrics?.some((item) => item.name === metric.name && item.station_id === metric.station_id))
     .flatMap((metric) => metric.evidence)
     .map((source) => source.valid_until ? Date.parse(source.valid_until) : NaN)
     .filter(Number.isFinite);
@@ -271,6 +273,10 @@ export function metric(
 export function metricText(data: Conditions | undefined, name: string) {
   const item = metric(data, name);
   if (item) return formatValue(item.value, item.unit);
+  const displayed = data?.display_metrics?.find((value) =>
+    value.name === name && value.status === "available" && value.value !== null,
+  );
+  if (displayed) return formatValue(displayed.value, displayed.unit);
   // Context or provisional forecast values are displayed only when the server
   // explicitly evaluated that component, with its context/limitations alongside.
   const component = data?.condition_score?.components.find((value) =>
@@ -286,7 +292,7 @@ export function evidenceText(data?: Conditions) {
       [...data.metrics, ...(data.context_metrics ?? [])].flatMap((m) =>
         m.evidence.map(
           (e) =>
-            `${m.relation === "nearby_station_context" ? "주변 관측소 참고" : m.relation === "containing_forecast_grid" ? "격자 기상" : m.relation === "representative_station" ? "대표 관측소" : "관측 지점"} ${m.station_name ?? "관측소명 없음"} · ${e.provider} · ${timeLabel(e.observed_at)} KST`,
+            `${m.relation === "nearby_station_context" ? `주변 관측소 참고${typeof m.distance_km === "number" ? ` ${m.distance_km.toFixed(1)}km` : ""}` : m.relation === "containing_forecast_grid" ? "격자 기상" : m.relation === "representative_station" ? "대표 관측소" : "관측 지점"} ${m.station_name ?? "관측소명 없음"} · ${e.provider} · ${timeLabel(e.observed_at)} KST`,
         ),
       ),
     ),

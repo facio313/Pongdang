@@ -18,6 +18,8 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-hero-note")).toContainText("근거 확보");
   await expect(page.locator(".hm-tile-value").first()).toHaveText("21.3°C");
   await expect(page.locator(".hm-tile-value").nth(1)).toHaveText("0.4m");
+  await expect(page.locator(".hm-tile-value").nth(2)).toHaveText("0mm/1h");
+  await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("공식 등급 없음");
   await page.getByRole("link", { name: "오늘", exact: true }).click();
   await expect(page.locator(".td-hero-score-num")).toHaveText(String(conditions.condition_score.score));
   await expect(page.locator(".td-hero-note")).toContainText("대표 관측소");

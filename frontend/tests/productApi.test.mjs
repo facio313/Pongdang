@@ -43,3 +43,13 @@ test('private mutations preserve the deployment base and same-origin SSO without
   for (const status of [401, 403, 409, 422, 503]) await assert.rejects(travelJson('/', 'travel/plans', 'POST', {}, undefined, async () => new Response('private database password', { status })), error => !error.message.includes('password'));
   assert.equal(await travelJson('/', 'travel/signals/id', 'DELETE', undefined, undefined, async () => new Response(null, { status: 204 })), undefined);
 });
+
+test('server-selected context displays wave and zero rainfall without scoring rainfall', () => {
+  const data = { metrics: [], display_metrics: [
+    { name: 'wave_height', status: 'available', value: 0.4, unit: 'm' },
+    { name: 'precipitation', status: 'available', value: 0, unit: 'mm/1h' },
+  ] };
+  assert.equal(metricText(data, 'wave_height'), '0.4m');
+  assert.equal(metricText(data, 'precipitation'), '0mm/1h');
+  assert.equal(metricText({ ...data, display_metrics: data.display_metrics.map(m => ({ ...m, status: 'conflict' })) }, 'precipitation'), '–');
+});

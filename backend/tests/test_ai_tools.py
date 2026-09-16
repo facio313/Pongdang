@@ -95,6 +95,8 @@ class FixtureReader:
 
     async def execute(self, sql, params=None):
         self.queries.append((sql, params))
+        if "WITH stations AS" in sql:
+            return Cursor([])  # This fixture only has the explicitly mapped station.
         if "JOIN pongdang_data.collection_place p" in sql:
             rows = self.places
             if "WHERE s.id=%s" in sql:

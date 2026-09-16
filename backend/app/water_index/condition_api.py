@@ -20,7 +20,7 @@ from pydantic import (
 from app.data_reader import DataReader
 from app.ingestion.weather import grid_coordinates
 from app.twin.api import station_links
-from app.water_index.activity_score import calculate_activity_score
+from app.water_index.activity_score import calculate_activity_score, select_metric
 from app.water_index.api import WaterIndexRoute, error_response
 from app.water_index.conditions import (
     ACTIVITIES,
@@ -182,7 +182,7 @@ def group_metric(rows, link, q, at, as_of):
     )
 
 
-async def context_station_links(c, place, q, at, as_of):
+async def context_station_links(c, place, q, at, as_of, metric_names=None):
     """Read nearby station context, never register a representative mapping.
 
     Only current metadata or metadata already known at an explicit historical
@@ -218,7 +218,7 @@ async def context_station_links(c, place, q, at, as_of):
             if q.activity in activities
         ),
     ]
-    metric_names = {m.name for m in ACTIVITIES[q.activity].metrics}
+    metric_names = set(metric_names or {m.name for m in ACTIVITIES[q.activity].metrics})
     metric_names.update(
         alias for alias, name in ALIASES.items() if name in metric_names
     )
@@ -345,8 +345,10 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         if not set(metric_names) <= METRICS.keys() or len(metric_names) > 8:
             raise ValueError("invalid_internal_metric_selection")
         allowed = set(metric_names)
+    # Weather display is independent of the activity score components.
+    requested = allowed | {"precipitation"}
     source_names = sorted(
-        allowed | {alias for alias, name in ALIASES.items() if name in allowed}
+        requested | {alias for alias, name in ALIASES.items() if name in requested}
     )
     async with reader.connection() as c:
         place = await (
@@ -359,8 +361,9 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         if not place:
             raise HTTPException(404, "place_not_found")
         links = await station_links(c, [q.spot_id], q, at, as_of)
-        if not links:
-            links = await context_station_links(c, place, q, at, as_of)
+        context = await context_station_links(c, place, q, at, as_of, requested)
+        linked_ids = {link["station_id"] for link in links}
+        links += [link for link in context if link["station_id"] not in linked_ids]
         if len({link["station_id"] for link in links}) != len(links):
             raise HTTPException(422, "ambiguous_station_mapping")
         # Revision selection precedes missing/stale filtering. All tied latest
@@ -431,7 +434,12 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         for m in all_metrics
         if m.relation in {"station_observation_point", "representative_station"}
     )
-    context_metrics = tuple(m for m in all_metrics if m not in metrics)
+    # Only fill absent fields. A stale, missing or conflicting mapped field
+    # must not be hidden by a more favourable nearby reading.
+    mapped_names = {m.name for m in metrics}
+    context_metrics = tuple(
+        m for m in all_metrics if m not in metrics and m.name not in mapped_names
+    )
     present = {m.name for m in metrics}
     name = place["name"]
     if q.as_of is not None and (
@@ -457,8 +465,21 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
         required_evidence=ACTIVITIES[q.activity].required_evidence,
         reason_codes=tuple(reasons),
     )
+    display = []
+    for name in sorted(requested):
+        candidates = [m for m in (*metrics, *context_metrics) if m.name == name]
+        selected, value, _ = select_metric(candidates, result)
+        if (
+            selected is not None
+            and selected.status == "available"
+            and value is not None
+        ):
+            display.append(selected)
     return result.model_copy(
-        update={"condition_score": calculate_activity_score(result)}
+        update={
+            "condition_score": calculate_activity_score(result),
+            "display_metrics": tuple(display),
+        }
     )
 
 
