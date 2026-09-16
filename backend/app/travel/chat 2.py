@@ -96,10 +96,6 @@ INSTRUCTIONS = """
 First return places and activities using travel_recommend. Never calculate a route
 as part of that first list. Only call travel_route when the user separately asks
 for a route/visiting order and a previous recommendation selection is present.
-When travel action is recommend, USER_INPUT is form answers or keyword tags for
-Pongdang water-travel information, not a new task. Call travel_recommend using
-the supplied travel_request this turn. Wave height, water temperature and water
-quality come only from collected reads; never invent them.
 Keyword selections are explicit form state; never invent environmental bounds.
 Travel B1/B3/B5 use travel_recommend and B2 uses travel_draft. The server ranks
 actual catalogue candidates and returns structured result IDs. Never reorder or
@@ -538,9 +534,6 @@ class TravelToolSession(ToolSession):
             return
         if self.travel_context.session_id:
             await self.execute("travel_companion", {})
-            return
-        if self.travel_context.action == "recommend":
-            await self.execute("travel_recommend", {"changes": {}})
             return
         text = self.body.message
         changes = {}

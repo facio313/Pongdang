@@ -193,45 +193,6 @@ def test_personal_profile_signals_revision_reset_and_ownership(travel_db):
     assert client.get(BASE + "/signals").json()["rows"] == []
 
 
-def test_recommend_form_chat_speaks_collected_places_without_ai(travel_db):
-    _, client, places, _ = travel_db
-    reply = client.post(
-        "/api/data/ai/chat",
-        json={
-            "message": (
-                "전제: 퐁당의 물 여행 관련 정보를 찾습니다. "
-                "답변: 물에 들어가고 싶어요. 친구랑 하루. 차량"
-            ),
-            "travel": {
-                "action": "recommend",
-                "request": trip_request() | {"activity": "swim"},
-            },
-        },
-    )
-    assert reply.status_code == 200, reply.text
-    body = reply.json()
-    assert body["fallback"] is True
-    recs = body["travel_results"]["recommendations"]["recommendations"]
-    assert recs
-    assert {row["spot_id"] for row in recs} <= set(places.values())
-    assert recs[0]["name"] in body["answer"]
-    assert "격리" in body["answer"]
-    keywords = client.post(
-        "/api/data/ai/chat",
-        json={
-            "message": "전제: 퐁당의 물 여행 관련 정보를 찾습니다. 키워드: 온천",
-            "travel": {
-                "action": "recommend",
-                "request": trip_request() | {"preferred_tags": ["온천"]},
-            },
-        },
-    )
-    assert keywords.status_code == 200, keywords.text
-    ranked = keywords.json()["travel_results"]["recommendations"]["recommendations"]
-    assert ranked[0]["spot_id"] == places["isolated-onsen"]
-    assert "격리 온천" in keywords.json()["answer"]
-
-
 def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):
     _, client, places, _ = travel_db
     request = trip_request()

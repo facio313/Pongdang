@@ -808,6 +808,30 @@ def test_unspecified_activity_is_not_invented_from_context(settings):
     )
     sent = json.loads(chat.initial_input(request, NOW)[0]["content"])
     assert "activity" not in sent["untrusted_context"]
+    assert "query_frame" not in sent
     session = FixtureSession(settings, NOW)
     plan = asyncio.run(chat.deterministic_reads(session, request))
     assert plan.clarification == "activity" and not session.calls
+
+
+def test_travel_form_adds_server_water_travel_frame_and_clients_cannot_set_it():
+    request = chat.ChatRequest(
+        message="답변: 물에 들어가고 싶어요",
+        travel={
+            "action": "recommend",
+            "request": {"activity": "swim", "dates": ["2026-09-16"]},
+        },
+    )
+    sent = json.loads(chat.initial_input(request, NOW)[0]["content"])
+    assert sent["query_frame"] == chat.WATER_TRAVEL_FRAME
+    assert sent["USER_INPUT"] == "답변: 물에 들어가고 싶어요"
+    conversation = json.loads(
+        chat.initial_input(
+            chat.ChatRequest(message="두 번째 장소로 일정", travel={}), NOW
+        )[0]["content"]
+    )
+    assert "query_frame" not in conversation
+    with pytest.raises(ValidationError):
+        chat.ChatRequest(
+            message="질문", query_frame=chat.WATER_TRAVEL_FRAME
+        )

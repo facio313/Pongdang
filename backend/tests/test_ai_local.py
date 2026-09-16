@@ -105,6 +105,60 @@ def test_bootstrap_private_page_and_session_cookie(state):
     assert not state.calls
 
 
+def test_local_default_chat_uses_travel_converse(settings, monkeypatch):
+    async def no_database(_settings):
+        pass
+
+    monkeypatch.setattr("app.main.check_database", no_database)
+    called = []
+
+    async def handler(settings, body, subject, provider, **kwargs):
+        called.append((subject, kwargs.get("budget_api"), body.travel.action))
+        return ChatResponse(
+            request_id="local-travel",
+            status="ok",
+            answer="로컬 여행 테스트",
+            provider="deterministic",
+            fallback=True,
+            model=None,
+            scope={},
+            candidates=[],
+            facts=[],
+            sources=[],
+            warnings=[],
+            limitations=[],
+            features=[],
+            reason_codes=[],
+            context=Context(),
+            sections=[],
+        )
+
+    monkeypatch.setattr("app.travel.chat.travel_converse", handler)
+
+    class Provider:
+        async def aclose(self):
+            pass
+
+    app = local.create_local_app(
+        settings,
+        bootstrap_token=TOKEN,
+        now=lambda: 100.0,
+        provider=Provider(),
+    )
+    with TestClient(app, base_url=local.ORIGIN, client=("127.0.0.1", 49152)) as client:
+        assert exchange(client).status_code == 200
+        response = client.post(
+            "/api/data/ai/chat",
+            json={
+                "message": "전제: 퐁당의 물 여행 관련 정보를 찾습니다. 키워드: 서핑",
+                "travel": {"action": "recommend"},
+            },
+            headers=HEADERS,
+        )
+        assert response.status_code == 200, response.text
+    assert called == [("local-operator", local.OperatorAccounting, "recommend")]
+
+
 def test_authenticated_chat_keeps_operator_budget_and_no_sso_identity(state):
     assert exchange(state.client).status_code == 200
     response = state.client.post(

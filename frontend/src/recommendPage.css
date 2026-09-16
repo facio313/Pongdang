@@ -278,11 +278,8 @@
   background: var(--pd-surface);
   box-shadow: var(--pd-shadow);
 }
-.recommend-page .rc-bubble.is-user {
-  border-radius: 18px 18px 6px 18px;
-  background: var(--pd-blue);
-  color: #fff;
-  box-shadow: none;
+.recommend-page .rc-bubble.is-answer {
+  white-space: pre-wrap;
 }
 .recommend-page .rc-replies {
   display: flex;

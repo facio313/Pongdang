@@ -466,3 +466,41 @@ def test_emotion_does_not_authorize_model_to_infer_water_activity(activity):
             session.execute("travel_recommend", {"changes": {"activity": activity}})
         )
     assert session.travel_context.request.activity == "relax"
+
+
+def test_recommend_action_fallback_uses_form_request_not_free_text():
+    from app.config import Settings
+
+    session = TravelToolSession(
+        Settings(_env_file=None, postgres_password="test-only"),
+        NOW,
+        body=ChatRequest(
+            message="전제: 퐁당의 물 여행 관련 정보를 찾습니다. "
+            "답변: 물에 들어가고 싶어요",
+            travel={
+                "action": "recommend",
+                "request": {
+                    "activity": "swim",
+                    "dates": [str(DAY)],
+                    "preferred_tags": ["서핑"],
+                    "region": "강릉",
+                },
+            },
+        ),
+        owner="isolated",
+        catalog=CatalogFixture(),
+    )
+
+    async def fake_recommend(limit):
+        session.travel_results["recommendations"] = {
+            "recommendations": [{"spot_id": 7, "rank": 1}],
+            "limit": limit,
+        }
+        return {"recommendations": []}
+
+    session._recommend = fake_recommend
+    asyncio.run(session.fallback())
+    first = session.travel_results["recommendations"]["recommendations"][0]
+    assert first["spot_id"] == 7
+    assert session.travel_context.request.activity == "swim"
+    assert session.travel_context.request.preferred_tags == ["서핑"]

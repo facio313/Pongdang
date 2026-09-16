@@ -225,7 +225,21 @@ test("preference → recommendation → persisted plan → selected plan detail"
   await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
   for (let index = 0; index < 6; index++)
     await page.getByRole("button", { name: "패스", exact: true }).click();
-  await page.getByRole("button", { name: "취향 저장하고 코스 보기" }).click();
+  let keywordBody:
+    | { message?: string; travel?: { action?: string } }
+    | undefined;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/ai/chat")) keywordBody = request.postDataJSON();
+  });
+  await page.getByRole("button", { name: "취향 저장하고 추천받기" }).click();
+  await expect(page.locator(".pd-ai-basis")).toBeVisible();
+  expect(keywordBody?.travel?.action).toBe("recommend");
+  expect(keywordBody?.message).toContain("전제: 퐁당의 물 여행 관련 정보를 찾습니다.");
+  expect(keywordBody?.message).toContain("키워드:");
+  await expect(
+    page.locator(".rc-basis-row").filter({ hasText: "수질" }).locator(".rc-basis-value"),
+  ).toHaveText("평가 기준 없음");
+  await page.getByRole("button", { name: "코스 보기", exact: false }).click();
   await expect(page.locator(".rc-stop-name").first()).toContainText(
     "OFFLINE TEST",
   );
@@ -340,7 +354,13 @@ test("chat answers reach the travel contract and the actual response is displaye
   page,
 }) => {
   let body:
-    | { travel?: { request?: { transport?: string; companion_type?: string } } }
+    | {
+        message?: string;
+        travel?: {
+          action?: string;
+          request?: { transport?: string; companion_type?: string };
+        };
+      }
     | undefined;
   page.on("request", (request) => {
     if (request.url().endsWith("/ai/chat")) body = request.postDataJSON();
@@ -355,9 +375,22 @@ test("chat answers reach the travel contract and the actual response is displaye
   await page.getByRole("button", { name: "대중교통", exact: true }).click();
   const result = await (await response).json();
   await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
+  expect(body?.travel?.action).toBe("recommend");
+  expect(body?.message).toContain("전제: 퐁당의 물 여행 관련 정보를 찾습니다.");
+  expect(body?.message).toContain("답변:");
   expect(body?.travel?.request?.transport).toBe("transit");
   expect(body?.travel?.request?.companion_type).toBe("solo");
   await expect(page.locator(".pd-ai-basis")).toContainText(result.answer);
+  await expect(page.locator(".rc-bubble.is-answer")).toContainText(result.answer);
+  await expect(
+    page.locator(".rc-basis-row").filter({ hasText: "파고" }).locator(".rc-basis-value"),
+  ).toHaveText("0.4m");
+  await expect(
+    page.locator(".rc-basis-row").filter({ hasText: "수온" }).locator(".rc-basis-value"),
+  ).toHaveText("21.3°C");
+  await expect(
+    page.locator(".rc-basis-row").filter({ hasText: "수질" }).locator(".rc-basis-value"),
+  ).toHaveText("2등급 · 과거");
   await page.getByRole("button", { name: "코스 보기", exact: false }).click();
   await expect(page.locator(".rc-stop-name").first()).toContainText(
     "OFFLINE TEST",

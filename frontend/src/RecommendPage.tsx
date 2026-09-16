@@ -25,7 +25,9 @@ import {
   kstDate,
   metricText,
   timeLabel,
+  waterQualityLabel,
   type Conditions,
+  type WaterQualityGrade,
 } from "./productData";
 import {
   planItems,
@@ -40,10 +42,11 @@ import {
   type TravelRequest,
   type TripPlan,
 } from "./travelApi";
+import { askWaterTravel, waterTravelConditionPath } from "./waterTravelAsk";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import "./recommendPage.css";
 
-type Step = "entry" | "taste" | "chat" | "course" | "realert";
+type Step = "entry" | "taste" | "chat" | "result" | "course" | "realert";
 
 const TODAY_LABEL = dateLabel();
 
@@ -123,6 +126,102 @@ const CHAT_TURNS: { question: string; replies: string[] }[] = [
   },
   { question: "이동은 어떻게 하세요?", replies: ["차량", "대중교통"] },
 ];
+
+function RecommendLunaReply({
+  headline,
+  answer,
+  onDone,
+  onReset,
+}: {
+  headline: string;
+  answer: string;
+  onDone: () => void;
+  onReset: () => void;
+}) {
+  const session = useTravelSession();
+  const first = session.recommendation?.recommendations[0];
+  const activity = session.recommendation?.request.activity ?? "relax";
+  const day = session.recommendation?.request.dates[0];
+  const conditions = useResource<Conditions>(
+    waterTravelConditionPath(first?.spot_id, activity, day),
+  );
+  const quality = useResource<WaterQualityGrade>(
+    first?.spot_id ? `quality/grade?spot_id=${first.spot_id}` : null,
+  );
+  const qualityValue = !first
+    ? "장소 확인 전"
+    : quality.loading
+      ? "조회 중"
+      : quality.error
+        ? "조회 실패"
+        : waterQualityLabel(quality.data);
+  const bars = [
+    {
+      name: "파고",
+      value: conditions.loading
+        ? "조회 중"
+        : metricText(conditions.data, "wave_height"),
+    },
+    {
+      name: "수온",
+      value: conditions.loading
+        ? "조회 중"
+        : metricText(conditions.data, "water_temperature"),
+    },
+    { name: "수질", value: qualityValue },
+  ];
+  const canOpenCourse = Boolean(session.recommendation?.recommendations.length);
+  return (
+    <>
+      <div className="pd-card">
+        <AiSuggestion
+          headline={headline}
+          basis={
+            answer ||
+            "답변과 키워드로 실제 장소와 수집 자료를 조회합니다. 환경 근거가 없으면 미확인으로 표시합니다."
+          }
+        />
+        {bars.map((bar) => (
+          <div className="rc-basis-row" key={bar.name}>
+            <span className="rc-basis-name">{bar.name}</span>
+            <span className="rc-basis-track" />
+            <span
+              className={
+                "rc-basis-value" +
+                (bar.value === "–" ||
+                bar.value === "장소 확인 전" ||
+                bar.value === "검사 자료 없음"
+                  ? " is-empty"
+                  : "")
+              }
+            >
+              {bar.value}
+            </span>
+          </div>
+        ))}
+        <p className="pd-note">
+          오늘이면 현재 관측, 다른 날이면 선택 날짜 정오 예보를 읽습니다.{" "}
+          {conditions.error} {quality.error} 추천 순서는 취향 일치 기준이며
+          안전 점수가 아닙니다.
+        </p>
+        <ConditionScoreDetails data={conditions.data} className="pd-note" />
+      </div>
+      <div className="rc-stack">
+        <button
+          type="button"
+          className="rc-primary"
+          onClick={onDone}
+          disabled={!canOpenCourse}
+        >
+          코스 보기 →
+        </button>
+        <button type="button" className="rc-secondary" onClick={onReset}>
+          처음부터
+        </button>
+      </div>
+    </>
+  );
+}
 
 // ── 공통 조각 ───────────────────────────────────────────────
 
@@ -424,13 +523,13 @@ function TasteStep({
                 )}
               </div>
               <ExampleNote>
-                선택한 태그와 좋아요를 합쳐 취향에 저장하고 실제 장소를
-                추천받습니다. 파도 적은 곳: {waveLabel ?? "범위 조회 중"}.
+                선택한 태그와 좋아요를 합쳐 취향에 저장하고 퐁당 물 여행
+                정보로 추천받습니다. 파도 적은 곳: {waveLabel ?? "범위 조회 중"}.
               </ExampleNote>
             </div>
             <div className="rc-stack">
               <button type="button" className="rc-primary" onClick={onDone}>
-                취향 저장하고 코스 보기 →
+                취향 저장하고 추천받기 →
               </button>
               <button
                 type="button"
@@ -466,21 +565,6 @@ function ChatStep({
   onBack: () => void;
 }) {
   const finished = turn >= CHAT_TURNS.length;
-  const session = useTravelSession();
-  const conditions = useResource<Conditions>(
-    conditionPath(
-      session.recommendation?.recommendations[0]?.spot_id,
-      session.recommendation?.request.activity ?? "relax",
-      session.recommendation?.request.dates[0]
-        ? session.recommendation.request.dates[0] + "T12:00:00+09:00"
-        : undefined,
-    ),
-  );
-  const bars = [
-    { name: "파고", value: metricText(conditions.data, "wave_height") },
-    { name: "수온", value: metricText(conditions.data, "water_temperature") },
-    { name: "수질", value: "–" },
-  ];
   return (
     <AppShell
       tab="recommend"
@@ -526,6 +610,11 @@ function ChatStep({
               </div>
             ),
           )}
+          {finished && answer && (
+            <div className="rc-bubble-row">
+              <div className="rc-bubble is-answer">{answer}</div>
+            </div>
+          )}
         </div>
 
         {!finished ? (
@@ -542,46 +631,68 @@ function ChatStep({
             ))}
           </div>
         ) : (
-          <>
-            {/* 4번째 턴에서 근거 카드를 노출합니다. 추천 문장과 같은 카드
-                안에 사용 지표 · 시각 · 출처가 함께 있어야 합니다. */}
-            <div className="pd-card">
-              <AiSuggestion
-                headline="답변을 반영한 추천"
-                basis={
-                  answer ||
-                  "답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면 미확인으로 표시합니다."
-                }
-              />
-              {bars.map((bar) => (
-                <div className="rc-basis-row" key={bar.name}>
-                  <span className="rc-basis-name">{bar.name}</span>
-                  <span className="rc-basis-track" />
-                  <span
-                    className={
-                      "rc-basis-value" + (bar.value === "–" ? " is-empty" : "")
-                    }
-                  >
-                    {bar.value}
-                  </span>
-                </div>
-              ))}
-              <p className="pd-note">
-                첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
-                순서는 취향 일치 기준이며 안전 점수가 아닙니다.
-              </p>
-              <ConditionScoreDetails data={conditions.data} className="pd-note" />
-            </div>
-            <div className="rc-stack">
-              <button type="button" className="rc-primary" onClick={onDone}>
-                코스 보기 →
-              </button>
-              <button type="button" className="rc-secondary" onClick={onReset}>
-                처음부터
-              </button>
-            </div>
-          </>
+          <RecommendLunaReply
+            headline="답변을 반영한 추천"
+            answer={answer}
+            onDone={onDone}
+            onReset={onReset}
+          />
         )}
+    </AppShell>
+  );
+}
+
+function ResultStep({
+  answer,
+  onDone,
+  onReset,
+  onBack,
+}: {
+  answer: string;
+  onDone: () => void;
+  onReset: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <AppShell
+      tab="recommend"
+      hero={
+        <header className="pd-hero rc-hero">
+        <AppHeader
+          title="강릉"
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
+        <div className="rc-bot-head">
+          <span className="rc-bot-avatar">
+            <Icon name="sparkle" size={21} />
+          </span>
+          <div>
+            <div className="rc-bot-name">퐁당 컨시어지</div>
+            <div className="rc-bot-sub">키워드를 반영한 물 여행 정보</div>
+          </div>
+        </div>
+        <div className="rc-hero-inner">
+          <button type="button" className="rc-hero-back" onClick={onBack}>
+            ← 추천 처음으로
+          </button>
+        </div>
+        </header>
+      }
+    >
+        {answer && (
+          <div className="rc-chat">
+            <div className="rc-bubble-row">
+              <div className="rc-bubble is-answer">{answer}</div>
+            </div>
+          </div>
+        )}
+        <RecommendLunaReply
+          headline="키워드를 반영한 추천"
+          answer={answer}
+          onDone={onDone}
+          onReset={onReset}
+        />
     </AppShell>
   );
 }
@@ -1074,7 +1185,7 @@ function RecommendScreen() {
         ? recommendationPlan(result, result.request.dates[0])
         : null,
     });
-  const recommend = (index = dayIndex, savePreference = false) =>
+  const recommend = (index = dayIndex) =>
     void action.run(async (signal) => {
       const baseRequest =
         step === "course"
@@ -1083,28 +1194,6 @@ function RecommendScreen() {
       const request = baseRequest
         ? { ...baseRequest, dates: [days[index].id], day_trip: true }
         : requestFor(index);
-      if (savePreference) {
-        const current = await travelJson<{
-          preference: Preference;
-          revision: number;
-        }>(
-          import.meta.env.BASE_URL,
-          "travel/preferences",
-          "GET",
-          undefined,
-          signal,
-        );
-        await travelJson(
-          import.meta.env.BASE_URL,
-          "travel/preferences",
-          "PUT",
-          {
-            preference: { ...current.preference, tags: request.preferred_tags },
-            expected_revision: current.revision,
-          },
-          signal,
-        );
-      }
       const result = await travelJson<RecommendationResult>(
         import.meta.env.BASE_URL,
         "travel/recommendations",
@@ -1165,22 +1254,13 @@ function RecommendScreen() {
     setTurn(next.length);
     if (next.length === CHAT_TURNS.length)
       void action.run(async (signal) => {
-        const result = await travelJson<{
-          answer: string;
-          travel_results?: { recommendations?: RecommendationResult };
-        }>(
+        const result = await askWaterTravel(
           import.meta.env.BASE_URL,
-          "ai/chat",
-          "POST",
           {
-            message:
-              next.join(". ") + ". 이 조건으로 장소와 활동을 추천해 주세요.",
-            history: [],
-            context: { region: "강릉" },
-            travel: {
-              action: "recommend",
-              request: requestFor(dayIndex, next),
-            },
+            request: requestFor(dayIndex, next),
+            answers: next,
+            keywords: selectedTags,
+            preference: profile.data?.preference,
           },
           signal,
         );
@@ -1191,6 +1271,46 @@ function RecommendScreen() {
         }
       });
   };
+  const askFromKeywords = (savePreference = false) =>
+    void action.run(async (signal) => {
+      const request = requestFor(dayIndex);
+      if (savePreference) {
+        const current = await travelJson<{
+          preference: Preference;
+          revision: number;
+        }>(
+          import.meta.env.BASE_URL,
+          "travel/preferences",
+          "GET",
+          undefined,
+          signal,
+        );
+        await travelJson(
+          import.meta.env.BASE_URL,
+          "travel/preferences",
+          "PUT",
+          {
+            preference: { ...current.preference, tags: request.preferred_tags },
+            expected_revision: current.revision,
+          },
+          signal,
+        );
+      }
+      const result = await askWaterTravel(
+        import.meta.env.BASE_URL,
+        {
+          request,
+          keywords: request.preferred_tags,
+          preference: profile.data?.preference,
+        },
+        signal,
+      );
+      if (signal.aborted) return;
+      setAnswer(result.answer);
+      if (result.travel_results?.recommendations)
+        publish(result.travel_results.recommendations);
+      setStep("result");
+    });
   const refresh = () =>
     void action.run(async (signal) => {
       const result = await travelJson<RecommendationResult>(
@@ -1292,7 +1412,7 @@ function RecommendScreen() {
               liked={liked}
               onLike={() => advanceCard(true)}
               onPass={() => advanceCard(false)}
-              onDone={() => recommend(dayIndex, true)}
+              onDone={() => askFromKeywords(true)}
               onBack={goEntry}
             />
           )}
@@ -1307,9 +1427,26 @@ function RecommendScreen() {
                 setAnswers([]);
                 setAnswer("");
               }}
-              onDone={() =>
-                session.recommendation ? setStep("course") : recommend()
-              }
+              onDone={() => {
+                if (session.recommendation?.recommendations.length)
+                  setStep("course");
+              }}
+              onBack={goEntry}
+            />
+          )}
+          {step === "result" && (
+            <ResultStep
+              answer={answer}
+              onDone={() => {
+                if (session.recommendation?.recommendations.length)
+                  setStep("course");
+              }}
+              onReset={() => {
+                setTurn(0);
+                setAnswers([]);
+                setAnswer("");
+                goEntry();
+              }}
               onBack={goEntry}
             />
           )}
