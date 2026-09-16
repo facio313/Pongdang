@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { MapDesktop } from "./MapDesktop";
+import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
@@ -334,7 +336,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
   );
 }
 
-export function MapPage() {
+function MapScreen() {
   const session = useTravelSession();
   const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
     "plan_id",
@@ -691,4 +693,11 @@ export function MapPage() {
       </AppShell>
     </article>
   );
+}
+
+export function MapPage() {
+  // 같은 라우트(#map)에서 폭으로 레이아웃을 갈아 끼웁니다. 데스크탑은 지도가
+  // 지배 요소인 2열 구성이라 모바일 마크업을 넓혀 쓸 수 없습니다.
+  const isDesktop = useIsDesktop();
+  return isDesktop ? <MapDesktop /> : <MapScreen />;
 }

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CoursesDesktop } from "./CoursesDesktop";
+import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
@@ -35,7 +37,7 @@ function PlanStopScore({ id, name, at, activity }: { id: number; name: string; a
   );
 }
 
-export function MyCoursesPage() {
+function MyCoursesScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const plans = useResource<{ rows: TripPlan[] }>(
     "travel/plans?limit=100&offset=0",
@@ -232,4 +234,11 @@ export function MyCoursesPage() {
       </AppShell>
     </article>
   );
+}
+
+export function MyCoursesPage() {
+  // 같은 라우트(#my-courses)에서 폭으로 레이아웃을 갈아 끼웁니다. 데스크탑은
+  // 지도와 시간축 일정을 나란히 두는 2열 구성입니다.
+  const isDesktop = useIsDesktop();
+  return isDesktop ? <CoursesDesktop /> : <MyCoursesScreen />;
 }

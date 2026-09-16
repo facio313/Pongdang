@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { KakaoMapsLoadError, loadKakaoMaps, type KakaoCustomOverlay } from "./kakaoMaps";
+import { KakaoMapsLoadError, loadKakaoMaps, type KakaoCustomOverlay, type KakaoMap, type KakaoMapsNamespace } from "./kakaoMaps";
 import { MAP_LOCATIONS } from "./mapLocations";
 import "./kakaoMap.css";
 
@@ -18,13 +18,63 @@ interface MountedMarker {
   overlay: KakaoCustomOverlay;
 }
 
-export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS }: {
+/** 지도 위에 얹는 컨트롤이 쓸 수 있는 조작입니다. 지도 인스턴스 자체를 밖으로
+ *  내보내지 않고, 실제로 동작하는 조작만 좁게 넘깁니다. */
+export interface MapControlApi {
+  zoomIn(): void;
+  zoomOut(): void;
+  /** 브라우저 위치 권한으로 현재 위치로 이동합니다. 권한이 없거나 실패하면
+   *  아무 일도 하지 않고 false 를 돌려줍니다 -- 실패를 성공처럼 보이게 하지
+   *  않습니다. */
+  locate(): Promise<boolean>;
+}
+
+/** 지도 인스턴스를 밖으로 내보내지 않고, 조작만 감싸 넘깁니다. */
+function mapControls(map: KakaoMap, sdk: KakaoMapsNamespace): MapControlApi {
+  return {
+    zoomIn: () => map.setLevel(Math.max(1, map.getLevel() - 1)),
+    zoomOut: () => map.setLevel(Math.min(14, map.getLevel() + 1)),
+    locate: () =>
+      new Promise<boolean>((resolve) => {
+        if (!navigator.geolocation) return resolve(false);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            map.setCenter(
+              new sdk.LatLng(
+                position.coords.latitude,
+                position.coords.longitude,
+              ),
+            );
+            resolve(true);
+          },
+          // 권한 거부 · 실패는 조용히 false 입니다. 실패를 성공처럼 보이게
+          // 하지 않습니다.
+          () => resolve(false),
+          { timeout: 10000 },
+        );
+      }),
+  };
+}
+
+export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS, overlay, onReady }: {
   markers: readonly MapMarker[];
   paths?: readonly (readonly (readonly number[])[])[];
   selectedId: string | null;
   renderMarker: (id: string) => ReactNode;
+  /** 지도 면 위에 겹쳐 그릴 것(뱃지 · 컨트롤 · 선택 패널). 지도가 뜬 뒤에만
+   *  보입니다. */
+  overlay?: ReactNode;
+  /** 지도가 준비되면 조작 API 를, 정리되면 null 을 넘깁니다. 렌더 중이 아니라
+   *  effect 안에서 호출되므로 부모는 이 값을 state 에 담아 두면 됩니다. */
+  onReady?: (api: MapControlApi | null) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
+  // onReady 를 지도 생성 effect 의 의존성에 넣으면, 부모가 인라인 함수를 넘길
+  // 때마다 지도를 통째로 다시 만들게 됩니다. 최신 콜백만 ref 로 들고 갑니다.
+  const onReadyRef = useRef(onReady);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  });
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{
     attempt: number;
@@ -50,8 +100,10 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
         const bounds = new sdk.LatLngBounds();
         const mounted: MountedMarker[] = [];
         const lines: { setMap(map: null): void }[] = [];
+        onReadyRef.current?.(mapControls(map, sdk));
         const resize = new ResizeObserver(() => fit());
         cleanup = () => {
+          onReadyRef.current?.(null);
           resize.disconnect();
           lines.forEach(line => line.setMap(null));
           mounted.forEach(({ overlay }) => overlay.setMap(null));
@@ -122,6 +174,7 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
   return (
     <>
       <div className="wim-map-canvas" ref={container} role="region" aria-label="카카오 지도" />
+      {active && !active.error && overlay}
       {!active && <div className="wim-map-status" role="status">지도를 불러오는 중입니다.</div>}
       {active?.error && (
         <div className="wim-map-status">

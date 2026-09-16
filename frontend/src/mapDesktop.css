@@ -1,0 +1,351 @@
+/* 데스크탑 지도(18c)에만 있는 것들. 페이지 루트(.pd-desktop)로 스코프합니다 --
+   모바일 지도 화면이 쓰는 .mp-* 와 이름이 겹치지 않게 접두사도 .mk- 로 나눴고,
+   스코프까지 걸어 두 번 막습니다. */
+
+.pd-desktop .mk-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+}
+.pd-desktop .mk-hero-lead {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .mk-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .mk-hero-title {
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.25;
+  margin: 8px 0 0;
+}
+.pd-desktop .mk-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -4px;
+}
+.pd-desktop .mk-filters {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 6px;
+}
+.pd-desktop .mk-filter {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--dk-onc);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .mk-filter.is-on {
+  color: #0f2f7a;
+  background: #fff;
+  border-color: transparent;
+}
+
+/* ── 지도 무대 ─────────────────────────────────────────
+   왼쪽 352px 목록 + 오른쪽 지도. 지도가 지배 요소이므로 높이를 크게 둡니다. */
+
+.pd-desktop .mk-stage {
+  display: grid;
+  grid-template-columns: 352px 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid var(--dk-rule);
+}
+.pd-desktop .mk-side {
+  padding: 22px 26px 22px var(--dk-pad);
+  border-right: 1px solid var(--dk-rule);
+}
+.pd-desktop .mk-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+  height: 46px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .mk-side-kick {
+  margin: 18px 0 4px;
+}
+.pd-desktop .mk-spot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .mk-spot.is-selected {
+  /* 선택은 색만으로 말하지 않습니다 -- 왼쪽 굵은 선으로 형태도 바꿉니다. */
+  box-shadow: inset 3px 0 0 var(--dk-deep);
+  padding-left: 12px;
+}
+.pd-desktop .mk-spot-score {
+  font-size: 30px;
+  line-height: 1;
+  min-width: 50px;
+  color: var(--g-ink);
+}
+.pd-desktop .mk-spot-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .mk-spot-name {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+}
+.pd-desktop .mk-spot-grade {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--g-ink);
+  margin-top: 3px;
+}
+.pd-desktop .mk-spot-temp {
+  flex: none;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .mk-note {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+  margin: 12px 0 0;
+}
+.pd-desktop .mk-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  background: var(--dk-alert-bg);
+  color: var(--dk-alert);
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pd-desktop .mk-alert svg {
+  flex: none;
+}
+
+/* 지도 면. KakaoMapCanvas 의 .wim-map-canvas 가 inset:0 으로 깔리므로
+   부모가 position:relative 여야 합니다. */
+.pd-desktop .mk-map {
+  position: relative;
+  min-height: 560px;
+  background: #dfe8f2;
+}
+.pd-desktop .mk-map-badge {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(15, 47, 122, 0.82);
+  color: var(--dk-onc);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 7px 13px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .mk-map-controls {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+/* 지도 위에 떠 있는 패널은 그림자를 쓰는 유일한 예외입니다 -- 지도 면과
+   분리되어야 눌리는 것으로 읽힙니다. */
+.pd-desktop .mk-map-controls button {
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  color: var(--dk-ink);
+  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.18);
+}
+.pd-desktop .mk-map-controls button.is-accent {
+  color: var(--dk-deep);
+}
+
+.pd-desktop .mk-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.pd-desktop .mk-pin-core {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.2);
+}
+.pd-desktop .mk-pin-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dk-ink);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--dk-r-pill);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.pd-desktop .mk-pin.is-selected .mk-pin-core {
+  outline: 2px solid var(--dk-deep);
+  outline-offset: 2px;
+}
+
+.pd-desktop .mk-panel {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  padding: 14px 18px;
+  max-width: 520px;
+  box-shadow: 0 2px 12px rgba(20, 44, 72, 0.18);
+}
+.pd-desktop .mk-panel img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .mk-panel-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .mk-panel-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.pd-desktop .mk-panel-meta {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+.pd-desktop .mk-panel-score {
+  flex: none;
+  text-align: right;
+  color: var(--g-ink);
+}
+.pd-desktop .mk-panel-score-num {
+  font-size: 30px;
+  line-height: 1;
+}
+.pd-desktop .mk-panel-score-grade {
+  font-weight: 700;
+  font-size: 10.5px;
+}
+.pd-desktop .mk-panel-add {
+  flex: none;
+  font-size: 11.5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+/* ── 선택 지점 근거 ────────────────────────────────────── */
+
+.pd-desktop .mk-evidence-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .mk-evidence-row:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .mk-evidence-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .mk-evidence-head.is-empty {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .mk-evidence-track {
+  height: 6px;
+  background: #e7eef7;
+  margin-top: 6px;
+}
+.pd-desktop .mk-evidence-fill {
+  display: block;
+  height: 100%;
+  background: var(--dk-blue);
+}
+
+.pd-desktop .mk-facility-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+}
+.pd-desktop .mk-facility {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.pd-desktop .mk-facility-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #dfeaf7;
+  display: grid;
+  place-items: center;
+  color: var(--dk-deep);
+}
+/* 「정보 없음」은 없음이 아닙니다. 점선 원으로 모름을 형태로도 보여 줍니다. */
+.pd-desktop .mk-facility.is-unknown {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .mk-facility.is-unknown .mk-facility-icon {
+  background: #e7ecf2;
+  color: #4b5563;
+}
+.pd-desktop .mk-detail-link {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  text-decoration: none;
+  margin-top: 12px;
+}
+
+@media (max-width: 1240px) {
+  .pd-desktop .mk-stage {
+    grid-template-columns: 300px 1fr;
+  }
+  .pd-desktop .mk-panel {
+    right: 18px;
+    max-width: none;
+  }
+}

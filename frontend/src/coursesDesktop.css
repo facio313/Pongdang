@@ -1,0 +1,257 @@
+/* 데스크탑 내 코스(18d)에만 있는 것들. 페이지 루트(.pd-desktop)로 스코프하고
+   접두사도 .cd- 로 나눠 모바일 .mc-* 와 겹치지 않게 합니다. */
+
+.pd-desktop .cd-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+}
+.pd-desktop .cd-hero-lead {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .cd-hero-kick {
+  color: var(--dk-sky);
+}
+.pd-desktop .cd-hero-title {
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.25;
+  margin: 8px 0 0;
+}
+.pd-desktop .cd-hero-mascot {
+  display: block;
+  flex: none;
+  margin-bottom: -4px;
+}
+.pd-desktop .cd-hero-summary {
+  flex: none;
+  display: flex;
+  padding-bottom: 4px;
+}
+.pd-desktop .cd-hero-summary > * {
+  padding: 0 20px;
+  text-align: right;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+.pd-desktop .cd-hero-summary > :first-child {
+  border-left: 0;
+}
+.pd-desktop .cd-hero-summary > :last-child {
+  padding-right: 0;
+}
+.pd-desktop .cd-summary-name {
+  font-size: 10px;
+  color: var(--dk-onc-2);
+}
+.pd-desktop .cd-summary-value {
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+/* ── 지도 + 일정 ───────────────────────────────────────── */
+
+.pd-desktop .cd-stage {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid var(--dk-rule);
+}
+/* KakaoMapCanvas 가 inset:0 으로 깔리므로 부모가 relative 여야 합니다. */
+.pd-desktop .cd-map {
+  position: relative;
+  min-height: 520px;
+  background: #dfe8f2;
+  border-right: 1px solid var(--dk-rule);
+}
+.pd-desktop .cd-map-badge {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  z-index: 4;
+  background: rgba(15, 47, 122, 0.82);
+  color: var(--dk-onc);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 7px 13px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .cd-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+/* 코스 핀은 점수가 아니라 **순서**를 말합니다. 점수 핀(지도 화면)과 모양을
+   다르게 두어 혼동하지 않게 합니다. */
+.pd-desktop .cd-pin-core {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  background: #1b5fc0;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.2);
+}
+.pd-desktop .cd-pin-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dk-ink);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--dk-r-pill);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.pd-desktop .cd-schedule {
+  padding: 24px var(--dk-pad) 26px 34px;
+}
+.pd-desktop .cd-schedule-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-desktop .cd-schedule-head .pd-state-chip {
+  margin-left: auto;
+  background: #f7ead0;
+  color: #7a4a06;
+}
+.pd-desktop .cd-item {
+  display: flex;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .cd-item:last-of-type {
+  border-bottom: 0;
+}
+.pd-desktop .cd-item-time {
+  text-align: right;
+  min-width: 58px;
+  flex: none;
+}
+.pd-desktop .cd-item-clock {
+  font-size: 18px;
+}
+.pd-desktop .cd-item-duration {
+  font-size: 10.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .cd-item img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .cd-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .cd-item-name {
+  font-weight: 700;
+  font-size: 17px;
+}
+.pd-desktop .cd-item-detail {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 3px;
+}
+/* 점수는 숫자 · 등급명 · 아이콘 · 색 네 겹입니다. 없으면 «–» 이며 0 이 아닙니다. */
+.pd-desktop .cd-item-score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--g-ink);
+}
+.pd-desktop .cd-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 16px;
+}
+.pd-desktop .cd-note {
+  flex: 1;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--dk-ink-2);
+}
+
+/* ── 저장한 코스 ───────────────────────────────────────── */
+
+.pd-desktop .cd-saved {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .cd-saved:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .cd-saved img {
+  display: block;
+  flex: none;
+}
+.pd-desktop .cd-saved-body {
+  flex: 1;
+  min-width: 0;
+}
+.pd-desktop .cd-saved-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.pd-desktop .cd-saved-meta {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+.pd-desktop .cd-saved-state {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--dk-r-pill);
+  color: #4b5563;
+  background: #e7ecf2;
+}
+.pd-desktop .cd-saved-state.is-today {
+  color: #1d3fa8;
+  background: #dbe6ff;
+}
+.pd-desktop .cd-saved-state.is-draft {
+  background: #fff;
+  border: 1px solid #cfd8e3;
+}
+.pd-desktop .cd-saved-duration {
+  flex: none;
+  width: 70px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--dk-ink-3);
+}
+.pd-desktop .cd-saved-duration.is-empty {
+  color: var(--dk-ink-2);
+}
+
+@media (max-width: 1240px) {
+  .pd-desktop .cd-stage {
+    grid-template-columns: 1fr;
+  }
+  .pd-desktop .cd-map {
+    border-right: 0;
+    border-bottom: 1px solid var(--dk-rule);
+  }
+  .pd-desktop .cd-schedule {
+    padding: 24px var(--dk-pad) 26px;
+  }
+}
