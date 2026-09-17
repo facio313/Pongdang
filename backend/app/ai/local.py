@@ -16,7 +16,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.ai import budget
-from app.ai.chat import _create_authorized_chat_router, availability, converse
+from app.ai.chat import _create_authorized_chat_router, availability
 from app.ai.provider import ResponsesProvider
 from app.config import Settings
 from app.main import create_app
@@ -143,8 +143,12 @@ def create_local_app(
     bootstrap_token=None,
     now=time.monotonic,
     provider=None,
-    handler=converse,
+    handler=None,
 ):
+    if handler is None:
+        from app.travel.chat import travel_converse
+
+        handler = travel_converse
     settings = settings or Settings()
     if not budget.operator_local_database(settings):
         raise ValueError("Local preview requires a loopback Pongdang database")

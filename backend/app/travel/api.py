@@ -106,7 +106,7 @@ def mood_proposal(text, locale="ko"):
 
 
 def create_router(settings):
-    auth = require_principal(settings)
+    auth = require_principal(settings, allow_local_operator=True)
 
     class PrivateRoute(APIRoute):
         def get_route_handler(self):

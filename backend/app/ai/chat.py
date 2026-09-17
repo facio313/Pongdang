@@ -22,7 +22,7 @@ from app.ai import budget
 from app.ai.provider import ProviderError, ResponsesProvider, encode_body
 from app.ai.service import DISCLAIMER, pricing_configured
 from app.ai.tools import ToolError, ToolSession
-from app.auth import require_principal
+from app.auth import LOCAL_OPERATOR_SUBJECT, require_principal
 from app.travel.models import TravelContext
 from app.water_index.models import Activity
 
@@ -806,14 +806,30 @@ def create_chat_router(settings, *, provider=None, handler=None):
         from app.travel.chat import travel_converse
 
         handler = travel_converse
-    auth = require_principal(settings)
+    auth = require_principal(settings, allow_local_operator=True)
     provider = provider or ResponsesProvider(settings)
 
+    def status_factory(settings):
+        payload = availability(settings)
+        secret = settings.sso_proxy_secret.get_secret_value()
+        if len(secret) < 32:
+            return {**payload, "auth_mode": "local_operator"}
+        return payload
+
     async def authenticated_handler(settings, body, principal, provider):
-        return await handler(settings, body, principal.subject, provider)
+        kwargs = {}
+        if getattr(principal, "subject", None) == LOCAL_OPERATOR_SUBJECT:
+            from app.ai.local import OperatorAccounting
+
+            kwargs["budget_api"] = OperatorAccounting
+        return await handler(settings, body, principal.subject, provider, **kwargs)
 
     return _create_authorized_chat_router(
-        settings, auth=auth, provider=provider, handler=authenticated_handler
+        settings,
+        auth=auth,
+        provider=provider,
+        handler=authenticated_handler,
+        status_factory=status_factory,
     )
 
 

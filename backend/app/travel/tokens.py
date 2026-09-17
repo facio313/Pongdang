@@ -6,12 +6,20 @@ import json
 
 from fastapi import HTTPException
 
+LOCAL_TOKEN_MATERIAL = b"pongdang-local-operator-travel-token.v1"
+
 
 def key(settings):
     secret = settings.sso_proxy_secret.get_secret_value()
-    if len(secret) < 32:
-        raise HTTPException(503, "AUTH_NOT_CONFIGURED")
-    return hmac.digest(secret.encode(), b"pongdang-travel-selection.v1", "sha256")
+    if len(secret) >= 32:
+        return hmac.digest(secret.encode(), b"pongdang-travel-selection.v1", "sha256")
+    from app.ai.budget import operator_local_database
+
+    if operator_local_database(settings):
+        return hmac.digest(
+            LOCAL_TOKEN_MATERIAL, b"pongdang-travel-selection.v1", "sha256"
+        )
+    raise HTTPException(503, "AUTH_NOT_CONFIGURED")
 
 
 def encode(settings, owner, request, ids, now, *, preference=None):
