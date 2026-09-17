@@ -4,9 +4,9 @@
    등급 색은 groupAGrade.ts 가 판정하고 pongdangDesktop.css 의 [data-grade]
    규칙이 --g-ink 로 내려줍니다. 여기서 색을 새로 정하지 않습니다. */
 
-/* LabelRow 가 아닌 구간(히어로 직후 2열 · 주간 예보)도 좌우 56px 을 지킵니다. */
+/* LabelRow 가 아닌 구간(히어로 직후 2열 · 주간 예보)도 좌우 112px 을 지킵니다. */
 .pd-desktop .td-section {
-  padding: 14px var(--dk-pad) 28px;
+  padding: 28px var(--dk-pad) 56px;
 }
 .pd-desktop .td-compare {
   display: grid;

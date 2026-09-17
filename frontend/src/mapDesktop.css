@@ -56,7 +56,7 @@
   border-bottom: 1px solid var(--dk-rule);
 }
 .pd-desktop .mk-side {
-  padding: 22px 26px 22px var(--dk-pad);
+  padding: 44px 26px 44px var(--dk-pad);
   border-right: 1px solid var(--dk-rule);
 }
 .pd-desktop .mk-search {

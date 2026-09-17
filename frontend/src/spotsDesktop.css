@@ -241,7 +241,7 @@
 }
 
 .pd-desktop .sk-detail-body {
-  padding: 30px var(--dk-pad) 30px 40px;
+  padding: 60px var(--dk-pad) 60px 40px;
   display: flex;
   flex-direction: column;
 }
@@ -393,7 +393,7 @@
     height: 320px;
   }
   .pd-desktop .sk-detail-body {
-    padding: 26px var(--dk-pad) 30px;
+    padding: 52px var(--dk-pad) 60px;
   }
   .pd-desktop .sk-row-photo {
     width: 160px;

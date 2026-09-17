@@ -12,7 +12,7 @@
 
 .pd-desktop {
   /* 여백 · 괘선 -- 데스크탑에서 구분을 만드는 것은 이 둘뿐입니다. */
-  --dk-pad: 56px;
+  --dk-pad: 112px;
   --dk-rule: rgba(27, 44, 61, 0.16); /* 섹션 경계 */
   --dk-rule-weak: rgba(27, 44, 61, 0.1); /* 열 분할 */
   --dk-line: #dae7f5; /* 목록 행 */
@@ -58,7 +58,7 @@
   font-size: 13px;
 }
 
-/* 1440 이 디자인 기준 폭입니다. 그보다 넓어지면 좌우 56px 여백을 유지한 채
+/* 1440 이 디자인 기준 폭입니다. 그보다 넓어지면 좌우 112px 여백을 유지한 채
    본문만 늘어나고, 1600 에서 멈춥니다. */
 .pd-desktop-page {
   max-width: 1600px;
@@ -221,7 +221,7 @@ main:has(.pd-desktop) {
   display: grid;
   grid-template-columns: var(--dk-row-columns, 200px 1fr);
   gap: 44px;
-  padding: 28px var(--dk-pad) 26px;
+  padding: 56px var(--dk-pad) 52px;
   border-bottom: 1px solid var(--dk-rule);
 }
 .pd-dk-row-label {
@@ -291,7 +291,7 @@ main:has(.pd-desktop) {
    (핸드오프 데이터 표기 규칙 3). */
 
 .pd-dk-foot {
-  padding: 22px var(--dk-pad) 40px;
+  padding: 44px var(--dk-pad) 80px;
   border-top: 1px solid var(--dk-rule);
 }
 .pd-dk-foot-missing {

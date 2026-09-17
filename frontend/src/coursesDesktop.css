@@ -110,7 +110,7 @@
 }
 
 .pd-desktop .cd-schedule {
-  padding: 24px var(--dk-pad) 26px 34px;
+  padding: 48px var(--dk-pad) 52px 34px;
 }
 .pd-desktop .cd-schedule-head {
   display: flex;
@@ -252,6 +252,6 @@
     border-bottom: 1px solid var(--dk-rule);
   }
   .pd-desktop .cd-schedule {
-    padding: 24px var(--dk-pad) 26px;
+    padding: 48px var(--dk-pad) 52px;
   }
 }
