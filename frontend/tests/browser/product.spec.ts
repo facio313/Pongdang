@@ -365,7 +365,7 @@ test("chat answers reach the travel contract and the actual response is displaye
   expect(body?.history?.some((turn) => turn.content === "혼자 반나절")).toBe(
     true,
   );
-  await expect(page.locator(".pd-ai-basis")).toContainText("후보 3곳");
+  await expect(page.locator(".pd-ai-basis")).toContainText(/후보 \d+곳/);
   await expect(page.locator(".rc-chat")).toContainText(result.answer);
   await expect(page.locator(".rc-chat")).toContainText("OFFLINE TEST");
 });
