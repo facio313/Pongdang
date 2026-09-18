@@ -286,16 +286,17 @@ test("map adds an actual place and requests a route only on explicit submit", as
   await page.getByRole("button", { name: "코스에 넣기" }).click();
   await expect(page.locator(".mp-stop-name")).toHaveCount(1);
   expect(routeCalls).toBe(0);
-  const origin = await page
-    .getByLabel("출발지", { exact: true })
-    .locator("option")
-    .nth(2)
+  const originSelect = page.getByLabel("출발 장소", { exact: true });
+  await expect(originSelect).toBeVisible();
+  const origin = await originSelect
+    .locator("option:not([value=''])")
+    .nth(1)
     .getAttribute("value");
-  await page.getByLabel("출발지", { exact: true }).selectOption(origin!);
+  await originSelect.selectOption(origin!);
   const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("sv-SE", {
     timeZone: "Asia/Seoul",
   });
-  await page.getByLabel("출발시각 · KST").fill(`${tomorrow}T09:00`);
+  await page.getByLabel("출발 날짜와 시각").fill(`${tomorrow}T09:00`);
   await page.getByRole("button", { name: "선택 코스 경로 계산" }).click();
   await expect(page.locator(".mp-searchbar.is-course")).toContainText(
     "분 이동",
@@ -340,7 +341,11 @@ test("chat answers reach the travel contract and the actual response is displaye
   page,
 }) => {
   let body:
-    | { travel?: { request?: { transport?: string; companion_type?: string } } }
+    | {
+        message?: string;
+        history?: { role: string; content: string }[];
+        travel?: { action?: string; request?: { transport?: string } };
+      }
     | undefined;
   page.on("request", (request) => {
     if (request.url().endsWith("/ai/chat")) body = request.postDataJSON();
@@ -355,13 +360,14 @@ test("chat answers reach the travel contract and the actual response is displaye
   await page.getByRole("button", { name: "대중교통", exact: true }).click();
   const result = await (await response).json();
   await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
-  expect(body?.travel?.request?.transport).toBe("transit");
-  expect(body?.travel?.request?.companion_type).toBe("solo");
-  await expect(page.locator(".pd-ai-basis")).toContainText(result.answer);
-  await page.getByRole("button", { name: "코스 보기", exact: false }).click();
-  await expect(page.locator(".rc-stop-name").first()).toContainText(
-    "OFFLINE TEST",
+  expect(body?.travel?.action).toBe("conversation");
+  expect(body?.message).toBe("대중교통");
+  expect(body?.history?.some((turn) => turn.content === "혼자 반나절")).toBe(
+    true,
   );
+  await expect(page.locator(".pd-ai-basis")).toContainText("후보 3곳");
+  await expect(page.locator(".rc-chat")).toContainText(result.answer);
+  await expect(page.locator(".rc-chat")).toContainText("OFFLINE TEST");
 });
 
 test("favorites and explicit notification settings use owner-scoped APIs", async ({
