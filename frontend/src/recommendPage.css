@@ -338,7 +338,7 @@
   cursor: pointer;
 }
 .recommend-page .rc-compose-send:disabled {
-  background: #8fa3b8;
+  background: var(--pd-ink-mute);
   cursor: default;
 }
 
@@ -481,46 +481,16 @@
   margin-top: 10px;
 }
 .recommend-page .rc-empty-icon {
-  color: #8fa3b8;
+  color: var(--pd-ink-mute);
 }
 
 /* ── 버튼 ──────────────────────────────────────────────── */
 
-.recommend-page .rc-primary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 100%;
-  min-height: 48px;
-  font-weight: 700;
-  font-size: var(--pd-fs-body);
-  border-radius: var(--pd-r-ctl);
-  background: var(--pd-blue);
-  color: #fff;
-  text-decoration: none;
-  cursor: pointer;
-}
-.recommend-page .rc-primary.is-done {
-  background: #8fa3b8;
-  cursor: default;
-}
-.recommend-page .rc-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 100%;
-  min-height: var(--pd-touch);
-  font-weight: 700;
-  font-size: var(--pd-fs-sm);
-  border: 1px solid var(--pd-line);
-  border-radius: var(--pd-r-ctl);
-  background: var(--pd-surface);
-  color: var(--pd-ink);
-  text-decoration: none;
-  cursor: pointer;
-}
+/* 버튼은 pongdang.css 의 .pd-primary · .pd-secondary 를 그대로 씁니다. 예전에는
+   이 자리에 rc-primary · rc-secondary 라는 복제본이 있었고, 그 복제본의 보조
+   버튼만 44px 이라(다른 화면은 48px) 추천 화면 버튼 높이가 혼자 어긋났습니다.
+   아이콘 + 라벨을 받는 flex · gap 은 공용 쪽으로 옮겼습니다. */
+
 .recommend-page .rc-actions {
   display: flex;
   gap: 10px;
@@ -529,7 +499,7 @@
 .recommend-page .rc-actions > * {
   flex: 1;
 }
-.recommend-page .rc-actions > .rc-primary {
+.recommend-page .rc-actions > .pd-primary {
   flex: 1.4;
 }
 .recommend-page .rc-stack {

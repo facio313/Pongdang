@@ -25,6 +25,22 @@ export function AppHeader({
   );
 }
 
+/** 앱 전역 규칙 문장입니다. 예전에는 화면마다 카드 아래 .pd-note 에 같은 말이
+ *  반복돼(홈 · 오늘 · 명소 · 데스크탑에 네 벌) 11px 회색 문단이 화면의 절반을
+ *  차지했습니다. **카드별 근거는 그대로 카드에 둡니다** -- 여기로 올리는 것은
+ *  어느 화면에서나 똑같은 전역 규칙뿐입니다.
+ *
+ *  데스크탑의 대응물은 pongdangDesktop.tsx 의 FootNote 입니다. */
+export function AppFootNote() {
+  return (
+    <footer className="pd-foot">
+      값이 없으면 <b>–</b>로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는
+      물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로
+      다른 값이라 하나로 요약하지 않습니다.
+    </footer>
+  );
+}
+
 /** 제품 화면 5개(홈·오늘·추천·지도·내 코스)의 공용 셸입니다. 프레임·헤더·
  *  본문·하단 탭바를 한 자리에서 렌더하므로, 각 화면은 내용만 넘기면 됩니다.
  *
@@ -51,7 +67,14 @@ export function AppShell({
     <div className="pd-app">
       <div className="pd-frame">
         {hero ?? <AppHeader title={title ?? ""} />}
-        {bare ? children : <div className="pd-body">{children}</div>}
+        {bare ? (
+          children
+        ) : (
+          <div className="pd-body">
+            {children}
+            <AppFootNote />
+          </div>
+        )}
         <AppTabBar active={tab} />
       </div>
     </div>

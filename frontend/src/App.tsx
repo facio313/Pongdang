@@ -55,7 +55,17 @@ export default function App() {
     screenFromHash(window.location.hash),
   );
   useEffect(() => {
-    const change = () => setScreen(screenFromHash(window.location.hash));
+    const change = () => {
+      setScreen(screenFromHash(window.location.hash));
+      // 해시가 바뀌면 화면이 통째로 갈립니다(아래 Fragment key). 그런데
+      // window.scrollY 는 그대로라, 홈을 끝까지 내려 본 뒤 「오늘」을 누르면
+      // 오늘 화면 중간에서 시작했습니다. 같은 탭 안의 뷰 전환
+      // (#spots ↔ #spots?view=map)도 화면이 통째로 바뀌므로 함께 올립니다.
+      //
+      // 본문 건너뛰기 링크는 해시를 바꾸지 않고(preventDefault + focus) 넘어가므로
+      // 여기 걸리지 않습니다.
+      window.scrollTo({ top: 0 });
+    };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);

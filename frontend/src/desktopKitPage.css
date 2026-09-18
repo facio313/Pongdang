@@ -128,7 +128,7 @@
   margin: 0 auto;
 }
 .dk-kit-mascot figcaption {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-ink-2);
   margin-top: 4px;
 }

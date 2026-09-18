@@ -41,7 +41,7 @@
   padding-right: 0;
 }
 .pd-desktop .cd-summary-name {
-  font-size: 10px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-onc-2);
 }
 .pd-desktop .cd-summary-value {
@@ -72,7 +72,7 @@
   background: rgba(15, 47, 122, 0.82);
   color: var(--dk-onc);
   font-weight: 700;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   padding: 7px 13px;
   border-radius: var(--dk-r-pill);
 }
@@ -140,7 +140,7 @@
   font-size: 18px;
 }
 .pd-desktop .cd-item-duration {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-ink-2);
 }
 .pd-desktop .cd-item img {
@@ -216,7 +216,7 @@
 }
 .pd-desktop .cd-saved-state {
   flex: none;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   padding: 4px 10px;
   border-radius: var(--dk-r-pill);

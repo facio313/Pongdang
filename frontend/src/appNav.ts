@@ -13,16 +13,21 @@ export type TabKey =
   | "map"
   | "my-courses";
 
+import type { IconName } from "./pongdangUi";
+
 export interface NavItem {
   key: TabKey;
   label: string;
+  /** 모바일 하단 탭바 전용입니다. 데스크탑 상단 네비는 텍스트만 씁니다 --
+   *  6칸이 가로로 넉넉히 펴지므로 아이콘이 없어도 스캔이 됩니다. */
+  icon: IconName;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { key: "home", label: "홈" },
-  { key: "today", label: "오늘" },
-  { key: "recommend", label: "추천" },
-  { key: "spots", label: "명소" },
-  { key: "map", label: "지도" },
-  { key: "my-courses", label: "내 코스" },
+  { key: "home", label: "홈", icon: "sun" },
+  { key: "today", label: "오늘", icon: "wave" },
+  { key: "recommend", label: "추천", icon: "sparkle" },
+  { key: "spots", label: "명소", icon: "pin" },
+  { key: "map", label: "지도", icon: "search" },
+  { key: "my-courses", label: "내 코스", icon: "course" },
 ];

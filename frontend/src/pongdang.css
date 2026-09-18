@@ -14,7 +14,9 @@
   --pd-ink: #1b2c3d;
   --pd-ink-2: #5c789a;
   --pd-ink-3: #4c657f;
-  --pd-ink-mute: #8fa3b8;
+  /* 흰 표면 대비 4.54:1. 이전 #8fa3b8 은 2.57:1 로 AA 미달이었는데, 비활성
+     항목뿐 아니라 빈 타일의 «–» 같은 실제 콘텐츠에도 쓰이고 있었습니다. */
+  --pd-ink-mute: #73879c;
   --pd-blue: #4a86c8;
   --pd-blue-deep: #2f6aa8;
   --pd-conf: #4a6d8c;
@@ -188,6 +190,17 @@ main:has(.pd-app) {
   margin: 8px 0 0;
 }
 
+/* 화면 맨 아래 전역 규칙 문장(AppShell 의 AppFootNote). 카드가 아니라 본문
+   바닥에 한 번만 깔리므로 카드 표면도 그림자도 없습니다. */
+.pd-foot {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  border-top: 1px solid var(--pd-line);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
 /* 아직 디자인이 확정되지 않은 자리입니다. 빈 채로 두지 않고 무엇이 들어올
    자리인지 점선 슬롯으로 밝힙니다. */
 .pd-slot {
@@ -217,7 +230,12 @@ main:has(.pd-app) {
 
 /* ── 터치 타깃 ─────────────────────────────────────────────
    누를 수 있는 것은 44px 이상이어야 합니다. 본문 안에 섞여 흐르는 인라인
-   링크는 줄 높이를 깨뜨리므로 .pd-inline 으로 뺍니다. */
+   링크는 줄 높이를 깨뜨리므로 .pd-inline 으로 뺍니다.
+
+   주의: min-height 는 **인라인 비치환 요소에 적용되지 않습니다.** 아래 규칙은
+   블록 · flex · grid 로 깔린 것에만 듣고, 문단 안에 그냥 흐르는 <a> 는 이
+   규칙이 있어도 44px 타깃이 아닙니다. 그런 링크에는 보이는 크기를 건드리지
+   않고 히트박스만 넓히는 .pd-tap 을 함께 붙이세요. */
 
 .pd-app button,
 .pd-app a[href],
@@ -382,10 +400,15 @@ main:has(.pd-app) {
 
 /* ── 공용 버튼 ─────────────────────────────────────────── */
 
+/* 아이콘 + 라벨을 함께 받으므로 grid 가 아니라 flex 입니다. 예전에는 추천
+   화면이 이 때문에 rc-primary · rc-secondary 라는 복제본을 따로 갖고 있었고,
+   그 복제본의 보조 버튼만 44px 이라 추천 화면 버튼 높이가 혼자 어긋났습니다. */
 .pd-primary,
 .pd-secondary {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   width: 100%;
   min-height: 48px;
   font-weight: 700;
@@ -402,6 +425,87 @@ main:has(.pd-app) {
   border: 1px solid var(--pd-line);
   background: var(--pd-surface);
   color: var(--pd-ink);
+}
+/* 이미 끝난 동작(저장됨 등). 누를 수 없다는 것을 색으로도 밝힙니다. */
+.pd-primary.is-done,
+.pd-primary:disabled {
+  background: var(--pd-ink-mute);
+  cursor: default;
+}
+
+/* ── 눌리는 느낌 ───────────────────────────────────────────
+   768~1079px 구간은 모바일 마크업을 그대로 쓰지만(위 태블릿 주석) 마우스가
+   달린 기기가 많습니다. hover 는 실제로 hover 가 되는 기기에서만 겁니다 --
+   터치에서 hover 를 걸면 누른 뒤 그 상태가 남습니다. */
+
+@media (hover: hover) {
+  .pd-app .pd-primary:hover {
+    background: var(--pd-blue-deep);
+  }
+  .pd-app .pd-secondary:hover {
+    background: var(--pd-mist);
+  }
+  /* 이미 고른 것(aria-pressed="true" · .is-on · .is-selected)은 자기 색을
+     지킵니다. hover 배경으로 덮으면 선택이 풀린 것처럼 보입니다. */
+  .pd-app .pd-pressable:not([aria-pressed="true"]):not(.is-on):not(.is-selected):hover {
+    background: var(--pd-mist);
+  }
+  .pd-app .pd-primary.is-done:hover,
+  .pd-app .pd-primary:disabled:hover {
+    background: var(--pd-ink-mute);
+  }
+}
+.pd-app .pd-primary:active,
+.pd-app .pd-secondary:active,
+.pd-app .pd-pressable:active {
+  scale: 0.99;
+}
+.pd-app .pd-primary.is-done:active,
+.pd-app .pd-primary:disabled:active {
+  scale: 1;
+}
+.pd-app .pd-primary,
+.pd-app .pd-secondary,
+.pd-app .pd-pressable {
+  transition:
+    background-color 120ms ease,
+    scale 120ms ease;
+}
+
+/* ── 조회 중 ───────────────────────────────────────────────
+   자료 없음(«–»)과 조회 중은 다른 상태입니다. 값이 없다는 것을 0 · 안전으로
+   치환하지 않는 것처럼, 아직 모르는 것을 «없음» 으로 치환하지도 않습니다.
+   폭은 쓰는 쪽에서 --pd-skeleton-w 로 줍니다. */
+.pd-skeleton {
+  display: inline-block;
+  vertical-align: middle;
+  width: var(--pd-skeleton-w, 3.2em);
+  height: 1em;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--pd-badge) 25%,
+    var(--pd-mist) 50%,
+    var(--pd-badge) 75%
+  );
+  background-size: 240% 100%;
+  animation: pd-skeleton-sweep 1.3s linear infinite;
+}
+.pd-skeleton.is-on-cobalt {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.12) 25%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.12) 75%
+  );
+}
+@keyframes pd-skeleton-sweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

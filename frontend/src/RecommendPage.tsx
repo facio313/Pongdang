@@ -196,7 +196,7 @@ function EntryStep({
               <button
                 type="button"
                 key={tag}
-                className={"rc-tag" + (tags.includes(tag) ? " is-on" : "")}
+                className={"rc-tag pd-pressable" + (tags.includes(tag) ? " is-on" : "")}
                 aria-pressed={tags.includes(tag)}
                 onClick={() => toggleTag(tag)}
               >
@@ -239,10 +239,10 @@ function EntryStep({
             일정 추천받기
           </div>
           <div className="rc-stack">
-            <button type="button" className="rc-primary" onClick={onChat}>
+            <button type="button" className="pd-primary" onClick={onChat}>
               대화로 추천받기 →
             </button>
-            <button type="button" className="rc-secondary" onClick={onTags}>
+            <button type="button" className="pd-secondary" onClick={onTags}>
               태그로 바로 받기
             </button>
           </div>
@@ -356,7 +356,7 @@ function TasteStep({
             </div>
             <button
               type="button"
-              className="rc-primary"
+              className="pd-primary"
               onClick={() => setTasteStep(2)}
             >
               다음 · 카드로 확정하기
@@ -384,10 +384,10 @@ function TasteStep({
                   " — 실제 장소와 날짜를 고르면 조건 점수를 조회합니다."}
               </p>
               <div className="rc-swipe-actions">
-                <button type="button" className="rc-secondary" onClick={onPass}>
+                <button type="button" className="pd-secondary" onClick={onPass}>
                   패스
                 </button>
-                <button type="button" className="rc-primary" onClick={onLike}>
+                <button type="button" className="pd-primary" onClick={onLike}>
                   좋아요
                 </button>
               </div>
@@ -399,7 +399,7 @@ function TasteStep({
             </div>
             <button
               type="button"
-              className="rc-secondary"
+              className="pd-secondary"
               onClick={() => setTasteStep(1)}
             >
               다시 고르기
@@ -447,12 +447,12 @@ function TasteStep({
               </ExampleNote>
             </div>
             <div className="rc-stack">
-              <button type="button" className="rc-primary" onClick={onDone}>
+              <button type="button" className="pd-primary" onClick={onDone}>
                 취향 저장하고 코스 보기 →
               </button>
               <button
                 type="button"
-                className="rc-secondary"
+                className="pd-secondary"
                 onClick={() => setTasteStep(1)}
               >
                 다시 고르기
@@ -673,7 +673,7 @@ function ChatStep({
         <div className="rc-stack">
           <button
             type="button"
-            className="rc-secondary"
+            className="pd-secondary"
             onClick={onReset}
             disabled={busy}
           >
@@ -808,13 +808,13 @@ function RoutePanel({ route }: { route: RouteResult }) {
         {routeReasonsText(route.reason_codes)}
       </p>
       <div className="rc-stack">
-        <a className="rc-secondary" href="#map?view=course">
+        <a className="pd-secondary" href="#map?view=course">
           <Icon name="course" size={16} />
           지도에서 경로 보기 →
         </a>
         {wholeTrip ? (
           <a
-            className="rc-secondary"
+            className="pd-secondary"
             href={wholeTrip}
             target="_blank"
             rel="noopener noreferrer"
@@ -969,14 +969,14 @@ function CourseStep({
                 <GradeIcon gradeKey="unscored" size={28} />
               </span>
               <div className="rc-empty-title">추천 장소가 없습니다</div>
-              <p className="pd-note">
+              <p className="pd-note" role="status">
                 <StateChip kind="no_data" />{" "}
                 {statusText ||
                   "선택한 조건에 맞는 후보가 없습니다. 취향이나 날짜를 바꿔 다시 조회해 주세요."}
               </p>
               <button
                 type="button"
-                className="rc-secondary rc-empty-cta"
+                className="pd-secondary rc-empty-cta"
                 onClick={() => setDayIndex(0)}
               >
                 오늘 다시 조회 →
@@ -1032,7 +1032,7 @@ function CourseStep({
               <div className="rc-stack">
                 <button
                   type="button"
-                  className="rc-secondary"
+                  className="pd-secondary"
                   onClick={() => setAltOpen(!altOpen)}
                   aria-expanded={altOpen}
                 >
@@ -1040,7 +1040,7 @@ function CourseStep({
                 </button>
                 <button
                   type="button"
-                  className="rc-secondary"
+                  className="pd-secondary"
                   onClick={onRealert}
                 >
                   최신 조건으로 대안 조회 →
@@ -1050,7 +1050,7 @@ function CourseStep({
 
             <div className="rc-actions">
               <a
-                className="rc-secondary"
+                className="pd-secondary"
                 href={`#map?view=course${session.plan?.plan_id ? `&plan_id=${session.plan.plan_id}` : ""}`}
               >
                 <Icon name="course" size={16} />
@@ -1058,7 +1058,7 @@ function CourseStep({
               </a>
               <button
                 type="button"
-                className={"rc-primary" + (saved ? " is-done" : "")}
+                className={"pd-primary" + (saved ? " is-done" : "")}
                 onClick={onSave}
                 disabled={saved}
               >
@@ -1066,7 +1066,7 @@ function CourseStep({
                 {saved ? "저장됨" : "내 코스에 저장"}
               </button>
             </div>
-            <p className="pd-note rc-note-flush-top">
+            <p className="pd-note rc-note-flush-top" role="status">
               <StateChip kind="live" /> {statusText}{" "}
               {session.route?.route_calculated
                 ? "위 방문 순서는 아래 경로 계산 결과입니다."
@@ -1181,12 +1181,12 @@ function RealertStep({
               proposal?.clarification}
           </p>
           <div className="rc-actions">
-            <button type="button" className="rc-secondary" onClick={onBack}>
+            <button type="button" className="pd-secondary" onClick={onBack}>
               그대로 두기
             </button>
             <button
               type="button"
-              className="rc-primary"
+              className="pd-primary"
               onClick={onApply}
               disabled={!proposal?.recommendations.length}
             >

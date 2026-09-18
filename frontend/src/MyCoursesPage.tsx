@@ -97,7 +97,10 @@ function MyCoursesScreen() {
         </header>
         }
       >
-          <p className="pd-note mc-lead">
+          <p
+            className="pd-note mc-lead"
+            role={plans.error ?? sessions.error ?? share.error ? "alert" : "status"}
+          >
             <StateChip kind={plans.data ? "live" : "no_data"} />{" "}
             {plans.error ??
               (plans.loading
@@ -115,7 +118,9 @@ function MyCoursesScreen() {
               <button
                 type="button"
                 key={course.id}
-                className={"mc-row" + (isSelected ? " is-selected" : "")}
+                className={
+                  "mc-row pd-pressable" + (isSelected ? " is-selected" : "")
+                }
                 aria-pressed={isSelected}
                 onClick={() =>
                   setSelectedId((current) =>
@@ -123,13 +128,23 @@ function MyCoursesScreen() {
                   )
                 }
               >
-                <span className="mc-score-badge" data-grade={grade.key}>
-                  {score ?? "–"}
-                </span>
+                {/* 고르지 않은 줄은 점수를 **조회하지 않은** 것이지 「자료
+                    없음」이 아닙니다. 예전에는 둘 다 «–» 배지여서, 저장 코스가
+                    전부 평가 불가로 보였습니다. 조회 전에는 배지 대신 펼침
+                    표시를 둡니다. */}
+                {isSelected ? (
+                  <span className="mc-score-badge" data-grade={grade.key}>
+                    {score ?? "–"}
+                  </span>
+                ) : (
+                  <span className="mc-score-badge is-unqueried" aria-hidden="true">
+                    <Icon name="course" size={15} />
+                  </span>
+                )}
                 <span className="mc-row-body">
                   <span className="mc-row-name">{course.name}</span>
                   <span className="mc-row-meta">
-                    <GradeIcon gradeKey={grade.key} size={12} />
+                    {isSelected && <GradeIcon gradeKey={grade.key} size={12} />}
                     <span>
                       {isSelected ? `첫 장소 참고 · ${grade.label}` : "선택하면 점수 조회"} · {course.parts} · {course.date ?? "날짜 –"}
                     </span>

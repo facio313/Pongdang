@@ -1,4 +1,5 @@
 import { gradeOf } from "./groupAGrade";
+import { metricText, type Conditions } from "./productData";
 
 // 핸드오프 디자인(Pongdang 디자인 시스템 v2)의 공용 표시 요소입니다. 제품 화면
 // 5개(홈 · 오늘 · 추천 · 지도 · 내 코스)가 같은 아이콘 세트와 같은 등급/데이터
@@ -284,16 +285,67 @@ export function GradeIcon({
   );
 }
 
+/** 「조회 중」 자리표시자. 값이 없다는 것(«–»)과 아직 모른다는 것은 다른
+ *  상태이므로 다르게 그립니다. 조회 중을 «–» 로 그리면 자료가 없다고 거짓말을
+ *  하게 됩니다 -- 느린 회선에서 화면 전체가 「자료 없음」으로 보였습니다.
+ *
+ *  `width` 는 글자 수 기준(em)입니다. 값이 들어왔을 때와 자리가 크게 어긋나지
+ *  않을 만큼만 잡으세요. */
+export function Skeleton({
+  width = "3.2em",
+  glass = false,
+  label = "조회 중",
+}: {
+  width?: string;
+  glass?: boolean;
+  /** 스크린리더용. 시각적으로는 블록만 보입니다. */
+  label?: string;
+}) {
+  return (
+    <span
+      className={"pd-skeleton" + (glass ? " is-on-cobalt" : "")}
+      style={{ "--pd-skeleton-w": width } as React.CSSProperties}
+      role="status"
+      aria-label={label}
+    />
+  );
+}
+
+/** 관측값 한 칸. 조회 중이면 스켈레톤, 아니면 metricText 의 결과입니다.
+ *  metricText 는 `data` 가 없을 때도 «–» 를 돌려주므로, 그 둘을 가르는 것은
+ *  호출부가 넘기는 `loading` 뿐입니다 -- 직접 metricText 를 부르지 말고 이
+ *  컴포넌트를 쓰세요. */
+export function MetricValue({
+  conditions,
+  name,
+  loading = false,
+  glass = false,
+  width,
+}: {
+  conditions?: Conditions;
+  name: string;
+  loading?: boolean;
+  glass?: boolean;
+  width?: string;
+}) {
+  if (loading) return <Skeleton width={width} glass={glass} />;
+  return <>{metricText(conditions, name)}</>;
+}
+
 /** 점수는 언제나 숫자 + 등급명 + 등급 아이콘 + 색 네 겹으로 표시합니다.
- *  값이 없으면 "–"이며 0점 · 정상 · 안전으로 치환하지 않습니다. */
+ *  값이 없으면 "–"이며 0점 · 정상 · 안전으로 치환하지 않습니다.
+ *  조회 중(`loading`)은 값 없음과 구분해 스켈레톤으로 둡니다. */
 export function GradeChip({
   score,
   glass = false,
   bare = false,
   prefix,
   label,
+  loading = false,
 }: {
   score: number | null;
+  /** 조회 중. 아직 모르는 것을 「평가값 없음」으로 치환하지 않기 위한 값입니다. */
+  loading?: boolean;
   glass?: boolean;
   bare?: boolean;
   /** 숫자 앞에 붙는 말. 명소 화면의 「퐁당 72 · 양호」처럼 이 점수가 무슨
@@ -305,6 +357,17 @@ export function GradeChip({
   label?: string;
 }) {
   const grade = gradeOf(score);
+  if (loading)
+    return (
+      <span
+        className={
+          "pd-grade-chip" + (glass ? " is-glass" : "") + (bare ? " is-bare" : "")
+        }
+        data-grade="unscored"
+      >
+        <Skeleton width="5.2em" glass={glass} label="점수 조회 중" />
+      </span>
+    );
   return (
     <span
       className={

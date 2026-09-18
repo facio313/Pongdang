@@ -45,7 +45,7 @@
   padding-right: 0;
 }
 .pd-desktop .rd-metric-name {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-onc-2);
 }
 .pd-desktop .rd-metric-value {
@@ -147,7 +147,7 @@
   margin-top: 12px;
 }
 .pd-desktop .rd-prompt {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: var(--dk-deep);
   background: #dfeaf7;
@@ -267,7 +267,7 @@
   padding: 0 9px;
   border-radius: var(--dk-r-pill);
   background: var(--dk-deep);
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
 }
 .pd-desktop .rd-legend {

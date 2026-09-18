@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { MapDesktop } from "./MapDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
-import { GradeChip, Icon, StateChip, type IconName } from "./pongdangUi";
+import { GradeChip, Icon, Skeleton, StateChip, type IconName } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
-import { useResource } from "./useResource";
+import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import type { DefaultPlaceSelection } from "./useProductData";
 import { useAction } from "./useAction";
@@ -198,11 +198,14 @@ function Stage({
 function SpotSheet({
   spot,
   conditions,
+  loading = false,
   onAdd,
   onFavorite,
 }: {
   spot: Spot;
   conditions?: Conditions;
+  /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
+  loading?: boolean;
   onAdd: () => void;
   onFavorite: () => void;
 }) {
@@ -225,9 +228,15 @@ function SpotSheet({
               className="pd-num mp-spot-score-num"
               style={{ color: gradeOf(spot.score).color }}
             >
-              {spot.score === null ? "–" : spot.score}
+              {loading ? (
+                <Skeleton width="1.6em" label="점수 조회 중" />
+              ) : spot.score === null ? (
+                "–"
+              ) : (
+                spot.score
+              )}
             </div>
-            <GradeChip score={spot.score} bare />
+            <GradeChip score={spot.score} loading={loading} bare />
           </div>
         </div>
 
@@ -235,7 +244,9 @@ function SpotSheet({
           {tiles.map((tile) => (
             <div className="mp-tile" key={tile.name}>
               <Icon name={tile.icon} size={15} className="mp-tile-icon" />
-              <div className="pd-num mp-tile-value">{tile.value}</div>
+              <div className="pd-num mp-tile-value">
+                {loading ? <Skeleton width="2.6em" /> : tile.value}
+              </div>
               <div className="mp-tile-name">{tile.name}</div>
             </div>
           ))}
@@ -275,7 +286,10 @@ function SpotSheet({
       <p className="pd-note mp-actions-note">
         <StateChip kind="live" /> 카카오 지도에 등록 좌표를 전달합니다. 코스에
         넣으면 저장 전 일정에 추가합니다.{" "}
+        {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
+            듣지 않으므로 히트박스만 넓히는 .pd-tap 을 붙입니다. */}
         <a
+          className="pd-inline pd-tap"
           href="#favorites"
           onClick={(event) => {
             event.preventDefault();
@@ -673,6 +687,7 @@ function MapScreen() {
                 <SpotSheet
                   spot={spot}
                   conditions={conditions.data}
+                  loading={isInitialLoad(conditions)}
                   onAdd={add}
                   onFavorite={favorite}
                 />

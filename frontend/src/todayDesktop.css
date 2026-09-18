@@ -71,7 +71,7 @@
 .pd-desktop .td-hero-chip {
   display: inline-block;
   margin-top: 14px;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: #0f2f7a;
   background: #bcd4ff;
@@ -120,7 +120,7 @@
   margin-top: 6px;
 }
 .pd-desktop .td-tile-name {
-  font-size: 10px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-onc-2);
 }
 
@@ -265,7 +265,7 @@
   margin-top: 8px;
 }
 .pd-desktop .td-day-date {
-  font-size: 10px;
+  font-size: var(--dk-fs-cap);
   font-weight: 400;
   color: var(--dk-ink-2);
 }
@@ -274,7 +274,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-ink-2);
   margin-top: 4px;
 }
@@ -384,7 +384,7 @@
   color: var(--dk-ink-2);
 }
 .pd-desktop .td-tide-fit {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: #1d3fa8;
 }
@@ -467,11 +467,11 @@
 .pd-desktop .td-quality-row.is-head {
   padding: 12px 0 8px;
   border-bottom: 1px solid rgba(27, 44, 61, 0.22);
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-ink-2);
 }
 .pd-desktop .td-quality-unit {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-ink-2);
 }
 .pd-desktop .td-quality-value {
@@ -480,7 +480,7 @@
 /* 신뢰도는 값과 다른 축입니다. 색을 등급 팔레트와 분리하려고 인라인으로
    CONFIDENCE_COLOR 를 받습니다. */
 .pd-desktop .td-quality-confidence {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 400;
 }
 .pd-desktop .td-quality-spread {

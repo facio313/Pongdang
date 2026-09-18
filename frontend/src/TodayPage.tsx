@@ -3,7 +3,7 @@ import { DataOrigin } from "./DataOrigin";
 import { TodayDesktop } from "./TodayDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
-import { useResource } from "./useResource";
+import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
 import { useConditionDays } from "./useConditionDays";
 import { useConditions } from "./useConditions";
@@ -30,6 +30,8 @@ import {
   GradeChip,
   GradeIcon,
   Icon,
+  MetricValue,
+  Skeleton,
   StateChip,
 } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
@@ -79,12 +81,17 @@ function Hero({
   place,
   displayName,
   conditions,
+  loading = false,
   quality,
+  qualityLoading = false,
 }: {
   place?: Place;
   displayName: string;
   conditions?: Conditions;
+  /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
+  loading?: boolean;
   quality: string;
+  qualityLoading?: boolean;
 }) {
   const heroScore = conditionScore(conditions);
   return (
@@ -105,42 +112,70 @@ function Hero({
             자료를 확인하세요
           </h1>
           <div className="td-hero-score">
-            <div className="pd-num td-hero-score-num">{heroScore ?? "–"}</div>
-            <GradeChip score={heroScore} glass bare />
+            <div className="pd-num td-hero-score-num">
+              {loading ? (
+                <Skeleton width="1.6em" glass label="점수 조회 중" />
+              ) : (
+                (heroScore ?? "–")
+              )}
+            </div>
+            <GradeChip score={heroScore} loading={loading} glass bare />
           </div>
         </div>
         <div className="td-hero-tiles">
           <div className="td-tile">
             <Icon name="sun" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
-              {metricText(conditions, "air_temperature")}
+              <MetricValue
+                conditions={conditions}
+                name="air_temperature"
+                loading={loading}
+                glass
+                width="2.6em"
+              />
             </div>
             <div className="td-tile-name">기온</div>
           </div>
           <div className="td-tile">
             <Icon name="wave" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
-              {metricText(conditions, "wave_height")}
+              <MetricValue
+                conditions={conditions}
+                name="wave_height"
+                loading={loading}
+                glass
+                width="2.6em"
+              />
             </div>
             <div className="td-tile-name">파고</div>
           </div>
           <div className="td-tile">
             <Icon name="thermometer" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
-              {metricText(conditions, "water_temperature")}
+              <MetricValue
+                conditions={conditions}
+                name="water_temperature"
+                loading={loading}
+                glass
+                width="2.6em"
+              />
             </div>
             <div className="td-tile-name">수온</div>
           </div>
-          <div className="td-tile is-empty">
+          {/* 조회 중은 「값 없음」이 아니므로 is-empty 를 붙이지 않습니다. */}
+          <div className={"td-tile" + (qualityLoading ? "" : " is-empty")}>
             <Icon name="quality" size={17} className="td-tile-icon" />
-            <div className="pd-num td-tile-value">{quality}</div>
+            <div className="pd-num td-tile-value">
+              {qualityLoading ? <Skeleton width="2.6em" glass /> : quality}
+            </div>
             <div className="td-tile-name">수질 · 최근 검사</div>
           </div>
         </div>
+        {/* 「값이 없으면 –…」 같은 전역 규칙 문장은 화면 바닥의 AppFootNote 가
+            한 번만 말합니다. 여기는 이 지점의 근거만 남깁니다. */}
         <p className="td-hero-note">
           {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
-          {conditions?.safety_status ?? "unknown"}. 값이 없으면 –로 표시하며
-          안전 판정을 만들지 않습니다.
+          {conditions?.safety_status ?? "unknown"}.
         </p>
       </div>
     </header>
@@ -162,7 +197,7 @@ function SpotComparisonRow({
   return (
     <button
       type="button"
-      className={"td-spot-row" + (selected ? " is-selected" : "")}
+      className={"td-spot-row pd-pressable" + (selected ? " is-selected" : "")}
       aria-pressed={selected}
       onClick={onSelect}
     >
@@ -184,7 +219,15 @@ function SpotComparisonRow({
   );
 }
 
-function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
+function SpotSection({
+  rows,
+  status,
+  statusIsError,
+}: {
+  rows: Place[];
+  status: string;
+  statusIsError?: boolean;
+}) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
   const selected = resolved.find((spot) => spot.id === selectedSpotId);
@@ -237,7 +280,7 @@ function SpotSection({ rows, status }: { rows: Place[]; status: string }) {
           </div>
         )}
 
-        <p className="pd-note">
+        <p className="pd-note" role={statusIsError ? "alert" : "status"}>
           {status} 장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다.
           자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.
         </p>
@@ -261,6 +304,12 @@ function ActivitySection({ id }: { id?: number }) {
     data: states[index].data,
     error: states[index].error,
   }));
+  const [basisId, setBasisId] = useState<string>(ACTIVITY_ROWS[0].id);
+  const basis = activities.find((activity) => activity.id === basisId);
+  const errors = states
+    .map((state) => state.error)
+    .filter(Boolean)
+    .join(" · ");
   return (
     <section>
       <SectionHead label="활동별 점수 · 선택 장소 조건" />
@@ -294,19 +343,31 @@ function ActivitySection({ id }: { id?: number }) {
         ))}
         <p className="pd-note">
           <StateChip kind="partial" /> 활동별 참고 점수입니다. 일부 근거로 계산한
-          값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.{" "}
-          {states
-            .map((state) => state.error)
-            .filter(Boolean)
-            .join(" · ")}
+          값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.
         </p>
-        {activities.map((activity) => (
-          <details key={activity.id} className="pd-note">
-            <summary>{activity.name} 분야별 근거 확인</summary>
-            {activity.error && <p>{activity.error}</p>}
-            <ConditionScoreDetails data={activity.data} />
-          </details>
-        ))}
+        {errors && <p className="pd-note" role="alert">{errors}</p>}
+        {/* 예전에는 활동 6개의 근거가 카드 아래 <details> 6줄로 따로 쌓여
+            있었습니다. 위 타일과 짝이 맞지 않아 어느 활동의 근거인지 두 번
+            읽어야 했고, 아코디언 줄만 6줄이었습니다. 하나만 펴 두고 활동은
+            셀렉트로 고릅니다 -- 근거를 감추는 것이 아니라 자리를 옮깁니다. */}
+        <details className="pd-note td-basis">
+          <summary>분야별 근거 확인</summary>
+          <label className="td-basis-pick">
+            활동
+            <select
+              value={basisId}
+              onChange={(event) => setBasisId(event.target.value)}
+            >
+              {activities.map((activity) => (
+                <option key={activity.id} value={activity.id}>
+                  {activity.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {basis?.error && <p role="alert">{basis.error}</p>}
+          <ConditionScoreDetails data={basis?.data} />
+        </details>
       </div>
     </section>
   );
@@ -370,7 +431,7 @@ function ForecastSection({
           })}
         </div>
         <ConditionScoreDetails data={selected.data} className="pd-note" />
-        {selected.error && <p className="pd-note">{selected.error}</p>}
+        {selected.error && <p className="pd-note" role="alert">{selected.error}</p>}
 
         <div className="td-bar-detail">
           <span>
@@ -545,7 +606,7 @@ function FirstSwimSection({ id }: { id?: number }) {
             </div>
           </div>
         </div>
-        <p className="pd-note">
+        <p className="pd-note" role={subscriptions.error ? "alert" : "status"}>
           <StateChip kind={subscription ? "live" : "no_data"} />{" "}
           {subscriptions.error ??
             "개인 구독의 평가 상태입니다. 첫 입수일과 전년 비교는 관측 이력이 입증하지 않아 표시하지 않습니다."}
@@ -607,15 +668,18 @@ function TodayScreen() {
         tab="today"
         hero={
           <Hero
-          quality={quality.loading ? "조회 중" : quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
-          place={place}
-          displayName={displayName}
+            quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
+            qualityLoading={isInitialLoad(quality)}
+            place={place}
+            displayName={displayName}
             conditions={conditions.data}
+            loading={isInitialLoad(conditions)}
           />
         }
       >
           <SpotSection
             rows={places.data?.rows ?? []}
+            statusIsError={Boolean(places.error ?? conditions.error)}
             status={
               places.error ??
               conditions.error ??

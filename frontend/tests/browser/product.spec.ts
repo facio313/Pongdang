@@ -21,7 +21,12 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-tile-value").nth(2)).toHaveText("0mm/1h");
   await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("2등급 · 과거");
   await expect(page.locator(".home-page .pd-body")).toContainText("300일 전 과거 자료");
-  await expect(page.locator(".hm-hero-visual")).toContainText("기온 24.7°C");
+  // 히어로 관측 패널은 이름과 값이 <dt>/<dd> 로 나뉩니다(예전에는 한 문장
+  // 안의 「기온 24.7°C」였습니다). 값이 어느 이름에 붙는지까지 확인합니다.
+  const heroMetric = (name: string) =>
+    page.locator(".hm-hero-metrics div").filter({ has: page.getByText(name, { exact: true }) });
+  await expect(heroMetric("기온").locator("dd")).toHaveText("24.7°C");
+  await expect(heroMetric("수온").locator("dd")).toHaveText("21.3°C");
   await expect(page.getByRole("table", { name: "오늘 시간대별 수집 예보" })).toBeVisible();
   await page.getByRole("link", { name: "오늘", exact: true }).click();
   await expect(page.locator(".td-hero-score-num")).toHaveText(String(conditions.condition_score.score));
@@ -30,11 +35,17 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
   await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
   await expect(page.locator(".td-act")).toHaveCount(6);
-  await page.getByText("수영 분야별 근거 확인", { exact: true }).click();
-  const activityDetails = page.locator("details").filter({ has: page.getByText("수영 분야별 근거 확인", { exact: true }) });
+  // 근거는 활동 6개의 <details> 6줄이 아니라 하나로 합치고 활동을 셀렉트로
+  // 고릅니다. 기본값이 수영이므로 그대로 펴서 확인합니다.
+  await page.getByText("분야별 근거 확인", { exact: true }).click();
+  const activityDetails = page.locator("details.td-basis");
+  await expect(activityDetails.getByLabel("활동")).toHaveValue("swim");
   await activityDetails.getByText("분야별 점수·산정 기준·출처", { exact: true }).click();
   await expect(activityDetails).toContainText("수온 21.3°C");
   await expect(activityDetails).toContainText("산술평균");
+  // 활동을 바꾸면 그 활동의 근거로 갈립니다.
+  await activityDetails.getByLabel("활동").selectOption("surf");
+  await expect(activityDetails.getByLabel("활동")).toHaveValue("surf");
   await expect(page.locator(".td-tide-now")).not.toContainText("12:34");
   await page.screenshot({
     path: "test-results/today-connected.png",

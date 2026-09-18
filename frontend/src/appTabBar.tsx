@@ -1,4 +1,5 @@
 import { NAV_ITEMS, type TabKey } from "./appNav";
+import { Icon } from "./pongdangUi";
 import "./appTabBar.css";
 
 export type { TabKey };
@@ -17,7 +18,8 @@ export function AppTabBar({ active }: { active: TabKey }) {
             href={"#" + tab.key}
             aria-current={tab.key === active ? "page" : undefined}
           >
-            {tab.label}
+            <Icon name={tab.icon} size={18} />
+            <span className="pd-tab-label">{tab.label}</span>
           </a>
         ))}
       </nav>

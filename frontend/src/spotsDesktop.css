@@ -216,7 +216,7 @@
   gap: 8px;
 }
 .pd-desktop .sk-detail-chip {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: #0f2f7a;
   background: var(--dk-onc);
@@ -265,7 +265,7 @@
 /* 신뢰도는 점수 · 안전 판정과 다른 값입니다. 배경색은 groupAGrade.ts 의
    CONFIDENCE_COLOR 를 인라인으로 받아 등급 팔레트와 섞이지 않게 합니다. */
 .pd-desktop .sk-confidence-chip {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: #fff;
   padding: 4px 10px;

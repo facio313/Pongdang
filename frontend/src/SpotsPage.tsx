@@ -107,11 +107,11 @@ function ListHero({
 
 function SpotRow({ spot }: { spot: Spot }) {
   return (
-    <a className="sp-row" href={spotLink(spot)}>
-      <span className="pd-slot sp-row-photo">
-        {spot.name}
-        <br />
-        대표 사진
+    <a className="sp-row pd-pressable" href={spotLink(spot)}>
+      {/* 사진 미확보. 목록에서 줄마다 반복되는 자리라 점선 슬롯 대신 중립
+          자리표시자를 씁니다(홈의 hm-pick-photo 와 같은 판단). */}
+      <span className="sp-row-photo" aria-label={`${spot.name} 대표 사진 준비 중`}>
+        <Icon name="pin" size={18} />
       </span>
       <span className="sp-row-body">
         <span className="sp-row-head">
@@ -148,17 +148,23 @@ function SpotsList() {
           {rows.map((spot) => (
             <SpotRow key={spot.id} spot={spot} />
           ))}
-          <p className="pd-note sp-list-more">아래로 계속 불러옵니다 · 20개 단위</p>
+          {/* 예전에는 「아래로 계속 불러옵니다 · 20개 단위」라고 적혀 있었지만
+              무한 스크롤은 구현돼 있지 않고 SPOTS 전량이 한 번에 렌더됩니다.
+              없는 동작을 있다고 적지 않습니다. */}
+          <p className="pd-note sp-list-more">
+            목록 {SPOT_TOTAL}곳 전체입니다
+          </p>
         </div>
         <a className="pd-secondary sp-map-link" href="#spots?view=map">
           <Icon name="pin" size={15} />
           지도에서 보기 →
         </a>
+        {/* 「값이 없으면 –…」 같은 전역 규칙은 화면 바닥의 AppFootNote 가 한 번
+            말합니다. 여기는 이 목록에만 해당하는 것을 남깁니다. */}
         <p className="pd-note">
-          퐁당 점수는 <b>물놀이 조건이 있는 명소</b>에만 산정됩니다. 산정
-          대상이 아니면 <b>–</b>이며 0점이 아닙니다. 거리는 현재 위치로, 운영
-          여부는 API 운영시간으로 계산합니다. 지금은 전부 예시 값이며 안전
-          판단에 사용할 수 없습니다.
+          퐁당 점수는 <b>물놀이 조건이 있는 명소</b>에만 산정됩니다. 거리는 현재
+          위치로, 운영 여부는 API 운영시간으로 계산합니다. 지금은 전부 예시
+          값이며 안전 판단에 사용할 수 없습니다.
         </p>
       </AppShell>
     </article>
@@ -242,7 +248,8 @@ function SpotsMap() {
         </div>
         <div className="pd-body sp-sheet">
           <div className="pd-card">
-            <div className="sp-sheet-handle" aria-hidden="true" />
+            {/* 드래그 핸들 모양의 막대가 있었는데 시트는 드래그되지 않습니다.
+                할 수 없는 조작을 모양으로 약속하지 않습니다. */}
             <div className="sp-sheet-head">
               <b>지도에 보이는 명소 {pinned.length}곳</b>
               <span className="sp-sheet-sort">거리순</span>
@@ -251,7 +258,7 @@ function SpotsMap() {
               {nearest.map((spot) => {
                 const grade = gradeOf(spot.score);
                 return (
-                  <a className="sp-sheet-row" href={spotLink(spot)} key={spot.id}>
+                  <a className="sp-sheet-row pd-pressable" href={spotLink(spot)} key={spot.id}>
                     <span
                       className="pd-num sp-sheet-badge"
                       data-grade={grade.key}

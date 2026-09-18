@@ -33,7 +33,7 @@
   padding-bottom: 6px;
 }
 .pd-desktop .mk-filter {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   font-weight: 700;
   color: var(--dk-onc);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -157,7 +157,7 @@
   background: rgba(15, 47, 122, 0.82);
   color: var(--dk-onc);
   font-weight: 700;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   padding: 7px 13px;
   border-radius: var(--dk-r-pill);
 }
@@ -262,7 +262,7 @@
 }
 .pd-desktop .mk-panel-score-grade {
   font-weight: 700;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
 }
 .pd-desktop .mk-panel-add {
   flex: none;

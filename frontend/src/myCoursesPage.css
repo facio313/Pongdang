@@ -76,6 +76,12 @@
   background: var(--g-bg);
   color: var(--g-ink);
 }
+/* 아직 조회하지 않은 줄. 등급 팔레트를 쓰지 않습니다 -- 등급 색을 빌려 쓰면
+   조회하지 않은 것이 평가 결과처럼 읽힙니다. */
+.my-courses-page .mc-score-badge.is-unqueried {
+  background: var(--pd-mist);
+  color: var(--pd-ink-mute);
+}
 .my-courses-page .mc-row-body {
   flex: 1;
   min-width: 0;

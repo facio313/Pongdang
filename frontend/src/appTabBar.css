@@ -51,22 +51,53 @@
   }
 }
 
-/* 6칸이 되면서 390px 폭에서 「내 코스」가 줄바꿈되지 않도록 라벨을 9.5px 로
-   내렸습니다(핸드오프 지정값). pongdang.css 의 11px 캡션 하한은 읽는 문장에
-   대한 것이고, 탭 라벨은 한 단어이면서 44px 터치 타깃이 따로 보장됩니다. */
+/* 아이콘 + 라벨을 세로로 쌓습니다. 예전에는 텍스트만 6칸이었고, 390px 에서
+   「내 코스」를 한 줄에 넣으려고 라벨을 9.5px 까지 내려 두었습니다 -- 그 값은
+   pongdang.css 가 세운 11px 캡션 하한 아래였습니다. 지금은 아이콘이 칸 폭을
+   잡아 주므로 라벨을 하한(11px)으로 되돌려도 줄바꿈되지 않고, 6칸을 색이
+   아니라 형태로도 구분할 수 있습니다. */
 .pd-tab {
   flex: 1;
   min-width: 0;
   min-height: var(--pd-touch, 44px);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   text-align: center;
-  font-size: 9.5px;
+  font-size: var(--pd-fs-cap, 11px);
   color: var(--pd-ink-2, #5c789a);
   text-decoration: none;
   white-space: nowrap;
 }
+.pd-tab-label {
+  /* 「내 코스」의 공백에서 줄바꿈되지 않게. 칸이 좁아지면 글자를 줄이는 대신
+     말줄임합니다 -- 하한 아래로 내려가지 않기 위해서입니다. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .pd-tab[aria-current="page"] {
   color: var(--pd-blue-deep, #2f6aa8);
   font-weight: 700;
+}
+/* 현재 탭은 색 · 굵기 말고 형태로도 표시합니다 -- 색만으로 상태를 전달하지
+   않는다는 규칙은 등급 칩뿐 아니라 여기에도 적용됩니다. */
+.pd-tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  width: 16px;
+  height: 2.5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.pd-tab {
+  position: relative;
+}
+@media (hover: hover) {
+  .pd-tab:hover {
+    color: var(--pd-blue-deep, #2f6aa8);
+  }
 }

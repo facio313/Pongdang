@@ -82,14 +82,18 @@
 .spots-page .sp-row:last-of-type {
   border-bottom: 0;
 }
-/* 사진은 아직 확보되지 않았습니다. 빈 채로 두지 않고 무엇이 들어올 자리인지
-   밝히는 점선 슬롯으로 둡니다(핸드오프 §5). */
+/* 사진은 아직 확보되지 않았습니다. 목록에서 줄마다 반복되는 자리라 점선
+   슬롯 대신 중립 자리표시자로 둡니다 -- 무엇이 들어올 자리인지는 앵커의
+   aria-label 이 밝힙니다. */
 .spots-page .sp-row-photo {
   width: 82px;
   height: 82px;
   flex: none;
+  display: grid;
+  place-items: center;
   border-radius: var(--pd-r-ctl);
-  font-size: 9.5px;
+  background: var(--pd-mist);
+  color: var(--pd-ink-mute);
   line-height: 1.5;
   padding: 4px;
 }
@@ -106,7 +110,7 @@
   font-size: var(--pd-fs-body);
 }
 .spots-page .sp-row-category {
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
 }
 .spots-page .sp-row-score {
@@ -117,7 +121,7 @@
   margin-top: 6px;
 }
 .spots-page .sp-row-score .pd-grade-chip {
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   padding: 3px 8px;
 }
 .spots-page .sp-row-distance {
@@ -126,7 +130,7 @@
 }
 .spots-page .sp-row-operating {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
   margin-top: 6px;
 }
@@ -236,6 +240,9 @@
   border: 2px solid var(--pd-surface);
   box-shadow: var(--pd-shadow);
 }
+/* 11px 캡션 하한의 예외입니다. 지도 핀에 딸린 이름표라 핀끼리 겹치지 않는
+   것이 우선이고, 같은 이름과 점수가 바로 아래 시트 목록에 11px 이상으로 다시
+   나옵니다 -- 이 글자만 읽어야 하는 자리가 아닙니다. */
 .spots-page .sp-pin-label {
   font-size: 10px;
   font-weight: 700;
@@ -250,13 +257,6 @@
   outline-offset: 1px;
 }
 
-.spots-page .sp-sheet-handle {
-  width: 44px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--pd-line);
-  margin: 0 auto 10px;
-}
 .spots-page .sp-sheet-head {
   display: flex;
   align-items: baseline;
@@ -291,7 +291,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   background: var(--g-bg);
   color: var(--g-ink);
 }
@@ -302,14 +302,14 @@
 }
 .spots-page .sp-sheet-meta {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   font-weight: 400;
   color: var(--pd-ink-2);
   margin-top: 2px;
 }
 .spots-page .sp-sheet-grade {
   flex: none;
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   font-weight: 700;
   color: var(--pd-ink-2);
 }
@@ -346,7 +346,7 @@
   gap: 6px;
 }
 .spot-detail .sd-hero-chip {
-  font-size: 10px;
+  font-size: var(--pd-fs-cap);
   font-weight: 700;
   color: #0f2f7a;
   background: var(--pd-on-cobalt);
@@ -398,7 +398,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: var(--pd-fs-cap);
   font-weight: 700;
   margin-top: 4px;
 }
@@ -425,14 +425,14 @@
   margin-top: 7px;
 }
 .spot-detail .sd-confidence-chip {
-  font-size: 10px;
+  font-size: var(--pd-fs-cap);
   font-weight: 700;
   color: #fff;
   padding: 3px 8px;
   border-radius: var(--pd-r-pill);
 }
 .spot-detail .sd-confidence-note {
-  font-size: 10px;
+  font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
 }
 

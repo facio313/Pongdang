@@ -105,7 +105,10 @@
   cursor: pointer;
 }
 .rt-form .rt-submit:disabled {
-  background: #8fa3b8;
+  /* 이 폼은 모바일 셸(.pd-app)과 데스크탑 셸(.pd-desktop) 양쪽에 붙습니다.
+     --pd-* 는 .pd-app 에만 선언돼 있어 데스크탑에서는 풀리지 않으므로
+     폴백을 함께 둡니다. 값은 흰 배경 대비 4.54:1 입니다. */
+  background: var(--pd-ink-mute, #73879c);
   cursor: default;
 }
 

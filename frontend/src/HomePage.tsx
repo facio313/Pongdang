@@ -1,11 +1,18 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
-import { AiSuggestion, GradeChip, Icon, StateChip } from "./pongdangUi";
+import {
+  AiSuggestion,
+  GradeChip,
+  Icon,
+  MetricValue,
+  Skeleton,
+  StateChip,
+} from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
 import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
-import { useResource } from "./useResource";
+import { isInitialLoad, useResource } from "./useResource";
 import { useProductData } from "./useProductData";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import { HourlyConditions } from "./HourlyConditions";
@@ -58,9 +65,12 @@ function Hero({
   placeName,
   onOpenMenu,
   conditions,
+  loading = false,
 }: {
   placeName: string;
   conditions?: Conditions;
+  /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
+  loading?: boolean;
   onOpenMenu: () => void;
 }) {
   return (
@@ -82,13 +92,70 @@ function Hero({
           </span>
         </div>
 
-        <div className="pd-slot is-on-cobalt hm-hero-visual">
-          <div>
-            <div>{conditionModeLabel(conditions)} 기준 날씨와 바다</div>
-            <p>기온 {metricText(conditions, "air_temperature")} · 수온 {metricText(conditions, "water_temperature")}</p>
-            <p>파고 {metricText(conditions, "wave_height")} · 바람 {metricText(conditions, "wind_speed")}</p>
-            <p>1시간 강수량 {metricText(conditions, "precipitation")}</p>
+        {/* 예전에는 이 자리가 점선 pd-slot 이었습니다. 실제 수집한 기온 ·
+            수온 · 파고 · 강수가 들어 있는데도 「미구현」으로 읽혔습니다.
+            점선은 아직 설계되지 않은 자리에만 씁니다. */}
+        <div className="hm-hero-visual">
+          <div className="hm-hero-visual-head">
+            {conditionModeLabel(conditions)} 기준 날씨와 바다
           </div>
+          <dl className="hm-hero-metrics">
+            <div>
+              <dt>기온</dt>
+              <dd className="pd-num">
+                <MetricValue
+                  conditions={conditions}
+                  name="air_temperature"
+                  loading={loading}
+                  glass
+                />
+              </dd>
+            </div>
+            <div>
+              <dt>수온</dt>
+              <dd className="pd-num">
+                <MetricValue
+                  conditions={conditions}
+                  name="water_temperature"
+                  loading={loading}
+                  glass
+                />
+              </dd>
+            </div>
+            <div>
+              <dt>파고</dt>
+              <dd className="pd-num">
+                <MetricValue
+                  conditions={conditions}
+                  name="wave_height"
+                  loading={loading}
+                  glass
+                />
+              </dd>
+            </div>
+            <div>
+              <dt>바람</dt>
+              <dd className="pd-num">
+                <MetricValue
+                  conditions={conditions}
+                  name="wind_speed"
+                  loading={loading}
+                  glass
+                />
+              </dd>
+            </div>
+            <div>
+              <dt>1시간 강수량</dt>
+              <dd className="pd-num">
+                <MetricValue
+                  conditions={conditions}
+                  name="precipitation"
+                  loading={loading}
+                  glass
+                />
+              </dd>
+            </div>
+          </dl>
         </div>
 
         <div className="hm-hero-row">
@@ -99,10 +166,15 @@ function Hero({
           </h1>
           <div className="hm-hero-score">
             <div className="pd-num hm-hero-score-num">
-              {conditionScore(conditions) ?? "–"}
+              {loading ? (
+                <Skeleton width="1.6em" glass label="점수 조회 중" />
+              ) : (
+                (conditionScore(conditions) ?? "–")
+              )}
             </div>
             <GradeChip
               score={conditionScore(conditions)}
+              loading={loading}
               glass
               bare
             />
@@ -120,44 +192,73 @@ function Hero({
 
 function GlanceCard({
   statusText,
+  statusIsError,
   conditions,
+  loading = false,
   quality,
+  qualityLoading = false,
   qualityData,
   qualityError,
   spotId,
   now,
 }: {
   statusText: string;
+  /** 상태 문장이 오류인지. 오류는 role="alert", 진행 중은 role="status" 입니다. */
+  statusIsError?: boolean;
   conditions?: Conditions;
+  loading?: boolean;
   quality: string;
+  qualityLoading?: boolean;
   qualityData?: WaterQualityGrade;
   qualityError?: string;
   spotId?: number;
   now: string;
 }) {
-  const tiles = [
-    { name: "수온", value: metricText(conditions, "water_temperature") },
-    { name: "파고", value: metricText(conditions, "wave_height") },
-    { name: "강수", value: metricText(conditions, "precipitation") },
+  const tiles: { name: string; metric?: string; value?: string }[] = [
+    { name: "수온", metric: "water_temperature" },
+    { name: "파고", metric: "wave_height" },
+    { name: "강수", metric: "precipitation" },
     { name: "수질 · 최근 검사", value: quality },
   ];
   return (
     <div className="pd-card">
       <div className="pd-card-title">오늘 한눈에</div>
       <div className="hm-tiles">
-        {tiles.map((tile) => (
-          <div
-            className={"hm-tile" + (tile.value === "–" ? " is-empty" : "")}
-            key={tile.name}
-          >
-            <div className="pd-num hm-tile-value">{tile.value}</div>
-            <div className="hm-tile-name">{tile.name}</div>
-          </div>
-        ))}
+        {tiles.map((tile) => {
+          const tileLoading = tile.metric ? loading : qualityLoading;
+          // 조회 중은 「값 없음」이 아니므로 is-empty 를 붙이지 않습니다.
+          const empty =
+            !tileLoading &&
+            (tile.metric
+              ? metricText(conditions, tile.metric) === "–"
+              : tile.value === "–");
+          return (
+            <div
+              className={"hm-tile" + (empty ? " is-empty" : "")}
+              key={tile.name}
+            >
+              <div className="pd-num hm-tile-value">
+                {tile.metric ? (
+                  <MetricValue
+                    conditions={conditions}
+                    name={tile.metric}
+                    loading={loading}
+                    width="2.6em"
+                  />
+                ) : tileLoading ? (
+                  <Skeleton width="2.6em" />
+                ) : (
+                  tile.value
+                )}
+              </div>
+              <div className="hm-tile-name">{tile.name}</div>
+            </div>
+          );
+        })}
       </div>
       <WaterQualityDetails data={qualityData} error={qualityError} className="pd-note" />
       <HourlyConditions id={spotId} now={now} />
-      <p className="pd-note">
+      <p className="pd-note" role={statusIsError ? "alert" : "status"}>
         <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
         강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. {statusText}
       </p>
@@ -192,10 +293,11 @@ function SpotScroller({
       <div className="hm-picks-row">
         {spots.map((spot) => (
           <a className="hm-pick" href={spotLink(spot)} key={spot.id}>
-            <span className="pd-slot hm-pick-photo">
-              {spot.name}
-              <br />
-              대표 사진
+            {/* 사진은 아직 미확보입니다. 예전에는 점선 pd-slot 이었는데, 한
+                화면에 8칸 넘게 반복되면서 앱 전체가 미완성으로 읽혔습니다.
+                점선은 미설계 섹션에만 두고 여기는 중립 자리표시자입니다. */}
+            <span className="hm-pick-photo" aria-label={`${spot.name} 대표 사진 준비 중`}>
+              <Icon name="pin" size={20} />
             </span>
             <span className="hm-pick-name">{spot.name}</span>
             <span className="hm-pick-meta">
@@ -315,7 +417,7 @@ function LivecamModule() {
           </a>
         ))}
       </div>
-      <p className="pd-note">
+      <p className="pd-note" role={error ? "alert" : "status"}>
         {error ||
           (loading
             ? "물 풍경을 고르는 중입니다."
@@ -323,21 +425,66 @@ function LivecamModule() {
               ? "위치와 관계없이 고른 랜덤 물 풍경입니다. 카드를 누르면 해당 카메라가 열립니다. 배경은 영상 썸네일이 아닙니다."
               : "현재 목록에 열 수 있는 물 풍경 카메라가 없습니다.")}{" "}
         {expired && "목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
-        <a href="#livecam">전체 라이브캠 →</a>
+        {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
+            듣지 않으므로, 줄 높이를 깨지 않고 히트박스만 넓히는 .pd-tap 을
+            함께 붙입니다(pongdang.css 터치 타깃 주석). */}
+        <a className="pd-inline pd-tap" href="#livecam">전체 라이브캠 →</a>
       </p>
-      <p className="pd-note">Webcams provided by <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a></p>
+      <p className="pd-note">Webcams provided by <a className="pd-inline pd-tap" href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a></p>
     </div>
   );
 }
 
 function SideMenu({ onClose }: { onClose: () => void }) {
-  // 메뉴는 뷰포트 전체를 덮으므로(.hm-menu 가 position: fixed), 열려 있는
-  // 동안 뒤 본문이 따라 스크롤되지 않게 잠급니다.
+  const panel = useRef<HTMLDivElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  // onClose 는 호출부가 인라인 화살표로 넘깁니다. 그대로 의존성에 넣으면 렌더
+  // 마다 effect 가 다시 돌아 포커스를 계속 닫기 버튼으로 뺏어옵니다.
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
-    const previous = document.body.style.overflow;
+    onCloseRef.current = onClose;
+  });
+
+  // 메뉴는 뷰포트 전체를 덮는 모달입니다(.hm-menu 가 position: fixed). 열려
+  // 있는 동안 ① 뒤 본문이 따라 스크롤되지 않게 잠그고 ② Esc 로 닫히게 하고
+  // ③ 포커스를 메뉴 안으로 들여보낸 뒤 ④ 닫을 때 열었던 버튼으로 되돌립니다.
+  // 예전에는 role="dialog" 만 있어서, 키보드로 열 수는 있어도 빠져나올 수
+  // 없었습니다.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !panel.current) return;
+      // 초점을 메뉴 안에서 순환시킵니다. 모달 밖으로 탭이 빠져나가면 보이지
+      // 않는 본문을 더듬게 됩니다.
+      const focusable = panel.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
     };
   }, []);
 
@@ -348,8 +495,15 @@ function SideMenu({ onClose }: { onClose: () => void }) {
         className="hm-backdrop"
         onClick={onClose}
         aria-label="사이드 메뉴 닫기"
+        tabIndex={-1}
       />
-      <div className="hm-menu" role="dialog" aria-label="사이드 메뉴">
+      <div
+        className="hm-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="사이드 메뉴"
+        ref={panel}
+      >
         <div className="hm-menu-head">
           <div className="hm-menu-head-top">
             <span className="pd-header-mark">PONGDANG</span>
@@ -358,6 +512,7 @@ function SideMenu({ onClose }: { onClose: () => void }) {
               className="hm-menu-close"
               onClick={onClose}
               aria-label="닫기"
+              ref={closeButton}
             >
               <Icon name="close" size={16} />
             </button>
@@ -419,18 +574,21 @@ function HomeScreen() {
           <Hero
             placeName={displayName}
             conditions={conditions.data}
+            loading={isInitialLoad(conditions)}
             onOpenMenu={() => setMenuOpen(true)}
           />
         }
       >
           <GlanceCard
-            quality={quality.loading ? "조회 중" : quality.error ? "조회 실패"
-              : waterQualityLabel(quality.data)}
+            quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
+            qualityLoading={isInitialLoad(quality)}
             qualityData={quality.data}
             qualityError={quality.error}
             spotId={place?.id}
             now={now}
             conditions={conditions.data}
+            loading={isInitialLoad(conditions)}
+            statusIsError={Boolean(places.error ?? conditions.error)}
             statusText={
               places.error ??
               conditions.error ??

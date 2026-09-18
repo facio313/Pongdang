@@ -427,3 +427,30 @@
 .today-page .td-conf-value.is-confidence {
   color: var(--pd-conf);
 }
+
+/* ── 분야별 근거 (활동 선택) ───────────────────────────────
+   예전에는 활동 6개의 <details> 가 카드 아래 6줄로 쌓여 있었습니다. 하나로
+   합치고 활동을 셀렉트로 고릅니다 -- 근거를 감추는 것이 아니라 위 타일과 짝을
+   맞춰 자리를 옮긴 것입니다. */
+
+.today-page .td-basis summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.today-page .td-basis-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.today-page .td-basis-pick select {
+  font: inherit;
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink);
+  min-height: var(--pd-touch);
+  padding: 0 8px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  cursor: pointer;
+}

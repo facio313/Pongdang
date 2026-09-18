@@ -29,9 +29,32 @@
   gap: 5px;
   color: var(--pd-sky);
 }
+/* 실제 수집값이 들어가는 패널입니다. 예전에는 점선 pd-slot 이라 「미구현」으로
+   읽혔습니다. 코발트 위이므로 글래스 레이어 토큰을 씁니다. */
 .home-page .hm-hero-visual {
-  height: 140px;
   margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--pd-r-card);
+  border: 1px solid var(--pd-glass-line);
+  background: var(--pd-glass);
+}
+.home-page .hm-hero-visual-head {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-on-cobalt-2);
+}
+.home-page .hm-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 8px;
+  margin: 10px 0 0;
+}
+.home-page .hm-hero-metrics dt {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-on-cobalt-2);
+}
+.home-page .hm-hero-metrics dd {
+  font-size: var(--pd-fs-body);
+  margin: 2px 0 0;
 }
 .home-page .hm-hero-row {
   display: flex;
@@ -89,11 +112,6 @@
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
 }
-.home-page .hm-graph-slot {
-  height: 64px;
-  margin-top: 12px;
-}
-
 /* ── 카드 머리 · CTA ───────────────────────────────────── */
 
 .home-page .hm-card-top {
@@ -137,19 +155,12 @@
   overflow: hidden;
   display: block;
 }
-/* 영상 연동 전까지의 자리표시자 색. 지점 구분용이며 --pd-* 레이어가 아닙니다. */
+/* 영상 연동 전까지의 자리표시자입니다. 색은 HomePage.tsx 의 CAM_BACKGROUNDS 가
+   인라인 style 로 넣습니다 -- 여기 있던 [data-cam="…"] 규칙 세 개는 해당 속성을
+   붙이는 곳이 없어 죽어 있었습니다. */
 .home-page .hm-cam-thumb {
   display: block;
   height: 56px;
-}
-.home-page .hm-cam-thumb[data-cam="gyeongpo"] {
-  background: linear-gradient(160deg, #4fb3d9, #1d6fd8);
-}
-.home-page .hm-cam-thumb[data-cam="anmok"] {
-  background: linear-gradient(160deg, #e0a72a, #b97a1d);
-}
-.home-page .hm-cam-thumb[data-cam="sacheonjin"] {
-  background: linear-gradient(160deg, #6b8fae, #33475a);
 }
 .home-page .hm-cam-label {
   display: block;
@@ -324,24 +335,43 @@
   color: inherit;
   text-decoration: none;
   min-height: 0;
+  transition: scale 120ms ease;
 }
-/* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
+/* 사진 자리가 이미 --pd-mist 이라 배경을 바꾸면 티가 나지 않습니다. 대신
+   테두리와 크기로 눌리는 느낌을 줍니다. */
+@media (hover: hover) {
+  .home-page .hm-pick:hover .hm-pick-photo {
+    outline: 2px solid var(--pd-blue);
+    outline-offset: -2px;
+    color: var(--pd-blue);
+  }
+  .home-page .hm-pick:hover .hm-pick-name {
+    color: var(--pd-blue-deep);
+  }
+}
+.home-page .hm-pick:active {
+  scale: 0.98;
+}
+/* 사진은 미확보입니다. 점선 슬롯 대신 중립 자리표시자로 두고, 무엇이 들어올
+   자리인지는 앵커의 aria-label 이 밝힙니다 -- 8칸 넘게 반복되는 자리에 점선과
+   설명 글자를 넣으면 목록 전체가 미완성으로 읽힙니다. */
 .home-page .hm-pick-photo {
+  display: grid;
+  place-items: center;
   height: 84px;
   border-radius: var(--pd-r-ctl);
-  font-size: 9.5px;
-  line-height: 1.5;
-  padding: 4px;
+  background: var(--pd-mist);
+  color: var(--pd-ink-mute);
 }
 .home-page .hm-pick-name {
   display: block;
-  font-size: 12px;
+  font-size: var(--pd-fs-sm);
   font-weight: 700;
   margin-top: 7px;
 }
 .home-page .hm-pick-meta {
   display: block;
-  font-size: 10px;
+  font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
   margin-top: 2px;
 }
@@ -352,7 +382,7 @@
 /* 126px 칸보다 긴 등급 표기(「퐁당 – 산정 대상 아님」)가 옆 칸으로 삐져나가지
    않도록 칩 안에서 줄바꿈시킵니다. 등급명을 줄여 네 겹 표기를 깨지 않습니다. */
 .home-page .hm-pick-score .pd-grade-chip {
-  font-size: 10.5px;
+  font-size: var(--pd-fs-cap);
   padding: 3px 8px;
   max-width: 100%;
   white-space: normal;

@@ -49,7 +49,7 @@
   padding-right: 0;
 }
 .pd-desktop .hd-metric-name {
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
   color: var(--dk-onc-2);
 }
 .pd-desktop .hd-metric-value {
@@ -299,7 +299,7 @@
   height: 88px;
   flex: none;
   border-radius: 0;
-  font-size: 10.5px;
+  font-size: var(--dk-fs-cap);
 }
 .pd-desktop .hd-taste-spot-name {
   display: block;
@@ -410,7 +410,7 @@
   background: rgba(15, 47, 122, 0.82);
   color: var(--dk-onc);
   font-weight: 700;
-  font-size: 10px;
+  font-size: var(--dk-fs-cap);
   letter-spacing: 0.06em;
   padding: 5px 10px;
   border-radius: var(--dk-r-pill);
