@@ -1,0 +1,268 @@
+import { useState } from "react";
+import {
+  recommendationPlan,
+  travelJson,
+  TravelRequestError,
+  type RecommendationResult,
+  type RouteResult,
+  type TravelChatResponse,
+  type TravelRequest,
+} from "./travelApi";
+import type { OriginOption, RouteRequestValue } from "./RouteRequestForm";
+import { setTravelSession, useTravelSession } from "./travelSession";
+import { useResource } from "./useResource";
+import type { DefaultPlaceSelection } from "./useProductData";
+
+export interface Bubble {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Route conditions a conversation cannot express; the form has to supply them. */
+const NEEDS_FORM = [
+  "route_origin_and_departure_required",
+  "origin_coordinates_required",
+  "route_date_required",
+  "route_departure_in_past",
+];
+
+/** What the route form offers: the server's own candidates, plus the
+ *  collection's default place as somewhere to start from. Only places with
+ *  stored coordinates can become an origin. */
+export function useRouteFormSources() {
+  const session = useTravelSession();
+  const recommendations = session.recommendation?.recommendations ?? [];
+  const defaultPlace = useResource<DefaultPlaceSelection>(
+    recommendations.length ? "water-index/default-place" : null,
+  );
+  const listed = new Set(recommendations.map((item) => item.name));
+  const originOptions: OriginOption[] = [
+    ...recommendations.map((item) => ({
+      id: item.spot_id,
+      name: item.name,
+      lat: item.confirmed.latitude,
+      lng: item.confirmed.longitude,
+    })),
+    ...(defaultPlace.data?.rows ?? [])
+      .filter((row) => !listed.has(row.name))
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        lat: row.lat,
+        lng: row.lng,
+      })),
+  ].filter(
+    (option, index, all) =>
+      all.findIndex((item) => item.id === option.id) === index,
+  );
+  return {
+    originOptions,
+    candidates: recommendations.map((item) => ({
+      rank: item.rank,
+      spot_id: item.spot_id,
+      name: item.name,
+    })),
+  };
+}
+
+/** The conversation and the separate route request, shared by the mobile and
+ *  desktop recommendation screens so both send the same contract.
+ *
+ *  The caller supplies its own `useAction`, keeping one request in flight per
+ *  screen, and the form state to start from. */
+export function useTravelConcierge({
+  opener,
+  baseRequest,
+  action,
+}: {
+  opener: string;
+  baseRequest: () => TravelRequest;
+  action: { busy: boolean; run: (job: (signal: AbortSignal) => Promise<void>) => Promise<void> };
+}) {
+  const session = useTravelSession();
+  const [bubbles, setBubbles] = useState<Bubble[]>([
+    { role: "assistant", content: opener },
+  ]);
+  const [draft, setDraft] = useState("");
+  const [chatRequest, setChatRequest] = useState<TravelRequest | null>(null);
+  const asked = bubbles.filter((bubble) => bubble.role === "user").length;
+
+  const publish = (result: RecommendationResult) =>
+    setTravelSession({
+      recommendation: result,
+      plan: null,
+      route: null,
+      planInput: result.recommendations.length
+        ? recommendationPlan(result, result.request.dates[0])
+        : null,
+    });
+
+  /** Record a prepared answer on the device. The next scripted question is
+   *  shown locally; nothing is sent until `send` runs. */
+  const keepTurn = (text: string, nextQuestion: string) => {
+    const message = text.trim();
+    if (!message) return;
+    setBubbles((current) => [
+      ...current,
+      { role: "user", content: message },
+      { role: "assistant", content: nextQuestion },
+    ]);
+  };
+
+  const send = (text: string) => {
+    const message = text.trim();
+    if (!message) return;
+    // `action: "conversation"` lets the server decide from the message whether
+    // this is a list request or the separate route request, as the contract
+    // specifies. The client never makes that call for the user.
+    const history = bubbles
+      .filter((bubble) => bubble.content.trim())
+      .slice(-8)
+      .map((bubble) => ({
+        role: bubble.role,
+        content: bubble.content.slice(0, 2000),
+      }));
+    setBubbles((current) => [...current, { role: "user", content: message }]);
+    setDraft("");
+    void action.run(async (signal) => {
+      const request = chatRequest ?? baseRequest();
+      const token = session.recommendation?.selection_token;
+      const result = await travelJson<TravelChatResponse>(
+        import.meta.env.BASE_URL,
+        "ai/chat",
+        "POST",
+        {
+          message,
+          history,
+          context: { region: request.region ?? "강릉" },
+          travel: {
+            action: "conversation",
+            request,
+            ...(token ? { selection_token: token } : {}),
+          },
+        },
+        signal,
+      );
+      if (signal.aborted) return;
+      // The server's own request state becomes the next form state.
+      setChatRequest(result.travel?.request ?? request);
+      setBubbles((current) => [
+        ...current,
+        ...[result.answer, result.clarification]
+          .filter(
+            (content, index, all): content is string =>
+              Boolean(content?.trim()) && all.indexOf(content) === index,
+          )
+          .map((content) => ({ role: "assistant" as const, content })),
+      ]);
+      if (result.travel_results?.recommendations)
+        publish(result.travel_results.recommendations);
+      const route = result.travel_results?.route_recommendation;
+      if (route) {
+        setTravelSession({ route });
+        // A conversation cannot supply an origin coordinate or a departure
+        // clock, so point at the form that can instead of leaving the server's
+        // reason codes as the last word.
+        if (!route.route_calculated && route.reason_codes.some((code) => NEEDS_FORM.includes(code)))
+          setBubbles((current) => [
+            ...current,
+            {
+              role: "assistant",
+              content:
+                "아래 「경로 계산 조건」에서 출발지와 출발 시각을 넣으면 방문 순서를 계산합니다. 현재 위치 또는 등록 장소를 출발지로 고를 수 있습니다.",
+            },
+          ]);
+      }
+    });
+  };
+
+  const requestRoute = (value: RouteRequestValue) =>
+    void action.run(async (signal) => {
+      const base = session.recommendation;
+      if (!base?.selection_token)
+        throw new Error(
+          "경로를 계산할 추천 후보가 없습니다. 먼저 추천을 받아 주세요.",
+        );
+      const chosen = value.candidate_ranks
+        .map(
+          (rank) =>
+            base.recommendations.find((item) => item.rank === rank)?.spot_id,
+        )
+        .filter((id): id is number => typeof id === "number");
+      const request: TravelRequest = {
+        ...base.request,
+        dates: [value.date],
+        day_trip: true,
+        origin: value.origin,
+        departure_time: value.departure_time,
+      };
+      const call = (selection_token: string, candidate_ranks: number[]) =>
+        travelJson<RouteResult>(
+          import.meta.env.BASE_URL,
+          "travel/routes/recommend",
+          "POST",
+          {
+            selection_token,
+            candidate_ranks,
+            stop_count: Math.min(value.stop_count, candidate_ranks.length),
+            stay_minutes: value.stay_minutes,
+            include_geometry: true,
+            request,
+          },
+          signal,
+        );
+      let result: RouteResult;
+      try {
+        result = await call(base.selection_token, value.candidate_ranks);
+      } catch (error) {
+        // A selection expires 30 minutes after the list was issued. Re-read the
+        // same places instead of making the user start the flow again.
+        if (!(error instanceof TravelRequestError) || error.status !== 410)
+          throw error;
+        const fresh = await travelJson<RecommendationResult>(
+          import.meta.env.BASE_URL,
+          "travel/recommendations",
+          "POST",
+          { request: { ...request, must_include: chosen }, limit: 5 },
+          signal,
+        );
+        const ranks = fresh.recommendations
+          .filter((item) => chosen.includes(item.spot_id))
+          .map((item) => item.rank);
+        if (!fresh.selection_token || ranks.length !== chosen.length)
+          throw new Error(
+            "추천이 만료된 뒤 같은 장소를 현재 조건에서 다시 확인하지 못했습니다. 추천을 다시 받아 주세요.",
+            { cause: error },
+          );
+        publish(fresh);
+        result = await call(fresh.selection_token, ranks);
+      }
+      if (signal.aborted) return;
+      setTravelSession({
+        route: result,
+        ...(result.plan_input
+          ? { planInput: result.plan_input, plan: null }
+          : {}),
+      });
+    });
+
+  const reset = () => {
+    setBubbles([{ role: "assistant", content: opener }]);
+    setDraft("");
+    setChatRequest(null);
+  };
+
+  return {
+    session,
+    bubbles,
+    asked,
+    draft,
+    setDraft,
+    chatRequest,
+    publish,
+    send,
+    keepTurn,
+    requestRoute,
+    reset,
+  };
+}

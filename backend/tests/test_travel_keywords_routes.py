@@ -2,10 +2,12 @@
 
 import asyncio
 import copy
+import json
 from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
 from test_travel_integration import BASE, HEADERS
 from test_travel_integration import travel_db as _travel_db
@@ -18,8 +20,8 @@ from app.travel.catalog import KST, Catalog
 from app.travel.chat import TravelToolSession, explicit_route
 from app.travel.directions import DirectionError, KakaoDirections, parse
 from app.travel.environment import EnvironmentReader
-from app.travel.models import TravelRequest
-from app.travel.routing import RouteRecommendationInput, recommend_route
+from app.travel.models import Origin, TravelRequest
+from app.travel.routing import RouteRecommendationInput, recommend_route, resolve_origin
 
 travel_db = _travel_db
 
@@ -31,6 +33,32 @@ def settings():
         sso_proxy_secret="isolated-route-secret-at-least-32-characters",
         kakao_rest_key="isolated-key",
     )
+
+
+def test_resolve_origin_unknown_id_keeps_client_coordinates():
+    class MissingCatalog:
+        async def places(self, ids):
+            raise HTTPException(404, "travel_place_not_found")
+
+    class KnownCatalog:
+        async def places(self, ids):
+            return {ids[0]: {"latitude": 37.8, "longitude": 128.9}}
+
+    foreign = Origin(
+        label="다른 목록의 해변",
+        spot_id=9_999_999,
+        latitude=37.51,
+        longitude=128.51,
+    )
+    payload, spot_id = asyncio.run(resolve_origin(MissingCatalog(), foreign))
+    assert spot_id is None
+    assert payload["latitude"] == 37.51
+    assert payload["longitude"] == 128.51
+
+    registered = Origin(label="격리 해변에서 출발", spot_id=7)
+    found, spot_id = asyncio.run(resolve_origin(KnownCatalog(), registered))
+    assert spot_id == 7
+    assert found["latitude"] == 37.8
 
 
 @pytest.mark.parametrize(
@@ -401,6 +429,213 @@ def test_route_optimizer_changes_order_with_arrival_weather_and_preserves_owner(
         == 422
     )
     assert storage.plans(s, "traveller-a") == []
+
+
+def test_explicitly_named_places_survive_search_bounds_and_result_limit(travel_db):
+    from app.ingestion.models import Place, SourceBatch
+    from app.ingestion.storage import store_batch
+    from app.schema import connect
+
+    s, client, places, _ = travel_db
+    beach, onsen = places["isolated-beach"], places["isolated-onsen"]
+    store_batch(
+        s,
+        SourceBatch(
+            provider="TOURAPI_KOREAN",
+            fetched_at=datetime.now(UTC) - timedelta(seconds=1),
+            places=[
+                Place(
+                    source_id="other-region-lake",
+                    name="다른 지역 호수",
+                    kind="lake",
+                    region="다른지역",
+                    latitude=37.6,
+                    longitude=128.7,
+                )
+            ],
+        ),
+    )
+    with connect(s) as c:
+        outside = c.execute(
+            "SELECT spot_id FROM pongdang_data.collection_place WHERE source_id=%s",
+            ["other-region-lake"],
+        ).fetchone()[0]
+
+    # The region search never returns this place, and one result is requested.
+    # The explicit selection still has to appear with its actual identity.
+    result = client.post(
+        BASE + "/recommendations",
+        json={
+            "request": {"region": "격리", "must_include": [outside]},
+            "preference": {"tags": ["온천"]},
+            "limit": 1,
+        },
+    )
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert [row["spot_id"] for row in body["recommendations"]] == [outside]
+    assert body["recommendations"][0]["name"] == "다른 지역 호수"
+    assert body["candidate_scope"]["must_include_added"] == [outside]
+    assert body["candidate_scope"]["region_query"] == "격리"
+
+    # Ahead of preference weight, but never ahead of the ranking checks: a place
+    # whose selected category is unconfirmed keeps its exclusion reason.
+    mixed = client.post(
+        BASE + "/recommendations",
+        json={
+            "request": {
+                "region": "격리",
+                "must_include": [beach],
+                "keyword_selection": [
+                    {"category": "place_type", "values": ["hot_spring"]}
+                ],
+            },
+            "preference": {"tags": ["온천"]},
+            "limit": 2,
+        },
+    ).json()
+    assert [row["spot_id"] for row in mixed["recommendations"]] == [onsen]
+    assert {row["spot_id"]: row["reason"] for row in mixed["excluded"]} == {
+        beach: "selected_place_type_unconfirmed"
+    }
+
+    # An unregistered identifier is reported, not quietly dropped or invented.
+    assert (
+        client.post(
+            BASE + "/recommendations",
+            json={"request": {"region": "격리", "must_include": [10**9]}},
+        ).status_code
+        == 404
+    )
+
+
+def test_route_items_carry_catalog_coordinates_without_exposing_origin_to_model(
+    travel_db, monkeypatch
+):
+    s, _, places, _ = travel_db
+    beach, onsen = places["isolated-beach"], places["isolated-onsen"]
+    now = datetime.now(UTC)
+    day = (now.astimezone(KST) + timedelta(days=1)).date()
+    request = TravelRequest(
+        dates=[day],
+        origin={"label": "사용자 출발 지점", "latitude": 37.5, "longitude": 128.5},
+        departure_time="09:00",
+    )
+    token = tokens.encode(s, "traveller-a", request, [beach, onsen], now)
+    result = asyncio.run(
+        recommend_route(
+            s,
+            "traveller-a",
+            RouteRecommendationInput(
+                selection_token=token, stop_count=2, include_geometry=False
+            ),
+            now=now,
+            directions=RoutesFixture(),
+            environment=EnvironmentFixture(onsen),
+        )
+    )
+    assert {
+        item["spot_id"]: (item["latitude"], item["longitude"])
+        for item in result["route"]["items"]
+    } == {beach: (37.8, 128.9), onsen: (37.7, 128.8)}
+    assert result["route"]["origin"] == {
+        "label": "사용자 출발 지점",
+        "spot_id": None,
+        "latitude": 37.5,
+        "longitude": 128.5,
+    }
+    # Alternatives stay summaries: only the chosen order carries places/lines.
+    assert all(
+        "items" not in row and "origin" not in row for row in result["alternatives"]
+    )
+
+    # A registered origin resolves its coordinates from the catalogue, never
+    # from the label the user typed.
+    registered = TravelRequest(
+        dates=[day],
+        origin={"label": "격리 해변에서 출발", "spot_id": beach},
+        departure_time="09:00",
+    )
+    from_spot = asyncio.run(
+        recommend_route(
+            s,
+            "traveller-a",
+            RouteRecommendationInput(
+                selection_token=tokens.encode(
+                    s, "traveller-a", registered, [onsen], now
+                ),
+                stop_count=1,
+                include_geometry=False,
+            ),
+            now=now,
+            directions=RoutesFixture(),
+            environment=EnvironmentFixture(onsen),
+        )
+    )
+    assert from_spot["route"]["origin"] == {
+        "label": "격리 해변에서 출발",
+        "spot_id": beach,
+        "latitude": 37.8,
+        "longitude": 128.9,
+    }
+
+    # A foreign identifier with coordinates is a coordinate origin, not a 404.
+    foreign_request = TravelRequest(
+        dates=[day],
+        origin={
+            "label": "다른 목록의 해변",
+            "spot_id": 9_999_999,
+            "latitude": 37.51,
+            "longitude": 128.51,
+        },
+        departure_time="09:00",
+    )
+    foreign = asyncio.run(
+        recommend_route(
+            s,
+            "traveller-a",
+            RouteRecommendationInput(
+                selection_token=tokens.encode(
+                    s, "traveller-a", foreign_request, [beach, onsen], now
+                ),
+                stop_count=2,
+                include_geometry=False,
+            ),
+            now=now,
+            directions=RoutesFixture(),
+            environment=EnvironmentFixture(onsen),
+        )
+    )
+    assert foreign["route_calculated"] is True
+    assert foreign["route"]["origin"] == {
+        "label": "다른 목록의 해변",
+        "spot_id": None,
+        "latitude": 37.51,
+        "longitude": 128.51,
+    }
+
+    from app.travel import routing
+
+    monkeypatch.setattr(routing, "KakaoDirections", lambda *args: RoutesFixture())
+    session = TravelToolSession(
+        s,
+        now,
+        body=ChatRequest(
+            message="이제 경로 추천해줘",
+            travel={
+                "request": request.model_dump(mode="json"),
+                "selection_token": token,
+                "action": "route",
+            },
+        ),
+        owner="traveller-a",
+    )
+    model_facing = asyncio.run(session.execute("travel_route", {}))
+    assert all(
+        set(place) == {"spot_id", "name", "arrival_at", "departure_at"}
+        for place in model_facing["result"]["ordered_places"]
+    )
+    assert "128.5" not in json.dumps(model_facing, ensure_ascii=False)
 
 
 def test_public_two_stage_chat_route_and_unconfigured_state(travel_db, monkeypatch):

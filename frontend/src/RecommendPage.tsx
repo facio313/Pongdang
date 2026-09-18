@@ -30,18 +30,27 @@ import {
   type Conditions,
 } from "./productData";
 import {
+  kakaoRouteLink,
   planItems,
   placeRoleLabel,
   unknownConditionsText,
   recommendationPlan,
+  routeReasonsText,
   selectedActivities,
   travelJson,
   type PlanInput,
   type Preference,
   type RecommendationResult,
+  type RouteResult,
   type TravelRequest,
   type TripPlan,
 } from "./travelApi";
+import { RouteRequestForm, type RouteRequestValue } from "./RouteRequestForm";
+import {
+  useRouteFormSources,
+  useTravelConcierge,
+  type Bubble,
+} from "./useTravelConcierge";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import "./recommendPage.css";
 
@@ -124,6 +133,13 @@ const CHAT_TURNS: { question: string; replies: string[] }[] = [
     replies: ["친구랑 하루", "혼자 반나절"],
   },
   { question: "이동은 어떻게 하세요?", replies: ["차량", "대중교통"] },
+];
+// Real sentences the server can act on: a changed wish, or the separate route
+// request that the contract requires the user to ask for.
+const FOLLOWUPS = [
+  "이 후보들로 경로 짜줘",
+  "아이랑 갈 만한 곳으로",
+  "더 가까운 곳으로",
 ];
 
 // ── 공통 조각 ───────────────────────────────────────────────
@@ -231,8 +247,8 @@ function EntryStep({
             </button>
           </div>
           <p className="pd-note">
-            추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 지도에서
-            출발지를 고른 뒤 별도로 요청합니다.
+            추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 같은 화면에서
+            출발지와 시각을 넣은 뒤 별도로 요청합니다.
           </p>
         </div>
     </AppShell>
@@ -451,24 +467,44 @@ function TasteStep({
 // ── 3. B3 대화형 컨시어지 ──────────────────────────────────
 
 function ChatStep({
-  turn,
-  answers,
-  answer,
-  onReply,
+  bubbles,
+  draft,
+  setDraft,
+  busy,
+  onSend,
+  onKeepTurn,
+  onRoute,
   onReset,
-  onDone,
   onBack,
 }: {
-  turn: number;
-  answer: string;
-  answers: string[];
-  onReply: (reply: string) => void;
+  bubbles: Bubble[];
+  draft: string;
+  setDraft: (value: string) => void;
+  busy: boolean;
+  onSend: (text: string) => void;
+  onKeepTurn: (text: string, nextQuestion: string) => void;
+  onRoute: (value: RouteRequestValue) => void;
   onReset: () => void;
-  onDone: () => void;
   onBack: () => void;
 }) {
-  const finished = turn >= CHAT_TURNS.length;
+  const asked = bubbles.filter((bubble) => bubble.role === "user").length;
+  // Scripted answers stay on the device until the last prepared question is
+  // filled in. After that the chips only load the composer; 보내기 sends.
+  const prepared = asked < CHAT_TURNS.length;
+  const quick = prepared ? CHAT_TURNS[asked].replies : FOLLOWUPS;
+  const pickReply = (reply: string) => {
+    if (asked < CHAT_TURNS.length - 1) {
+      onKeepTurn(reply, CHAT_TURNS[asked + 1].question);
+      return;
+    }
+    if (asked === CHAT_TURNS.length - 1) {
+      onSend(reply);
+      return;
+    }
+    setDraft(reply);
+  };
   const session = useTravelSession();
+  const { candidates, originOptions } = useRouteFormSources();
   const conditions = useResource<Conditions>(
     conditionPath(
       session.recommendation?.recommendations[0]?.spot_id,
@@ -500,8 +536,10 @@ function ChatStep({
           <div>
             <div className="rc-bot-name">퐁당 컨시어지</div>
             <div className="rc-bot-sub">
-              질문 {Math.min(turn + 1, CHAT_TURNS.length)} / {CHAT_TURNS.length}
-              {finished && " · 완료"}
+              대화 {asked}턴
+              {session.recommendation?.recommendations.length
+                ? ` · 후보 ${session.recommendation.recommendations.length}곳`
+                : ""}
             </div>
           </div>
         </div>
@@ -514,76 +552,134 @@ function ChatStep({
       }
     >
         <div className="rc-chat">
-          {CHAT_TURNS.slice(0, Math.min(turn + 1, CHAT_TURNS.length)).map(
-            (item, index) => (
-              <div key={item.question}>
-                <div className="rc-bubble-row">
-                  <div className="rc-bubble">{item.question}</div>
-                </div>
-                {answers[index] && (
-                  <div className="rc-bubble-row is-user">
-                    <div className="rc-bubble is-user">{answers[index]}</div>
-                  </div>
-                )}
+          {bubbles.map((bubble, index) => (
+            <div
+              className={
+                "rc-bubble-row" + (bubble.role === "user" ? " is-user" : "")
+              }
+              key={`${index}:${bubble.content.slice(0, 12)}`}
+            >
+              <div
+                className={
+                  "rc-bubble" + (bubble.role === "user" ? " is-user" : "")
+                }
+              >
+                {bubble.content}
               </div>
-            ),
+            </div>
+          ))}
+          {busy && (
+            <div className="rc-bubble-row">
+              <div className="rc-bubble">답변을 조회하고 있습니다…</div>
+            </div>
           )}
         </div>
 
-        {!finished ? (
-          <div className="rc-replies">
-            {CHAT_TURNS[turn].replies.map((reply) => (
-              <button
-                type="button"
-                className="rc-reply"
-                key={reply}
-                onClick={() => onReply(reply)}
-              >
-                {reply}
-              </button>
+        <div className="rc-replies">
+          {quick.map((reply) => (
+            <button
+              type="button"
+              className={
+                "rc-reply" + (!prepared && draft === reply ? " is-on" : "")
+              }
+              key={reply}
+              disabled={busy}
+              aria-pressed={!prepared && draft === reply}
+              onClick={() => pickReply(reply)}
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+
+        <form
+          className="rc-compose"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSend(draft);
+          }}
+        >
+          <input
+            className="rc-compose-input"
+            type="text"
+            value={draft}
+            maxLength={2000}
+            aria-label="컨시어지에게 보낼 내용"
+            placeholder="원하는 조건을 적어 주세요"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <button
+            type="submit"
+            className="rc-compose-send"
+            disabled={busy || !draft.trim()}
+          >
+            보내기
+          </button>
+        </form>
+
+        {session.recommendation?.recommendations.length ? (
+          /* 「AI 제안」 칩이 붙은 카드에는 같은 카드 안에 근거가 있어야
+             합니다. 문장은 서버가 구조화 결과로 만든 것입니다. */
+          <div className="pd-card">
+            <AiSuggestion
+              headline="답변에 사용한 근거"
+              basis={`후보 ${session.recommendation.recommendations.length}곳 · 조회 ${timeLabel(session.recommendation.queried_at)} KST · ${session.recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`}
+            />
+            {bars.map((bar) => (
+              <div className="rc-basis-row" key={bar.name}>
+                <span className="rc-basis-name">{bar.name}</span>
+                <span className="rc-basis-track" />
+                <span
+                  className={
+                    "rc-basis-value" + (bar.value === "–" ? " is-empty" : "")
+                  }
+                >
+                  {bar.value}
+                </span>
+              </div>
             ))}
+            <p className="pd-note">
+              첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
+              순서는 취향 일치 기준이며 안전 점수가 아닙니다. 답변 문장은 서버가
+              조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.
+            </p>
+            <ConditionScoreDetails data={conditions.data} className="pd-note" />
           </div>
         ) : (
-          <>
-            {/* 4번째 턴에서 근거 카드를 노출합니다. 추천 문장과 같은 카드
-                안에 사용 지표 · 시각 · 출처가 함께 있어야 합니다. */}
-            <div className="pd-card">
-              <AiSuggestion
-                headline="답변을 반영한 추천"
-                basis={
-                  answer ||
-                  "답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면 미확인으로 표시합니다."
-                }
-              />
-              {bars.map((bar) => (
-                <div className="rc-basis-row" key={bar.name}>
-                  <span className="rc-basis-name">{bar.name}</span>
-                  <span className="rc-basis-track" />
-                  <span
-                    className={
-                      "rc-basis-value" + (bar.value === "–" ? " is-empty" : "")
-                    }
-                  >
-                    {bar.value}
-                  </span>
-                </div>
-              ))}
-              <p className="pd-note">
-                첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
-                순서는 취향 일치 기준이며 안전 점수가 아닙니다.
-              </p>
-              <ConditionScoreDetails data={conditions.data} className="pd-note" />
-            </div>
-            <div className="rc-stack">
-              <button type="button" className="rc-primary" onClick={onDone}>
-                코스 보기 →
-              </button>
-              <button type="button" className="rc-secondary" onClick={onReset}>
-                처음부터
-              </button>
-            </div>
-          </>
+          <ExampleNote>
+            대화 답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면
+            미확인으로 표시합니다.
+          </ExampleNote>
         )}
+
+        {session.route && <RoutePanel route={session.route} />}
+
+        {/* 대화로는 출발 좌표와 시각을 말할 수 없으므로, 경로를 요청한 자리에
+            바로 그 조건을 넣는 폼을 둡니다. */}
+        {candidates.length > 0 && session.recommendation?.selection_token && (
+          <RouteRequestForm
+            places={originOptions}
+            candidates={candidates}
+            defaultDate={session.recommendation.request.dates[0]}
+            disabled={busy}
+            submitLabel={
+              session.route?.route_calculated
+                ? "조건을 바꿔 다시 계산"
+                : "이 후보로 경로 계산"
+            }
+            onSubmit={onRoute}
+          />
+        )}
+        <div className="rc-stack">
+          <button
+            type="button"
+            className="rc-secondary"
+            onClick={onReset}
+            disabled={busy}
+          >
+            처음부터
+          </button>
+        </div>
     </AppShell>
   );
 }
@@ -631,6 +727,112 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
   );
 }
 
+/** The calculated visiting order. Times are provider estimates, so every row
+ *  says so rather than reading like a confirmed schedule. */
+function RoutePanel({ route }: { route: RouteResult }) {
+  if (!route.route_calculated || !route.route)
+    return (
+      <div className="pd-card">
+        <div className="pd-card-title">경로를 계산하지 못했습니다</div>
+        <p className="pd-note rc-note-flush">
+          <StateChip kind="no_data" />{" "}
+          {routeReasonsText(route.reason_codes) ||
+            "경로 계산 조건을 확인해 주세요."}
+        </p>
+      </div>
+    );
+  const { items, legs, travel_minutes, return_at, origin } = route.route;
+  const wholeTrip = kakaoRouteLink(origin, items);
+  return (
+    <div className="pd-card">
+      <div className="rc-card-top">
+        <div className="pd-card-title">계산한 방문 순서</div>
+        <StateChip kind="live" />
+      </div>
+      <div className="rc-route-rows">
+        {items.map((item, index) => {
+          // Each leg starts at the origin or the place visited before it.
+          const leg = kakaoRouteLink(index === 0 ? origin : items[index - 1], [
+            item,
+          ]);
+          return (
+            <div className="rc-route-row" key={`${item.spot_id}:${index}`}>
+              <span className="rc-route-no">{index + 1}</span>
+              <div className="rc-route-body">
+                <div className="rc-route-name">{item.name}</div>
+                <div className="rc-route-when">
+                  {timeLabel(item.arrival_at)} 도착 ·{" "}
+                  {timeLabel(item.departure_at)} 출발 ·{" "}
+                  {legs[index]
+                    ? `${legs[index].duration_minutes}분 이동`
+                    : "이동시간 –"}
+                </div>
+              </div>
+              {leg ? (
+                <a
+                  className="rc-route-leg"
+                  href={leg}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  이 구간 길찾기
+                </a>
+              ) : (
+                <span className="rc-route-leg">좌표 –</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="rc-facts">
+        <div className="rc-fact">
+          <div className="rc-fact-name">이동 합</div>
+          <div className="rc-fact-value">{travel_minutes}분</div>
+        </div>
+        <div className="rc-fact">
+          <div className="rc-fact-name">예상 귀가</div>
+          <div className="rc-fact-value">{timeLabel(return_at)}</div>
+        </div>
+        <div className="rc-fact">
+          <div className="rc-fact-name">출발</div>
+          <div className="rc-fact-value">
+            {route.route.origin?.label ?? "출발지"}
+          </div>
+        </div>
+      </div>
+      <p className="pd-note">
+        출발 기준 교통 자료로 계산한 예상 시각입니다.{" "}
+        {route.optimality === "provisional_missing_comparison_evidence"
+          ? "일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다."
+          : "선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다."}{" "}
+        {routeReasonsText(route.reason_codes)}
+      </p>
+      <div className="rc-stack">
+        <a className="rc-secondary" href="#map?view=course">
+          <Icon name="course" size={16} />
+          지도에서 경로 보기 →
+        </a>
+        {wholeTrip ? (
+          <a
+            className="rc-secondary"
+            href={wholeTrip}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="transit" size={16} />
+            카카오맵에서 순서대로 길찾기 →
+          </a>
+        ) : (
+          <p className="pd-note rc-note-flush">
+            출발지나 일부 장소의 좌표가 없어 카카오맵 순차 길찾기를 만들지
+            못했습니다. 구간별 링크를 확인해 주세요.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CourseStep({
   dayIndex,
   setDayIndex,
@@ -640,6 +842,8 @@ function CourseStep({
   setAltOpen,
   onRealert,
   onBack,
+  onRoute,
+  busy,
   statusText,
 }: {
   dayIndex: number;
@@ -650,6 +854,8 @@ function CourseStep({
   setAltOpen: (open: boolean) => void;
   onRealert: () => void;
   onBack: () => void;
+  onRoute: (value: RouteRequestValue) => void;
+  busy: boolean;
   statusText: string;
 }) {
   const session = useTravelSession();
@@ -666,6 +872,7 @@ function CourseStep({
   const firstAt = firstItem?.arrival_at ?? selectedAt;
   const firstConditions = useResource<Conditions>(conditionTargetInRange(firstAt) ? conditionPath(firstId, activity, firstAt) : null);
   const firstScore = conditionScore(firstConditions.data);
+  const { candidates, originOptions } = useRouteFormSources();
   const stops = session.plan
     ? session.plan.days.flatMap((savedDay) => savedDay.items.map((item) => ({
         spotId: item.spot_id,
@@ -795,6 +1002,21 @@ function CourseStep({
               {stops.map((stop, index) => <CourseStop key={`${stop.spotId}:${stop.at}:${index}`} stop={stop} activity={activity} />)}
             </div>
 
+            {session.route && <RoutePanel route={session.route} />}
+
+            {candidates.length > 0 && session.recommendation?.selection_token && (
+              <RouteRequestForm
+                places={originOptions}
+                candidates={candidates}
+                defaultDate={day.id}
+                disabled={busy}
+                submitLabel={
+                  session.route ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
+                }
+                onSubmit={onRoute}
+              />
+            )}
+
             <div className="pd-card">
               <div className="pd-card-title">조건이 바뀌면 어떻게 하나요?</div>
               <p className="pd-note">
@@ -845,8 +1067,10 @@ function CourseStep({
               </button>
             </div>
             <p className="pd-note rc-note-flush-top">
-              <StateChip kind="live" /> {statusText} 장소 후보 순서는 이동
-              경로가 아닙니다. 실제 경로는 지도에서 요청하세요.
+              <StateChip kind="live" /> {statusText}{" "}
+              {session.route?.route_calculated
+                ? "위 방문 순서는 아래 경로 계산 결과입니다."
+                : "장소 후보 순서는 이동 경로가 아닙니다. 아래에서 출발지와 시각을 넣어 경로를 계산하세요."}
             </p>
           </>
         )}
@@ -993,9 +1217,6 @@ function RecommendScreen() {
   const [tasteStep, setTasteStep] = useState<1 | 2 | 3>(1);
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
-  const [turn, setTurn] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [answer, setAnswer] = useState("");
   const [dayIndex, setDayIndex] = useState(0);
   const [altOpen, setAltOpen] = useState(false);
   const [proposal, setProposal] = useState<RecommendationResult | null>(null);
@@ -1021,7 +1242,10 @@ function RecommendScreen() {
         route: null,
       });
   }, [requestedPlan.data]);
-  const requestFor = (index = dayIndex, replies = answers): TravelRequest => {
+  // The form's own state only. Wishes the user speaks (companion, transport,
+  // activity, dates) are extracted from the actual message by the server, not
+  // guessed here from a fixed button label.
+  const requestFor = (index = dayIndex): TravelRequest => {
     const preferred_tags = [...new Set([...selectedTags, ...liked])];
     if (
       preferred_tags.includes("파도 적은 곳") &&
@@ -1030,51 +1254,33 @@ function RecommendScreen() {
         ?.options.some((option) => option.id === "small_waves")
     )
       throw new Error("파고 선호 범위를 읽지 못했습니다. 다시 시도해 주세요.");
-    const chosen = replies[0]
-      ? [
-          replies[0] === "물에 들어가고 싶어요"
-            ? ("swim" as const)
-            : ("relax" as const),
-        ]
-      : selectedActivities(preferred_tags);
+    const chosen = selectedActivities(preferred_tags);
+    const anyRole = preferred_tags.some((tag) =>
+      ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
+    );
     return {
       dates: [days[index].id],
       region: "강릉",
-      place_role: preferred_tags.some((tag) =>
-        ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
-      )
-        ? "any"
-        : "visit",
+      place_role: anyRole ? "any" : "visit",
       preferred_tags,
-      activity:
-        replies[0] === "물에 들어가고 싶어요" ? "swim" : (chosen[0] ?? "relax"),
+      activity: chosen[0] ?? "relax",
       keyword_selection: [
-        ...(chosen.length &&
-        !preferred_tags.some((tag) =>
-          ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
-        )
+        ...(chosen.length && !anyRole
           ? [{ category: "activity", values: chosen }]
           : []),
         ...(preferred_tags.includes("파도 적은 곳")
           ? [{ category: "weather", values: ["small_waves"] }]
           : []),
       ],
-      transport: replies[2] === "대중교통" ? "transit" : "driving",
-      ...(replies[1]
-        ? { companion_type: replies[1] === "혼자 반나절" ? "solo" : "friends" }
-        : {}),
-      ...(replies.length ? { purpose: replies.join(" · ") } : {}),
+      transport: "driving",
       day_trip: true,
     };
   };
-  const publish = (result: RecommendationResult) =>
-    setTravelSession({
-      recommendation: result,
-      plan: null,
-      route: null,
-      planInput: result.recommendations.length
-        ? recommendationPlan(result, result.request.dates[0])
-        : null,
+  const { bubbles, draft, setDraft, publish, send, keepTurn, requestRoute, reset } =
+    useTravelConcierge({
+      opener: CHAT_TURNS[0].question,
+      baseRequest: () => requestFor(dayIndex),
+      action,
     });
   const recommend = (index = dayIndex, savePreference = false) =>
     void action.run(async (signal) => {
@@ -1161,38 +1367,6 @@ function RecommendScreen() {
         setTravelSession({ plan });
       }
     });
-  const reply = (reply: string) => {
-    const next = [...answers, reply];
-    setAnswers(next);
-    setTurn(next.length);
-    if (next.length === CHAT_TURNS.length)
-      void action.run(async (signal) => {
-        const result = await travelJson<{
-          answer: string;
-          travel_results?: { recommendations?: RecommendationResult };
-        }>(
-          import.meta.env.BASE_URL,
-          "ai/chat",
-          "POST",
-          {
-            message:
-              next.join(". ") + ". 이 조건으로 장소와 활동을 추천해 주세요.",
-            history: [],
-            context: { region: "강릉" },
-            travel: {
-              action: "recommend",
-              request: requestFor(dayIndex, next),
-            },
-          },
-          signal,
-        );
-        if (!signal.aborted) {
-          setAnswer(result.answer);
-          if (result.travel_results?.recommendations)
-            publish(result.travel_results.recommendations);
-        }
-      });
-  };
   const refresh = () =>
     void action.run(async (signal) => {
       const result = await travelJson<RecommendationResult>(
@@ -1244,9 +1418,7 @@ function RecommendScreen() {
     setTasteStep(1);
     setCardIndex(0);
     setLiked([]);
-    setTurn(0);
-    setAnswers([]);
-    setAnswer("");
+    reset();
   };
   const status =
     action.error ||
@@ -1300,18 +1472,14 @@ function RecommendScreen() {
           )}
           {step === "chat" && (
             <ChatStep
-              turn={turn}
-              answers={answers}
-              answer={answer}
-              onReply={reply}
-              onReset={() => {
-                setTurn(0);
-                setAnswers([]);
-                setAnswer("");
-              }}
-              onDone={() =>
-                session.recommendation ? setStep("course") : recommend()
-              }
+              bubbles={bubbles}
+              draft={draft}
+              setDraft={setDraft}
+              busy={action.busy}
+              onSend={send}
+              onKeepTurn={keepTurn}
+              onRoute={requestRoute}
+              onReset={reset}
               onBack={goEntry}
             />
           )}
@@ -1326,6 +1494,8 @@ function RecommendScreen() {
                 setAltOpen={setAltOpen}
                 onRealert={refresh}
                 onBack={goEntry}
+                onRoute={requestRoute}
+                busy={action.busy}
                 statusText={status}
               />
             )}

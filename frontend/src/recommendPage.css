@@ -299,6 +299,48 @@
   color: var(--pd-blue-deep);
   cursor: pointer;
 }
+.recommend-page .rc-reply.is-on {
+  background: var(--pd-blue);
+  color: #fff;
+}
+.recommend-page .rc-reply:disabled {
+  color: var(--pd-ink-2);
+  cursor: default;
+}
+
+/* 자유 입력. 빠른 답변 버튼과 같은 대화에 들어갑니다. */
+.recommend-page .rc-compose {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.recommend-page .rc-compose-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--pd-touch);
+  padding: 0 12px;
+  font: inherit;
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-pill);
+}
+.recommend-page .rc-compose-send {
+  flex: none;
+  padding: 0 16px;
+  min-height: var(--pd-touch);
+  font-weight: 700;
+  font-size: var(--pd-fs-sm);
+  border-radius: var(--pd-r-pill);
+  background: var(--pd-blue);
+  color: #fff;
+  cursor: pointer;
+}
+.recommend-page .rc-compose-send:disabled {
+  background: #8fa3b8;
+  cursor: default;
+}
 
 /* 근거 카드의 지표 막대 — 점수 기여도가 아니라 지표 값의 상대 위치입니다. */
 .recommend-page .rc-basis-row {
@@ -495,6 +537,57 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* ── 계산한 방문 순서 ──────────────────────────────────── */
+
+.recommend-page .rc-route-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.recommend-page .rc-route-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.recommend-page .rc-route-no {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pd-blue);
+  color: #fff;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.recommend-page .rc-route-body {
+  flex: 1;
+  min-width: 0;
+}
+.recommend-page .rc-route-name {
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.recommend-page .rc-route-when {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.recommend-page .rc-route-leg {
+  flex: none;
+  display: flex;
+  align-items: center;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+  text-align: right;
+}
+.recommend-page a.rc-route-leg {
+  font-weight: 700;
+  color: var(--pd-blue-deep);
 }
 
 /* ── 알림 카드 (B4) ────────────────────────────────────── */

@@ -36,6 +36,26 @@ class RouteRecommendationInput(Record):
         return self
 
 
+async def resolve_origin(catalog, origin):
+    """Registered travel-catalog IDs yield stored coordinates. An identifier
+    from another list (water-index default places) is not a travel place, so
+    fall back to the coordinates the client already sent instead of 404-ing
+    the route. Unresolved IDs are not echoed as `spot_id`."""
+    payload = origin.model_dump()
+    if not origin.spot_id:
+        return payload, None
+    try:
+        found = await catalog.places([origin.spot_id])
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        return payload, None
+    row = found[origin.spot_id]
+    payload["latitude"] = row["latitude"]
+    payload["longitude"] = row["longitude"]
+    return payload, origin.spot_id
+
+
 def base_result(request, now, status, reasons):
     return {
         "contract_version": "travel-route.v1",
@@ -90,11 +110,7 @@ async def recommend_route(
         )
     catalog = catalog or Catalog(settings, now)
     places = await catalog.places(ids)
-    origin = request.origin.model_dump()
-    if request.origin.spot_id:
-        origin = (await catalog.places([request.origin.spot_id]))[
-            request.origin.spot_id
-        ]
+    origin, origin_spot_id = await resolve_origin(catalog, request.origin)
     if origin.get("latitude") is None or origin.get("longitude") is None:
         return base_result(
             original, now, "clarification", ["origin_coordinates_required"]
@@ -196,6 +212,10 @@ async def recommend_route(
                     {
                         "spot_id": sid,
                         "name": places[sid]["name"],
+                        # Registered catalogue coordinates, so the client can
+                        # draw this order and hand it to the map app.
+                        "latitude": places[sid]["latitude"],
+                        "longitude": places[sid]["longitude"],
                         "arrival_at": cursor.isoformat(),
                         "departure_at": end.isoformat(),
                         "stay_minutes": body.stay_minutes,
@@ -296,6 +316,14 @@ async def recommend_route(
         )
         return result
     winner = candidates[0]
+    # The owner's own origin, echoed next to the order it starts from. The
+    # model never receives this; only the requesting client does.
+    winner["origin"] = {
+        "label": request.origin.label,
+        "spot_id": origin_spot_id,
+        "latitude": origin["latitude"],
+        "longitude": origin["longitude"],
+    }
     complete = all(r["environment_complete"] for r in candidates) and not failures
     result.update(
         route=winner,

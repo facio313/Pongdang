@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
-import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -10,118 +8,182 @@ import {
   LabelRow,
   SplitBody,
 } from "./pongdangDesktop";
-import { GradeIcon, Icon, StateChip } from "./pongdangUi";
-import { MAPPABLE_SPOTS, mappableSpots } from "./spotsCatalog";
+import { Icon, StateChip } from "./pongdangUi";
+import { AiSuggestion } from "./pongdangUi";
+import { dateLabel, kstDate, timeLabel } from "./productData";
+import { useAction } from "./useAction";
+import { useResource } from "./useResource";
+import {
+  kakaoRouteLink,
+  routePaths,
+  routeReasonsText,
+  travelJson,
+  type RecommendationResult,
+  type TravelRequest,
+} from "./travelApi";
+import { RouteRequestForm } from "./RouteRequestForm";
+import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import "./recommendDesktop.css";
 
 // 데스크탑 추천(핸드오프 18b)입니다. 모바일의 여러 단계(취향 고르기 → 대화 →
 // 코스 → 지도)를 **한 페이지의 세로 흐름**으로 접었습니다.
 //
-// 코스 데이터 · 서핑/온천 점수 · 이동 시간 · 대화형 응답은 전부 미연동입니다.
-// AI 문장에는 「AI 제안」 칩과 근거를 같은 덩어리 안에 둡니다.
+// 모바일과 같은 서버 계약을 씁니다. 취향은 서버 키워드 카탈로그에서 읽고,
+// 대화와 경로 계산은 useTravelConcierge 가 담당합니다. 값이 없으면 «–» 이며
+// 0 이나 안전을 뜻하지 않습니다.
 
-const CONTEXT = "강릉 · 9월 15일 · 취향 2개 선택";
+interface KeywordCatalogue {
+  version: string;
+  categories: {
+    id: string;
+    label: string;
+    max_selections: number;
+    options: { id: string; label: string }[];
+  }[];
+}
 
-const TASTES: { label: string; mascot: MascotRole }[] = [
-  { label: "서핑", mascot: "surf" },
-  { label: "온천", mascot: "hotspring" },
-  { label: "카페", mascot: "cafe" },
-  { label: "갯벌 체험", mascot: "spot" },
-  { label: "스노클링", mascot: "snorkel" },
-  { label: "휴식", mascot: "rest" },
-  { label: "래프팅", mascot: "rafting" },
-];
-const INITIAL_TASTES = ["서핑", "온천"];
+/** 서버가 발행한 카테고리 중 이 화면에서 고르게 하는 것들. 프런트가 키워드
+ *  ID 를 만들지 않습니다. */
+const PICKABLE = ["place_type", "activity", "companion", "atmosphere"];
 
-const MODES = ["코스", "장소", "활동"];
-
-const PROMPTS = ["비 오는 날 아이랑", "차 없이 이동", "2시간 안에 끝내기"];
-
-/** AI 문장이 쓴 근거. 규칙상 문장과 같은 덩어리 안에 있어야 합니다. */
-const BASIS: { name: string; value: string; note: string }[] = [
-  { name: "근거 · 파고", value: "0.6m", note: "서핑 적정 구간" },
-  { name: "근거 · 물때", value: "12:34", note: "간조 이후 밀물" },
-  { name: "근거 · 수온", value: "22.1°C", note: "오후 하강 예보" },
-];
-
-/** 만들어진 코스. 카페거리는 취향 미선택이라 점수가 «–» 이며 0 이 아닙니다. */
-const STEPS: {
-  name: string;
-  mascot: MascotRole;
-  when: string;
-  score: number | null;
-  scoreNote: string;
-}[] = [
-  {
-    name: "경포해변 서핑",
-    mascot: "surf",
-    when: "09:20 · 2시간",
-    score: 82,
-    scoreNote: "수영 점수 기준",
-  },
-  {
-    name: "안목 카페거리",
-    mascot: "cafe",
-    when: "12:00 · 1시간 · 5.1km",
-    score: null,
-    scoreNote: "취향 미선택 · 이동 중 경유",
-  },
-  {
-    name: "사천진 온천",
-    mascot: "hotspring",
-    when: "14:30 · 1시간 30분 · 2.7km",
-    score: 70,
-    scoreNote: "휴식 점수 기준",
-  },
+const OPENER = "어떤 물놀이를 찾으세요? 조건을 말로 적어도 됩니다.";
+const FOLLOWUPS = [
+  "이 후보들로 경로 짜줘",
+  "아이랑 갈 만한 곳으로",
+  "더 가까운 곳으로",
 ];
 
 export function RecommendDesktop() {
-  const [picked, setPicked] = useState<string[]>(INITIAL_TASTES);
-  const [mode, setMode] = useState(MODES[0]);
-  const pinned = useMemo(() => mappableSpots(MAPPABLE_SPOTS), []);
-  const markers = useMemo(
-    () =>
-      pinned.map(({ spot, latitude, longitude }, index) => ({
-        id: String(spot.id),
-        latitude,
-        longitude,
-        order: index + 1,
-      })),
-    [pinned],
+  const action = useAction();
+  const keywords = useResource<KeywordCatalogue>("travel/keywords");
+  const [picked, setPicked] = useState<Record<string, string[]>>({});
+  const categories = (keywords.data?.categories ?? []).filter((category) =>
+    PICKABLE.includes(category.id),
   );
-  const pickedLabel = picked.length ? picked.join("과 ") : "고른 취향 없이";
+  const selectionCount = Object.values(picked).flat().length;
+
+  const baseRequest = (): TravelRequest => ({
+    dates: [kstDate()],
+    region: "강릉",
+    place_role: "visit",
+    preferred_tags: [],
+    activity: "relax",
+    transport: "driving",
+    day_trip: true,
+    keyword_selection: Object.entries(picked)
+      .filter(([, values]) => values.length)
+      .map(([category, values]) => ({ category, values })),
+  });
+
+  const { session, bubbles, asked, draft, setDraft, publish, send, requestRoute } =
+    useTravelConcierge({ opener: OPENER, baseRequest, action });
+  const recommendation = session.recommendation;
+  const calculated = session.route?.route;
+  const items = calculated?.items ?? [];
+
+  const requestList = () =>
+    void action.run(async (signal) => {
+      const result = await travelJson<RecommendationResult>(
+        import.meta.env.BASE_URL,
+        "travel/recommendations",
+        "POST",
+        { request: baseRequest(), limit: 5 },
+        signal,
+      );
+      if (!signal.aborted) publish(result);
+    });
+
+  const { candidates, originOptions } = useRouteFormSources();
+
+  // 마커·경로선은 좌표가 있는 실제 장소만 씁니다. 경로가 계산되면 방문 순서를,
+  // 아직이면 후보 순서를 번호로 붙입니다. 지도는 이 배열의 동일성으로 다시
+  // 만들어지므로, 세션이 바뀔 때만 새로 계산합니다.
+  const { ordered, markers } = useMemo(() => {
+    const route = session.route?.route;
+    const places = route
+      ? route.items.map((item) => ({
+          id: item.spot_id,
+          name: item.name,
+          lat: item.latitude,
+          lng: item.longitude,
+        }))
+      : (session.recommendation?.recommendations ?? []).map((item) => ({
+          id: item.spot_id,
+          name: item.name,
+          lat: item.confirmed.latitude,
+          lng: item.confirmed.longitude,
+        }));
+    const start = route?.origin;
+    return {
+      ordered: places,
+      markers: [
+        ...(start && start.latitude !== null && start.longitude !== null
+          ? [
+              {
+                id: "origin",
+                latitude: start.latitude,
+                longitude: start.longitude,
+              },
+            ]
+          : []),
+        ...places
+          .filter((place) => place.lat !== null && place.lng !== null)
+          .map((place) => ({
+            id: String(place.id),
+            latitude: place.lat!,
+            longitude: place.lng!,
+          })),
+      ],
+    };
+  }, [session.route, session.recommendation]);
+  const paths = useMemo(() => routePaths(session.route), [session.route]);
+  const unmappable = ordered.filter(
+    (place) => place.lat === null || place.lng === null,
+  ).length;
+  const wholeTrip = calculated
+    ? kakaoRouteLink(calculated.origin, calculated.items)
+    : null;
+
+  const context = `강릉 · ${dateLabel()} · 취향 ${selectionCount}개 선택`;
+  const listHeadline = recommendation?.recommendations.length
+    ? `후보 ${recommendation.recommendations.length}곳`
+    : "후보 조회 전";
 
   return (
     <DesktopShell>
-      <DesktopHero nav={<DesktopNav active="recommend" context={CONTEXT} />}>
+      <DesktopHero nav={<DesktopNav active="recommend" context={context} />}>
         <div className="rd-hero">
           <div className="rd-hero-lead">
             <div className="pd-dk-kick rd-hero-kick">취향 기반 추천</div>
             <h1 className="rd-hero-title">
-              {pickedLabel}으로
+              고른 조건으로
               <br />
-              오늘 하루를 짰습니다
+              실제 장소를 찾습니다
             </h1>
             <p className="rd-hero-note">
-              고른 취향 · 오늘 조건 · 이동 거리를 함께 봅니다. 아래에서 취향을
-              바꾸면 코스가 다시 만들어집니다.
+              서버가 등록 장소 카탈로그를 조회해 취향 일치 순서로 후보를
+              만듭니다. 경로는 출발지와 출발 시각을 넣어 따로 요청합니다.
+              순서와 시각은 예상값이며 안전 판정이 아닙니다.
             </p>
           </div>
-          <img
-            className="rd-hero-mascot"
-            src={mascotUrl("surf")}
-            alt={MASCOT_ALT}
-            width={200}
-            height={200}
-          />
           <div className="rd-hero-metrics">
             <div>
-              <div className="rd-metric-name">코스 길이</div>
-              <div className="pd-dk-num rd-metric-value">12.0km</div>
+              <div className="rd-metric-name">후보</div>
+              <div className="pd-dk-num rd-metric-value">
+                {recommendation?.recommendations.length ?? "–"}
+              </div>
             </div>
             <div>
-              <div className="rd-metric-name">머무는 시간</div>
-              <div className="pd-dk-num rd-metric-value">4h 30m</div>
+              <div className="rd-metric-name">이동 합</div>
+              <div className="pd-dk-num rd-metric-value">
+                {calculated ? `${calculated.travel_minutes}분` : "–"}
+              </div>
+            </div>
+            <div>
+              <div className="rd-metric-name">예상 귀가</div>
+              <div className="pd-dk-num rd-metric-value">
+                {calculated ? timeLabel(calculated.return_at) : "–"}
+              </div>
             </div>
           </div>
         </div>
@@ -136,38 +198,63 @@ export function RecommendDesktop() {
             싶으신가요
           </>
         }
-        desc="선택은 색과 ✓ 두 겹으로 표시합니다. 모바일 취향 고르기와 같은 항목 · 같은 순서입니다."
+        desc="선택 항목은 서버 키워드 카탈로그(travel-keywords.v1)에서 읽습니다. 선택은 색과 ✓ 두 겹으로 표시합니다."
       >
-        <div className="rd-tastes">
-          {TASTES.map((taste) => {
-            const on = picked.includes(taste.label);
-            return (
-              <button
-                type="button"
-                key={taste.label}
-                className={"rd-taste" + (on ? " is-on" : "")}
-                aria-pressed={on}
-                onClick={() =>
-                  setPicked((current) =>
-                    current.includes(taste.label)
-                      ? current.filter((item) => item !== taste.label)
-                      : [...current, taste.label],
-                  )
-                }
-              >
-                <img src={mascotUrl(taste.mascot)} alt="" width={22} height={22} />
-                {taste.label}
-                {on && <Icon name="check" size={14} />}
-              </button>
-            );
-          })}
-        </div>
+        {categories.length === 0 ? (
+          <p className="rd-note">
+            {keywords.error ??
+              (keywords.loading
+                ? "선택 항목을 불러오는 중입니다."
+                : "선택 항목을 불러오지 못했습니다.")}
+          </p>
+        ) : (
+          categories.map((category) => (
+            <div className="rd-taste-group" key={category.id}>
+              <div className="pd-dk-kick">
+                {category.label} · 최대 {category.max_selections}개
+              </div>
+              <div className="rd-tastes">
+                {category.options.map((option) => {
+                  const values = picked[category.id] ?? [];
+                  const on = values.includes(option.id);
+                  return (
+                    <button
+                      type="button"
+                      key={option.id}
+                      className={"rd-taste" + (on ? " is-on" : "")}
+                      aria-pressed={on}
+                      onClick={() =>
+                        setPicked((current) => {
+                          const next = on
+                            ? values.filter((value) => value !== option.id)
+                            : [...values, option.id].slice(
+                                -category.max_selections,
+                              );
+                          return { ...current, [category.id]: next };
+                        })
+                      }
+                    >
+                      {option.label}
+                      {on && <Icon name="check" size={14} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
         <div className="rd-row-foot">
           <span className="rd-note">
-            취향은 계정에 저장되며 홈 배너 · 내 코스에서도 같은 값을 씁니다.
+            고른 조건은 이번 요청에만 적용합니다. 취향 저장은 모바일 추천 화면의
+            취향 확정에서 합니다.
           </span>
-          <button type="button" className="pd-dk-button rd-remake">
-            이 취향으로 다시 만들기
+          <button
+            type="button"
+            className="pd-dk-button rd-remake"
+            disabled={action.busy}
+            onClick={requestList}
+          >
+            이 조건으로 후보 찾기
           </button>
         </div>
       </LabelRow>
@@ -181,175 +268,251 @@ export function RecommendDesktop() {
             덧붙일 수 있습니다
           </>
         }
-        chip={<StateChip kind="uncollected" />}
-        desc="대화형 응답은 아직 실연동되지 않았습니다. 답변에는 근거를 함께 노출합니다."
+        desc="보낸 문장은 서버가 여행 조건 변경으로 해석합니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다."
       >
         <SplitBody columns="1fr 1.1fr">
           <div className="rd-ask">
-            <div className="rd-modes" role="group" aria-label="질문 범위">
-              {MODES.map((item) => (
-                <button
-                  type="button"
-                  key={item}
-                  className={"rd-mode" + (item === mode ? " is-on" : "")}
-                  aria-pressed={item === mode}
-                  onClick={() => setMode(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <div className="rd-field">
-              <span className="rd-field-text">
-                오후엔 몸 녹일 곳까지 넣어 주세요
-              </span>
-              <span className="pd-dk-button rd-send">보내기</span>
-            </div>
+            <form
+              className="rd-field"
+              onSubmit={(event) => {
+                event.preventDefault();
+                send(draft);
+              }}
+            >
+              <input
+                className="rd-field-input"
+                type="text"
+                value={draft}
+                maxLength={2000}
+                aria-label="컨시어지에게 보낼 내용"
+                placeholder="오후엔 몸 녹일 곳까지 넣어 주세요"
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <button
+                type="submit"
+                className="pd-dk-button rd-send"
+                disabled={action.busy || !draft.trim()}
+              >
+                보내기
+              </button>
+            </form>
             <div className="rd-prompts">
-              {PROMPTS.map((prompt) => (
-                <span className="rd-prompt" key={prompt}>
-                  {prompt}
-                </span>
-              ))}
+              {(asked ? FOLLOWUPS : ["물 보면서 쉬고 싶어요", ...FOLLOWUPS]).map(
+                (prompt) => (
+                  <button
+                    type="button"
+                    className={
+                      "rd-prompt" + (draft === prompt ? " is-on" : "")
+                    }
+                    key={prompt}
+                    disabled={action.busy}
+                    aria-pressed={draft === prompt}
+                    onClick={() => setDraft(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ),
+              )}
             </div>
           </div>
           <div className="rd-answer">
-            <div className="rd-answer-head">
-              <img
-                src={mascotUrl("ai")}
-                alt={MASCOT_ALT}
-                width={72}
-                height={72}
-              />
-              <div>
-                <span className="pd-ai-chip">
-                  <Icon name="sparkle" size={12} />
-                  AI 제안
-                </span>
-                <div className="rd-answer-text">
-                  오전에 경포에서 서핑하고, 12:34 밀물 뒤에는 사천진 온천으로
-                  옮기는 편이 낫습니다.
-                </div>
-              </div>
-            </div>
-            {/* 「AI 제안」 칩이 붙은 자리에는 근거가 같은 덩어리 안에
-                있어야 합니다(핸드오프 데이터 표기 규칙 4). */}
-            <div className="rd-basis">
-              {BASIS.map((row) => (
-                <div className="rd-basis-row" key={row.name}>
-                  <span className="rd-basis-name">{row.name}</span>
-                  <span className="pd-dk-num rd-basis-value">{row.value}</span>
-                  <span className="rd-basis-note">{row.note}</span>
+            <AiSuggestion
+              headline={`대화 ${asked}턴 · ${listHeadline}`}
+              basis={
+                recommendation
+                  ? `조회 ${timeLabel(recommendation.queried_at)} KST · 상태 ${recommendation.status} · ${recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`
+                  : "아직 서버 조회 결과가 없습니다. 조건을 보내면 실제 장소를 조회합니다."
+              }
+            />
+            <div className="rd-bubbles">
+              {bubbles.map((bubble, index) => (
+                <div
+                  className={
+                    "rd-bubble" + (bubble.role === "user" ? " is-user" : "")
+                  }
+                  key={`${index}:${bubble.content.slice(0, 12)}`}
+                >
+                  {bubble.content}
                 </div>
               ))}
+              {action.busy && (
+                <div className="rd-bubble">답변을 조회하고 있습니다…</div>
+              )}
             </div>
             <p className="rd-note">
-              AI 문장은 위 근거로만 만들어졌고, 근거 값도 <b>예시</b>입니다. 안전
-              판단에는 쓸 수 없습니다.
+              AI 문장은 서버가 조회한 근거로만 만들어집니다. 안전 판단에는 쓸 수
+              없습니다.
             </p>
           </div>
         </SplitBody>
       </LabelRow>
 
       <LabelRow
-        kick="3 · 만들어진 코스"
+        kick="3 · 후보와 경로"
         title={
-          <>
-            서핑 → 카페 →<br />
-            온천 · 3곳
-          </>
+          calculated
+            ? `방문 ${items.length}곳 · ${calculated.travel_minutes}분 이동`
+            : listHeadline
         }
-        chip={<StateChip kind="example" />}
-        desc="활동 점수는 저장된 3종(수영 · 래프팅 · 휴식) 기준이며, 서핑 · 온천 점수는 수집 항목이 아닙니다."
+        chip={
+          <StateChip
+            kind={recommendation?.recommendations.length ? "live" : "no_data"}
+          />
+        }
+        desc="활동 조건 점수는 저장된 3종(수영 · 래프팅 · 휴식) 기준이며, 서핑 · 온천 점수는 수집 항목이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다."
       >
-        <SplitBody>
-          {STEPS.map((step, index) => {
-            const grade = gradeOf(step.score);
-            return (
-              <div className="rd-step" key={step.name}>
-                <div className="rd-step-head">
-                  <span className="pd-dk-num rd-step-no">{index + 1}</span>
-                  {index < STEPS.length - 1 && <span className="rd-step-line" />}
-                </div>
-                <div className="rd-step-body">
-                  <img
-                    src={mascotUrl(step.mascot)}
-                    alt=""
-                    width={62}
-                    height={62}
-                  />
-                  <div>
+        {recommendation?.recommendations.length ? (
+          <>
+            <div className="rd-steps">
+              {(calculated
+                ? items.map((item, index) => ({
+                    key: `${item.spot_id}:${index}`,
+                    no: index + 1,
+                    name: item.name,
+                    when: `${timeLabel(item.arrival_at)} 도착 · ${timeLabel(item.departure_at)} 출발 · ${calculated.legs[index] ? `${calculated.legs[index].duration_minutes}분 이동` : "이동시간 –"}`,
+                    link: kakaoRouteLink(
+                      index === 0 ? calculated.origin : items[index - 1],
+                      [item],
+                    ),
+                  }))
+                : recommendation.recommendations.map((item) => ({
+                    key: String(item.spot_id),
+                    no: item.rank,
+                    name: item.name,
+                    when: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
+                    link: null,
+                  }))
+              ).map((step) => (
+                <div className="rd-step" key={step.key}>
+                  <span className="pd-dk-num rd-step-no">{step.no}</span>
+                  <div className="rd-step-body">
                     <div className="rd-step-name">{step.name}</div>
                     <div className="rd-step-when">{step.when}</div>
                   </div>
-                </div>
-                <div className="rd-step-score" data-grade={grade.key}>
-                  <span className="pd-dk-num rd-step-score-num">
-                    {step.score ?? "–"}
-                  </span>
-                  {step.score === null ? (
-                    <span className="rd-step-score-note">{step.scoreNote}</span>
+                  {step.link ? (
+                    <a
+                      className="rd-step-link"
+                      href={step.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      이 구간 길찾기
+                    </a>
                   ) : (
-                    <span className="rd-step-score-grade">
-                      <GradeIcon gradeKey={grade.key} size={12} />
-                      {step.scoreNote} · {grade.label}
+                    <span className="rd-step-link is-empty">
+                      {calculated ? "좌표 –" : "경로 계산 전"}
                     </span>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </SplitBody>
-        <div className="rd-row-foot">
-          <span className="rd-note">
-            카페거리 점수는 값이 없어 «–»로 둡니다 — 0점이 아닙니다. 이동 시간은
-            자동차 기준 추정값입니다.
-          </span>
-          <a className="pd-dk-button" href="#my-courses">
-            내 코스에 저장
-          </a>
-          <a className="pd-dk-button is-quiet" href="#map?view=course">
-            지도에서 보기 →
-          </a>
-        </div>
+              ))}
+            </div>
+            {session.route && !session.route.route_calculated && (
+              <p className="rd-note">
+                경로 미계산:{" "}
+                {routeReasonsText(session.route.reason_codes) ||
+                  "경로 계산 조건을 확인해 주세요."}
+              </p>
+            )}
+            {calculated && (
+              <p className="rd-note">
+                {session.route?.optimality ===
+                "provisional_missing_comparison_evidence"
+                  ? "일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다."
+                  : "선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다."}{" "}
+                {routeReasonsText(session.route?.reason_codes ?? [])}
+              </p>
+            )}
+            <RouteRequestForm
+              places={originOptions}
+              candidates={candidates}
+              defaultDate={recommendation.request.dates[0]}
+              disabled={action.busy}
+              submitLabel={
+                calculated ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
+              }
+              onSubmit={requestRoute}
+            />
+            <div className="rd-row-foot">
+              <a className="pd-dk-button is-quiet" href="#map?view=course">
+                지도 탭에서 보기 →
+              </a>
+              {wholeTrip && (
+                <a
+                  className="pd-dk-button"
+                  href={wholeTrip}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  카카오맵에서 순서대로 길찾기 →
+                </a>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="rd-note">
+            {action.error ||
+              recommendation?.clarification ||
+              "아직 후보가 없습니다. 조건을 고르고 「이 조건으로 후보 찾기」를 누르거나 대화로 알려 주세요."}
+          </p>
+        )}
       </LabelRow>
 
       <LabelRow
-        kick="4 · 지도 미리보기"
-        title="3곳 · 12.0km"
-        desc="좌표는 실제 값이고 점수는 예시입니다. 전체 경로 탐색은 지도 탭에서 합니다."
+        kick="4 · 지도"
+        title={
+          calculated
+            ? `경로 ${paths.length}구간`
+            : `후보 ${markers.length}곳`
+        }
+        desc="좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다."
       >
         <div className="rd-map">
-          <KakaoMapCanvas
-            markers={markers}
-            selectedId={null}
-            renderMarker={(id) => {
-              const marker = markers.find((item) => item.id === id);
-              return marker ? (
-                <span className="pd-dk-num rd-pin">{marker.order}</span>
-              ) : null;
-            }}
-            overlay={
-              <span className="rd-map-badge">추천 경로 · 예시</span>
-            }
-          />
+          {markers.length ? (
+            <KakaoMapCanvas
+              markers={markers}
+              paths={paths}
+              selectedId={null}
+              renderMarker={(id) => {
+                if (id === "origin")
+                  return <span className="rd-pin is-origin">출발</span>;
+                const index = ordered.findIndex(
+                  (place) => place.id === Number(id),
+                );
+                return index === -1 ? null : (
+                  <span className="pd-dk-num rd-pin">{index + 1}</span>
+                );
+              }}
+            />
+          ) : (
+            <p className="rd-note">
+              지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해 주세요.
+            </p>
+          )}
         </div>
         <div className="rd-legend">
-          {STEPS.map((step, index) => (
-            <span className="rd-legend-item" key={step.name}>
+          {ordered.map((place, index) => (
+            <span className="rd-legend-item" key={`${place.id}:${index}`}>
               <span className="pd-dk-num rd-legend-no">{index + 1}</span>
-              {step.name}
+              {place.name}
             </span>
           ))}
-          <span className="rd-note rd-legend-note">
-            경로 · 소요 시간은 미연동 추정값
-          </span>
+          {unmappable > 0 && (
+            <span className="rd-note rd-legend-note">
+              좌표가 없는 {unmappable}곳은 지도에 찍지 않습니다.
+            </span>
+          )}
+          {calculated && paths.length < calculated.legs.length && (
+            <span className="rd-note rd-legend-note">
+              도로 선을 받은 구간 {paths.length}/{calculated.legs.length}개만
+              그립니다.
+            </span>
+          )}
         </div>
       </LabelRow>
 
       <FootNote
-        missing="코스 데이터 · 서핑 · 온천 점수 · 이동 시간 · 대화형 응답"
-        note="AI 제안은 노출된 근거만으로 만든 문장이며, 근거 값도 예시입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다."
+        missing="서핑 · 온천 활동 점수 · 편의시설 · 대중교통 경로 · 코스 공유"
+        note="후보 순서는 취향 일치 기준이고, 경로 시각은 출발 기준 교통 자료의 예상값입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다. 값이 없으면 «–» 로 두며 0 이나 안전으로 치환하지 않습니다."
       />
     </DesktopShell>
   );

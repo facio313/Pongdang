@@ -213,7 +213,17 @@ def rank_places(places, request, preference, signals, restrictions):
             unknown.append("travel_time")
         ranked.append((place, matches, list(dict.fromkeys(unknown))))
     # Hard requirements never become soft just to fill the requested count.
-    ranked.sort(key=lambda row: (-sum(m.weight for m in row[1]), row[0]["spot_id"]))
+    # Places the user explicitly named stay ahead of preference weight so the
+    # requested count cannot drop them; they still pass the checks above, and a
+    # blocked or unconfirmed one keeps its reason in `excluded`.
+    required = set(request.must_include)
+    ranked.sort(
+        key=lambda row: (
+            row[0]["spot_id"] not in required,
+            -sum(m.weight for m in row[1]),
+            row[0]["spot_id"],
+        )
+    )
     return ranked, excluded
 
 
@@ -232,6 +242,18 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
         raise HTTPException(422, str(exc)) from None
     try:
         places, scope = await catalog.search(request)
+        # An explicitly named place is a candidate even when the bounded
+        # region/category search did not return it, so it either appears in the
+        # result or states why it was excluded.
+        missing = [
+            sid
+            for sid in dict.fromkeys(request.must_include)
+            if sid not in {p["spot_id"] for p in places}
+        ]
+        if missing:
+            added = await catalog.places(missing)
+            places = [*places, *added.values()]
+            scope["must_include_added"] = sorted(added)
         restrictions = await catalog.restrictions(
             [p["spot_id"] for p in places], request
         )
@@ -282,9 +304,12 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
             "optimality": "only_within_compared_candidates_and_available_evidence",
         }
 
+        required = set(request.must_include)
+
         def environment_order(row):
             points = environment_matches[row[0]["spot_id"]]["preference_points"]
             return (
+                row[0]["spot_id"] not in required,
                 points is None if request.environment_preferences else False,
                 -sum(m.weight for m in row[1]) - (points or 0),
                 row[0]["spot_id"],

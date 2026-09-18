@@ -115,6 +115,16 @@
 .map-page .mp-pin.is-selected .mp-pin-label {
   outline: 2px solid var(--pd-blue-deep);
 }
+/* 출발지 핀. 누를 대상이 아니라 계산된 경로의 시작 표시입니다. */
+.map-page .mp-pin.is-origin {
+  cursor: default;
+}
+.map-page .mp-pin.is-origin .mp-pin-core {
+  background: var(--pd-blue-deep);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--pd-fs-cap);
+}
 
 /* ── 바텀 시트 ─────────────────────────────────────────── */
 
@@ -279,6 +289,15 @@
   flex: none;
   font-family: var(--pd-font-num);
   font-variant-numeric: tabular-nums;
+}
+.map-page a.mp-stop-dist {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+}
+.map-page .mp-course-link {
+  margin-top: 12px;
 }
 
 /* ── 버튼 ──────────────────────────────────────────────── */

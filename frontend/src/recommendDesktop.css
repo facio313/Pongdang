@@ -28,11 +28,6 @@
   max-width: 60ch;
   margin: 12px 0 0;
 }
-.pd-desktop .rd-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: 10px;
-}
 .pd-desktop .rd-hero-metrics {
   flex: none;
   display: flex;
@@ -76,8 +71,15 @@
 }
 
 /* ── 1 · 취향 ──────────────────────────────────────────
-   선택은 색 하나로 말하지 않습니다 -- 색 + ✓ 아이콘 두 겹입니다. */
+   선택은 색 하나로 말하지 않습니다 -- 색 + ✓ 아이콘 두 겹입니다.
+   항목은 서버 키워드 카탈로그에서 카테고리별로 옵니다. */
 
+.pd-desktop .rd-taste-group + .rd-taste-group {
+  margin-top: 16px;
+}
+.pd-desktop .rd-taste-group .pd-dk-kick {
+  margin-bottom: 8px;
+}
 .pd-desktop .rd-tastes {
   display: flex;
   flex-wrap: wrap;
@@ -98,53 +100,45 @@
   color: #fff;
   background: var(--dk-blue);
 }
-.pd-desktop .rd-taste img {
-  display: block;
-}
 .pd-desktop .rd-remake {
   background: var(--dk-blue);
   font-size: 12px;
   padding: 11px 18px;
 }
+.pd-desktop .rd-remake:disabled {
+  background: var(--dk-ink-2);
+  cursor: default;
+}
 
 /* ── 2 · 대화로 좁히기 ─────────────────────────────────── */
 
-.pd-desktop .rd-modes {
-  display: inline-flex;
-  background: #e7eef7;
-  border-radius: var(--dk-r-pill);
-  padding: 3px;
-}
-.pd-desktop .rd-mode {
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 9px 18px;
-  border-radius: var(--dk-r-pill);
-  color: var(--dk-ink-2);
-}
-.pd-desktop .rd-mode.is-on {
-  background: #fff;
-  color: var(--dk-ink);
-}
 .pd-desktop .rd-field {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 14px;
   border: 1px solid var(--dk-line);
   border-radius: var(--dk-r-ctl);
   padding: 0 6px 0 16px;
   height: 52px;
 }
-.pd-desktop .rd-field-text {
+.pd-desktop .rd-field-input {
   flex: 1;
+  min-width: 0;
+  font: inherit;
   font-size: 13px;
   color: var(--dk-ink);
+  background: none;
+  border: 0;
 }
 .pd-desktop .rd-send {
   font-size: 12px;
   padding: 10px 16px;
   border-radius: 10px;
+  background: var(--dk-blue);
+}
+.pd-desktop .rd-send:disabled {
+  background: var(--dk-ink-2);
+  cursor: default;
 }
 .pd-desktop .rd-prompts {
   display: flex;
@@ -157,60 +151,58 @@
   font-weight: 700;
   color: var(--dk-deep);
   background: #dfeaf7;
-  padding: 4px 10px;
+  padding: 7px 12px;
   border-radius: var(--dk-r-pill);
+  cursor: pointer;
+}
+.pd-desktop .rd-prompt.is-on {
+  background: var(--dk-deep);
+  color: #fff;
+}
+.pd-desktop .rd-prompt:disabled {
+  color: var(--dk-ink-2);
+  cursor: default;
 }
 
-.pd-desktop .rd-answer-head {
+/* 서버가 만든 문장과 사용자의 문장. 말풍선 자체가 근거는 아니므로 위쪽
+   「AI 제안」 칩의 근거 줄과 같은 덩어리 안에 둡니다. */
+.pd-desktop .rd-bubbles {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-.pd-desktop .rd-answer-head img {
-  display: block;
-  flex: none;
-}
-.pd-desktop .rd-answer-text {
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1.6;
-  margin-top: 8px;
-}
-.pd-desktop .rd-basis {
+  flex-direction: column;
+  gap: 8px;
   margin-top: 14px;
   border-top: 1px solid var(--dk-rule-weak);
+  padding-top: 14px;
+  max-height: 320px;
+  overflow-y: auto;
 }
-.pd-desktop .rd-basis-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--dk-rule-weak);
+.pd-desktop .rd-bubble {
+  align-self: flex-start;
+  max-width: 88%;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-line;
+  background: #eef4fb;
+  border-radius: var(--dk-r-ctl);
+  padding: 10px 14px;
 }
-.pd-desktop .rd-basis-row:last-child {
-  border-bottom: 0;
-}
-.pd-desktop .rd-basis-name {
-  width: 96px;
-  flex: none;
-  font-size: 11.5px;
-  color: var(--dk-ink-2);
-}
-.pd-desktop .rd-basis-value {
-  font-size: 15px;
-}
-.pd-desktop .rd-basis-note {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--dk-ink-2);
+.pd-desktop .rd-bubble.is-user {
+  align-self: flex-end;
+  background: var(--dk-blue);
+  color: #fff;
 }
 
-/* ── 3 · 만들어진 코스 ─────────────────────────────────── */
+/* ── 3 · 후보와 경로 ───────────────────────────────────── */
 
-.pd-desktop .rd-step-head {
+.pd-desktop .rd-steps {
+  border-top: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .rd-step {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dk-rule-weak);
 }
 .pd-desktop .rd-step-no {
   width: 28px;
@@ -223,21 +215,9 @@
   place-items: center;
   font-size: 12.5px;
 }
-.pd-desktop .rd-step-line {
-  flex: 1;
-  height: 2px;
-  background: var(--dk-rule-weak);
-  display: block;
-}
 .pd-desktop .rd-step-body {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-}
-.pd-desktop .rd-step-body img {
-  display: block;
-  flex: none;
+  flex: 1;
+  min-width: 0;
 }
 .pd-desktop .rd-step-name {
   font-weight: 700;
@@ -248,49 +228,24 @@
   color: var(--dk-ink-2);
   margin-top: 3px;
 }
-.pd-desktop .rd-step-score {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 12px;
-  color: var(--g-ink);
-}
-.pd-desktop .rd-step-score-num {
-  font-size: 22px;
-}
-.pd-desktop .rd-step-score-grade {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.pd-desktop .rd-step-link {
+  flex: none;
+  font-size: 11.5px;
   font-weight: 700;
-  font-size: 11.5px;
+  color: var(--dk-deep);
 }
-/* 값이 없는 칸은 등급명 대신 **없는 이유**를 적습니다. */
-.pd-desktop .rd-step-score-note {
-  font-size: 11.5px;
+.pd-desktop .rd-step-link.is-empty {
   font-weight: 400;
   color: var(--dk-ink-2);
 }
 
-/* ── 4 · 지도 미리보기 ─────────────────────────────────── */
+/* ── 4 · 지도 ──────────────────────────────────────────── */
 
 .pd-desktop .rd-map {
   position: relative;
   height: 300px;
   background: #dfe8f2;
   overflow: hidden;
-}
-.pd-desktop .rd-map-badge {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  z-index: 4;
-  background: rgba(15, 47, 122, 0.82);
-  color: var(--dk-onc);
-  font-weight: 700;
-  font-size: 10.5px;
-  padding: 6px 12px;
-  border-radius: var(--dk-r-pill);
 }
 /* 이 지도의 핀은 점수가 아니라 **순서**입니다. */
 .pd-desktop .rd-pin {
@@ -306,6 +261,14 @@
   place-items: center;
   font-size: 12px;
   border: 2px solid #fff;
+}
+.pd-desktop .rd-pin.is-origin {
+  width: auto;
+  padding: 0 9px;
+  border-radius: var(--dk-r-pill);
+  background: var(--dk-deep);
+  font-size: 10.5px;
+  font-weight: 700;
 }
 .pd-desktop .rd-legend {
   display: flex;
@@ -340,9 +303,5 @@
 @media (max-width: 1240px) {
   .pd-desktop .rd-hero-title {
     font-size: 34px;
-  }
-  .pd-desktop .rd-hero-mascot {
-    width: 140px;
-    height: 140px;
   }
 }

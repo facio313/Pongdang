@@ -1,0 +1,114 @@
+/* 경로 계산 조건 폼. 추천(.recommend-page)과 지도(.map-page)가 같이 쓰므로
+   페이지 루트를 붙이지 않고, `.rt-form` 을 겹쳐 `.pd-app button` 리셋(0,1,1)
+   보다 명시도를 높입니다. 카드 · 칩 · 노트 기본형은 pongdang.css 를 씁니다. */
+
+.rt-form .rt-note-flush {
+  margin: 0;
+}
+
+.rt-form .rt-field {
+  border: 0;
+  padding: 0;
+  margin: 14px 0 0;
+  min-width: 0;
+}
+.rt-form .rt-legend {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-ink-2);
+  padding: 0;
+  margin-bottom: 7px;
+}
+.rt-form .rt-field:disabled {
+  opacity: 0.6;
+}
+
+.rt-form .rt-modes {
+  display: flex;
+  gap: 7px;
+}
+.rt-form .rt-mode {
+  flex: 1;
+  min-height: var(--pd-touch);
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-surface);
+  color: var(--pd-ink);
+  cursor: pointer;
+}
+.rt-form .rt-mode.is-on {
+  background: var(--pd-blue);
+  border-color: var(--pd-blue);
+  color: #fff;
+}
+
+.rt-form .rt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.rt-form .rt-row-name {
+  flex: none;
+  width: 48px;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.rt-form .rt-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--pd-touch);
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+}
+
+.rt-form .rt-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rt-form .rt-candidate {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: var(--pd-touch);
+  cursor: pointer;
+}
+.rt-form .rt-candidate-name {
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rt-form .rt-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  /* Keep the control above the fixed tab bar when scrolled into view. */
+  scroll-margin-bottom: 88px;
+  font-weight: 700;
+  font-size: var(--pd-fs-body);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-blue);
+  color: #fff;
+  cursor: pointer;
+}
+.rt-form .rt-submit:disabled {
+  background: #8fa3b8;
+  cursor: default;
+}
+
+.rt-form .rt-problem {
+  color: var(--pd-alert-ink);
+}

@@ -51,6 +51,33 @@ export interface Preference {
   learning_enabled?: boolean;
   [key: string]: unknown;
 }
+export interface Origin {
+  label: string;
+  spot_id?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+/** Build a route origin from a listed place. Travel-catalog IDs may travel as
+ *  `spot_id`; other lists (water-index default places) send coordinates only
+ *  so a foreign identifier cannot 404 the catalog lookup. */
+export function originFromPlace(
+  place: {
+    id: number;
+    name: string;
+    lat: number | null;
+    lng: number | null;
+  },
+  catalogIds: ReadonlySet<number>,
+): Origin | null {
+  if (place.lat === null || place.lng === null) return null;
+  return {
+    label: place.name,
+    latitude: place.lat,
+    longitude: place.lng,
+    ...(catalogIds.has(place.id) ? { spot_id: place.id } : {}),
+  };
+}
 export interface TravelRequest {
   keyword_selection?: { category: string; values: string[] }[];
   purpose?: string;
@@ -65,12 +92,7 @@ export interface TravelRequest {
   day_trip?: boolean;
   departure_time?: string;
   return_by?: string;
-  origin?: {
-    label: string;
-    spot_id?: number;
-    latitude?: number;
-    longitude?: number;
-  };
+  origin?: Origin;
   must_include?: number[];
 }
 export interface Recommendation {
@@ -84,6 +106,12 @@ export interface Recommendation {
   conditions: { status: string };
   matched_preferences: { tag: string }[];
   evidence: { provider: string; fetched_at: string | null }[];
+  /** Registered place facts the server confirmed, never user wishes. */
+  confirmed: {
+    latitude: number | null;
+    longitude: number | null;
+    [key: string]: unknown;
+  };
 }
 export interface RecommendationResult {
   request: TravelRequest;
@@ -93,6 +121,49 @@ export interface RecommendationResult {
   status: string;
   clarification: string | null;
   route_calculated: false;
+  excluded?: { spot_id: number; reason: string }[];
+}
+
+/** Why the server kept a candidate out of the list. Unknown codes stay
+ *  unexplained rather than being guessed at. */
+export function exclusionReasonsText(
+  excluded: { spot_id: number; reason: string }[] | undefined,
+  spotIds: number[],
+): string {
+  const labels: Record<string, string> = {
+    official_restriction: "공식 제한 정보가 있습니다",
+    required_condition_unconfirmed: "필수 조건을 확인하지 못했습니다",
+    avoid_preference: "회피 취향에 해당합니다",
+    selected_place_type_unconfirmed: "고른 장소 유형과 맞는지 확인되지 않았습니다",
+    selected_activity_catalog_affinity_unconfirmed:
+      "고른 활동과 맞는지 확인되지 않았습니다",
+  };
+  return (excluded ?? [])
+    .filter((row) => spotIds.includes(row.spot_id))
+    .map(
+      (row) =>
+        Object.hasOwn(labels, row.reason)
+          ? labels[row.reason]
+          : "서버가 제외 사유를 표시했습니다",
+    )
+    .filter((text, index, all) => all.indexOf(text) === index)
+    .join(" · ");
+}
+/** `/api/data/ai/chat` for a travel conversation. The server composes `answer`
+ *  from its own structured results; the client never parses it for places. */
+export interface TravelChatResponse {
+  answer: string;
+  clarification: string | null;
+  status: string;
+  travel?: {
+    action: string;
+    request: TravelRequest;
+    selection_token: string | null;
+  };
+  travel_results?: {
+    recommendations?: RecommendationResult;
+    route_recommendation?: RouteResult;
+  };
 }
 export interface StopInput {
   item_id: string;
@@ -129,11 +200,30 @@ export interface TripPlan {
   queried_at: string;
   route_status: string;
 }
+/** The server preserves the provider's own longitude/latitude objects. */
+export interface RoutePoint {
+  longitude: number;
+  latitude: number;
+}
 export interface RouteLeg {
   from_spot_id: number | null;
   to_spot_id: number | null;
   duration_minutes: number;
-  geometry?: { polyline: number[][]; status?: string };
+  geometry?: { polyline: RoutePoint[]; status?: string };
+}
+export interface RouteItem {
+  spot_id: number;
+  name: string;
+  arrival_at: string;
+  departure_at: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+export interface RouteOrigin {
+  label: string;
+  spot_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 export interface RouteResult {
   status: string;
@@ -141,17 +231,46 @@ export interface RouteResult {
   reason_codes: string[];
   optimality?: string;
   route: {
-    items: {
-      spot_id: number;
-      name: string;
-      arrival_at: string;
-      departure_at: string;
-    }[];
+    items: RouteItem[];
     legs: RouteLeg[];
     travel_minutes: number;
     return_at: string;
+    origin?: RouteOrigin;
   } | null;
   plan_input?: PlanInput;
+}
+
+function mappablePoint(point: RoutePoint | null | undefined) {
+  return (
+    point !== null &&
+    point !== undefined &&
+    Number.isFinite(point.longitude) &&
+    Number.isFinite(point.latitude) &&
+    Math.abs(point.longitude) <= 180 &&
+    Math.abs(point.latitude) <= 90
+  );
+}
+
+/** Kakao's map SDK wrapper takes `[longitude, latitude]` pairs per line.
+ *  A leg with any unusable point is dropped whole: a shortened line would draw
+ *  a road the provider never returned. */
+export function routePaths(
+  route: RouteResult | null | undefined,
+): number[][][] {
+  return (route?.route?.legs ?? [])
+    .map((leg) => leg.geometry?.polyline ?? [])
+    .filter((polyline) => polyline.length >= 2 && polyline.every(mappablePoint))
+    .map((polyline) => polyline.map((point) => [point.longitude, point.latitude]));
+}
+/** Carries the server's status so callers can react to a specific condition,
+ *  such as an expired selection, without parsing the display message. */
+export class TravelRequestError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "TravelRequestError";
+    this.status = status;
+  }
 }
 export async function travelJson<T>(
   base: string,
@@ -189,7 +308,7 @@ export async function travelJson<T>(
       route_calculation_timeout: "길찾기 응답이 지연되어 계산을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     };
     if (response.status === 503 && typeof detail === "string" && Object.hasOwn(configurationMessages, detail)) {
-      throw new Error(configurationMessages[detail]);
+      throw new TravelRequestError(response.status, configurationMessages[detail]);
     }
     const messages: Record<number, string> = {
       401: "기존 SSO 로그인이 필요합니다.",
@@ -200,7 +319,8 @@ export async function travelJson<T>(
       422: "날짜·장소·출발지 등 요청 조건을 확인해 주세요.",
       429: "요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
     };
-    throw new Error(
+    throw new TravelRequestError(
+      response.status,
       messages[response.status] ??
         "서버에 연결하지 못했거나 기능 설정이 준비되지 않았습니다. 다시 시도해 주세요.",
     );
@@ -243,6 +363,56 @@ export function directionLink(
     Number.isFinite(lng)
     ? `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`
     : null;
+}
+
+/** A point the map app can route through. */
+export interface RouteStopPoint {
+  latitude: number | null;
+  longitude: number | null;
+}
+
+// Kakao's documented route scheme takes `sp`, `vp`…`vp5` and `ep` as
+// `latitude,longitude`, with at most five waypoints.
+// https://apis.map.kakao.com/android_v2/docs/api-guide/urlscheme/
+const KAKAO_ROUTE_SCHEME = "https://m.map.kakao.com/scheme/route";
+const KAKAO_WAYPOINT_LIMIT = 5;
+
+function schemeCoordinate(point: RouteStopPoint | null | undefined) {
+  const { latitude, longitude } = point ?? {};
+  return typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180
+    ? `${latitude},${longitude}`
+    : null;
+}
+
+/** Hands the calculated visiting order to Kakao Map as origin → waypoints →
+ *  destination. Returns null unless every point has stored coordinates and the
+ *  order fits the documented waypoint limit: a shortened order would send the
+ *  user on a trip they did not ask for. */
+export function kakaoRouteLink(
+  origin: RouteStopPoint | null | undefined,
+  stops: readonly RouteStopPoint[],
+): string | null {
+  const points = [origin, ...stops].map(schemeCoordinate);
+  if (
+    points.length < 2 ||
+    points.some((point) => point === null) ||
+    points.length - 2 > KAKAO_WAYPOINT_LIMIT
+  )
+    return null;
+  const query = [
+    `sp=${points[0]}`,
+    ...points
+      .slice(1, -1)
+      .map((point, index) => `${index ? `vp${index + 1}` : "vp"}=${point}`),
+    `ep=${points[points.length - 1]}`,
+    "by=car",
+  ].join("&");
+  return `${KAKAO_ROUTE_SCHEME}?${query}`;
 }
 
 export function selectedActivities(tags: string[]) {

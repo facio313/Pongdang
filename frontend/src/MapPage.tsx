@@ -23,13 +23,20 @@ import {
 } from "./productData";
 import {
   directionLink,
+  exclusionReasonsText,
+  kakaoRouteLink,
   planItems,
+  routePaths,
   travelJson,
   routeReasonsText,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
 } from "./travelApi";
+import {
+  RouteRequestForm,
+  type RouteRequestValue,
+} from "./RouteRequestForm";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import "./mapPage.css";
@@ -58,41 +65,52 @@ function Stage({
   setSearch: (value: string) => void;
 }) {
   const session = useTravelSession();
+  const calculated = session.route?.route;
   const courseIds =
-    session.route?.route?.items.map((item) => item.spot_id) ??
+    calculated?.items.map((item) => item.spot_id) ??
     session.planInput?.stops.map((item) => item.spot_id) ??
     [];
+  const start = calculated?.origin;
+  // The origin is a marker too, so the map frames the whole trip. A shared
+  // location without stored coordinates simply has no pin.
+  const originMarker =
+    view === "course" &&
+    start &&
+    start.latitude !== null &&
+    start.longitude !== null
+      ? { id: "origin", latitude: start.latitude, longitude: start.longitude }
+      : null;
   const key = JSON.stringify([
     spots.map((spot) => [spot.id, spot.lat, spot.lng]),
     view,
     courseIds,
+    originMarker,
   ]);
   const markers = useMemo(() => {
-    const [coords, currentView, ids] = JSON.parse(key) as [
+    const [coords, currentView, ids, origin] = JSON.parse(key) as [
       [number, number | null, number | null][],
       View,
       number[],
+      { id: string; latitude: number; longitude: number } | null,
     ];
-    return coords
-      .filter(
-        ([id, lat, lng]) =>
-          lat !== null &&
-          lng !== null &&
-          (currentView === "spots" || ids.includes(id)),
-      )
-      .map(([id, latitude, longitude]) => ({
-        id: String(id),
-        latitude: latitude!,
-        longitude: longitude!,
-      }));
+    return [
+      ...(origin ? [origin] : []),
+      ...coords
+        .filter(
+          ([id, lat, lng]) =>
+            lat !== null &&
+            lng !== null &&
+            (currentView === "spots" || ids.includes(id)),
+        )
+        .map(([id, latitude, longitude]) => ({
+          id: String(id),
+          latitude: latitude!,
+          longitude: longitude!,
+        })),
+    ];
   }, [key]);
   const paths = useMemo(
-    () =>
-      view === "course"
-        ? (session.route?.route?.legs.map(
-            (leg) => leg.geometry?.polyline ?? [],
-          ) ?? [])
-        : [],
+    () => (view === "course" ? routePaths(session.route) : []),
     [session.route, view],
   );
   return (
@@ -128,6 +146,17 @@ function Stage({
           paths={paths}
           selectedId={selectedSpotId === null ? null : String(selectedSpotId)}
           renderMarker={(id) => {
+            if (id === "origin")
+              return (
+                <span className="mp-pin is-origin">
+                  <span className="mp-pin-ring">
+                    <span className="mp-pin-core">출발</span>
+                  </span>
+                  <span className="mp-pin-label">
+                    {start?.label ?? "출발지"}
+                  </span>
+                </span>
+              );
             const spot = spots.find((item) => item.id === Number(id));
             if (!spot) return null;
             const grade = gradeOf(spot.score);
@@ -262,14 +291,21 @@ function SpotSheet({
 
 function CourseSheet({ onSave }: { onSave: () => void }) {
   const session = useTravelSession();
-  const items = session.route?.route?.items ?? planItems(session.plan);
+  const calculated = session.route?.route;
+  const items = calculated?.items ?? planItems(session.plan);
   const stops = items.length
     ? items.map((item, index) => ({
         no: index + 1,
         name: item.name,
         meta: `${timeLabel(item.arrival_at)} 도착`,
-        distance: session.route?.route?.legs[index]
-          ? `${session.route.route.legs[index].duration_minutes}분`
+        distance: calculated?.legs[index]
+          ? `${calculated.legs[index].duration_minutes}분`
+          : null,
+        leg: calculated
+          ? kakaoRouteLink(
+              index === 0 ? calculated.origin : calculated.items[index - 1],
+              [calculated.items[index]],
+            )
           : null,
       }))
     : (session.recommendation?.recommendations ?? [])
@@ -283,7 +319,12 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
           name: item.name,
           meta: "방문 시각 미계산",
           distance: null,
+          leg: null,
         }));
+  const wholeTrip = calculated
+    ? kakaoRouteLink(calculated.origin, calculated.items)
+    : null;
+  const lines = routePaths(session.route).length;
   return (
     <>
       <div className="pd-card">
@@ -299,7 +340,18 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
                 <div className="mp-stop-name">{stop.name}</div>
                 <div className="mp-stop-meta">{stop.meta}</div>
               </div>
-              <span className="mp-stop-dist">{stop.distance ?? "–"}</span>
+              {stop.leg ? (
+                <a
+                  className="mp-stop-dist"
+                  href={stop.leg}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {stop.distance ?? "–"} · 길찾기
+                </a>
+              ) : (
+                <span className="mp-stop-dist">{stop.distance ?? "–"}</span>
+              )}
             </div>
           ))}
         </div>
@@ -310,6 +362,25 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
           {stops.length === 0 &&
             "추천에서 장소를 고르거나 지도에서 코스에 넣어 주세요."}
         </p>
+        {calculated && (
+          <p className="pd-note">
+            도로 선은 길찾기 응답을 받은 구간 {lines}개만 그립니다
+            {lines < calculated.legs.length &&
+              ` (전체 ${calculated.legs.length}구간)`}
+            . 받지 못한 구간은 직선으로 채우지 않습니다.
+          </p>
+        )}
+        {wholeTrip && (
+          <a
+            className="pd-secondary mp-action mp-course-link"
+            href={wholeTrip}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="transit" size={16} />
+            카카오맵에서 순서대로 길찾기 →
+          </a>
+        )}
       </div>
 
       <div className="mp-actions">
@@ -328,8 +399,8 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
         </button>
       </div>
       <p className="pd-note mp-actions-note">
-        <StateChip kind="partial" /> 도로 선은 실제 길찾기 응답이 있는 구간만
-        표시합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지
+        <StateChip kind="partial" /> 카카오맵 길찾기는 등록 좌표와 순서를
+        전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지
         않습니다.
       </p>
     </>
@@ -424,11 +495,6 @@ function MapScreen() {
   }));
   const spot = spots.find((item) => item.id === selected?.id);
   const action = useAction();
-  const [originId, setOriginId] = useState("");
-  const [departure, setDeparture] = useState(
-    () =>
-      `${session.planInput?.request.dates[0] ?? kstDate()}T${timeLabel(new Date(Date.now() + 600000).toISOString())}`,
-  );
   const add = () =>
     void action.run(async (signal) => {
       if (!spot) return;
@@ -510,17 +576,23 @@ function MapScreen() {
         setTravelSession({ plan });
       }
     });
-  const route = () =>
+  const route = (value: RouteRequestValue) =>
     void action.run(async (signal) => {
-      const origin = raw.find((item) => item.id === Number(originId));
-      if (!origin || !departure || !session.planInput)
-        throw new Error("출발지·출발시각·방문 장소를 선택해 주세요.");
+      const stops = session.planInput?.stops ?? [];
+      if (!session.planInput || !stops.length)
+        throw new Error(
+          "경로를 계산할 방문 장소가 없습니다. 지도에서 「코스에 넣기」로 장소를 고르거나 추천에서 코스를 가져와 주세요.",
+        );
+      // The map's course is an explicit must-visit set, so every stop is
+      // required and the visit count is the number of stops.
+      const must_include = stops.map((item) => item.spot_id);
       const request = {
         ...session.planInput.request,
-        dates: [departure.slice(0, 10)],
-        departure_time: departure.slice(11),
-        origin: { label: origin.name, spot_id: origin.id },
-        must_include: session.planInput.stops.map((item) => item.spot_id),
+        dates: [value.date],
+        day_trip: true,
+        departure_time: value.departure_time,
+        origin: value.origin,
+        must_include,
       };
       const recommendations = await travelJson<RecommendationResult>(
         import.meta.env.BASE_URL,
@@ -530,14 +602,13 @@ function MapScreen() {
         signal,
       );
       const ranks = recommendations.recommendations
-        .filter((item) => request.must_include.includes(item.spot_id))
+        .filter((item) => must_include.includes(item.spot_id))
         .map((item) => item.rank);
-      if (
-        ranks.length !== request.must_include.length ||
-        !recommendations.selection_token
-      )
+      if (ranks.length !== must_include.length || !recommendations.selection_token)
         throw new Error(
-          "선택 장소 일부를 현재 조건에서 경로 후보로 확인하지 못했습니다. 후보를 다시 선택해 주세요.",
+          `선택 장소 ${must_include.length}곳 중 ${ranks.length}곳만 현재 조건에서 경로 후보로 확인했습니다. ` +
+            (exclusionReasonsText(recommendations.excluded, must_include) ||
+              "후보를 다시 선택해 주세요."),
         );
       const result = await travelJson<RouteResult>(
         import.meta.env.BASE_URL,
@@ -547,7 +618,9 @@ function MapScreen() {
           selection_token: recommendations.selection_token,
           candidate_ranks: ranks,
           stop_count: ranks.length,
+          stay_minutes: value.stay_minutes,
           include_geometry: true,
+          request,
         },
         signal,
       );
@@ -635,50 +708,19 @@ function MapScreen() {
                 ? `경로 미계산: ${routeReasonsText(session.route.reason_codes)}`
                 : ""}
             </p>
-            <div className="pd-slot mp-todo">
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  route();
-                }}
-              >
-                <b>최적경로 탐색</b>
-                <br />
-                <label>
-                  출발지{" "}
-                  <select
-                    aria-label="출발지"
-                    value={originId}
-                    onChange={(event) => setOriginId(event.target.value)}
-                  >
-                    <option value="">등록 장소 선택</option>
-                    {raw.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <br />
-                <label>
-                  출발시각 · KST{" "}
-                  <input
-                    type="datetime-local"
-                    value={departure}
-                    onChange={(event) => setDeparture(event.target.value)}
-                    required
-                  />
-                </label>
-                <br />
-                <button
-                  type="submit"
-                  className="pd-secondary mp-action"
-                  disabled={!session.planInput}
-                >
-                  선택 코스 경로 계산
-                </button>
-              </form>
-            </div>
+            {view === "course" && (
+              <RouteRequestForm
+                places={raw}
+                defaultDate={session.planInput?.request.dates[0]}
+                disabled={action.busy || !session.planInput?.stops.length}
+                submitLabel={
+                  session.route?.route_calculated
+                    ? "조건을 바꿔 다시 계산"
+                    : "선택 코스 경로 계산"
+                }
+                onSubmit={route}
+              />
+            )}
             <div className="pd-slot mp-todo">
               <div>
                 <b>편의시설 필터</b>
