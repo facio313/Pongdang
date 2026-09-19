@@ -1,5 +1,6 @@
-import { gradeOf } from "./groupAGrade";
+import { gradeOf, grades } from "./groupAGrade";
 import { metricText, type Conditions } from "./productData";
+import type { ComponentBar } from "./scoreMeaning";
 
 // 핸드오프 디자인(Pongdang 디자인 시스템 v2)의 공용 표시 요소입니다. 제품 화면
 // 5개(홈 · 오늘 · 추천 · 지도 · 내 코스)가 같은 아이콘 세트와 같은 등급/데이터
@@ -405,6 +406,234 @@ export function StateChip({ kind }: { kind: StateChipKind }) {
     kind === "live" ? " is-live" : kind === "no_data" ? " is-alert" : "";
   return (
     <span className={"pd-state-chip" + modifier}>{STATE_CHIP_LABEL[kind]}</span>
+  );
+}
+
+/** 0~100 척도 위의 현재 위치. 숫자만으로는 72 가 좋은 쪽인지 나쁜 쪽인지
+ *  읽히지 않습니다 -- 등급 경계(20 · 40 · 60 · 80)를 눈금으로 깔아 상대 위치를
+ *  보여 줍니다.
+ *
+ *  마커에는 등급 아이콘이 함께 붙습니다. 색만으로 판단을 전달하지 않는다는
+ *  규칙은 게이지에도 그대로 적용됩니다. 값이 없으면 마커를 두지 않습니다 --
+ *  0 자리에 마커를 찍으면 「자료 없음」이 「최악」으로 읽힙니다. */
+export function ScoreGauge({
+  score,
+  loading = false,
+  compact = false,
+  glass = false,
+}: {
+  score: number | null;
+  loading?: boolean;
+  /** 눈금 라벨을 접습니다. 좁은 타일 안에서 씁니다. */
+  compact?: boolean;
+  /** 코발트 히어로 위. 등급 표면과 눈금색이 어두운 배경용으로 바뀝니다. */
+  glass?: boolean;
+}) {
+  const grade = gradeOf(score);
+  // grades 는 높은 등급부터이므로 척도 왼쪽(0점)부터 그리려면 뒤집습니다.
+  const bands = [...grades].reverse();
+  if (loading)
+    return (
+      <div className="pd-gauge">
+        <Skeleton width="100%" glass={glass} label="점수 조회 중" />
+      </div>
+    );
+  return (
+    <div
+      className={
+        "pd-gauge" +
+        (compact ? " is-compact" : "") +
+        (glass ? " is-glass" : "")
+      }
+      role="img"
+      aria-label={
+        score === null
+          ? "평가값 없음 · 100점 만점"
+          : `${score}점 ${grade.label} · 100점 만점`
+      }
+    >
+      <div className="pd-gauge-track">
+        {bands.map((band) => (
+          <span
+            className={"pd-gauge-band" + (glass ? " is-glass" : "")}
+            data-grade={band.key}
+            key={band.key}
+          />
+        ))}
+        {score !== null && (
+          <span
+            className="pd-gauge-marker"
+            data-grade={grade.key}
+            style={{ left: `${score}%` }}
+          >
+            <GradeIcon gradeKey={grade.key} size={11} />
+          </span>
+        )}
+      </div>
+      {!compact && (
+        <div className="pd-gauge-ticks" aria-hidden="true">
+          {bands.map((band) => (
+            <span key={band.key}>{band.label}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 점수를 가장 많이 깎은(또는 가장 좋은) 조건 한 줄. 총점만으로는 무엇을
+ *  손보면 되는지 알 수 없어서, 근거를 «details» 안에 접어 두는 대신 한 문장을
+ *  밖으로 꺼냅니다. */
+export function ScoreReason({
+  text,
+  loading = false,
+  glass = false,
+}: {
+  text: string;
+  loading?: boolean;
+  glass?: boolean;
+}) {
+  const className = "pd-score-reason" + (glass ? " is-glass" : "");
+  if (loading)
+    return (
+      <p className={className}>
+        <Skeleton width="14em" glass={glass} label="점수 근거 조회 중" />
+      </p>
+    );
+  return (
+    <p className={className}>
+      <Icon name="sparkle" size={12} />
+      {text}
+    </p>
+  );
+}
+
+/** 점수를 이루는 항목들. 총점이 어디서 왔는지 보여 줍니다.
+ *
+ *  점수가 없는 항목도 지우지 않고 사유와 함께 남깁니다 -- 빠진 칸을 없애면
+ *  화면이 「이게 전부」라고 거짓말을 합니다. */
+export function ComponentBars({
+  bars,
+  loading = false,
+}: {
+  bars: ComponentBar[];
+  loading?: boolean;
+}) {
+  if (loading)
+    return (
+      <ul className="pd-cbars">
+        {[0, 1, 2, 3].map((index) => (
+          <li className="pd-cbar pd-cbar-loading" key={index}>
+            <Skeleton width="100%" label="분야별 점수 조회 중" />
+          </li>
+        ))}
+      </ul>
+    );
+  return (
+    <ul className="pd-cbars">
+      {bars.map((bar) => {
+        const grade = gradeOf(bar.score);
+        return (
+          <li
+            className={"pd-cbar" + (bar.evaluated ? "" : " is-empty")}
+            data-grade={grade.key}
+            key={bar.metric}
+          >
+            <span className="pd-cbar-label">{bar.label}</span>
+            <span className="pd-num pd-cbar-value">{bar.valueText}</span>
+            <span className="pd-cbar-track">
+              {bar.evaluated && (
+                // 0 점은 유효한 값이므로 보이는 폭을 남깁니다. 폭 0 으로 그리면
+                // 「0 점」과 「자료 없음」이 화면에서 같아집니다.
+                <span
+                  className="pd-cbar-fill"
+                  style={{ width: `${Math.max(2, bar.score as number)}%` }}
+                />
+              )}
+            </span>
+            <span className="pd-num pd-cbar-score">
+              {bar.score === null ? "–" : bar.score}
+            </span>
+            {!bar.evaluated && bar.reasons && (
+              <span className="pd-cbar-reason">{bar.reasons}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** 「이 점수가 대체 뭔가」에 한 번에 답하는 자리. 정의 · 척도 · 계산 방식 ·
+ *  근거 확보율 · 출처가 화면마다 흩어져 있어 어디서도 전체가 보이지 않았습니다.
+ *
+ *  네이티브 «details» 입니다. 직접 만든 모달보다 키보드와 보조기술 동작이
+ *  확실하고, 이 저장소의 다른 근거 블록과도 같은 문법입니다. */
+export function ScoreExplainer({ data }: { data?: Conditions }) {
+  const index = data?.condition_score;
+  return (
+    <details className="pd-explainer">
+      <summary className="pd-tap">퐁당 점수란?</summary>
+      <div className="pd-explainer-body">
+        <p>
+          고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100 으로 나타낸
+          <b> 참고 점수</b>입니다. 안전 판정이 아니며, 현장 상황과 공식 운영
+          여부는 따로 확인해야 합니다.
+        </p>
+        <table className="pd-explainer-scale">
+          <tbody>
+            {grades.map((grade) => (
+              <tr key={grade.key}>
+                <th scope="row">
+                  <span className="pd-grade-chip" data-grade={grade.key}>
+                    <GradeIcon gradeKey={grade.key} />
+                    {grade.label}
+                  </span>
+                </th>
+                <td className="pd-num">
+                  {grade.min}
+                  {grade.key === "excellent" ? "~100" : `~${grade.min + 19}`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>
+          활동마다 보는 조건이 다릅니다. 수영은 수온 · 기온 · 바람 · 파고를,
+          갯벌은 기온 · 바람 · 강수를 봅니다. 각 조건의 점수를 <b>같은 비중으로
+          평균</b>낸 값이 총점입니다.
+        </p>
+        <p>
+          <b>근거 확보율</b>은 그 활동이 보는 조건 중 실제 측정값이 들어온
+          비율입니다. 확보율이 낮으면 총점도 조건 전체를 대표하지 못합니다.
+        </p>
+        <p>
+          자료가 없으면 <b>–</b> 로 둡니다. <b>0 점이 아니며</b>, 정상이나
+          안전으로 바꾸어 표시하지 않습니다.
+        </p>
+        {index && (
+          <>
+            <p>
+              {index.methodology} · 방법론 {index.model_id} {index.model_version}
+            </p>
+            <ul>
+              {index.sources.map((source) => (
+                <li key={source.id}>
+                  <a
+                    href={/^https:\/\//.test(source.url) ? source.url : undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {source.title}
+                  </a>{" "}
+                  · {source.usage}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </details>
   );
 }
 

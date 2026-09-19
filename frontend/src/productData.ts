@@ -92,7 +92,10 @@ export function conditionScore(data?: Conditions): number | null {
     index.score >= 0 && index.score <= 100 ? index.score : null;
 }
 
-const SCORE_REASONS: Record<string, string> = {
+/** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
+ *  같은 코드가 화면마다 다른 말로 보이지 않게 하려는 것이므로, 새 사전을
+ *  만들지 말고 여기에 추가하세요. */
+export const SCORE_REASONS: Record<string, string> = {
   measurement_not_collected: "아직 수집된 측정값 없음",
   measurement_evidence_unavailable: "측정 시각·출처 근거 없음",
   conflicting_station_measurements: "관측소 간 값 충돌",

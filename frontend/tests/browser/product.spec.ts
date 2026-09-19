@@ -14,12 +14,49 @@ test("home and today render calculated server condition scores and their evidenc
   const conditions = await response.json();
   expect(conditions.environment_score).toBeNull();
   expect(conditions.condition_score.score).toEqual(expect.any(Number));
-  await expect(page.locator(".hm-hero-score-num")).toHaveText(String(conditions.condition_score.score));
+
+  // 홈 히어로는 더 이상 수영 한 종목이 아니라 여섯 활동 중 오늘 가장 좋은
+  // 하나를 올립니다. 기대값도 같은 규칙으로 뽑습니다 -- 동점이면 이 순서가
+  // 우선순위입니다(useBestActivity 의 ACTIVITY_ORDER 와 같은 순서).
+  const ACTIVITY_LABEL = {
+    swim: "수영", surf: "서핑", relax: "휴식",
+    mudflat: "갯벌", onsen: "온천", rafting: "래프팅",
+  };
+  const activities = await Promise.all(
+    Object.keys(ACTIVITY_LABEL).map(async (activity) => {
+      const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);
+      const body = await each.json();
+      const index = body.condition_score;
+      const score = index && ["evaluated", "partial"].includes(index.status) && typeof index.score === "number" ? index.score : null;
+      return { activity, body, score };
+    }),
+  );
+  const best = activities
+    .filter((item) => item.score !== null && item.body.support_status !== "unsupported")
+    .reduce((high, item) => (item.score > high.score ? item : high));
+  const bestLabel = ACTIVITY_LABEL[best.activity as keyof typeof ACTIVITY_LABEL];
+
+  await expect(page.locator(".hm-hero-score-num")).toHaveText(String(best.score));
+  // 무엇의 점수인지를 화면이 말해야 합니다. 예전에는 「퐁당 72」뿐이었습니다.
+  await expect(page.locator(".hm-hero-sentence")).toContainText(bestLabel);
+  await expect(page.locator(".hm-hero-score .pd-grade-chip")).toContainText(`${bestLabel} 적합도`);
+  // 척도 위 상대 위치. 색만으로 전하지 않으므로 aria-label 에 점수와 등급이 함께 있습니다.
+  await expect(page.locator(".pd-hero .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
+  // 점수를 깎은(또는 가장 좋은) 조건 한 줄.
+  await expect(page.locator(".pd-hero .pd-score-reason")).toContainText("—");
   await expect(page.locator(".hm-hero-note")).toContainText("근거 확보");
-  await expect(page.locator(".hm-tile-value").first()).toHaveText("21.3°C");
-  await expect(page.locator(".hm-tile-value").nth(1)).toHaveText("0.4m");
-  await expect(page.locator(".hm-tile-value").nth(2)).toHaveText("0mm/1h");
-  await expect(page.locator(".hm-tile-value").nth(3)).toHaveText("2등급 · 과거");
+
+  // 「오늘 한눈에」는 이제 그 점수를 이루는 항목들입니다. 항목 구성은 활동마다
+  // 다르므로 고정 네 칸이 아니라 서버가 준 components 를 그대로 따릅니다.
+  const components = best.body.condition_score.components;
+  await expect(page.locator(".pd-cbar")).toHaveCount(components.length);
+  const bar = (label: string) =>
+    page.locator(".pd-cbar").filter({ has: page.getByText(label, { exact: true }) });
+  await expect(bar(components[0].label).locator(".pd-cbar-label")).toHaveText(components[0].label);
+  // 수질은 점수 입력이 아니므로 항목 줄에서 빠지고, 그 사실을 배지로 밝힙니다.
+  await expect(page.locator(".hm-glance-aside-value")).toHaveText("2등급 · 과거");
+  await expect(page.locator(".hm-glance-aside")).toContainText("점수 미반영");
+  await expect(page.locator(".pd-cbars")).not.toContainText("수질");
   await expect(page.locator(".home-page .pd-body")).toContainText("300일 전 과거 자료");
   // 히어로 관측 패널은 이름과 값이 <dt>/<dd> 로 나뉩니다(예전에는 한 문장
   // 안의 「기온 24.7°C」였습니다). 값이 어느 이름에 붙는지까지 확인합니다.
@@ -331,7 +368,11 @@ test("empty and unauthenticated data stay explicit", async ({ page }) => {
     route.fulfill({ json: { rows: [], total: 0 } }),
   );
   await page.goto("");
-  await expect(page.locator(".hm-tile-value").first()).toHaveText("–");
+  // 고를 활동이 없으면 «–» 입니다. 0 점이나 「안전함」으로 바뀌지 않습니다.
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  await expect(page.locator(".hm-hero-sentence")).toContainText("활동이 없어요");
+  await expect(page.locator(".hm-glance-aside-value")).toHaveText("검사 자료 없음");
+  await expect(page.locator(".home-page")).toContainText("점수를 이루는 항목을 읽지 못했습니다");
   await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
   await expect(page.locator(".home-page")).not.toContainText("장소 확인 중");
   await expect(page.locator(".home-page")).toContainText("수집된 해수욕장이 없습니다");

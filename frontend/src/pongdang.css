@@ -516,6 +516,173 @@ main:has(.pd-app) {
   }
 }
 
+/* ── 점수의 뜻을 읽히게 하는 표시들 (pongdangUi.tsx) ──
+   숫자 하나로는 「무엇의 · 얼마나 · 왜」가 전해지지 않아 더한 세 겹입니다.
+   색은 새로 정하지 않고 위 등급 칩과 같은 --g-bg / --g-ink 를 씁니다. */
+
+.pd-gauge {
+  display: grid;
+  gap: 3px;
+}
+.pd-gauge-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 8px;
+  border-radius: var(--pd-r-pill);
+  overflow: visible;
+}
+.pd-gauge-band {
+  background: var(--g-bg);
+}
+.pd-gauge-band:first-child {
+  border-radius: var(--pd-r-pill) 0 0 var(--pd-r-pill);
+}
+.pd-gauge-band:last-child {
+  border-radius: 0 var(--pd-r-pill) var(--pd-r-pill) 0;
+}
+/* 마커는 트랙 위에 얹습니다. 0 점·100 점에서 절반이 잘리지 않도록 좌우로
+   넘치게 두고, 트랙을 담는 쪽에서 여백을 줍니다. */
+.pd-gauge-marker {
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--pd-surface);
+  color: var(--g-ink);
+  border: 2px solid currentColor;
+}
+.pd-gauge-ticks {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-mute);
+  text-align: center;
+}
+.pd-gauge.is-compact .pd-gauge-track {
+  height: 6px;
+}
+/* 코발트 히어로 위. 밴드는 is-glass 등급 표면(진한 --g-bg)을 쓰고, 마커만
+   밝은 바탕으로 띄워 어두운 등급 아이콘의 대비를 지킵니다. */
+.pd-gauge.is-glass .pd-gauge-marker {
+  background: var(--pd-on-cobalt);
+}
+.pd-gauge.is-glass .pd-gauge-ticks {
+  color: var(--pd-on-cobalt-2);
+}
+
+.pd-score-reason {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink-2);
+}
+.pd-score-reason.is-glass {
+  color: var(--pd-on-cobalt);
+}
+
+/* 열 정렬은 목록 쪽에서 한 번만 잡고, 각 항목은 display:contents 로 그 격자에
+   칸만 채웁니다. 항목마다 따로 격자를 만들면 「1시간 강수량」처럼 긴 이름이
+   있는 줄만 열 폭이 달라져 바의 시작점이 줄마다 어긋납니다. */
+.pd-cbars {
+  display: grid;
+  grid-template-columns: auto auto 1fr 2.6em;
+  align-items: center;
+  gap: 7px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pd-fs-sm);
+}
+.pd-cbar {
+  display: contents;
+}
+/* 조회 중 자리표시자는 격자에 끼지 않고 한 줄을 통째로 씁니다. */
+.pd-cbar.pd-cbar-loading {
+  display: block;
+  grid-column: 1 / -1;
+}
+.pd-cbar-label {
+  color: var(--pd-ink-2);
+  white-space: nowrap;
+}
+.pd-cbar-value {
+  color: var(--pd-ink);
+  font-variant-numeric: tabular-nums;
+}
+.pd-cbar-track {
+  height: 6px;
+  border-radius: var(--pd-r-pill);
+  background: var(--pd-badge);
+  overflow: hidden;
+}
+.pd-cbar.is-empty .pd-cbar-track {
+  background: none;
+  border: 1px dashed var(--pd-line);
+}
+.pd-cbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--pd-r-pill);
+  background: var(--g-ink);
+}
+.pd-cbar-score {
+  text-align: right;
+  color: var(--g-ink);
+  font-variant-numeric: tabular-nums;
+}
+.pd-cbar.is-empty .pd-cbar-score {
+  color: var(--pd-ink-mute);
+}
+/* 사유는 줄을 새로 잡아 네 칸 전체를 씁니다. */
+.pd-cbar-reason {
+  grid-column: 1 / -1;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-mute);
+}
+
+.pd-explainer > summary {
+  display: inline-block;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-blue);
+  cursor: pointer;
+}
+.pd-explainer-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.pd-explainer-body p,
+.pd-explainer-body ul {
+  margin: 0;
+}
+.pd-explainer-body ul {
+  padding-left: 1.1em;
+}
+.pd-explainer-scale {
+  border-collapse: collapse;
+  width: 100%;
+}
+.pd-explainer-scale th {
+  text-align: left;
+  font-weight: 400;
+  padding: 2px 0;
+}
+.pd-explainer-scale td {
+  text-align: right;
+  color: var(--pd-ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pd-app *,
   .pd-app *::before,

@@ -1,13 +1,21 @@
 import { useState, type ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
+import { gradeOf } from "./groupAGrade";
 import {
   AiSuggestion,
+  ComponentBars,
   GradeChip,
   Icon,
   MetricValue,
+  ScoreExplainer,
+  ScoreGauge,
+  ScoreReason,
   Skeleton,
   StateChip,
 } from "./pongdangUi";
+import { activities, type Activity } from "./aiApi";
+import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
 import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
@@ -18,11 +26,9 @@ import { WaterQualityDetails } from "./WaterQualityDetails";
 import { HourlyConditions } from "./HourlyConditions";
 import {
   dateLabel,
-  conditionScore,
   conditionScoreText,
   conditionModeLabel,
   timeLabel,
-  metricText,
   evidenceText,
   waterQualityLabel,
   type Conditions,
@@ -51,13 +57,24 @@ const CAM_BACKGROUNDS = [
 function Hero({
   placeName,
   conditions,
+  baseline,
+  best,
   loading = false,
+  baselineLoading = false,
 }: {
   placeName: string;
   conditions?: Conditions;
+  /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답. 점수용 응답과 다릅니다 --
+   *  서버는 그 활동이 보는 지표만 내려주기 때문입니다(useProductData 주석). */
+  baseline?: Conditions;
+  /** 오늘 이 장소에서 조건이 가장 좋은 활동. 없으면 고를 것이 없다는 뜻입니다. */
+  best: ActivityCondition | null;
   /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
   loading?: boolean;
+  baselineLoading?: boolean;
 }) {
+  const verdict =
+    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   return (
     <header className="pd-hero">
       <AppHeader title="홈" time={timeLabel(new Date().toISOString())} onCobalt />
@@ -74,16 +91,16 @@ function Hero({
             점선은 아직 설계되지 않은 자리에만 씁니다. */}
         <div className="hm-hero-visual">
           <div className="hm-hero-visual-head">
-            {conditionModeLabel(conditions)} 기준 날씨와 바다
+            {conditionModeLabel(baseline)} 기준 날씨와 바다
           </div>
           <dl className="hm-hero-metrics">
             <div>
               <dt>기온</dt>
               <dd className="pd-num">
                 <MetricValue
-                  conditions={conditions}
+                  conditions={baseline}
                   name="air_temperature"
-                  loading={loading}
+                  loading={baselineLoading}
                   glass
                 />
               </dd>
@@ -92,9 +109,9 @@ function Hero({
               <dt>수온</dt>
               <dd className="pd-num">
                 <MetricValue
-                  conditions={conditions}
+                  conditions={baseline}
                   name="water_temperature"
-                  loading={loading}
+                  loading={baselineLoading}
                   glass
                 />
               </dd>
@@ -103,9 +120,9 @@ function Hero({
               <dt>파고</dt>
               <dd className="pd-num">
                 <MetricValue
-                  conditions={conditions}
+                  conditions={baseline}
                   name="wave_height"
-                  loading={loading}
+                  loading={baselineLoading}
                   glass
                 />
               </dd>
@@ -114,9 +131,9 @@ function Hero({
               <dt>바람</dt>
               <dd className="pd-num">
                 <MetricValue
-                  conditions={conditions}
+                  conditions={baseline}
                   name="wind_speed"
-                  loading={loading}
+                  loading={baselineLoading}
                   glass
                 />
               </dd>
@@ -125,9 +142,9 @@ function Hero({
               <dt>1시간 강수량</dt>
               <dd className="pd-num">
                 <MetricValue
-                  conditions={conditions}
+                  conditions={baseline}
                   name="precipitation"
-                  loading={loading}
+                  loading={baselineLoading}
                   glass
                 />
               </dd>
@@ -135,22 +152,41 @@ function Hero({
           </dl>
         </div>
 
+        {/* 예전에는 이 자리가 「오늘의 물놀이 조건 / 자료를 확인하세요」와 숫자
+            하나였습니다. 그 숫자는 사실 수영 점수였는데 화면은 그 말을 하지
+            않아, 무엇의 몇 점인지 알 수 없었습니다. 이제 여섯 활동을 모두 보고
+            가장 좋은 하나를 이름과 함께 올립니다. */}
         <div className="hm-hero-row">
+          {/* 조사(이/가)를 붙이지 않으려고 이름을 줄로 떼어 둡니다. 활동 이름은
+              「수영」·「갯벌」처럼 받침이 갈려, 어느 쪽을 골라도 절반은 틀립니다. */}
           <h1 className="hm-hero-sentence">
-            오늘의 물놀이 조건
-            <br />
-            자료를 확인하세요
+            {loading ? (
+              <Skeleton width="7em" glass label="오늘의 활동 조회 중" />
+            ) : best ? (
+              <>
+                오늘 가장 좋은 활동
+                <br />
+                <b>{activities[best.activity]}</b>
+              </>
+            ) : (
+              <>
+                오늘 점수를 낼 수 있는
+                <br />
+                활동이 없어요
+              </>
+            )}
           </h1>
           <div className="hm-hero-score">
             <div className="pd-num hm-hero-score-num">
               {loading ? (
                 <Skeleton width="1.6em" glass label="점수 조회 중" />
               ) : (
-                (conditionScore(conditions) ?? "–")
+                (best?.score ?? "–")
               )}
             </div>
             <GradeChip
-              score={conditionScore(conditions)}
+              score={best?.score ?? null}
+              prefix={best ? scoreTitle(best.activity) : undefined}
               loading={loading}
               glass
               bare
@@ -158,19 +194,45 @@ function Hero({
           </div>
         </div>
 
+        <ScoreGauge score={best?.score ?? null} loading={loading} glass />
+        {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 「양호」 옆에 그래서
+            뭘 해도 되는지를 한 줄로 붙입니다. 값이 없으면 문장을 지어내지 않고
+            비워 둡니다 -- 모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */}
+        {verdict && <p className="hm-hero-verdict">{verdict}</p>}
+        <ScoreReason
+          text={scoreReason(best?.data).text}
+          loading={loading}
+          glass
+        />
+
         <p className="hm-hero-note">
           {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
           {conditions?.safety_status ?? "unknown"}.
         </p>
+
+        <div className="hm-hero-actions">
+          <a className="pd-inline pd-tap" href="#today">
+            활동 여섯 가지 모두 보기 →
+          </a>
+          <ScoreExplainer data={conditions} />
+        </div>
       </div>
     </header>
   );
 }
 
+/** 예전에는 이 카드가 수온 · 파고 · 강수 · 수질 네 타일이었습니다. 측정값만
+ *  나열해서 바로 위 히어로 점수와 아무 연결이 없었고, 수질은 점수 입력이
+ *  아닌데도 나란히 놓여 점수 근거처럼 읽혔습니다.
+ *
+ *  이제 카드는 **그 점수를 이루는 항목들**입니다. 무엇을 보고 매긴 점수인지,
+ *  어느 항목이 몇 점인지가 여기서 끝납니다. 항목 구성은 활동마다 다르므로
+ *  고정 네 칸이 아니라 서버가 준 components 를 그대로 따릅니다. */
 function GlanceCard({
   statusText,
   statusIsError,
   conditions,
+  activity,
   loading = false,
   quality,
   qualityLoading = false,
@@ -183,6 +245,8 @@ function GlanceCard({
   /** 상태 문장이 오류인지. 오류는 role="alert", 진행 중은 role="status" 입니다. */
   statusIsError?: boolean;
   conditions?: Conditions;
+  /** 어느 활동의 점수를 펼치는지. 없으면 고른 활동이 없다는 뜻입니다. */
+  activity?: Activity;
   loading?: boolean;
   quality: string;
   qualityLoading?: boolean;
@@ -191,53 +255,38 @@ function GlanceCard({
   spotId?: number;
   now: string;
 }) {
-  const tiles: { name: string; metric?: string; value?: string }[] = [
-    { name: "수온", metric: "water_temperature" },
-    { name: "파고", metric: "wave_height" },
-    { name: "강수", metric: "precipitation" },
-    { name: "수질 · 최근 검사", value: quality },
-  ];
+  const bars = componentBars(conditions);
   return (
     <div className="pd-card">
-      <div className="pd-card-title">오늘 한눈에</div>
-      <div className="hm-tiles">
-        {tiles.map((tile) => {
-          const tileLoading = tile.metric ? loading : qualityLoading;
-          // 조회 중은 「값 없음」이 아니므로 is-empty 를 붙이지 않습니다.
-          const empty =
-            !tileLoading &&
-            (tile.metric
-              ? metricText(conditions, tile.metric) === "–"
-              : tile.value === "–");
-          return (
-            <div
-              className={"hm-tile" + (empty ? " is-empty" : "")}
-              key={tile.name}
-            >
-              <div className="pd-num hm-tile-value">
-                {tile.metric ? (
-                  <MetricValue
-                    conditions={conditions}
-                    name={tile.metric}
-                    loading={loading}
-                    width="2.6em"
-                  />
-                ) : tileLoading ? (
-                  <Skeleton width="2.6em" />
-                ) : (
-                  tile.value
-                )}
-              </div>
-              <div className="hm-tile-name">{tile.name}</div>
-            </div>
-          );
-        })}
+      <div className="pd-card-title">
+        오늘 한눈에
+        {activity ? ` · ${activities[activity]} 점수를 이루는 것들` : ""}
       </div>
+      {loading || bars.length ? (
+        <ComponentBars bars={bars} loading={loading} />
+      ) : (
+        <p className="pd-note">
+          점수를 이루는 항목을 읽지 못했습니다. 아래 상태 문장을 확인하세요.
+        </p>
+      )}
+
+      {/* 수질은 점수에 들어가지 않습니다(백엔드 activity_score 의 입력에
+          없습니다). 위 항목들과 같은 줄에 두면 점수 근거로 오인되므로 자리를
+          나누고 그 사실을 배지로 밝힙니다. */}
+      <div className="hm-glance-aside">
+        <span className="hm-glance-aside-name">수질 · 최근 검사</span>
+        <span className="pd-num hm-glance-aside-value">
+          {qualityLoading ? <Skeleton width="2.6em" /> : quality}
+        </span>
+        <span className="pd-state-chip">점수 미반영</span>
+      </div>
+
       <WaterQualityDetails data={qualityData} error={qualityError} className="pd-note" />
       <HourlyConditions id={spotId} now={now} />
       <p className="pd-note" role={statusIsError ? "alert" : "status"}>
         <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
-        강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. {statusText}
+        강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. 항목 점수는
+        100점 만점이며, 총점은 이 항목들을 같은 비중으로 평균낸 값입니다. {statusText}
       </p>
     </div>
   );
@@ -413,7 +462,10 @@ function LivecamModule() {
 }
 
 function HomeScreen() {
-  const { now, place, places, conditions, displayName, selectionMessage } = useProductData();
+  // 홈은 여섯 활동을 모두 보고 오늘 가장 좋은 하나를 고릅니다. 다른 화면은
+  // 예전처럼 수영 한 번만 조회합니다(useProductData 의 mode 주석 참고).
+  const { now, place, places, conditions, baseline, best, displayName, selectionMessage } =
+    useProductData("best");
   const quality = useResource<WaterQualityGrade>(
     place ? `quality/grade?spot_id=${place.id}` : null,
   );
@@ -426,7 +478,10 @@ function HomeScreen() {
           <Hero
             placeName={displayName}
             conditions={conditions.data}
+            baseline={baseline.data}
+            best={best}
             loading={isInitialLoad(conditions)}
+            baselineLoading={isInitialLoad(baseline)}
           />
         }
       >
@@ -438,6 +493,7 @@ function HomeScreen() {
             spotId={place?.id}
             now={now}
             conditions={conditions.data}
+            activity={best?.activity}
             loading={isInitialLoad(conditions)}
             statusIsError={Boolean(places.error ?? conditions.error)}
             statusText={
