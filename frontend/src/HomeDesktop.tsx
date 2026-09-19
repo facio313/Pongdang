@@ -7,7 +7,38 @@ import {
   LabelRow,
   SplitBody,
 } from "./pongdangDesktop";
-import { GradeChip, Icon, StateChip } from "./pongdangUi";
+import {
+  ComponentBars,
+  GradeChip,
+  Icon,
+  MetricValue,
+  ScoreExplainer,
+  ScoreGauge,
+  ScoreReason,
+  Skeleton,
+  StateChip,
+} from "./pongdangUi";
+import { activities, type Activity } from "./aiApi";
+import { gradeOf } from "./groupAGrade";
+import {
+  componentBars,
+  scoreReason,
+  scoreTitle,
+  verdictOf,
+} from "./scoreMeaning";
+import {
+  conditionModeLabel,
+  conditionScoreText,
+  dateLabel,
+  evidenceText,
+  waterQualityLabel,
+  type Conditions,
+  type WaterQualityGrade,
+} from "./productData";
+import { isInitialLoad, useResource } from "./useResource";
+import { useProductData } from "./useProductData";
+import { useHourlyScores } from "./useHourlyScores";
+import type { ActivityCondition } from "./useBestActivity";
 import {
   BEACH_PICKS,
   TASTE_LABEL,
@@ -24,24 +55,15 @@ import "./homeDesktop.css";
 // 연속입니다. 프리미티브는 pongdangDesktop.tsx 가 단일 출처이고, 여기에는 이
 // 화면에만 있는 내용물만 둡니다.
 //
-// 값은 전부 디자인 시안의 예시입니다(명소 API · 시간대별 예보 · 코스 데이터
-// 미연동). 실연동 시 이 상수들이 훅으로 바뀌며 레이아웃은 그대로입니다.
+// 점수와 관측값은 모바일 홈과 **같은 훅**을 씁니다(useProductData("best") ·
+// useHourlyScores). 같은 라우트인데 폭에 따라 다른 사실을 말하지 않기
+// 위해서입니다 -- 예전에는 이 파일 안의 상수가 수온 22.1°C 와 시간대 점수
+// 아홉 개를 지어내고 있었습니다.
+//
+// 아직 예시인 것: 명소(spotsCatalog) · 취향 · 코스 · 라이브캠. 각 자리에
+// 「예시 데이터」 칩을 달아 밝힙니다.
 
-const CONTEXT = "강릉 경포해변 · 9월 15일 · 예보 06:00 기준";
-
-/** 시간대별 막대. 막대 높이는 점수의 상대 위치이며 점수 기여도가 아닙니다. */
-const HOURS: { hour: number; score: number }[] = [
-  { hour: 6, score: 58 },
-  { hour: 8, score: 68 },
-  { hour: 10, score: 74 },
-  { hour: 12, score: 80 },
-  { hour: 13, score: 84 },
-  { hour: 15, score: 81 },
-  { hour: 17, score: 72 },
-  { hour: 19, score: 61 },
-  { hour: 21, score: 48 },
-];
-const CURRENT_HOUR_INDEX = 2;
+const HERO_DATE = dateLabel();
 const BAR_MAX_HEIGHT = 104;
 
 const TASTES: { label: string; mascot: MascotRole; on: boolean }[] = [
@@ -93,24 +115,93 @@ const LIVECAMS: {
   { name: "사천진해변", place: "–", at: "–", live: false },
 ];
 
-function HomeHero() {
+/** 예전에는 이 히어로가 「오늘 바다는 / 들어가기 좋습니다」라는 고정 문장과
+ *  하드코딩된 수온 22.1°C 였습니다. 모바일 홈이 실제 점수를 읽는 동안
+ *  데스크탑만 시안 값을 보여 주고 있었습니다. 같은 라우트(#home)인데 폭에
+ *  따라 다른 사실을 말하면 안 됩니다. */
+function HomeHero({
+  placeName,
+  conditions,
+  baseline,
+  best,
+  quality,
+  qualityLoading = false,
+  loading = false,
+  baselineLoading = false,
+}: {
+  placeName: string;
+  conditions?: Conditions;
+  /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답(useProductData 주석). */
+  baseline?: Conditions;
+  best: ActivityCondition | null;
+  quality: string;
+  qualityLoading?: boolean;
+  loading?: boolean;
+  baselineLoading?: boolean;
+}) {
+  const verdict =
+    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   return (
     <DesktopHero
-      nav={<DesktopNav active="home" context={CONTEXT} />}
+      nav={
+        <DesktopNav
+          active="home"
+          context={`${placeName} · ${HERO_DATE} · ${conditionModeLabel(baseline)} 기준`}
+        />
+      }
       wave="animated"
       minHeight={250}
     >
       <div className="hd-hero">
         <div className="hd-hero-lead">
           <div className="pd-dk-kick hd-hero-kick">강릉 물놀이</div>
+          {/* 조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 떼어 둡니다.
+              「수영」·「갯벌」처럼 받침이 갈립니다. */}
           <h1 className="hd-hero-title">
-            오늘 바다는
-            <br />
-            들어가기 좋습니다
+            {loading ? (
+              <Skeleton width="8em" glass label="오늘의 활동 조회 중" />
+            ) : best ? (
+              <>
+                오늘 가장 좋은 활동
+                <br />
+                {activities[best.activity]}
+              </>
+            ) : (
+              <>
+                오늘 점수를 낼 수 있는
+                <br />
+                활동이 없습니다
+              </>
+            )}
           </h1>
+          <div className="hd-hero-score">
+            <span className="pd-dk-num hd-hero-score-num">
+              {loading ? (
+                <Skeleton width="1.6em" glass label="점수 조회 중" />
+              ) : (
+                (best?.score ?? "–")
+              )}
+            </span>
+            <GradeChip
+              score={best?.score ?? null}
+              prefix={best ? scoreTitle(best.activity) : undefined}
+              loading={loading}
+              glass
+              bare
+            />
+          </div>
+          <ScoreGauge score={best?.score ?? null} loading={loading} glass />
+          {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 값이 없으면
+              문장을 지어내지 않고 비워 둡니다. */}
+          {verdict && <p className="hd-hero-verdict">{verdict}</p>}
+          <ScoreReason
+            text={scoreReason(best?.data).text}
+            loading={loading}
+            glass
+          />
           <div className="hd-hero-buttons">
             <a className="pd-dk-button is-on-cobalt" href="#today">
-              오늘 상태 자세히 보기 →
+              활동 여섯 가지 모두 보기 →
             </a>
             <a className="pd-dk-button is-glass" href="#recommend">
               코스 만들기
@@ -127,75 +218,121 @@ function HomeHero() {
         <div className="hd-hero-metrics">
           <div>
             <div className="hd-metric-name">수온</div>
-            <div className="pd-dk-num hd-metric-value">22.1°C</div>
+            <div className="pd-dk-num hd-metric-value">
+              <MetricValue
+                conditions={baseline}
+                name="water_temperature"
+                loading={baselineLoading}
+                glass
+              />
+            </div>
           </div>
           <div>
             <div className="hd-metric-name">파고</div>
-            <div className="pd-dk-num hd-metric-value">0.6m</div>
+            <div className="pd-dk-num hd-metric-value">
+              <MetricValue
+                conditions={baseline}
+                name="wave_height"
+                loading={baselineLoading}
+                glass
+              />
+            </div>
           </div>
+          {/* 수질은 점수에 들어가지 않습니다. 점수 옆에 그냥 두면 근거로
+              읽히므로 그 사실을 함께 적습니다. */}
           <div>
-            <div className="hd-metric-name">수질 · 수집 미구현</div>
-            <div className="pd-dk-num hd-metric-value is-empty">–</div>
+            <div className="hd-metric-name">수질 · 점수 미반영</div>
+            <div className="pd-dk-num hd-metric-value">
+              {qualityLoading ? <Skeleton width="3.2em" glass /> : quality}
+            </div>
           </div>
         </div>
+      </div>
+      <p className="hd-hero-note">
+        {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
+        {conditions?.safety_status ?? "unknown"}.
+      </p>
+      <div className="hd-hero-actions">
+        <ScoreExplainer data={conditions} />
       </div>
     </DesktopHero>
   );
 }
 
-function HourBars() {
-  const max = Math.max(...HOURS.map((item) => item.score));
+/** 예전에는 아홉 개 막대가 전부 파일 안 상수였습니다(6시 58점, 8시 68점 …).
+ *  이제 고른 활동의 실제 시간대 예보를 읽습니다. 값이 없는 시각은 막대를
+ *  그리지 않고 «–» 로 둡니다 -- 높이 0 인 막대는 「0 점」과 구별되지 않습니다. */
+function HourBars({
+  id,
+  now,
+  activity,
+  conditions,
+  loading = false,
+}: {
+  id?: number;
+  now: string;
+  activity: Activity;
+  conditions?: Conditions;
+  loading?: boolean;
+}) {
+  const hours = useHourlyScores(id, now, activity);
+  const scored = hours.filter((hour) => hour.score !== null);
+  // 막대 높이는 그날 안에서의 상대 위치입니다. 점수 기여도가 아닙니다.
+  const max = Math.max(...scored.map((hour) => hour.score as number), 1);
   return (
     <>
       <div className="hd-hours">
-        {HOURS.map((item, index) => {
-          const now = index === CURRENT_HOUR_INDEX;
+        {hours.map((hour) => {
+          const grade = gradeOf(hour.score);
           return (
-            <div className={"hd-hour" + (now ? " is-now" : "")} key={item.hour}>
-              <div className="pd-dk-num hd-hour-score">{item.score}</div>
+            <div
+              className={"hd-hour" + (hour.score === null ? " is-empty" : "")}
+              data-grade={grade.key}
+              key={hour.hour}
+              aria-label={`${hour.hour}시 · ${hour.score === null ? "평가값 없음" : `${hour.score}점 ${grade.label}`}`}
+            >
+              <div className="pd-dk-num hd-hour-score">
+                {hour.loading ? (
+                  <Skeleton width="1.6em" label="시간대 점수 조회 중" />
+                ) : (
+                  (hour.score ?? "–")
+                )}
+              </div>
               <div className="hd-hour-track">
-                <span
-                  className="hd-hour-bar"
-                  style={{ height: (item.score / max) * BAR_MAX_HEIGHT }}
-                />
+                {hour.score !== null && (
+                  <span
+                    className="hd-hour-bar"
+                    style={{
+                      height: Math.max(6, (hour.score / max) * BAR_MAX_HEIGHT),
+                    }}
+                  />
+                )}
               </div>
             </div>
           );
         })}
       </div>
       <div className="hd-hour-labels">
-        {HOURS.map((item, index) => (
-          <div
-            className={
-              "hd-hour-label" +
-              (index === CURRENT_HOUR_INDEX ? " is-now" : "")
-            }
-            key={item.hour}
-          >
-            <span className="pd-dk-num">{item.hour}시</span>
+        {hours.map((hour) => (
+          <div className="hd-hour-label" key={hour.hour}>
+            <span className="pd-dk-num">{Number(hour.hour)}시</span>
           </div>
         ))}
       </div>
+
+      {/* 점수가 무엇으로 이루어졌는지. 모바일 「오늘 한눈에」와 같은 구성입니다.
+          시간대 축 바로 아래 붙이면 그 축에 속한 값으로 읽히므로 괘선과
+          소제목으로 끊습니다 -- 시각별 점수와 항목별 점수는 다른 값입니다. */}
+      <div className="hd-parts">
+        <div className="hd-parts-head">지금 점수를 이루는 것들</div>
+        <ComponentBars bars={componentBars(conditions)} loading={loading} />
+      </div>
+
       <div className="hd-hour-summary">
-        <span className="hd-summary-item">
-          <span className="hd-summary-name">수온</span>
-          <span className="pd-dk-num hd-summary-value">22.1°C</span>
-        </span>
-        <span className="hd-summary-item">
-          <span className="hd-summary-name">파고</span>
-          <span className="pd-dk-num hd-summary-value">0.6m</span>
-        </span>
-        <span className="hd-summary-item">
-          <span className="hd-summary-name">강수</span>
-          <span className="pd-dk-num hd-summary-value">10%</span>
-        </span>
-        <span className="hd-summary-item">
-          <span className="hd-summary-name">수질</span>
-          <span className="pd-dk-num hd-summary-value is-empty">–</span>
-          <StateChip kind="uncollected" />
-        </span>
         <span className="hd-hour-note">
-          시간대별 예보는 미연동이며 막대는 값의 상대 위치입니다.
+          막대는 그날 안에서의 상대 위치이며 점수 기여도가 아닙니다. 값이 없는
+          시각은 –이고 0점이 아닙니다. 항목 점수는 100점 만점이며, 총점은 이
+          항목들을 같은 비중으로 평균낸 값입니다.
         </span>
       </div>
     </>
@@ -229,18 +366,45 @@ function BeachCard({ spot }: { spot: Spot }) {
 }
 
 export function HomeDesktop() {
+  const { now, place, conditions, baseline, best, displayName, selectionMessage } =
+    useProductData("best");
+  const quality = useResource<WaterQualityGrade>(
+    place ? `quality/grade?spot_id=${place.id}` : null,
+  );
   return (
     <DesktopShell>
-      <HomeHero />
+      <HomeHero
+        placeName={displayName}
+        conditions={conditions.data}
+        baseline={baseline.data}
+        best={best}
+        quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
+        qualityLoading={isInitialLoad(quality)}
+        loading={isInitialLoad(conditions)}
+        baselineLoading={isInitialLoad(baseline)}
+      />
 
       <LabelRow
         kick="오늘 한눈에"
-        title="경포해변 · 시간대별"
-        chip={<StateChip kind="example" />}
+        title={
+          best
+            ? `${displayName} · ${activities[best.activity]} 점수를 이루는 것들`
+            : `${displayName} · 시간대별`
+        }
+        chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
         desc="지점 비교 · 7일 예보 · 물때 · 수질 근거는 오늘 탭에 있습니다. 홈에서는 지금 상태와 다음 행동만 둡니다."
         link={{ href: "#today", label: "오늘 탭에서 근거 보기" }}
       >
-        <HourBars />
+        <HourBars
+          id={place?.id}
+          now={now}
+          activity={best?.activity ?? "swim"}
+          conditions={conditions.data}
+          loading={isInitialLoad(conditions)}
+        />
+        <p className="hd-row-note" role={conditions.error ? "alert" : "status"}>
+          {conditions.error ?? selectionMessage}
+        </p>
       </LabelRow>
 
       <LabelRow

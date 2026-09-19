@@ -543,6 +543,72 @@ main:has(.pd-desktop) {
   }
 }
 
+/* ── 점수의 뜻을 읽히게 하는 표시들 · 데스크탑 표면 ──
+   게이지 · 근거 한 줄 · 항목 바 · 설명은 pongdangUi.tsx 의 공용 컴포넌트라
+   마크업과 구조(pongdang.css)를 모바일과 그대로 나눠 씁니다. 다만 색과 크기는
+   --pd-* 토큰을 읽는데, 데스크탑은 --dk-* 만 갖고 있어(위 주석대로 두 루트는
+   토큰을 공유하지 않습니다) 여기서 표면만 다시 칠합니다.
+
+   등급 색은 여기서 정하지 않습니다 -- 위 .pd-desktop [data-grade] 가 이미
+   --g-bg / --g-ink 를 채워 두었고, 판정 자체는 groupAGrade.ts 가 합니다. */
+
+.pd-desktop .pd-gauge-marker {
+  background: var(--dk-surface);
+}
+.pd-desktop .pd-gauge.is-glass .pd-gauge-marker {
+  background: var(--dk-onc);
+}
+.pd-desktop .pd-gauge-ticks {
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .pd-gauge.is-glass .pd-gauge-ticks {
+  color: var(--dk-onc-2);
+}
+
+.pd-desktop .pd-score-reason {
+  font-size: var(--dk-fs-sm);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .pd-score-reason.is-glass {
+  color: var(--dk-onc);
+}
+
+.pd-desktop .pd-cbars {
+  font-size: var(--dk-fs-sm);
+}
+.pd-desktop .pd-cbar-label {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .pd-cbar-value {
+  color: var(--dk-ink);
+}
+.pd-desktop .pd-cbar-track {
+  background: var(--dk-mist);
+}
+.pd-desktop .pd-cbar.is-empty .pd-cbar-track {
+  border-color: var(--dk-line);
+}
+.pd-desktop .pd-cbar.is-empty .pd-cbar-score,
+.pd-desktop .pd-cbar-reason {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .pd-cbar-reason {
+  font-size: var(--dk-fs-cap);
+}
+
+.pd-desktop .pd-explainer > summary {
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-blue);
+}
+.pd-desktop .pd-explainer-body {
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .pd-explainer-scale td {
+  color: var(--dk-ink-2);
+}
+
 /* pongdang.css 의 감속 규칙은 .pd-app 스코프이므로 여기에 다시 선언합니다. */
 @media (prefers-reduced-motion: reduce) {
   .pd-desktop *,
