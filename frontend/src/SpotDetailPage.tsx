@@ -1,19 +1,28 @@
 import { useState } from "react";
 import { AppHeader, AppShell } from "./AppShell";
-import { CONFIDENCE_COLOR, gradeOf } from "./groupAGrade";
-import { GradeIcon, Icon } from "./pongdangUi";
-import { timeLabel } from "./productData";
-import type { Spot } from "./spotsCatalog";
+import { gradeOf } from "./groupAGrade";
+import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
+import { EvidenceNote } from "./EvidenceNote";
+import { timeLabel, type Place } from "./productData";
+import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { useBestActivity } from "./useBestActivity";
+import { usePlacesById } from "./usePlacesById";
+import { useWaterPlaces } from "./useWaterPlaces";
+import { activities } from "./aiApi";
 import "./spotsPage.css";
 
 // 명소 상세(핸드오프 모바일 20b)입니다. `#spots?spot_id=…` 로 들어오며
 // SpotsPage 가 라우팅합니다.
 //
+// 예전에는 예시 목록(spotsCatalog)에서 Spot 객체를 통째로 받아, 점수 · 거리 ·
+// 운영시간 · 소개가 전부 지어낸 값이었습니다. 이제 id 로 서버 장소를 조회하고
+// 점수는 홈과 같은 훅(useBestActivity)으로 읽습니다.
+//
 // 이 화면이 지키는 것:
-//  - 점수 · 안전 판정 · 신뢰도는 서로 다른 값이며 하나로 요약하지 않습니다.
-//    신뢰도는 전용색(CONFIDENCE_COLOR)을 쓰고 등급 팔레트와 섞지 않습니다.
+//  - 점수 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다.
 //  - 값이 없으면 «–» 이며 0 · 정상 · 안전으로 치환하지 않습니다.
-//  - 대표 사진과 운영 정보는 미연동이므로 빈 슬롯과 미연동 카드를 남깁니다.
+//  - 서버에 없는 항목(운영 · 개장 기간 · 주차 · 편의시설 · 문의 · 소개 ·
+//    사진)은 지어내지 않고 비운 채 그 사실을 밝힙니다.
 
 function InfoRow({ name, value }: { name: string; value: string | null }) {
   return (
@@ -26,10 +35,26 @@ function InfoRow({ name, value }: { name: string; value: string | null }) {
   );
 }
 
-export function SpotDetailPage({ spot }: { spot: Spot }) {
-  const [expanded, setExpanded] = useState(false);
+const KIND_LABEL: Record<string, string> = { beach: "해변", valley: "계곡" };
+
+export function SpotDetailPage({ spotId }: { spotId: number }) {
   const [saved, setSaved] = useState(false);
-  const grade = gradeOf(spot.score);
+  // 분류(해변 · 계곡)는 분류된 목록에만 있습니다. datasets/spots 의 type 은
+  // 수집 종류(beach_search_result · tourism)라 분류로 쓸 수 없습니다.
+  // 그래서 분류 목록에서 먼저 찾고, 거기 없으면(100건 밖) id 조회로 갑니다.
+  const catalog = useWaterPlaces("");
+  const lookup = usePlacesById([spotId]);
+  const classified = catalog.rows?.find((item) => item.id === spotId);
+  const place: Place | undefined = classified ?? lookup.rows[0];
+  // 홈 히어로와 같은 규칙으로 오늘 가장 좋은 활동을 고릅니다. 장소마다 조건이
+  // 다르므로 「이 명소에서 무엇을 하기 좋은가」가 상세의 답입니다.
+  const { best, loading } = useBestActivity(place?.id);
+  const score = best?.score ?? null;
+  const grade = gradeOf(score);
+  const verdict =
+    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+  // 아직 어느 쪽에서도 장소를 받지 못한 상태. 「없음」과 구분해 그립니다.
+  const placeLoading = !place && !lookup.error && (catalog.loading || !lookup.rows.length);
 
   return (
     <article className="spots-page spot-detail">
@@ -37,10 +62,12 @@ export function SpotDetailPage({ spot }: { spot: Spot }) {
         tab="spots"
         hero={
           <header className="sd-hero">
+            {/* 대표 사진을 내려주는 API 가 없습니다. 한 화면에 한 번뿐인
+                자리이므로 점선 슬롯으로 무엇이 들어올 자리인지 밝힙니다. */}
             <span className="pd-slot sd-hero-photo">
-              {spot.name} 대표 사진
+              대표 사진
               <br />
-              API 제공 이미지 · 미연동
+              내려주는 API 없음
             </span>
             <div className="sd-hero-bar">
               <AppHeader
@@ -50,12 +77,19 @@ export function SpotDetailPage({ spot }: { spot: Spot }) {
             </div>
             <div className="sd-hero-caption">
               <div className="sd-hero-chips">
-                <span className="sd-hero-chip">{spot.categoryLabel}</span>
-                <span className="sd-hero-chip is-example">예시</span>
+                <span className="sd-hero-chip">
+                  {(place?.type && KIND_LABEL[place.type]) ?? "분류 미확인"}
+                </span>
               </div>
-              <h1 className="sd-hero-name">{spot.name}</h1>
+              <h1 className="sd-hero-name">
+                {placeLoading ? (
+                  <Skeleton width="6em" glass label="장소 조회 중" />
+                ) : (
+                  (place?.name ?? "장소를 찾지 못했습니다")
+                )}
+              </h1>
               <div className="sd-hero-address">
-                {spot.address} · 현재 위치에서 {spot.distanceKm}km
+                {place?.address ?? "주소 없음"} · {place?.region ?? "지역 미확인"}
               </div>
             </div>
           </header>
@@ -65,60 +99,55 @@ export function SpotDetailPage({ spot }: { spot: Spot }) {
           ← 명소 목록
         </a>
 
+        {lookup.error && (
+          <p className="pd-note" role="alert">
+            {lookup.error}
+          </p>
+        )}
+
         <div className="pd-card sd-score-card">
           <div className="sd-score" data-grade={grade.key}>
-            <div className="pd-num sd-score-num">{spot.score ?? "–"}</div>
+            <div className="pd-num sd-score-num">
+              {loading ? (
+                <Skeleton width="1.6em" label="점수 조회 중" />
+              ) : (
+                (score ?? "–")
+              )}
+            </div>
             <div className="sd-score-grade">
               <GradeIcon gradeKey={grade.key} size={10} />
-              {spot.score === null
-                ? (spot.unscoredLabel ?? grade.label)
-                : grade.label}
+              {grade.label}
             </div>
           </div>
           <div className="sd-score-body">
-            <div className="sd-score-title">오늘 이 명소의 물놀이 조건</div>
-            <p className="pd-note sd-score-basis">
-              {spot.scoreBasis ??
-                "이 명소는 물놀이 조건 점수 산정 대상이 아닙니다. 값이 없다는 뜻이며 안전하다는 뜻이 아닙니다."}
-            </p>
-            {spot.confidence && (
-              <div className="sd-confidence">
-                <span
-                  className="sd-confidence-chip"
-                  style={{ background: CONFIDENCE_COLOR }}
-                >
-                  {spot.confidence.label}
-                </span>
-                <span className="sd-confidence-note">
-                  {spot.confidence.sources}
-                </span>
-              </div>
+            <div className="sd-score-title">
+              {best
+                ? `오늘 여기서 가장 좋은 활동 · ${activities[best.activity]}`
+                : "오늘 이 장소의 물놀이 조건"}
+            </div>
+            {best && (
+              <div className="sd-score-what">{scoreTitle(best.activity)}</div>
             )}
+            <ScoreGauge score={score} loading={loading} />
+            {verdict && <p className="sd-score-verdict">{verdict}</p>}
+            <ScoreReason text={scoreReason(best?.data).text} loading={loading} />
+            <EvidenceNote data={best?.data} className="pd-note" />
+            <ScoreExplainer data={best?.data} />
           </div>
         </div>
 
+        {/* 아래 다섯 줄은 모두 서버에 컬럼이 없습니다. 지어내지 않고 비웁니다.
+            travel 카탈로그도 opening_hours 를 None 으로 고정해 내려줍니다. */}
         <div className="pd-card sd-info">
-          <InfoRow name="운영" value={spot.operating} />
-          <InfoRow name="개장 기간" value={spot.detail.openSeason} />
-          <InfoRow name="주차" value={spot.detail.parking} />
-          <InfoRow name="편의시설" value={spot.detail.facility} />
-          <InfoRow name="문의" value={spot.detail.contact} />
-        </div>
-
-        <div className="pd-card">
-          <div className="pd-card-title sd-section-title">소개</div>
-          <p className={"pd-note sd-summary" + (expanded ? " is-open" : "")}>
-            {spot.summary} API 가 내려주는 소개 텍스트가 그대로 들어갑니다.
-            길면 3줄에서 접고 「더 보기」를 둡니다.
+          <InfoRow name="운영" value={null} />
+          <InfoRow name="개장 기간" value={null} />
+          <InfoRow name="주차" value={null} />
+          <InfoRow name="편의시설" value={null} />
+          <InfoRow name="문의" value={null} />
+          <p className="pd-note">
+            운영 · 개장 기간 · 주차 · 편의시설 · 문의를 내려주는 API 가 아직
+            없습니다. 값이 없다는 뜻이며 「없음」이나 「이용 불가」가 아닙니다.
           </p>
-          <button
-            type="button"
-            className="sd-more pd-tap"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
-          >
-            {expanded ? "접기" : "더 보기"}
-          </button>
         </div>
 
         <div className="pd-card">
@@ -128,11 +157,24 @@ export function SpotDetailPage({ spot }: { spot: Spot }) {
               지도에서 보기 →
             </a>
           </div>
-          <div className="pd-slot sd-map-slot">
-            {spot.location
-              ? "카카오 지도 · 좌표는 실제 · 핀 1개"
-              : "좌표가 아직 확인되지 않았습니다 · 지도 표시 없음"}
+          <div className="sd-info">
+            <InfoRow name="주소" value={place?.address ?? null} />
+            <InfoRow
+              name="좌표"
+              value={
+                typeof place?.lat === "number" && typeof place?.lng === "number"
+                  ? `${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`
+                  : null
+              }
+            />
           </div>
+          {!(typeof place?.lat === "number" && typeof place?.lng === "number") &&
+            !placeLoading && (
+              <p className="pd-note">
+                좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를
+                임의로 만들지 않습니다.
+              </p>
+            )}
         </div>
 
         <div className="sd-actions">
@@ -148,12 +190,6 @@ export function SpotDetailPage({ spot }: { spot: Spot }) {
           >
             <Icon name="save" size={19} />
           </button>
-        </div>
-
-        <div className="pd-card sd-alert">
-          <Icon name="warning" size={14} />
-          명소 API · 이미지 · 운영 정보는 아직 실연동되지 않았습니다. 위 값은
-          레이아웃 확인용 예시이며 안전 판단에 사용할 수 없습니다.
         </div>
       </AppShell>
     </article>
