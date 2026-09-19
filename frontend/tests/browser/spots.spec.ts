@@ -40,7 +40,7 @@ test("a spot's score is fetched on the detail page and is – rather than 0 when
   await expect(page.locator(".sd-hero-name")).toContainText(place.name);
 
   // 점수는 여섯 활동 중 오늘 가장 좋은 하나입니다(useBestActivity).
-  const activities = ["swim", "surf", "relax", "mudflat", "onsen", "rafting"];
+  const activities = ["swim", "surf", "relax", "onsen", "rafting"];
   const scored = await Promise.all(
     activities.map(async (activity) => {
       const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);

@@ -68,12 +68,10 @@ const ACTIVITY_ROWS = [
   { name: "수영", id: "swim" },
   { name: "서핑", id: "surf" },
   { name: "휴식", id: "relax" },
-  { name: "갯벌 체험", id: "mudflat" },
   { name: "래프팅", id: "rafting" },
   { name: "온천", id: "onsen" },
 ] as const;
 const TIDE_ACTIVITIES = [
-  { name: "갯벌 체험", icon: "mudflat" },
   { name: "래프팅", icon: "rafting" },
   { name: "튜브 물놀이", icon: "tube" },
 ] as const;

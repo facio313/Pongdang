@@ -1,18 +1,24 @@
-import type { Activity } from "./aiApi";
+import { recommendedActivities, type Activity } from "./aiApi";
 import { conditionScore, type Conditions } from "./productData";
 import { useConditions } from "./useConditions";
 
 /** 동점일 때의 우선순위이자 훅 호출 순서입니다. 훅은 조건부로 부를 수 없으므로
- *  여섯 활동을 매번 전부 조회합니다 -- TodayPage 의 활동별 점수 타일이 이미
- *  같은 방식으로 여섯 줄을 고정해 두고 있습니다. */
+ *  추천 활동을 매번 전부 조회합니다 -- TodayPage 의 활동별 점수 타일이 이미
+ *  같은 방식으로 다섯 줄을 고정해 두고 있습니다.
+ *
+ *  아래 훅 호출 수는 이 배열 길이와 반드시 같아야 합니다. */
 const ACTIVITY_ORDER = [
   "swim",
   "surf",
   "relax",
-  "mudflat",
   "onsen",
   "rafting",
 ] as const satisfies readonly Activity[];
+// 갯벌이 빠지는 등 추천 집합이 바뀌면 훅 호출 수도 함께 고쳐야 하므로, 길이가
+// 어긋나면 타입 단계에서 멈춥니다.
+const _sameAsRecommended: typeof ACTIVITY_ORDER.length =
+  recommendedActivities.length;
+void _sameAsRecommended;
 
 export interface ActivityCondition {
   activity: Activity;
@@ -37,7 +43,6 @@ export function useBestActivity(id?: number) {
     useConditions(id, ACTIVITY_ORDER[2]),
     useConditions(id, ACTIVITY_ORDER[3]),
     useConditions(id, ACTIVITY_ORDER[4]),
-    useConditions(id, ACTIVITY_ORDER[5]),
   ];
   const all: ActivityCondition[] = ACTIVITY_ORDER.map((activity, index) => ({
     ...states[index],

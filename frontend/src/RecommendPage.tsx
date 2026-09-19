@@ -95,13 +95,6 @@ const SWIPE_CARDS: {
     place: "활동 취향 선택",
   },
   {
-    id: "mudflat",
-    name: "갯벌 체험",
-    icon: "mudflat",
-    score: null,
-    place: "활동 취향 선택",
-  },
-  {
     id: "hotspring",
     name: "온천 마무리",
     icon: "hotspring",

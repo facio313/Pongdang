@@ -1,5 +1,10 @@
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅" } as const;
 export type Activity = keyof typeof activities;
+/** 추천 후보로 제시하는 활동. 강릉을 포함한 동해안은 서해안·남해안 같은 갯벌
+ *  지형이 발달하지 않아 mudflat 을 먼저 제안하지 않습니다. 지원을 끊는 것이
+ *  아니라 「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도
+ *  아닙니다. activities 는 라벨 사전이므로 여섯을 그대로 둡니다. */
+export const recommendedActivities = ["swim", "surf", "relax", "onsen", "rafting"] as const satisfies readonly Activity[];
 export interface AiContext {
   spot_id?: number;
   spot_ids?: number[];

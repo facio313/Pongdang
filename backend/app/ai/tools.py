@@ -35,8 +35,7 @@ from app.tides.storage import read_windows
 from app.twin.api import SpatialQuery, spatial_view
 from app.water_index.api import QueryParams, _public_rows
 from app.water_index.condition_api import ConditionQuery, read_conditions
-from app.water_index.conditions import ACTIVITIES
-from app.water_index.models import Activity
+from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity
 from app.water_index.sources import AuthorityRecord
 from app.water_index.storage import read_projection
 
@@ -538,7 +537,7 @@ class ToolSession:
             status="available",
             metadata={
                 "features": features,
-                "activities": list(ACTIVITIES),
+                "activities": list(RECOMMENDED_ACTIVITIES),
                 "numeric_recommendation": None,
                 "mutations": False,
             },

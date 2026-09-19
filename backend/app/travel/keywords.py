@@ -22,7 +22,6 @@ CATEGORIES = [
             {"id": "onsen", "label": "온천", "tag": "온천"},
             {"id": "surf", "label": "서핑", "tag": "서핑"},
             {"id": "swim", "label": "수영"},
-            {"id": "mudflat", "label": "갯벌 체험"},
             {"id": "rafting", "label": "래프팅"},
         ],
     },
@@ -195,13 +194,14 @@ def activity_options(request, place):
     selected = choices(request, "activity") or [request.activity]
     labels = {o["id"]: o["label"] for o in LOOKUP["activity"]["options"]}
     if request.locale != "ko":
+        # 아래 배열은 labels 와 위치로 짝지어집니다(zip strict). 활동 옵션을
+        # 더하거나 빼면 네 언어 배열을 같은 자리에서 함께 고쳐야 합니다.
         translations = {
             "en": [
                 "Relax by the water",
                 "Hot springs",
                 "Surfing",
                 "Swimming",
-                "Mudflat visit",
                 "Rafting",
             ],
             "ja": [
@@ -209,11 +209,10 @@ def activity_options(request, place):
                 "温泉",
                 "サーフィン",
                 "水泳",
-                "干潟体験",
                 "ラフティング",
             ],
-            "zh-CN": ["水边休息", "温泉", "冲浪", "游泳", "滩涂体验", "漂流"],
-            "zh-TW": ["水邊休息", "溫泉", "衝浪", "游泳", "灘塗體驗", "漂流"],
+            "zh-CN": ["水边休息", "温泉", "冲浪", "游泳", "漂流"],
+            "zh-TW": ["水邊休息", "溫泉", "衝浪", "游泳", "漂流"],
         }
         labels = dict(zip(labels, translations[request.locale], strict=True))
     tags = set(place["catalog_tags"])
@@ -223,10 +222,11 @@ def activity_options(request, place):
         "onsen": "온천" in tags,
         "surf": bool(tags & {"해변", "서핑"}),
         "swim": "해변" in tags,
-        "mudflat": "갯벌" in (place.get("category") or ""),
         "rafting": kind == "river",
     }
-    selected = [activity for activity in selected if affinities[activity]]
+    # 추천 목록에 없는 활동(mudflat 등)을 요청이 들고 와도 KeyError 대신 조용히
+    # 거릅니다. 지원하지 않는다는 판정이 아니라, 제안하지 않는다는 뜻입니다.
+    selected = [activity for activity in selected if affinities.get(activity, False)]
     # These are activities to consider at a real candidate, never an assertion
     # of permission, equipment, depth, open hours or scientific suitability.
     return [

@@ -34,7 +34,7 @@ test("desktop today reads the same server values as mobile", async ({ page }) =>
   const places = await placeResponse.json();
   const place = places.rows.find((item: { name: string }) => item.name.includes("경포"));
 
-  const activities = ["swim", "surf", "relax", "mudflat", "onsen", "rafting"];
+  const activities = ["swim", "surf", "relax", "onsen", "rafting"];
   const scored = await Promise.all(
     activities.map(async (activity) => {
       const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);

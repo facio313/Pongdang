@@ -55,19 +55,17 @@ import "./todayDesktop.css";
 //  - 값이 없는 날은 «–» 이고 0 점이 아닙니다(주간 예보).
 //  - 막대는 점수의 상대 위치이지 기여도가 아닙니다.
 
-/** 활동별 점수 칸. 모바일 오늘 탭과 같은 여섯 활동입니다. */
+/** 활동별 점수 칸. 모바일 오늘 탭과 같은 다섯 활동입니다. */
 const ACTIVITY_ROWS = [
   { id: "swim", mascot: "swim" },
   { id: "surf", mascot: "surf" },
   { id: "relax", mascot: "rest" },
-  { id: "mudflat", mascot: "spot" },
   { id: "rafting", mascot: "rafting" },
   { id: "onsen", mascot: "hotspring" },
 ] as const;
 
-/** 물때 운영 시간대를 묻는 활동. 모바일과 같은 세 가지입니다. */
+/** 물때 운영 시간대를 묻는 활동. 모바일과 같은 두 가지입니다. */
 const TIDE_ACTIVITIES = [
-  { name: "갯벌 체험", icon: "mudflat" },
   { name: "래프팅", icon: "rafting" },
   { name: "튜브 물놀이", icon: "tube" },
 ] as const;
