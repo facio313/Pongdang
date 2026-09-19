@@ -648,6 +648,45 @@ main:has(.pd-app) {
   color: var(--pd-ink-mute);
 }
 
+/* ── 근거 줄 (EvidenceNote) ─────────────────────────────
+   접힌 줄은 한 줄로 흐르고, 칩은 줄바꿈되더라도 쪼개지지 않습니다. */
+.pd-evidence-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* 바깥 여백은 이 줄을 놓는 화면(.hm-hero-note 등)이 정합니다. */
+  margin: 0;
+  font-size: var(--pd-fs-cap);
+  line-height: 1.6;
+  color: var(--pd-ink-2);
+}
+/* 공식 통제 문장은 접히지 않으므로 본문 색을 그대로 씁니다. 흐린 주석색으로
+   두면 가장 먼저 읽혀야 할 줄이 가장 늦게 읽힙니다. */
+.pd-evidence-control {
+  margin: 6px 0 0;
+  font-size: var(--pd-fs-cap);
+  line-height: 1.6;
+  color: var(--pd-alert-ink);
+  font-weight: 700;
+}
+.pd-evidence > .pd-explainer {
+  margin-top: 4px;
+}
+/* 코발트 히어로 위. 칩만 밝은 표면을 유지하고 나머지는 어두운 배경용 색입니다. */
+.pd-evidence.is-glass .pd-evidence-line {
+  color: var(--pd-on-cobalt-2);
+}
+.pd-evidence.is-glass .pd-evidence-control {
+  color: var(--pd-on-cobalt);
+}
+.pd-evidence.is-glass .pd-explainer > summary {
+  color: var(--pd-sky);
+}
+.pd-evidence.is-glass .pd-explainer-body {
+  color: var(--pd-on-cobalt-2);
+}
+
 .pd-explainer > summary {
   display: inline-block;
   font-size: var(--pd-fs-cap);

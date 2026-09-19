@@ -50,9 +50,20 @@
 .pd-desktop .hd-hero-note {
   max-width: 980px;
   margin: 0 0 22px;
+}
+/* 데스크탑은 --dk-* 팔레트를 쓰므로 pongdang.css 의 is-glass 색을 여기서
+   덮습니다. 구조(줄바꿈·간격)는 공용 .pd-evidence 것을 그대로 씁니다. */
+.pd-desktop .hd-hero-note .pd-evidence-line,
+.pd-desktop .hd-hero-note .pd-explainer-body {
   font-size: var(--dk-fs-cap);
-  line-height: 1.6;
   color: var(--dk-onc-2);
+}
+.pd-desktop .hd-hero-note .pd-evidence-control {
+  color: var(--dk-onc);
+}
+.pd-desktop .hd-hero-note .pd-explainer > summary {
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-sky);
 }
 .pd-desktop .hd-hero-actions {
   padding-bottom: 26px;

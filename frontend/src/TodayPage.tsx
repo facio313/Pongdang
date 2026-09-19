@@ -8,11 +8,12 @@ import { useProductData, useTodayData } from "./useProductData";
 import { useConditionDays } from "./useConditionDays";
 import { useConditions } from "./useConditions";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
+import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import {
   conditionScore,
-  conditionScoreText,
   conditionModeLabel,
+  dataStatusText,
   periodPath,
   dateLabel,
   timeLabel,
@@ -173,10 +174,7 @@ function Hero({
         </div>
         {/* 「값이 없으면 –…」 같은 전역 규칙 문장은 화면 바닥의 AppFootNote 가
             한 번만 말합니다. 여기는 이 지점의 근거만 남깁니다. */}
-        <p className="td-hero-note">
-          {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
-          {conditions?.safety_status ?? "unknown"}.
-        </p>
+        <EvidenceNote data={conditions} className="td-hero-note" glass />
       </div>
     </header>
   );
@@ -444,7 +442,7 @@ function ForecastSection({
         <p className="pd-note">
           {selected.score !== null
             ? "점수는 위 상세의 관측소·격자 예보 근거로 계산했습니다."
-            : status === "no_forecast_data" ? "연결된 관측소·격자 예보 없음." : status}{" "}
+            : dataStatusText(status)}{" "}
           {rows
             .filter(
               (row) =>
@@ -505,6 +503,51 @@ function OperatingRow({
   );
 }
 
+/** 물때 카드의 근거 줄. 예전에는 status enum(「available」) · 주의문 · 관측소명 ·
+ *  거리가 한 문단에 섞여 있었고, spatial_relation 이 nearby_station_context 가
+ *  아니면 관측소 이름만 덩그러니 남았습니다.
+ *
+ *  거리(예: 33.5km)는 접지 않습니다 -- 이 화면에서 가장 중요한 한계입니다.
+ *  나머지 주의문은 「이 시각의 한계」 안에 그대로 둡니다. */
+function TideNote({ tides, status }: { tides?: TideResult; status: string }) {
+  const event = tides?.next_high ?? tides?.next_low;
+  const distance =
+    typeof event?.distance_km === "number" ? `${event.distance_km.toFixed(1)}km` : null;
+  const nearby = event?.spatial_relation === "nearby_station_context";
+  return (
+    <div className="pd-note">
+      <p className="pd-evidence-line">
+        <StateChip kind={tides?.rows.length ? "live" : "no_data"} />
+        {event?.station_name && (
+          <span className="pd-state-chip">
+            {/* 관계를 알 수 없으면 「주변 참고」라고 단정하지 않고 관측소로만
+                적습니다. 모르는 것을 가까운 것으로 바꾸지 않기 위해서입니다. */}
+            {nearby
+              ? `주변 ${event.station_name}${distance ? ` ${distance}` : ""} 참고`
+              : `관측소 ${event.station_name}${distance ? ` ${distance}` : ""}`}
+          </span>
+        )}
+        <span>공식 조석 예측의 간조·만조 시각입니다. {dataStatusText(status)}</span>
+      </p>
+      <details className="pd-explainer">
+        <summary className="pd-tap">이 시각의 한계</summary>
+        <div className="pd-explainer-body">
+          <p>
+            사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.
+          </p>
+          {event && (
+            <p>
+              {event.station_name ?? "관측소명 없음"} · {event.provider}
+              {distance ? ` · ${distance}` : ""}
+              {nearby ? " · 해당 해변의 직접 예측이 아닙니다." : ""}
+            </p>
+          )}
+        </div>
+      </details>
+    </div>
+  );
+}
+
 function TideSection({
   tides,
   status,
@@ -548,14 +591,7 @@ function TideSection({
             />
           ))}
         </div>
-        <p className="pd-note">
-          <StateChip kind={tides?.rows.length ? "live" : "no_data"} /> {status}{" "}
-          공식 조석 예측의 간조·만조 시각입니다. 사건 시각만으로 현재 조류나
-          활동 적합 여부를 판단하지 않습니다.{" "}
-          {(tides?.next_high ?? tides?.next_low)?.station_name}{" "}
-          {(tides?.next_high ?? tides?.next_low)?.spatial_relation === "nearby_station_context" &&
-            `주변 관측소 참고 ${(tides?.next_high ?? tides?.next_low)?.distance_km?.toFixed(1)}km · 해당 해변의 직접 예측이 아닙니다.`}
-        </p>
+        <TideNote tides={tides} status={status} />
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conditionScore, conditionScoreText, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, productPlaces } from '../src/productData.ts';
+import { conditionScore, conditionScoreText, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
 
 const index = {
   label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
@@ -45,6 +45,34 @@ test('partial score includes actual coverage, missing fields and its non-safety 
   assert.match(components, /수온 21.3°C → 62점/);
   assert.match(components, /풍속 – → – · 아직 수집된 측정값 없음/);
   assert.match(conditionScoreText({ condition_score: { ...index, status: 'blocked', score: null } }), /공식 제한 또는 활동 미지원으로 계산 보류/);
+});
+
+test('the collapsed evidence line keeps coverage and never turns a missing score into a number', () => {
+  const data = { mode: 'observation', at: '2026-09-19T13:57:00Z', condition_score: index };
+  const line = evidenceSummary(data);
+  assert.match(line, /참고 점수 76.3/);
+  // 브라우저 테스트가 .hm-hero-note 안에서 이 문자열을 찾습니다.
+  assert.match(line, /근거 확보 3\/4/);
+  assert.match(line, /관측 22:57 KST/);
+  // 접힌 줄이 짧아졌다고 없는 값이 0 이나 판정으로 바뀌지 않습니다.
+  assert.match(evidenceSummary({ ...data, condition_score: { ...index, score: null } }), /참고 점수 –/);
+  assert.match(evidenceSummary({ ...data, condition_score: { ...index, status: 'blocked', score: null } }), /계산 보류/);
+  assert.match(evidenceSummary({ ...data, mode: 'forecast' }), /예보 22:57 KST/);
+  assert.equal(evidenceSummary(undefined), '근거 확보 자료를 읽지 못했습니다.');
+});
+
+test('server status enums reach the screen as sentences, and unknown never reads as fine', () => {
+  assert.match(safetyStatusText({ safety_status: 'unknown' }), /안전하다는 뜻이 아닙니다/);
+  assert.match(safetyStatusText(undefined), /unknown/);
+  assert.match(safetyStatusText({ safety_status: 'restricted' }), /공식 제한/);
+  assert.match(safetyStatusText({ safety_status: 'caution' }), /주의 사항/);
+  // 정상 상태는 덧붙일 말이 없습니다. 예전에는 문단이 「available」로 시작했습니다.
+  assert.equal(dataStatusText('available'), '');
+  assert.equal(dataStatusText(undefined), '');
+  assert.match(dataStatusText('no_forecast_data'), /연결된 예보 자료 없음/);
+  assert.match(dataStatusText('outside_forecast_horizon'), /예보 지원 기간 밖/);
+  // 모르는 코드를 유리한 상태로 바꾸지 않고 코드를 남깁니다.
+  assert.match(dataStatusText('some_new_code'), /자료 상태 some_new_code/);
 });
 
 test('date scores request selected KST forecast rather than current observations', () => {

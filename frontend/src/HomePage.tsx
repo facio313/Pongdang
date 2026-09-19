@@ -17,6 +17,7 @@ import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
+import { EvidenceNote } from "./EvidenceNote";
 import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
@@ -26,10 +27,8 @@ import { WaterQualityDetails } from "./WaterQualityDetails";
 import { HourlyConditions } from "./HourlyConditions";
 import {
   dateLabel,
-  conditionScoreText,
   conditionModeLabel,
   timeLabel,
-  evidenceText,
   waterQualityLabel,
   type Conditions,
   type WaterQualityGrade,
@@ -205,10 +204,9 @@ function Hero({
           glass
         />
 
-        <p className="hm-hero-note">
-          {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
-          {conditions?.safety_status ?? "unknown"}.
-        </p>
+        {/* 이 자리는 예전에 근거 전문 한 문단이었습니다. 문구는 그대로 두고
+            「근거 보기」 안으로 층만 나눕니다(EvidenceNote 주석 참고). */}
+        <EvidenceNote data={conditions} className="hm-hero-note" glass />
 
         <div className="hm-hero-actions">
           <a className="pd-inline pd-tap" href="#today">

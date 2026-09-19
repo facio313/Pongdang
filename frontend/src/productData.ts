@@ -126,6 +126,45 @@ export function conditionScoreText(data?: Conditions) {
   const issueUnknown = index.components.some((component) => component.reason_codes.includes("provider_issue_time_unknown")) ? " 예보 발표 시각 미확인." : "";
   return `${index.label} ${score === null ? "–" : `${score}점`}${coverage} · ${state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.${support}${context}${issueUnknown}`;
 }
+/** 히어로에 항상 보이는 한 줄. 예전에는 conditionScoreText + evidenceText 전문이
+ *  점수 바로 아래 펼쳐져 있었는데, 의무 면책 · 출처 원문 · 서버 enum 이 같은 층에
+ *  평평하게 놓여 6~8줄이 되었습니다. 전문은 EvidenceNote 의 «details» 안에 그대로
+ *  남기고 여기서는 「무엇의 몇 점 · 근거 몇 개 · 언제 기준」만 말합니다.
+ *
+ *  「근거 확보」라는 표기는 ScoreExplainer 의 용어 정의와 같은 말이어야 하므로
+ *  바꾸지 마세요. */
+export function evidenceSummary(data?: Conditions) {
+  const index = data?.condition_score;
+  if (!index) return "근거 확보 자료를 읽지 못했습니다.";
+  const score = conditionScore(data);
+  const value = index.status === "blocked" ? "계산 보류" : score === null ? "–" : `${score}`;
+  // 확보율은 백분율보다 「4개 중 4개」가 바로 읽힙니다. 백분율 전문은 details 안에
+  // conditionScoreText 로 그대로 남습니다.
+  const coverage = ` · 근거 확보 ${index.available_components}/${index.total_components}`;
+  const at = timeLabel(data?.at);
+  return `참고 점수 ${value}${coverage} · ${conditionModeLabel(data)} ${at} KST`;
+}
+/** 안전 상태의 사용자 문장. 서버 enum(unknown/caution/restricted)을 그대로 쓰면
+ *  뜻이 전달되지 않고, 특히 unknown 은 「이상 없음」으로 읽힙니다. 모르는 값은
+ *  유리한 쪽으로 매핑하지 않고 코드를 남깁니다. */
+export function safetyStatusText(data?: Conditions) {
+  const status = data?.safety_status ?? "unknown";
+  if (status === "restricted") return "안전 상태 restricted — 공식 제한이 있습니다. 해당 안내를 먼저 따르세요.";
+  if (status === "caution") return "안전 상태 caution — 확인된 주의 사항이 있습니다.";
+  if (status === "unknown") return "안전 상태 unknown — 판정이 없다는 뜻이며 안전하다는 뜻이 아닙니다.";
+  return `안전 상태 ${status}.`;
+}
+/** 자료 조회 상태의 한국어 표기. 서버 enum 을 화면 문장 자리에 그대로 내보내지
+ *  않기 위한 것이며(예전에는 문단이 「available」로 시작했습니다), 모르는 코드는
+ *  유리한 상태로 매핑하지 않고 코드를 그대로 남깁니다. */
+export const DATA_STATUS: Record<string, string> = {
+  available: "",
+  no_forecast_data: "연결된 예보 자료 없음.",
+  outside_forecast_horizon: "예보 지원 기간 밖입니다.",
+  missing_within_horizon: "지원 기간 안이지만 해당 시각의 자료가 없습니다.",
+};
+export const dataStatusText = (status?: string) =>
+  status ? (DATA_STATUS[status] ?? `자료 상태 ${status}.`) : "";
 export function conditionScoreExpiry(data?: Conditions): number | undefined {
   const used = data?.condition_score?.components.filter((item) => item.status === "evaluated" && item.score !== null) ?? [];
   const expiries = [...(data?.metrics ?? []), ...(data?.context_metrics ?? [])]

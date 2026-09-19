@@ -26,11 +26,10 @@ import {
   scoreTitle,
   verdictOf,
 } from "./scoreMeaning";
+import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionModeLabel,
-  conditionScoreText,
   dateLabel,
-  evidenceText,
   waterQualityLabel,
   type Conditions,
   type WaterQualityGrade,
@@ -248,10 +247,7 @@ function HomeHero({
           </div>
         </div>
       </div>
-      <p className="hd-hero-note">
-        {conditionScoreText(conditions)} {evidenceText(conditions)} 안전 상태:{" "}
-        {conditions?.safety_status ?? "unknown"}.
-      </p>
+      <EvidenceNote data={conditions} className="hd-hero-note" glass />
       <div className="hd-hero-actions">
         <ScoreExplainer data={conditions} />
       </div>

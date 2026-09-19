@@ -10,12 +10,12 @@ import { useConditions } from "./useConditions";
 import type { DefaultPlaceSelection } from "./useProductData";
 import { useAction } from "./useAction";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
+import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionScore,
   productPlaces,
   kstDate,
   metricText,
-  evidenceText,
   timeLabel,
   type Place,
   type ClassifiedWaterPlace,
@@ -260,10 +260,10 @@ function SpotSheet({
           <StateChip kind="live" />
         </div>
 
-        <p className="pd-note">
-          지도 점수는 선택한 장소를 조회한 값입니다. {evidenceText(conditions)} 안전 상태 unknown은 판정 없음이며 안전함이
-          아닙니다.
-        </p>
+        {/* 안전 상태는 바로 위 mp-chips 가 이미 크게 말하고 있으므로 이 줄의
+            칩은 끕니다. 문장 자체는 「근거 보기」 안에 그대로 있습니다. */}
+        <p className="pd-note">지도 점수는 선택한 장소를 조회한 값입니다.</p>
+        <EvidenceNote data={conditions} className="pd-note" chip={false} />
         <ConditionScoreDetails data={conditions} className="pd-note" />
       </div>
 
