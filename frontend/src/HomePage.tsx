@@ -33,13 +33,8 @@ import {
   type Conditions,
   type WaterQualityGrade,
 } from "./productData";
-import {
-  BEACH_PICKS,
-  TASTE_LABEL,
-  TASTE_PICKS,
-  spotLink,
-  type Spot,
-} from "./spotsCatalog";
+import { spotLink } from "./spotsRoute";
+import { useWaterPlaces } from "./useWaterPlaces";
 import { newWebcamShuffleSeed } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
@@ -296,13 +291,13 @@ function SpotScroller({
   title,
   note,
   link,
-  spots,
+  places,
   children,
 }: {
   title: string;
   note: string;
   link: { href: string; label: string };
-  spots: Spot[];
+  places: { id: number; name: string; meta: string }[];
   children: ReactNode;
 }) {
   return (
@@ -315,55 +310,105 @@ function SpotScroller({
       </div>
       <p className="pd-note hm-picks-note">{note}</p>
       <div className="hm-picks-row">
-        {spots.map((spot) => (
-          <a className="hm-pick" href={spotLink(spot)} key={spot.id}>
+        {places.map((place) => (
+          <a className="hm-pick" href={spotLink(place)} key={place.id}>
             {/* 사진은 아직 미확보입니다. 예전에는 점선 pd-slot 이었는데, 한
                 화면에 8칸 넘게 반복되면서 앱 전체가 미완성으로 읽혔습니다.
                 점선은 미설계 섹션에만 두고 여기는 중립 자리표시자입니다. */}
-            <span className="hm-pick-photo" aria-label={`${spot.name} 대표 사진 준비 중`}>
+            <span className="hm-pick-photo" aria-label={`${place.name} 대표 사진 없음`}>
               <Icon name="pin" size={20} />
             </span>
-            <span className="hm-pick-name">{spot.name}</span>
-            <span className="hm-pick-meta">
-              {spot.categoryLabel} · {spot.distanceKm}km
-            </span>
-            <span className="hm-pick-score">
-              <GradeChip
-                score={spot.score}
-                prefix="퐁당"
-                label={spot.score === null ? spot.unscoredLabel : undefined}
-              />
-            </span>
+            <span className="hm-pick-name">{place.name}</span>
+            <span className="hm-pick-meta">{place.meta}</span>
           </a>
         ))}
+        {/* 점수 칩이 있던 자리입니다. 명소마다 점수를 붙이려면 장소마다 한
+            번씩 조회해야 해서, 목록에서는 약속하지 않고 상세에서 읽습니다. */}
       </div>
       <div className="pd-note hm-picks-foot">{children}</div>
     </div>
   );
 }
 
+/** 예전에는 이 줄이 spotsCatalog 의 해변 4곳이었고 거리 · 점수가 지어낸
+ *  값이었습니다. 이제 서버가 분류한 실제 해변을 싣습니다. */
 function BeachPicksCard() {
+  const places = useWaterPlaces("");
+  const beaches = (places.rows ?? [])
+    .filter((place) => place.type === "beach")
+    .slice(0, 4)
+    .map((place) => ({
+      id: place.id,
+      name: place.name,
+      meta: place.region ?? "지역 미확인",
+    }));
+  if (!beaches.length)
+    return (
+      <div className="pd-card">
+        <div className="pd-card-title">바다가 좋은 오늘 · 해변 명소</div>
+        <p className="pd-note" role={places.error ? "alert" : "status"}>
+          <StateChip kind={places.rows ? "no_data" : "partial"} />{" "}
+          {places.error ??
+            (places.loading
+              ? "해변 목록을 조회하고 있습니다."
+              : "수집된 해변이 아직 없습니다.")}
+        </p>
+      </div>
+    );
   return (
     <SpotScroller
       title="바다가 좋은 오늘 · 해변 명소"
-      note="위 「오늘 한눈에」가 바다를 권했기 때문에 해변 카테고리를 먼저 보여줍니다."
+      note="서버가 카테고리와 장소명을 보고 해변으로 분류한 곳입니다."
       link={{ href: "#spots", label: "명소 전체" }}
-      spots={BEACH_PICKS}
+      places={beaches}
     >
-      <StateChip kind="example" />
-      <span className="pd-state-chip">명소 API 미연동</span>
-      공공 API를 백엔드에서 가공한 목록입니다.
+      <StateChip kind="live" />
+      명소를 고르면 그곳의 퐁당 점수를 조회합니다. 거리 · 운영시간 · 대표
+      사진은 아직 내려주는 API 가 없습니다.
     </SpotScroller>
   );
 }
 
+/** 예전에는 「고른 취향의 명소 · 서핑 · 온천」이 늘 떠 있었습니다. 고른 적이
+ *  없는데도 고른 것처럼 보였습니다 -- 취향은 파일 안 상수였습니다.
+ *
+ *  실제로 고른 취향은 추천 결과 안에만 남습니다(matched_preferences). 추천을
+ *  받기 전에는 보여 줄 것이 없으므로 그 사실을 적고 추천으로 보냅니다. */
 function TastePicksCard() {
+  const session = useTravelSession();
+  const picks = (session.recommendation?.recommendations ?? [])
+    .slice(0, 4)
+    .map((item) => ({
+      id: item.spot_id,
+      name: item.name,
+      meta: item.region ?? "지역 미확인",
+    }));
+  const tags = [
+    ...new Set(
+      (session.recommendation?.recommendations ?? []).flatMap((item) =>
+        item.matched_preferences.map((preference) => preference.tag),
+      ),
+    ),
+  ];
+  if (!picks.length)
+    return (
+      <div className="pd-card">
+        <div className="pd-card-title">고른 취향의 명소</div>
+        <p className="pd-note">
+          아직 고른 취향이 없습니다. 추천에서 취향을 고르면 그 결과가 여기에
+          들어옵니다.
+        </p>
+        <a className="pd-secondary hm-cta" href="#recommend">
+          취향 고르기 →
+        </a>
+      </div>
+    );
   return (
     <SpotScroller
-      title={`고른 취향의 명소 · ${TASTE_LABEL}`}
-      note={`선택한 취향(${TASTE_LABEL})에 해당하는 카테고리만 걸러 보여줍니다. 카페를 고르면 같은 자리에 카페 명소가 들어옵니다.`}
-      link={{ href: "#spots", label: "더 보기" }}
-      spots={TASTE_PICKS}
+      title={`고른 취향의 명소${tags.length ? ` · ${tags.join(" · ")}` : ""}`}
+      note="추천에서 고른 취향에 맞춰 서버가 고른 장소입니다."
+      link={{ href: "#recommend", label: "추천 다시 보기" }}
+      places={picks}
     >
       퐁당 점수는 물놀이 조건이 있는 명소에만 산정됩니다. 없으면 <b>–</b>이며
       0점이 아닙니다.

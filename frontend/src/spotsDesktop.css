@@ -89,11 +89,15 @@
   border-bottom: 1px solid var(--dk-line);
 }
 /* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
+/* 대표 사진을 내려주는 API 가 없습니다. 줄마다 반복되는 자리라 점선 슬롯
+   대신 중립 자리표시자를 씁니다. */
 .pd-desktop .sk-row-photo {
+  display: block;
   width: 208px;
   height: 130px;
   flex: none;
   border-radius: 0;
+  background: var(--dk-mist);
 }
 .pd-desktop .sk-row-body {
   flex: 1;

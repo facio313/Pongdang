@@ -213,6 +213,11 @@
 .pd-desktop .hd-summary-value.is-empty {
   color: #4b5563;
 }
+/* 코스가 없을 때의 안내 자리. 아직 만들어지지 않은 코스이므로 점선입니다. */
+.pd-desktop .hd-course-empty {
+  padding: 26px;
+  text-align: center;
+}
 .pd-desktop .hd-hour-note {
   flex: 1;
   min-width: 200px;
@@ -236,9 +241,14 @@
   min-width: 0;
 }
 /* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
+/* 대표 사진을 내려주는 API 가 없습니다. 네 칸이 반복되는 자리라 점선 슬롯
+   대신 중립 자리표시자를 씁니다 -- 점선이 반복되면 화면 전체가 미완성으로
+   읽힙니다(모바일 .hm-pick-photo 와 같은 판단). */
 .pd-desktop .hd-beach-photo {
+  display: block;
   aspect-ratio: 4 / 3;
   border-radius: 0;
+  background: var(--dk-mist);
 }
 .pd-desktop .hd-beach-head {
   display: flex;
@@ -356,10 +366,12 @@
   text-decoration: none;
 }
 .pd-desktop .hd-taste-photo {
+  display: block;
   width: 118px;
   height: 88px;
   flex: none;
   border-radius: 0;
+  background: var(--dk-mist);
   font-size: var(--dk-fs-cap);
 }
 .pd-desktop .hd-taste-spot-name {

@@ -1,4 +1,5 @@
-import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
+import { useState } from "react";
+import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -32,19 +33,19 @@ import {
   dateLabel,
   waterQualityLabel,
   type Conditions,
+  type Place,
   type WaterQualityGrade,
 } from "./productData";
 import { isInitialLoad, useResource } from "./useResource";
 import { useProductData } from "./useProductData";
 import { useHourlyScores } from "./useHourlyScores";
 import type { ActivityCondition } from "./useBestActivity";
-import {
-  BEACH_PICKS,
-  TASTE_LABEL,
-  TASTE_PICKS,
-  spotLink,
-  type Spot,
-} from "./spotsCatalog";
+import { spotLink } from "./spotsRoute";
+import { useWaterPlaces } from "./useWaterPlaces";
+import { useTravelSession } from "./travelSession";
+import { newWebcamShuffleSeed } from "./livecamPreviewApi";
+import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
+import { useWebcamCatalog } from "./useWebcamCatalog";
 import "./homeDesktop.css";
 
 // 데스크탑 홈(핸드오프 18a)입니다. 모바일 홈과 **같은 라우트(#home)**이며
@@ -59,60 +60,13 @@ import "./homeDesktop.css";
 // 위해서입니다 -- 예전에는 이 파일 안의 상수가 수온 22.1°C 와 시간대 점수
 // 아홉 개를 지어내고 있었습니다.
 //
-// 아직 예시인 것: 명소(spotsCatalog) · 취향 · 코스 · 라이브캠. 각 자리에
-// 「예시 데이터」 칩을 달아 밝힙니다.
+// 명소 · 취향 · 코스 · 라이브캠도 모바일과 같은 소스를 읽습니다. 예전에는
+// 이 자리들이 전부 파일 안 상수였습니다 -- 고른 적 없는 취향이 「서핑과 온천을
+// 고르셨습니다」로 떠 있었고, 저장된 적 없는 코스가 「3곳 · 12.0km」로 적혀
+// 있었습니다. 데이터가 없으면 지어내지 않고 그 사실을 적습니다.
 
 const HERO_DATE = dateLabel();
 const BAR_MAX_HEIGHT = 104;
-
-const TASTES: { label: string; mascot: MascotRole; on: boolean }[] = [
-  { label: "서핑", mascot: "surf", on: true },
-  { label: "온천", mascot: "hotspring", on: true },
-  { label: "카페", mascot: "cafe", on: false },
-  { label: "갯벌 체험", mascot: "spot", on: false },
-];
-
-const COURSE_STEPS: {
-  name: string;
-  activity: string;
-  mascot: MascotRole;
-  time: string;
-  leg: string;
-}[] = [
-  {
-    name: "경포해변",
-    activity: "서핑 · 2시간",
-    mascot: "surf",
-    time: "09:20",
-    leg: "출발 · 4.2km",
-  },
-  {
-    name: "안목 카페거리",
-    activity: "휴식 · 점심 · 1시간",
-    mascot: "cafe",
-    time: "12:00",
-    leg: "이동 · 5.1km",
-  },
-  {
-    name: "사천진 온천",
-    activity: "온천 · 1시간 30분",
-    mascot: "hotspring",
-    time: "14:30",
-    leg: "이동 · 2.7km",
-  },
-];
-
-const LIVECAMS: {
-  name: string;
-  place: string;
-  at: string;
-  live: boolean;
-}[] = [
-  { name: "경포해변", place: "해수욕장 중앙", at: "06:00", live: true },
-  { name: "안목해변", place: "커피거리 방면", at: "06:00", live: true },
-  // 송출이 없는 자리는 빈 칸으로 두지 않고 「카메라 미설치」를 밝힙니다.
-  { name: "사천진해변", place: "–", at: "–", live: false },
-];
 
 /** 예전에는 이 히어로가 「오늘 바다는 / 들어가기 좋습니다」라는 고정 문장과
  *  하드코딩된 수온 22.1°C 였습니다. 모바일 홈이 실제 점수를 읽는 동안
@@ -335,26 +289,19 @@ function HourBars({
   );
 }
 
-function BeachCard({ spot }: { spot: Spot }) {
+function BeachCard({ place }: { place: Place }) {
   return (
-    <a className="hd-beach" href={spotLink(spot)}>
-      <span className="pd-dk-slot hd-beach-photo">
-        {spot.name} 대표 사진
-      </span>
+    <a className="hd-beach" href={spotLink(place)}>
+      {/* 대표 사진을 내려주는 API 가 없습니다. 네 칸이 반복되는 자리라 점선
+          슬롯 대신 중립 자리표시자를 씁니다. */}
+      <span className="hd-beach-photo" aria-label={`${place.name} 대표 사진 없음`} />
       <span className="hd-beach-head">
-        <b className="hd-beach-name">{spot.name}</b>
-        <span className="hd-beach-category">{spot.categoryLabel}</span>
-        <span className="pd-dk-num hd-beach-distance">{spot.distanceKm}km</span>
+        <b className="hd-beach-name">{place.name}</b>
+        <span className="hd-beach-category">해변</span>
       </span>
       <span className="hd-beach-foot">
-        <GradeChip
-          score={spot.score}
-          bare
-          prefix="퐁당"
-          label={spot.score === null ? spot.unscoredLabel : undefined}
-        />
         <span className="hd-beach-operating">
-          {spot.operatingNote ?? spot.operating}
+          {place.region ?? "지역 미확인"}
         </span>
       </span>
     </a>
@@ -367,6 +314,34 @@ export function HomeDesktop() {
   const quality = useResource<WaterQualityGrade>(
     place ? `quality/grade?spot_id=${place.id}` : null,
   );
+  // 아래 네 덩어리는 모바일 홈이 이미 쓰는 것과 같은 소스입니다. 예전에는 이
+  // 자리들이 전부 파일 안 상수였습니다.
+  const catalog = useWaterPlaces("");
+  const beaches = (catalog.rows ?? [])
+    .filter((item) => item.type === "beach")
+    .slice(0, 4);
+  const session = useTravelSession();
+  const tastePicks = (session.recommendation?.recommendations ?? []).slice(0, 3);
+  const tags = [
+    ...new Set(
+      (session.recommendation?.recommendations ?? []).flatMap((item) =>
+        item.matched_preferences.map((preference) => preference.tag),
+      ),
+    ),
+  ];
+  const course = session.route?.route ?? null;
+  const [shuffleSeed] = useState(newWebcamShuffleSeed);
+  const webcams = useWebcamCatalog(1, "", shuffleSeed);
+  const cameras = (webcams.result?.rows ?? [])
+    .flatMap((camera) => {
+      const player = previewPlayerUrl(camera, webcams.result!.valid_until, webcams.now);
+      const href =
+        player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
+      return href
+        ? [{ camera, href, label: player ? "타임랩스" : "원본 보기" }]
+        : [];
+    })
+    .slice(0, 3);
   return (
     <DesktopShell>
       <HomeHero
@@ -412,22 +387,34 @@ export function HomeDesktop() {
             바로 이어가기
           </>
         }
-        chip={<span className="pd-state-chip">명소 API 미연동</span>}
-        desc="오늘 상황이 바다를 권하면 바로 아래에 해변 카테고리 명소를 연이어 붙여, 상태 열람에서 장소 선택으로 넘어가게 합니다."
+        chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
+        desc="서버가 카테고리와 장소명을 보고 해변으로 분류한 곳입니다. 상태 열람에서 장소 선택으로 바로 넘어가게 붙입니다."
         link={{ href: "#spots", label: "명소 탭 전체 보기" }}
       >
         <div className="hd-beaches">
-          {BEACH_PICKS.map((spot) => (
-            <BeachCard key={spot.id} spot={spot} />
+          {beaches.map((place) => (
+            <BeachCard key={place.id} place={place} />
           ))}
         </div>
+        {!beaches.length && (
+          <p className="hd-row-note" role={catalog.error ? "alert" : "status"}>
+            {catalog.error ??
+              (catalog.loading
+                ? "해변 목록을 조회하고 있습니다."
+                : "수집된 해변이 아직 없습니다.")}
+          </p>
+        )}
         <p className="hd-row-note">
-          명소 목록은 공공 API를 백엔드에서 가공해 내리는 데이터입니다. 퐁당
-          점수는 물놀이 조건이 있는 명소에만 산정되며, 없으면 «–»이고 0점이
-          아닙니다. 리뷰 평점은 사용하지 않습니다.
+          명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는
+          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간 ·
+          대표 사진은 아직 내려주는 API 가 없습니다. 리뷰 평점은 쓰지 않습니다.
         </p>
       </LabelRow>
 
+      {/* 예전에는 「서핑과 온천을 고르셨습니다」가 늘 떠 있었고 칩 네 개 중
+          둘이 켜져 있었습니다. 고른 적이 없는데도 고른 것처럼 보였습니다 --
+          취향은 파일 안 상수였습니다. 실제로 고른 취향은 추천 결과 안에만
+          남습니다(matched_preferences). */}
       <LabelRow
         kick="취향 맞추기"
         title={
@@ -441,25 +428,24 @@ export function HomeDesktop() {
       >
         <SplitBody columns="1.25fr 1fr">
           <div className="hd-taste">
-            <div className="hd-taste-lead">서핑과 온천을 고르셨습니다</div>
-            <div className="hd-taste-chips">
-              {TASTES.map((taste) => (
-                <span
-                  className={"hd-taste-chip" + (taste.on ? " is-on" : "")}
-                  key={taste.label}
-                >
-                  <img src={mascotUrl(taste.mascot)} alt="" width={20} height={20} />
-                  {taste.label}
-                  {taste.on && <Icon name="check" size={13} />}
-                </span>
-              ))}
+            <div className="hd-taste-lead">
+              {tags.length
+                ? `${tags.join(" · ")}을 고르셨습니다`
+                : "아직 고른 취향이 없습니다"}
             </div>
+            {tags.length > 0 && (
+              <div className="hd-taste-chips">
+                {tags.map((tag) => (
+                  <span className="hd-taste-chip is-on" key={tag}>
+                    {tag}
+                    <Icon name="check" size={13} />
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="hd-taste-actions">
               <a className="pd-dk-button" href="#recommend">
-                이 취향으로 추천 받기 →
-              </a>
-              <a className="hd-taste-reset" href="#recommend">
-                취향 다시 고르기
+                {tags.length ? "추천 다시 보기 →" : "취향 고르기 →"}
               </a>
             </div>
           </div>
@@ -473,102 +459,108 @@ export function HomeDesktop() {
             />
             <div>
               {/* 「AI 제안」 칩이 붙은 자리에는 같은 덩어리 안에 근거가 반드시
-                  함께 있어야 합니다(핸드오프 데이터 표기 규칙 4). */}
+                  함께 있어야 합니다(핸드오프 데이터 표기 규칙 4). 예전에는
+                  「오전 서핑 후 오후 온천」이라는 고정 문장과 「파고 0.6m ·
+                  12:34 이후 밀물」이라는 지어낸 근거가 적혀 있었습니다. */}
               <span className="pd-ai-chip">
                 <Icon name="sparkle" size={12} />
                 AI 제안
               </span>
               <div className="hd-ai-headline">
-                오전 서핑 후 오후 온천을 붙이면 오늘 조건에 가장 잘 맞습니다
+                {best
+                  ? `오늘 이 장소에서는 ${activities[best.activity]}이(가) 가장 잘 맞습니다`
+                  : "오늘 점수를 낼 수 있는 활동이 없습니다"}
               </div>
               <p className="hd-ai-basis">
-                근거 — 파고 0.6m(서핑 적정) · 12:34 이후 밀물 · 오후 수온 하강
-                예보. 근거 데이터는 예시입니다.
+                근거 — {scoreReason(best?.data).text}
               </p>
             </div>
           </div>
         </SplitBody>
       </LabelRow>
 
-      <LabelRow
-        kick="취향에 맞는 명소"
-        title={
-          <>
-            {TASTE_LABEL}을
-            <br />
-            고르셨으니
-          </>
-        }
-        desc="고른 취향 카테고리만 걸러 명소를 붙입니다. 카페를 고르면 같은 자리에 카페 명소가 들어옵니다."
-      >
-        <SplitBody>
-          {TASTE_PICKS.map((spot) => (
-            <a className="hd-taste-spot" href={spotLink(spot)} key={spot.id}>
-              <span className="pd-dk-slot hd-taste-photo">{spot.name} 사진</span>
-              <span>
-                <span className="hd-taste-spot-name">{spot.name}</span>
-                <span className="hd-taste-spot-meta">
-                  {spot.categoryLabel} · {spot.distanceKm}km ·{" "}
-                  {spot.operatingNote ?? "운영 정보 –"}
+      {/* 「취향에 맞는 명소」 줄이 여기 있었습니다. 고른 취향이 없으면 보여 줄
+          것도 없어, 추천 결과가 있을 때만 싣습니다. */}
+      {tastePicks.length > 0 && (
+        <LabelRow
+          kick="취향에 맞는 명소"
+          title={
+            <>
+              고르신 취향에
+              <br />
+              맞춰 골랐습니다
+            </>
+          }
+          chip={<StateChip kind="live" />}
+          desc="추천에서 고른 취향에 맞춰 서버가 고른 장소입니다."
+          link={{ href: "#recommend", label: "추천 다시 보기" }}
+        >
+          <SplitBody>
+            {tastePicks.map((item) => (
+              <a
+                className="hd-taste-spot"
+                href={spotLink({ id: item.spot_id })}
+                key={item.spot_id}
+              >
+                <span
+                  className="hd-taste-photo"
+                  aria-label={`${item.name} 대표 사진 없음`}
+                />
+                <span>
+                  <span className="hd-taste-spot-name">{item.name}</span>
+                  <span className="hd-taste-spot-meta">
+                    {item.region ?? "지역 미확인"} ·{" "}
+                    {item.activities.map((activity) => activity.label).join(" · ") ||
+                      "활동 미확인"}
+                  </span>
                 </span>
-                <span className="hd-taste-spot-score">
-                  <GradeChip
-                    score={spot.score}
-                    bare
-                    prefix="퐁당"
-                    label={spot.score === null ? spot.unscoredLabel : undefined}
-                  />
-                </span>
-              </span>
-            </a>
-          ))}
-        </SplitBody>
-      </LabelRow>
+              </a>
+            ))}
+          </SplitBody>
+        </LabelRow>
+      )}
 
+      {/* 예전에는 「오늘 조건으로 3곳 · 12.0km」와 경포 09:20 → 안목 12:00 →
+          사천진 14:30 이 파일 안 상수로 적혀 있었습니다. 저장된 코스가 없어도
+          코스가 있는 것처럼 보였습니다. */}
       <LabelRow
         kick="물놀이 최적경로"
         title={
-          <>
-            오늘 조건으로
-            <br />
-            3곳 · 12.0km
-          </>
+          course
+            ? `오늘 조건으로 ${course.items.length}곳`
+            : "코스를 만들면 여기에"
         }
-        chip={<StateChip kind="example" />}
-        desc="물때와 활동 점수, 이동 거리를 함께 본 순서 제안입니다. 코스 데이터는 아직 저장되지 않습니다."
+        chip={<StateChip kind={course ? "live" : "partial"} />}
+        desc="추천에서 장소를 고르고 지도에서 경로를 요청하면 그 결과가 여기에 들어옵니다."
       >
-        <SplitBody>
-          {COURSE_STEPS.map((step, index) => (
-            <div className="hd-step" key={step.name}>
-              <div className="hd-step-head">
-                <span className="pd-dk-num hd-step-no">{index + 1}</span>
-                {index < COURSE_STEPS.length - 1 && (
-                  <span className="hd-step-line" />
-                )}
-              </div>
-              <div className="hd-step-body">
-                <img
-                  src={mascotUrl(step.mascot)}
-                  alt=""
-                  width={46}
-                  height={46}
-                />
-                <div>
-                  <div className="hd-step-name">{step.name}</div>
-                  <div className="hd-step-activity">{step.activity}</div>
+        {course ? (
+          <SplitBody>
+            {course.items.map((item, index) => (
+              <div className="hd-step" key={item.spot_id}>
+                <div className="hd-step-head">
+                  <span className="pd-dk-num hd-step-no">{index + 1}</span>
+                  {index < course.items.length - 1 && (
+                    <span className="hd-step-line" />
+                  )}
+                </div>
+                <div className="hd-step-body">
+                  <div>
+                    <div className="hd-step-name">{item.name}</div>
+                  </div>
                 </div>
               </div>
-              <div className="hd-step-time">
-                <span className="pd-dk-num hd-step-clock">{step.time}</span>
-                <span className="hd-step-leg">{step.leg}</span>
-              </div>
-            </div>
-          ))}
-        </SplitBody>
+            ))}
+          </SplitBody>
+        ) : (
+          <div className="pd-dk-slot hd-course-empty">
+            추천에서 장소를 고르고 지도에서 경로를 요청하세요
+          </div>
+        )}
         <div className="hd-course-foot">
           <span className="hd-row-note">
-            이동 시간은 자동차 기준 추정값이며, 코스 순서는 저장된 데이터가 아닌
-            제안입니다.
+            {course
+              ? `예상 이동 ${course.travel_minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.`
+              : "코스를 만들기 전에는 보여 줄 순서가 없습니다. 없는 코스를 예시로 채우지 않습니다."}
           </span>
           <a className="pd-dk-button is-pill" href="#map?view=course">
             지도에서 경로 탐색 →
@@ -576,46 +568,66 @@ export function HomeDesktop() {
         </div>
       </LabelRow>
 
+      {/* 예전에는 라이브캠 세 칸이 파일 안 상수였습니다(경포 · 안목 06:00
+          LIVE). 모바일 홈은 같은 자리에서 이미 실제 카탈로그를 읽고
+          있었습니다 -- 데스크탑만 지어내고 있었습니다. */}
       <LabelRow
         kick="라이브캠"
         title="지금 바다 보기"
+        chip={<StateChip kind={webcams.result ? "live" : "no_data"} />}
         desc="붐빔 정도 · 파도 모양 · 하늘은 수치로 저장하지 않습니다. 눈으로 확인하는 구간입니다."
         link={{ href: "#livecam", label: "전체 화면으로" }}
       >
         <div className="hd-cams">
-          {LIVECAMS.map((cam) => (
-            <div className="hd-cam" key={cam.name}>
-              {cam.live ? (
-                <div className="pd-dk-slot hd-cam-frame">
-                  {cam.name} 라이브캠 스틸
-                  <span className="hd-cam-live">
-                    <span className="hd-cam-dot" />
-                    LIVE
-                  </span>
+          {cameras.map(({ camera, href, label }) => (
+            <a
+              className="hd-cam"
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              key={camera.provider_camera_id}
+            >
+              <div className="pd-dk-slot hd-cam-frame">
+                {camera.title}
+                <span className="hd-cam-live">
+                  <span className="hd-cam-dot" />
+                  {label}
+                </span>
+              </div>
+              <div className="hd-cam-head">
+                <b>{camera.title}</b>
+                <span className="hd-cam-place">{label}</span>
+              </div>
+            </a>
+          ))}
+          {/* 송출이 없는 자리는 빈 칸으로 두지 않고 그 사실을 밝힙니다. */}
+          {!cameras.length && (
+            <div className="hd-cam">
+              <div className="hd-cam-frame is-empty">
+                <img src={mascotUrl("empty")} alt="" width={46} height={46} />
+                <div className="hd-cam-empty-title">
+                  {webcams.loading ? "조회 중" : "송출 없음"}
                 </div>
-              ) : (
-                <div className="hd-cam-frame is-empty">
-                  <img
-                    src={mascotUrl("empty")}
-                    alt=""
-                    width={46}
-                    height={46}
-                  />
-                  <div className="hd-cam-empty-title">송출 없음</div>
-                  <div className="hd-cam-empty-note">카메라 미설치</div>
+                <div className="hd-cam-empty-note">
+                  {webcams.error ??
+                    (webcams.loading
+                      ? "물 풍경을 고르는 중입니다"
+                      : "열 수 있는 물 풍경 카메라가 없습니다")}
                 </div>
-              )}
-              <div className={"hd-cam-head" + (cam.live ? "" : " is-empty")}>
-                <b>{cam.name}</b>
-                <span className="hd-cam-place">{cam.place}</span>
-                <span className="pd-dk-num hd-cam-at">{cam.at}</span>
               </div>
             </div>
-          ))}
+          )}
         </div>
+        <p className="hd-row-note">
+          위치와 관계없이 고른 랜덤 물 풍경입니다. 배경은 영상 썸네일이
+          아닙니다. Webcams provided by windy.com
+        </p>
       </LabelRow>
 
-      <FootNote missing="조위 · 수질 수집 · 첫 입수 알림 트리거 · 시간대별 예보 · 코스 데이터" />
+      {/* 시간대별 예보와 코스는 이제 연동됐으므로 목록에서 뺐습니다. 남은
+          것만 적습니다 -- 다 고친 뒤에도 미연동이라고 적어 두면 그것도
+          거짓말입니다. */}
+      <FootNote missing="명소 대표 이미지 · 운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거" />
     </DesktopShell>
   );
 }
