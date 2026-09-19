@@ -89,6 +89,29 @@
   line-height: 0.9;
   letter-spacing: -0.04em;
 }
+/* 히어로는 코발트 위입니다. 근거 줄과 「퐁당 점수란?」이 --dk-blue 로 나오면
+   어두운 배경에 묻히므로 밝은 쪽으로 덮습니다. */
+.pd-desktop .td-hero-note .pd-evidence-line,
+.pd-desktop .td-hero-note .pd-explainer-body {
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-onc-2);
+}
+.pd-desktop .td-hero-note .pd-evidence-control {
+  color: var(--dk-onc);
+}
+.pd-desktop .td-hero .pd-gauge {
+  max-width: 220px;
+  margin: 8px 10px 0 auto;
+}
+.pd-desktop .td-hero-note .pd-explainer > summary,
+.pd-desktop .pd-dk-hero > .pd-explainer > summary {
+  color: var(--dk-sky);
+}
+.pd-desktop .pd-dk-hero > .pd-explainer .pd-explainer-body,
+.pd-desktop .pd-dk-hero > .pd-explainer .pd-explainer-scale td {
+  color: var(--dk-onc-2);
+}
+
 .pd-desktop .td-hero-score-grade {
   display: flex;
   align-items: center;

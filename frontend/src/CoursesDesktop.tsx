@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
+import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -9,124 +9,127 @@ import {
   FootNote,
   LabelRow,
 } from "./pongdangDesktop";
-import { GradeIcon } from "./pongdangUi";
-import { MAPPABLE_SPOTS, mappableSpots } from "./spotsCatalog";
+import { GradeIcon, Skeleton, StateChip } from "./pongdangUi";
+import { planItems, type TripPlan } from "./travelApi";
+import {
+  conditionPath,
+  conditionScore,
+  conditionTargetInRange,
+  dateLabel,
+  timeLabel,
+  type Conditions,
+} from "./productData";
+import { isInitialLoad, useResource } from "./useResource";
+import { usePlacesById } from "./usePlacesById";
 import "./coursesDesktop.css";
 
 // 데스크탑 내 코스(핸드오프 18d)입니다. 왼쪽 지도(고정) + 오른쪽 시간축 일정,
 // 아래 괘선 행에 저장한 코스 목록을 둡니다.
 //
-// 코스 저장 · 경로 계산 · 이동 시간 · 공유는 전부 미연동입니다. 값이 없는 코스는
-// «–» 로 두며 0 이 아닙니다.
-
-const CONTEXT = "저장한 코스 3개 · 9월 15일";
-
-const SUMMARY: { name: string; value: string }[] = [
-  { name: "장소", value: "3곳" },
-  { name: "이동", value: "12.0km" },
-  { name: "소요", value: "4h 30m" },
-];
-
-/** 오늘 일정. 점수는 활동별 점수이며 안목 카페거리는 산정 대상이 아닙니다. */
-const SCHEDULE: {
-  time: string;
-  duration: string;
-  name: string;
-  mascot: MascotRole;
-  detail: string;
-  scoreLabel: string;
-  score: number | null;
-}[] = [
-  {
-    time: "09:20",
-    duration: "2시간",
-    name: "경포해변 서핑",
-    mascot: "surf",
-    detail: "파고 0.6m · 수온 22.1°C · 주차 · 샤워장",
-    scoreLabel: "수영 점수",
-    score: 82,
-  },
-  {
-    time: "12:00",
-    duration: "1시간",
-    name: "안목 카페거리",
-    mascot: "cafe",
-    detail: "이동 5.1km · 점심 · 휴식",
-    scoreLabel: "점수",
-    score: null,
-  },
-  {
-    time: "14:30",
-    duration: "1시간 30분",
-    name: "사천진 온천",
-    mascot: "hotspring",
-    detail: "이동 2.7km · 실내 · 몸 녹이기",
-    scoreLabel: "휴식 점수",
-    score: 70,
-  },
-];
-
-/** 저장한 코스. 날짜 · 소요가 없는 코스는 «–» 입니다. */
-const SAVED: {
-  name: string;
-  mascot: MascotRole;
-  meta: string;
-  state: string;
-  stateKind: "today" | "past" | "draft";
-  duration: string;
-}[] = [
-  {
-    name: "서핑 → 카페 → 온천",
-    mascot: "surf",
-    meta: "9월 15일 · 3곳 · 12.0km",
-    state: "오늘 일정",
-    stateKind: "today",
-    duration: "4h 30m",
-  },
-  {
-    name: "갯벌 체험 반나절",
-    mascot: "spot",
-    meta: "8월 30일 · 2곳 · 6.4km",
-    state: "지난 코스",
-    stateKind: "past",
-    duration: "3h 00m",
-  },
-  {
-    name: "사천진 스노클링",
-    mascot: "snorkel",
-    meta: "날짜 미정 · 1곳 · –",
-    state: "임시 저장",
-    stateKind: "draft",
-    duration: "–",
-  },
-];
+// 예전에는 이 화면에 훅이 하나도 없었습니다. 「저장한 코스 3개 · 9월 15일」 ·
+// 「3곳 · 12.0km · 4h 30m」 · 09:20 경포 서핑 → 12:00 안목 카페 → 14:30 사천진
+// 온천이 전부 파일 안 상수였습니다. 저장한 코스가 하나도 없어도 코스가 있는
+// 것처럼 보였습니다.
+//
+// 이제 모바일 「내 코스」와 **같은 API**(travel/plans)를 읽습니다. 저장된 것이
+// 없으면 없다고 적습니다.
 
 export function CoursesDesktop() {
-  // 코스 경로는 아직 계산되지 않습니다. 지도에는 저장된 지점만 찍고, 없는
-  // 경로선을 그리지 않습니다.
-  const pinned = useMemo(() => mappableSpots(MAPPABLE_SPOTS), []);
-  const markers = useMemo(
-    () =>
-      pinned.map(({ spot, latitude, longitude }, index) => ({
-        id: String(spot.id),
-        latitude,
-        longitude,
-        order: index + 1,
-      })),
-    [pinned],
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const plans = useResource<{ rows: TripPlan[] }>(
+    "travel/plans?limit=100&offset=0",
   );
+  const courses = (plans.data?.rows ?? []).map((plan) => ({
+    id: plan.plan_id!,
+    name: plan.request.dates[0]
+      ? `${plan.request.dates[0]} 물 코스`
+      : "저장 코스",
+    date: plan.request.dates.join(" · ") || null,
+    items: planItems(plan),
+    plan,
+  }));
+  const selected =
+    courses.find((course) => course.id === selectedId) ?? courses[0] ?? null;
+  // 조회 결과에서 곧바로 고릅니다. courses 는 매 렌더 새로 만들어지지만
+  // plans.data.rows 의 원소는 조회가 바뀔 때만 달라지므로, 그 참조에 기대어
+  // 정차지 배열을 고정할 수 있습니다 -- 매 렌더 새 배열을 만들면 아래 지도가
+  // 계속 다시 그려집니다.
+  const rows = plans.data?.rows;
+  const plan = useMemo(
+    () => rows?.find((item) => item.plan_id === selectedId) ?? rows?.[0],
+    [rows, selectedId],
+  );
+  const stops = useMemo(
+    () =>
+      plan?.days.flatMap((day) =>
+        day.items.map((item) => ({
+          ...item,
+          at: item.arrival_at ?? `${day.date}T12:00:00+09:00`,
+        })),
+      ) ?? [],
+    [plan],
+  );
+  // 좌표는 저장된 코스 장소를 id 로 조회해 얻습니다 -- 예전에는 예시 목록의
+  // 검증 좌표 세 개를 그대로 찍고 있었습니다.
+  const places = usePlacesById(stops.map((stop) => stop.spot_id));
+  // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
+  // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다. 콜백이 바깥 값을 직접
+  // 읽지 않도록 원시 값만 담은 문자열 키에 의존을 좁힙니다(MapPage 와 같은
+  // 방식).
+  const markerKey = JSON.stringify(
+    stops.map((stop, index) => {
+      const place = places.rows.find((row) => row.id === stop.spot_id);
+      return [stop.spot_id, place?.lat ?? null, place?.lng ?? null, index + 1];
+    }),
+  );
+  const markers = useMemo(() => {
+    const coords = JSON.parse(markerKey) as [
+      number,
+      number | null,
+      number | null,
+      number,
+    ][];
+    // 좌표가 없는 장소는 핀을 만들지 않습니다 -- 없는 위치를 임의로 만들지
+    // 않습니다.
+    return coords.flatMap(([id, latitude, longitude, order]) =>
+      latitude !== null && longitude !== null
+        ? [{ id: String(id), latitude, longitude, order }]
+        : [],
+    );
+  }, [markerKey]);
+  // 점수는 첫 정차지 하나만 조회합니다. 모바일 내 코스와 같은 규칙입니다.
+  const first = stops[0];
+  const firstValid = conditionTargetInRange(first?.at);
+  const firstConditions = useResource<Conditions>(
+    firstValid
+      ? conditionPath(
+          first?.spot_id,
+          plan?.request.activity ?? "relax",
+          first?.at,
+        )
+      : null,
+  );
+  const firstScore = conditionScore(firstConditions.data);
+  const firstGrade = gradeOf(firstScore);
 
   return (
     <DesktopShell>
       <DesktopHero
-        nav={<DesktopNav active="my-courses" context={CONTEXT} />}
+        nav={
+          <DesktopNav
+            active="my-courses"
+            context={`저장한 코스 ${courses.length}개 · ${dateLabel()}`}
+          />
+        }
         band
         wave="static"
       >
         <div className="cd-hero">
           <div className="cd-hero-lead">
             <div className="pd-dk-kick cd-hero-kick">내 코스</div>
-            <h1 className="cd-hero-title">9월 15일 · 서핑과 온천</h1>
+            <h1 className="cd-hero-title">
+              {selected ? selected.name : "저장한 코스가 없습니다"}
+            </h1>
           </div>
           <img
             className="cd-hero-mascot"
@@ -135,13 +138,26 @@ export function CoursesDesktop() {
             width={86}
             height={86}
           />
+          {/* 예전에는 여기가 「3곳 · 12.0km · 4h 30m」이었습니다. 이동 거리와
+              소요 시간을 코스 목록 API 가 내려주지 않으므로 장소 수만 싣고,
+              없는 값은 «–» 로 둡니다. */}
           <div className="cd-hero-summary">
-            {SUMMARY.map((item) => (
-              <div key={item.name}>
-                <div className="cd-summary-name">{item.name}</div>
-                <div className="pd-dk-num cd-summary-value">{item.value}</div>
+            <div>
+              <div className="cd-summary-name">장소</div>
+              <div className="pd-dk-num cd-summary-value">
+                {selected ? `${stops.length}곳` : "–"}
               </div>
-            ))}
+            </div>
+            <div>
+              <div className="cd-summary-name">날짜</div>
+              <div className="pd-dk-num cd-summary-value">
+                {selected?.date ?? "–"}
+              </div>
+            </div>
+            <div>
+              <div className="cd-summary-name">이동 · 소요</div>
+              <div className="pd-dk-num cd-summary-value is-empty">–</div>
+            </div>
           </div>
         </div>
       </DesktopHero>
@@ -153,20 +169,18 @@ export function CoursesDesktop() {
             selectedId={null}
             renderMarker={(id) => {
               const marker = markers.find((item) => item.id === id);
-              if (!marker) return null;
-              const spot = MAPPABLE_SPOTS.find(
-                (item) => item.id === Number(id),
-              );
+              const stop = stops.find((item) => String(item.spot_id) === id);
+              if (!marker || !stop) return null;
               return (
                 <span className="cd-pin">
                   <span className="pd-dk-num cd-pin-core">{marker.order}</span>
-                  <span className="cd-pin-label">{spot?.name}</span>
+                  <span className="cd-pin-label">{stop.name}</span>
                 </span>
               );
             }}
             overlay={
               <span className="cd-map-badge">
-                저장된 코스 · 경로선은 아직 계산되지 않습니다
+                저장된 코스 장소 · 경로선은 지도 탭에서 계산합니다
               </span>
             }
           />
@@ -174,43 +188,64 @@ export function CoursesDesktop() {
 
         <div className="cd-schedule">
           <div className="cd-schedule-head">
-            <span className="pd-dk-kick">오늘 일정</span>
-            <span className="pd-state-chip">예시 · 코스 데이터 미연동</span>
+            <span className="pd-dk-kick">
+              {selected ? selected.name : "일정"}
+            </span>
+            <StateChip kind={plans.data ? "live" : "no_data"} />
           </div>
-          {SCHEDULE.map((item) => {
-            const grade = gradeOf(item.score);
+          {stops.map((stop, index) => {
+            // 점수는 첫 정차지만 조회합니다. 정차지마다 부르면 요청이 코스
+            // 길이만큼 늘어납니다.
+            const score = index === 0 ? firstScore : null;
+            const grade = index === 0 ? firstGrade : gradeOf(null);
+            const place = places.rows.find((row) => row.id === stop.spot_id);
             return (
-              <div className="cd-item" key={item.name}>
+              <div className="cd-item" key={`${stop.spot_id}-${index}`}>
                 <div className="cd-item-time">
-                  <div className="pd-dk-num cd-item-clock">{item.time}</div>
-                  <div className="cd-item-duration">{item.duration}</div>
+                  <div className="pd-dk-num cd-item-clock">
+                    {stop.arrival_at ? timeLabel(stop.arrival_at) : "–"}
+                  </div>
+                  <div className="cd-item-duration">
+                    {stop.arrival_at ? "도착" : "시각 미정"}
+                  </div>
                 </div>
-                <img
-                  src={mascotUrl(item.mascot)}
-                  alt=""
-                  width={54}
-                  height={54}
-                />
                 <div className="cd-item-body">
-                  <div className="cd-item-name">{item.name}</div>
-                  <div className="cd-item-detail">{item.detail}</div>
+                  <div className="cd-item-name">{stop.name}</div>
+                  <div className="cd-item-detail">
+                    {place?.address ?? "주소 조회 중"}
+                  </div>
                   <div className="cd-item-score" data-grade={grade.key}>
                     <GradeIcon gradeKey={grade.key} size={12} />
-                    {item.scoreLabel} {item.score ?? "–"} · {grade.label}
+                    {index === 0 && isInitialLoad(firstConditions) ? (
+                      <Skeleton width="3em" label="점수 조회 중" />
+                    ) : (
+                      `점수 ${score ?? "–"} · ${grade.label}`
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
+          {!stops.length && (
+            <p className="cd-note" role={plans.error ? "alert" : "status"}>
+              {plans.error ??
+                (plans.loading
+                  ? "저장 코스를 불러오는 중입니다."
+                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}
+            </p>
+          )}
           <div className="cd-actions">
-            <button type="button" className="pd-dk-button">
-              순서 바꾸기
-            </button>
-            <button type="button" className="pd-dk-button is-quiet">
-              공유
-            </button>
+            {/* 예전에는 「순서 바꾸기」 · 「공유」 버튼이 있었지만 눌러도 아무
+                일이 없었습니다. 실제로 동작하는 링크만 둡니다. */}
+            <a className="pd-dk-button" href="#recommend">
+              추천에서 코스 만들기 →
+            </a>
+            <a className="pd-dk-button is-quiet" href="#map?view=course">
+              지도에서 경로 계산 →
+            </a>
             <span className="cd-note">
-              이동 시간은 자동차 기준 추정값입니다.
+              {places.error ??
+                "정차지 좌표는 저장된 장소를 조회해 찍습니다. 좌표가 없는 장소는 지도에 나타나지 않습니다."}
             </span>
           </div>
         </div>
@@ -218,34 +253,45 @@ export function CoursesDesktop() {
 
       <LabelRow
         kick="저장한 코스"
-        title="3개"
-        desc="추천 탭에서 저장한 코스가 그대로 쌓입니다."
+        title={`${courses.length}개`}
+        chip={<StateChip kind={plans.data ? "live" : "no_data"} />}
+        desc="추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다."
       >
-        {SAVED.map((course) => (
-          <div className="cd-saved" key={course.name}>
-            <img src={mascotUrl(course.mascot)} alt="" width={40} height={40} />
+        {courses.map((course) => (
+          <button
+            type="button"
+            className={
+              "cd-saved" + (course.id === selected?.id ? " is-selected" : "")
+            }
+            key={course.id}
+            aria-pressed={course.id === selected?.id}
+            onClick={() => setSelectedId(course.id)}
+          >
             <div className="cd-saved-body">
               <div className="cd-saved-name">{course.name}</div>
-              <div className="cd-saved-meta">{course.meta}</div>
+              <div className="cd-saved-meta">
+                {course.date ?? "날짜 미정"} · {course.items.length}곳 ·{" "}
+                {course.items.map((item) => item.name).join(" · ") || "장소 없음"}
+              </div>
             </div>
-            <span className={"cd-saved-state is-" + course.stateKind}>
-              {course.state}
-            </span>
-            <span
-              className={
-                "pd-dk-num cd-saved-duration" +
-                (course.duration === "–" ? " is-empty" : "")
-              }
-            >
-              {course.duration}
-            </span>
-          </div>
+            {/* 이동 거리 · 소요 시간은 코스 목록 API 에 없습니다. «–» 이며
+                0 이 아닙니다. */}
+            <span className="pd-dk-num cd-saved-duration is-empty">–</span>
+          </button>
         ))}
+        {!courses.length && (
+          <p className="cd-note" role={plans.error ? "alert" : "status"}>
+            {plans.error ??
+              (plans.loading
+                ? "저장 코스를 불러오는 중입니다."
+                : "아직 저장한 코스가 없습니다.")}
+          </p>
+        )}
       </LabelRow>
 
       <FootNote
-        missing="코스 저장 · 경로 계산 · 이동 시간 · 공유"
-        note="날짜 · 소요 시간이 없는 코스는 «–»로 둡니다 — 0이 아닙니다. 위 수치는 레이아웃 확인용 예시입니다."
+        missing="이동 거리 · 소요 시간 · 코스 공유 · 순서 변경"
+        note="날짜 · 소요 시간이 없는 코스는 «–» 로 둡니다 — 0 이 아닙니다. 점수는 첫 정차지 기준이며, 정차지마다 조회하지 않습니다."
       />
     </DesktopShell>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { travelJson } from "./travelApi";
 import type { Place, RowPage } from "./productData";
 
@@ -43,5 +43,12 @@ export function usePlacesById(ids: number[]) {
     });
     return () => controller.abort();
   }, [key]);
-  return result?.key === key ? result : { key, rows: [] };
+  // 조회 전 · 키가 바뀐 직후에도 **같은 참조**를 돌려줍니다. 매 렌더 새 객체를
+  // 만들면 이 결과로 계산한 지도 마커가 계속 새 배열이 되어, 지도가 끊임없이
+  // 다시 그려집니다.
+  const pending = useMemo(
+    () => ({ key, rows: [] as Place[], error: undefined as string | undefined }),
+    [key],
+  );
+  return result?.key === key ? result : pending;
 }
