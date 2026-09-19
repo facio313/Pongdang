@@ -197,7 +197,8 @@ function SpotsMap() {
 
   return (
     <article className="spots-page is-map">
-      <AppShell tab="spots" bare>
+      {/* 헤더는 지도 위(.sp-stage)에 얹으므로 셸이 따로 그리지 않습니다. */}
+      <AppShell tab="spots" bare hero={null}>
         <div className="sp-stage">
           <AppHeader title="명소 지도" time={timeLabel(new Date().toISOString())} />
           <div className="sp-filters" role="group" aria-label="카테고리 필터">

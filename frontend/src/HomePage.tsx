@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
 import {
   AiSuggestion,
@@ -48,22 +48,8 @@ const CAM_BACKGROUNDS = [
   "linear-gradient(160deg,#6b8fae,#33475a)",
 ];
 
-const MENU_ITEMS: {
-  label: string;
-  href?: string;
-  state?: "uncollected";
-}[] = [
-  { label: "저장한 코스", href: "#my-courses" },
-  { label: "지점 즐겨찾기", href: "#favorites" },
-  { label: "알림 설정", href: "#first-swim" },
-  { label: "데이터 출처와 갱신", href: "#info" },
-  { label: "이용 안내", href: "#info" },
-  { label: "설정", href: "#recommend" },
-];
-
 function Hero({
   placeName,
-  onOpenMenu,
   conditions,
   loading = false,
 }: {
@@ -71,21 +57,12 @@ function Hero({
   conditions?: Conditions;
   /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
   loading?: boolean;
-  onOpenMenu: () => void;
 }) {
   return (
     <header className="pd-hero">
       <AppHeader title="홈" time={timeLabel(new Date().toISOString())} onCobalt />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
-          <button
-            type="button"
-            className="hm-menu-button"
-            onClick={onOpenMenu}
-            aria-label="사이드 메뉴 열기"
-          >
-            <Icon name="menu" size={18} />
-          </button>
           <span className="pd-lbl hm-hero-place">
             <Icon name="pin" size={12} />
             {placeName} · {HERO_DATE}
@@ -435,132 +412,7 @@ function LivecamModule() {
   );
 }
 
-function SideMenu({ onClose }: { onClose: () => void }) {
-  const panel = useRef<HTMLDivElement>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
-  // onClose 는 호출부가 인라인 화살표로 넘깁니다. 그대로 의존성에 넣으면 렌더
-  // 마다 effect 가 다시 돌아 포커스를 계속 닫기 버튼으로 뺏어옵니다.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-
-  // 메뉴는 뷰포트 전체를 덮는 모달입니다(.hm-menu 가 position: fixed). 열려
-  // 있는 동안 ① 뒤 본문이 따라 스크롤되지 않게 잠그고 ② Esc 로 닫히게 하고
-  // ③ 포커스를 메뉴 안으로 들여보낸 뒤 ④ 닫을 때 열었던 버튼으로 되돌립니다.
-  // 예전에는 role="dialog" 만 있어서, 키보드로 열 수는 있어도 빠져나올 수
-  // 없었습니다.
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const previousFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
-    closeButton.current?.focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !panel.current) return;
-      // 초점을 메뉴 안에서 순환시킵니다. 모달 밖으로 탭이 빠져나가면 보이지
-      // 않는 본문을 더듬게 됩니다.
-      const focusable = panel.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
-    };
-  }, []);
-
-  return (
-    <>
-      <button
-        type="button"
-        className="hm-backdrop"
-        onClick={onClose}
-        aria-label="사이드 메뉴 닫기"
-        tabIndex={-1}
-      />
-      <div
-        className="hm-menu"
-        role="dialog"
-        aria-modal="true"
-        aria-label="사이드 메뉴"
-        ref={panel}
-      >
-        <div className="hm-menu-head">
-          <div className="hm-menu-head-top">
-            <span className="pd-header-mark">PONGDANG</span>
-            <button
-              type="button"
-              className="hm-menu-close"
-              onClick={onClose}
-              aria-label="닫기"
-              ref={closeButton}
-            >
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-          <div className="hm-menu-profile">
-            <span className="hm-menu-avatar">
-              사진
-              <br />
-              없음
-            </span>
-            <div>
-              <div className="hm-menu-signin">Pongdang</div>
-              <div className="hm-menu-signin-sub">
-                기존 SSO 세션으로 개인 코스를 관리합니다
-              </div>
-            </div>
-          </div>
-        </div>
-        <nav className="hm-menu-list" aria-label="사이드 메뉴 항목">
-          {MENU_ITEMS.map((item) =>
-            item.href ? (
-              <a className="hm-menu-item" href={item.href} key={item.label}>
-                {item.label}
-              </a>
-            ) : (
-              <button
-                type="button"
-                className="hm-menu-item"
-                key={item.label}
-                disabled
-              >
-                {item.label}
-                <StateChip kind="uncollected" />
-              </button>
-            ),
-          )}
-        </nav>
-        <p className="hm-menu-note">
-          개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 설정에서 추천
-          취향을 변경할 수 있습니다.
-        </p>
-      </div>
-    </>
-  );
-}
-
 function HomeScreen() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const { now, place, places, conditions, displayName, selectionMessage } = useProductData();
   const quality = useResource<WaterQualityGrade>(
     place ? `quality/grade?spot_id=${place.id}` : null,
@@ -575,7 +427,6 @@ function HomeScreen() {
             placeName={displayName}
             conditions={conditions.data}
             loading={isInitialLoad(conditions)}
-            onOpenMenu={() => setMenuOpen(true)}
           />
         }
       >
@@ -600,7 +451,6 @@ function HomeScreen() {
           <TastePicksCard />
           <RouteCard />
         <LivecamModule />
-        {menuOpen && <SideMenu onClose={() => setMenuOpen(false)} />}
       </AppShell>
     </article>
   );

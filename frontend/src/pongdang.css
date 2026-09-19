@@ -134,6 +134,14 @@ main:has(.pd-app) {
 .pd-header.is-on-cobalt {
   color: var(--pd-on-cobalt-2);
 }
+/* 왼쪽 묶음(사이드 메뉴 버튼 + 시계). 헤더는 space-between 3칸이므로 둘을 한
+   칸으로 묶어야 가운데 워드마크가 제자리에 남습니다. */
+.pd-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .pd-header-mark {
   font-family: var(--pd-font-num);
   font-weight: 700;

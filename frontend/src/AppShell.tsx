@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
+import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 
 /** 화면 상단 헤더. 화면마다 복붙돼 있던 상태바 마크업을 대신합니다.
  *
@@ -18,7 +19,13 @@ export function AppHeader({
 }) {
   return (
     <div className={"pd-header" + (onCobalt ? " is-on-cobalt" : "")}>
-      <span className="pd-header-time">{time}</span>
+      {/* 사이드 메뉴 손잡이. 예전에는 홈 히어로에만 있어 다른 탭에서는 계정 ·
+          설정 · 출처로 들어갈 길이 없었습니다. 헤더는 모든 화면이 그리므로
+          여기 둡니다(AppShell 밖에서 헤더만 쓰는 화면에서는 숨습니다). */}
+      <span className="pd-header-left">
+        <SideMenuButton />
+        <span className="pd-header-time">{time}</span>
+      </span>
       <span className="pd-header-mark">PONGDANG</span>
       <span>{title}</span>
     </div>
@@ -42,14 +49,20 @@ export function AppFootNote() {
 }
 
 /** 제품 화면 5개(홈·오늘·추천·지도·내 코스)의 공용 셸입니다. 프레임·헤더·
- *  본문·하단 탭바를 한 자리에서 렌더하므로, 각 화면은 내용만 넘기면 됩니다.
+ *  본문·하단 탭바·사이드 메뉴를 한 자리에서 렌더하므로, 각 화면은 내용만
+ *  넘기면 됩니다.
  *
  *  히어로(코발트 레이어)가 있는 화면은 헤더가 히어로 안에 얹혀야 하므로,
  *  그 화면이 hero 안에 <AppHeader onCobalt /> 를 직접 넣고 title 은 생략합니다.
  *  hero 가 없으면 여기서 헤더를 렌더하며, 이때 title 이 필요합니다.
  *
  *  bare 를 주면 .pd-body 래퍼 없이 children 을 그대로 흘립니다 -- 지도처럼
- *  본문 패딩이 필요 없는 화면용입니다. */
+ *  본문 패딩이 필요 없는 화면용입니다.
+ *
+ *  hero={null} 은 「헤더를 내가 본문 안에서 직접 그린다」는 뜻입니다(명소 지도
+ *  뷰처럼 헤더가 지도 위에 얹히는 화면). 예전에는 그런 화면이 hero 를 아예
+ *  넘기지 않아 워드마크가 두 줄로 겹쳐 보였고, 이제는 햄버거까지 두 개가
+ *  됩니다. */
 export function AppShell({
   tab,
   title,
@@ -64,19 +77,23 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="pd-app">
-      <div className="pd-frame">
-        {hero ?? <AppHeader title={title ?? ""} />}
-        {bare ? (
-          children
-        ) : (
-          <div className="pd-body">
-            {children}
-            <AppFootNote />
-          </div>
-        )}
-        <AppTabBar active={tab} />
+    <SideMenuProvider>
+      <div className="pd-app">
+        <div className="pd-frame">
+          {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
+          {bare ? (
+            children
+          ) : (
+            <div className="pd-body">
+              {children}
+              <AppFootNote />
+            </div>
+          )}
+          <AppTabBar active={tab} />
+          {/* 토큰이 .pd-app 에 있으므로 메뉴 패널도 그 안에서 그립니다. */}
+          <SideMenuOutlet />
+        </div>
       </div>
-    </div>
+    </SideMenuProvider>
   );
 }
