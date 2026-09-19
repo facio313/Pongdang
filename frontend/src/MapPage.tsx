@@ -7,18 +7,16 @@ import { AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
-import type { DefaultPlaceSelection } from "./useProductData";
+import { useWaterPlaces } from "./useWaterPlaces";
 import { useAction } from "./useAction";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionScore,
-  productPlaces,
   kstDate,
   metricText,
   timeLabel,
   type Place,
-  type ClassifiedWaterPlace,
   type Conditions,
 } from "./productData";
 import {
@@ -450,17 +448,9 @@ function MapScreen() {
       : "spots",
   );
   const [search, setSearch] = useState("");
-  const waterCatalog = useResource<ClassifiedWaterPlace[]>(
-    "livecams/preview/places?q=" + encodeURIComponent(search),
-  );
-  const defaultPlace = useResource<DefaultPlaceSelection>(search ? null : "water-index/default-place");
-  const catalog = search ? waterCatalog : {
-    ...waterCatalog,
-    error: defaultPlace.error ?? waterCatalog.error,
-    data: defaultPlace.data || waterCatalog.data
-      ? [...(defaultPlace.data?.rows ?? []), ...(waterCatalog.data ?? [])] : undefined,
-  };
-  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data) : undefined };
+  // 목록 조회는 명소 탭과 같은 훅을 씁니다. 같은 장소를 두 화면이 서로 다른
+  // 소스로 읽지 않기 위해서입니다.
+  const places = useWaterPlaces(search);
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
@@ -476,7 +466,7 @@ function MapScreen() {
   );
   const raw = [
     ...new Map(
-      [...(places.data?.rows ?? []), ...coursePlaces.rows].map((item) => [
+      [...(places.rows ?? []), ...coursePlaces.rows].map((item) => [
         item.id,
         item,
       ]),
@@ -484,7 +474,7 @@ function MapScreen() {
   ];
   const selected =
     raw.find((item) => item.id === selectedSpotId) ??
-    raw.find((item) => item.id === defaultPlace.data?.place?.id) ??
+    raw.find((item) => item.id === places.defaultPlaceId) ??
     raw.find((item) => item.type === "beach") ??
     raw[0];
   const conditions = useConditions(selected?.id);
