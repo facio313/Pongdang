@@ -7,7 +7,6 @@ import {
   GradeChip,
   Icon,
   MetricValue,
-  ScoreExplainer,
   ScoreGauge,
   ScoreReason,
   Skeleton,
@@ -20,7 +19,7 @@ import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
-import { EvidenceNote } from "./EvidenceNote";
+import { WaterQualityDetails } from "./WaterQualityDetails";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import type { PlacePhoto as Photo } from "./placePhotos";
 import { usePlacePhotos } from "./usePlacePhotos";
@@ -29,7 +28,6 @@ import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
-import { WaterQualityDetails } from "./WaterQualityDetails";
 import { HourlyConditions } from "./HourlyConditions";
 import {
   dateLabel,
@@ -209,8 +207,8 @@ function Hero({
         {/* 히어로에는 「왜 이 활동인가」 **한 줄만** 얹습니다. 예전에는 뺀 이유 ·
             물때 · 대신 갈 곳 · 근거 전문 · 점수 설명이 모두 이 코발트 면 안에
             있어서, 결론(무엇을 · 몇 점)이 감사 기록에 묻혔습니다. 나머지는
-            사라진 것이 아니라 바로 아래 「오늘 이 활동인 이유」 카드로
-            내려갔습니다(WhyCard). */}
+            홈에서 한 번 더 펼치지 않고 오늘 탭에서 읽습니다 -- 같은 내용을 두
+            화면에 두 번 싣지 않기 위해서입니다. */}
         <RecommendationReason
           data={recommendation}
           error={recommendationError}
@@ -236,36 +234,6 @@ function Hero({
         </svg>
       </div>
     </header>
-  );
-}
-
-/** 히어로에서 내려온 근거 층입니다. **문구는 한 글자도 줄이지 않았습니다** --
- *  뺀 이유 · 물때 · 대신 갈 곳(RecommendationReason 의 2 · 3 · 4 번), 출처와
- *  면책 전문(EvidenceNote), 점수 읽는 법(ScoreExplainer)이 그대로 있습니다.
- *  히어로는 결론을, 이 카드는 그 결론의 근거를 말합니다. */
-function WhyCard({
-  conditions,
-  recommendation,
-  recommendationError,
-  recommendationLoading = false,
-}: {
-  conditions?: Conditions;
-  recommendation?: Recommendation;
-  recommendationError?: string;
-  recommendationLoading?: boolean;
-}) {
-  return (
-    <div className="pd-card hm-why-card">
-      <div className="pd-card-title">오늘 이 활동인 이유</div>
-      <RecommendationReason
-        data={recommendation}
-        error={recommendationError}
-        loading={recommendationLoading}
-        variant="detail"
-      />
-      <EvidenceNote data={conditions} className="hm-why-note" />
-      <ScoreExplainer data={conditions} />
-    </div>
   );
 }
 
@@ -453,13 +421,13 @@ function TastePicksCard() {
     return (
       <div className="pd-card">
         <div className="pd-card-title">고른 취향의 명소</div>
+        {/* 「취향 고르기 →」 버튼은 바로 위 TasteBanner 것 하나만 둡니다.
+            두 카드가 붙어 있어 같은 버튼이 두 번 보였습니다. 여기서는 이
+            자리가 왜 비어 있는지만 말합니다. */}
         <p className="pd-note">
-          아직 고른 취향이 없습니다. 추천에서 취향을 고르면 그 결과가 여기에
-          들어옵니다.
+          아직 고른 취향이 없습니다. 위 「취향 고르기」로 취향을 고르면 그
+          결과가 여기에 들어옵니다.
         </p>
-        <a className="pd-secondary hm-cta" href="#recommend">
-          취향 고르기 →
-        </a>
       </div>
     );
   return (
@@ -594,14 +562,6 @@ function HomeScreen() {
           />
         }
       >
-          {/* 히어로 바로 아래입니다. 결론 다음에 그 근거가 오고, 그 다음에
-              점수를 이루는 항목이 옵니다. */}
-          <WhyCard
-            conditions={conditions.data}
-            recommendation={recommendation.data}
-            recommendationError={recommendation.error}
-            recommendationLoading={isInitialLoad(recommendation)}
-          />
           <GlanceCard
             quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}

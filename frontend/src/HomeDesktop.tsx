@@ -13,7 +13,6 @@ import {
   GradeChip,
   Icon,
   MetricValue,
-  ScoreExplainer,
   ScoreGauge,
   ScoreReason,
   Skeleton,
@@ -30,8 +29,6 @@ import {
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
-import { EvidenceNote } from "./EvidenceNote";
-import { WaterQualityDetails } from "./WaterQualityDetails";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { usePlacePhotos } from "./usePlacePhotos";
 import {
@@ -160,9 +157,9 @@ function HomeHero({
               문장을 지어내지 않고 비워 둡니다. */}
           {verdict && <p className="hd-hero-verdict">{verdict}</p>}
           {/* 히어로에는 「왜 이 활동인가」 한 줄만 얹습니다. 뺀 이유 · 물때 ·
-              대신 갈 곳 · 근거 전문 · 수질 상세 · 점수 읽는 법은 사라진 것이
-              아니라 바로 아래 「오늘 이 활동인 이유」 행으로 내려갔습니다
-              (WhyRow). 모바일 홈과 같은 층 나눔입니다. */}
+              대신 갈 곳 · 근거 전문 · 수질 상세 · 점수 읽는 법은 홈에서 다시
+              펼치지 않고 오늘 탭에서 읽습니다 -- 같은 내용을 두 화면에 두 번
+              싣지 않기 위해서입니다. 모바일 홈과 같은 층 나눔입니다. */}
           <RecommendationReason
             data={recommendation}
             error={recommendationError}
@@ -213,50 +210,6 @@ function HomeHero({
         </div>
       </div>
     </DesktopHero>
-  );
-}
-
-/** 히어로에서 내려온 근거 행입니다. **문구는 한 글자도 줄이지 않았습니다** --
- *  뺀 이유 · 물때 · 대신 갈 곳, 출처와 면책 전문, 수질 등급의 근거와 한계,
- *  점수 읽는 법이 그대로 있습니다. 모바일 홈의 「오늘 이 활동인 이유」 카드와
- *  같은 층입니다. */
-function WhyRow({
-  conditions,
-  recommendation,
-  recommendationError,
-  recommendationLoading = false,
-  qualityData,
-  qualityError,
-}: {
-  conditions?: Conditions;
-  recommendation?: Recommendation;
-  recommendationError?: string;
-  recommendationLoading?: boolean;
-  qualityData?: WaterQualityGrade;
-  qualityError?: string;
-}) {
-  return (
-    <LabelRow kick="근거" title="오늘 이 활동인 이유">
-      <div className="hd-why">
-        <RecommendationReason
-          data={recommendation}
-          error={recommendationError}
-          loading={recommendationLoading}
-          variant="detail"
-        />
-        <EvidenceNote data={conditions} className="hd-why-note" />
-        {/* 수질 등급의 근거와 한계. 등급만 보여 주고 무엇을 잰 등급인지 말하지
-            않으면 입수 통제까지 포함한 판정으로 읽힙니다. */}
-        <WaterQualityDetails
-          data={qualityData}
-          error={qualityError}
-          className="hd-why-quality"
-        />
-        <div className="hd-why-actions">
-          <ScoreExplainer data={conditions} />
-        </div>
-      </div>
-    </LabelRow>
   );
 }
 
@@ -415,17 +368,6 @@ export function HomeDesktop() {
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
         baselineLoading={isInitialLoad(baseline)}
-      />
-
-      {/* 히어로 바로 아래입니다. 결론 다음에 그 근거가 오고, 그 다음에 점수를
-          이루는 항목이 옵니다. */}
-      <WhyRow
-        conditions={conditions.data}
-        recommendation={recommendation.data}
-        recommendationError={recommendation.error}
-        recommendationLoading={isInitialLoad(recommendation)}
-        qualityData={quality.data}
-        qualityError={quality.error}
       />
 
       <LabelRow

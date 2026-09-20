@@ -50,27 +50,8 @@
   font-weight: 700;
   color: var(--dk-onc);
 }
-/* ── 오늘 이 활동인 이유 (히어로에서 내려온 근거 행) ──────
-   코발트 위가 아니라 흰 본문 위입니다. 글래스 색 대신 본문 색을 쓰고,
-   구조(줄바꿈·간격)는 공용 .pd-evidence · .pd-explainer 것을 그대로 씁니다. */
-.pd-desktop .hd-why {
-  max-width: 980px;
-}
-.pd-desktop .hd-why-note {
-  margin: 14px 0 0;
-}
-.pd-desktop .hd-why-note .pd-evidence-line,
-.pd-desktop .hd-why-note .pd-explainer-body,
-.pd-desktop .hd-why-quality {
-  font-size: var(--dk-fs-cap);
-  color: var(--dk-ink-2);
-}
-.pd-desktop .hd-why-quality {
-  margin: 14px 0 0;
-}
-.pd-desktop .hd-why-actions {
-  margin-top: 14px;
-}
+/* 「오늘 이 활동인 이유」 행은 홈에서 내렸습니다(오늘 탭에 같은 내용이
+   그대로 있습니다). 그 행에만 쓰이던 .hd-why-* 규칙도 함께 지웁니다. */
 .pd-desktop .hd-hero-buttons {
   display: flex;
   align-items: center;
