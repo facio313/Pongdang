@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { setTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -144,6 +143,7 @@ export function CoursesDesktop() {
         }
         band
         wave="static"
+        mascot="course"
       >
         <div className="cd-hero">
           <div className="cd-hero-lead">
@@ -152,13 +152,6 @@ export function CoursesDesktop() {
               {selected ? selected.name : "저장한 코스가 없습니다"}
             </h1>
           </div>
-          <img
-            className="cd-hero-mascot"
-            src={mascotUrl("course")}
-            alt={MASCOT_ALT}
-            width={86}
-            height={86}
-          />
           {/* 예전에는 여기가 「3곳 · 12.0km · 4h 30m」이었습니다. 이동 거리와
               소요 시간을 코스 목록 API 가 내려주지 않으므로 장소 수만 싣고,
               없는 값은 «–» 로 둡니다. */}

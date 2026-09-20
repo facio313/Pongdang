@@ -180,19 +180,49 @@ main:has(.pd-desktop) {
    코발트 면이 흰 본문으로 넘어가는 경계를 물결 SVG 가 만듭니다. 모바일처럼
    라운드 하단으로 끊지 않습니다. */
 
+/* 높이는 화면마다 다르게 두지 않습니다 -- 탭을 옮겨도 코발트 면이 같은
+   자리에서 끝나야 본문이 튀지 않습니다. 내용이 이보다 길면 늘어납니다. */
 .pd-dk-hero {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--dk-hero-min-h);
   background: var(--dk-cobalt);
   color: var(--dk-onc);
+  --dk-hero-min-h: 420px;
+  --dk-hero-mascot-size: 200px;
+  --dk-hero-mascot-top: 84px;
+}
+/* 얇은 띠 히어로(지도 · 내 코스)는 낮게 서지만, 띠끼리는 또 같은 높이입니다. */
+.pd-dk-hero.is-band {
+  --dk-hero-min-h: 240px;
+  --dk-hero-mascot-size: 104px;
+  --dk-hero-mascot-top: 78px;
 }
 .pd-dk-hero-body {
   position: relative;
   z-index: 1;
+  flex: 1;
   padding: 26px var(--dk-pad) 0;
 }
 /* 얇은 띠 히어로(지도 · 내 코스)는 본문 패딩을 줄여 씁니다. */
 .pd-dk-hero.is-band .pd-dk-hero-body {
   padding: 18px var(--dk-pad) 20px;
+}
+/* 마스코트는 어느 화면이든 네비 바로 아래 · 오른쪽 끝입니다. 흐름에서 빼
+   두어야 히어로마다 다른 본문 배치(점수 · 관측값 · 검색)에 밀리지 않습니다.
+   본문과 겹치지 않도록 히어로 본문은 오른쪽 여백을 비워 둡니다. */
+.pd-dk-hero.has-mascot .pd-dk-hero-body {
+  padding-right: calc(var(--dk-pad) + var(--dk-hero-mascot-size) + 28px);
+}
+.pd-dk-hero-mascot {
+  position: absolute;
+  top: var(--dk-hero-mascot-top);
+  right: var(--dk-pad);
+  z-index: 2;
+  display: block;
+  width: var(--dk-hero-mascot-size);
+  height: var(--dk-hero-mascot-size);
 }
 .pd-dk-hero-wave {
   position: relative;
@@ -535,6 +565,19 @@ main:has(.pd-desktop) {
 .pd-dk-slot.is-on-cobalt {
   border-color: var(--dk-glass-line);
   color: var(--dk-onc-2);
+}
+
+/* 1080~1240 구간. 마스코트도 함께 줄이되, 줄어든 크기 역시 모든 화면이
+   같이 씁니다(토큰 하나만 바꿉니다). */
+@media (max-width: 1240px) {
+  .pd-dk-hero {
+    --dk-hero-min-h: 380px;
+    --dk-hero-mascot-size: 156px;
+  }
+  .pd-dk-hero.is-band {
+    --dk-hero-min-h: 230px;
+    --dk-hero-mascot-size: 92px;
+  }
 }
 
 /* ── 좁아질 때 ─────────────────────────────────────────────

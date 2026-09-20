@@ -114,7 +114,7 @@ function HomeHero({
         />
       }
       wave="animated"
-      minHeight={250}
+      mascot="home"
     >
       <div className="hd-hero">
         <div className="hd-hero-lead">
@@ -179,13 +179,6 @@ function HomeHero({
             </a>
           </div>
         </div>
-        <img
-          className="hd-hero-mascot"
-          src={mascotUrl("home")}
-          alt={MASCOT_ALT}
-          width={250}
-          height={250}
-        />
         <div className="hd-hero-metrics">
           <div>
             <div className="hd-metric-name">수온</div>
@@ -443,7 +436,7 @@ export function HomeDesktop() {
             : `${displayName} · 시간대별`
         }
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
-        desc="지점 비교 · 7일 예보 · 물때 · 수질 근거는 오늘 탭에 있습니다. 홈에서는 지금 상태와 다음 행동만 둡니다."
+        desc="더 자세한 비교와 예보, 수질 근거가 궁금하다면 오늘 탭을 살펴보세요!"
         link={{ href: "#today", label: "오늘 탭에서 근거 보기" }}
       >
         <HourBars
@@ -457,7 +450,7 @@ export function HomeDesktop() {
             장소를 골랐는지를 말할 뿐이라, 목록을 못 읽은 사실을 덮습니다. */}
         <p
           className="hd-row-note"
-          role={places.error ?? conditions.error ? "alert" : "status"}
+          role={(places.error ?? conditions.error) ? "alert" : "status"}
         >
           {places.error ?? conditions.error ?? selectionMessage}
         </p>
@@ -473,7 +466,7 @@ export function HomeDesktop() {
           </>
         }
         chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
-        desc="서버가 카테고리와 장소명을 보고 해변으로 분류한 곳입니다. 상태 열람에서 장소 선택으로 바로 넘어가게 붙입니다."
+        desc="명소 페이지로 가서 더 많은 강릉 명소를 둘러보세요."
         link={{ href: "#spots", label: "명소 탭 전체 보기" }}
       >
         <div className="hd-beaches">
@@ -491,8 +484,8 @@ export function HomeDesktop() {
         )}
         <p className="hd-row-note">
           명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는
-          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은
-          아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
+          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은 아직
+          내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
           표시합니다. 리뷰 평점은 쓰지 않습니다.
         </p>
       </LabelRow>
@@ -599,19 +592,30 @@ export function HomeDesktop() {
         >
           <SplitBody>
             {tastePicks.map((item) => (
-              <div
-                className="hd-taste-spot"
-                key={item.spot_id}
-              >
-                <a className="place-photo-link" href={spotLink(item)} aria-label={`${item.name} 상세`}>
-                  <PlacePhoto className="hd-taste-photo" name={item.name} photo={item.photo} />
+              <div className="hd-taste-spot" key={item.spot_id}>
+                <a
+                  className="place-photo-link"
+                  href={spotLink(item)}
+                  aria-label={`${item.name} 상세`}
+                >
+                  <PlacePhoto
+                    className="hd-taste-photo"
+                    name={item.name}
+                    photo={item.photo}
+                  />
                 </a>
                 <span>
-                  <a className="hd-taste-spot-name place-photo-link" href={spotLink(item)}>{item.name}</a>
+                  <a
+                    className="hd-taste-spot-name place-photo-link"
+                    href={spotLink(item)}
+                  >
+                    {item.name}
+                  </a>
                   <span className="hd-taste-spot-meta">
                     {item.region ?? "지역 미확인"} ·{" "}
-                    {item.activities.map((activity) => activity.label).join(" · ") ||
-                      "활동 미확인"}
+                    {item.activities
+                      .map((activity) => activity.label)
+                      .join(" · ") || "활동 미확인"}
                   </span>
                   <PlacePhotoCredit photo={item.photo} />
                 </span>

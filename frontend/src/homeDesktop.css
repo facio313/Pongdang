@@ -74,11 +74,6 @@
   gap: 10px;
   margin-top: 18px;
 }
-.pd-desktop .hd-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -58px;
-}
 .pd-desktop .hd-hero-metrics {
   display: flex;
   flex: none;
@@ -555,10 +550,6 @@
 @media (max-width: 1240px) {
   .pd-desktop .hd-hero-title {
     font-size: 40px;
-  }
-  .pd-desktop .hd-hero-mascot {
-    width: 180px;
-    height: 180px;
   }
   .pd-desktop .hd-beaches {
     grid-template-columns: repeat(2, 1fr);

@@ -207,7 +207,12 @@ export function RecommendDesktop() {
 
   return (
     <DesktopShell>
-      <DesktopHero nav={<DesktopNav active="recommend" context={context} />}>
+      {/* 추천은 「찾는」 화면이라 탐색 포즈(snorkel)를 표지로 씁니다 --
+          코스 저장(towel) · 장소 목록(bucket)과 겹치지 않습니다. */}
+      <DesktopHero
+        nav={<DesktopNav active="recommend" context={context} />}
+        mascot="snorkel"
+      >
         <div className="rd-hero">
           <div className="rd-hero-lead">
             <div className="pd-dk-kick rd-hero-kick">취향 기반 추천</div>

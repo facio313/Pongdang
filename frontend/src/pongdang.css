@@ -235,12 +235,29 @@ main:has(.pd-app) {
 }
 
 /* 히어로는 화면당 하나, 상단에만 둡니다. 그라디언트는 이 레이어 전용입니다. */
+/* 코발트 면의 최소 높이는 화면마다 다르게 두지 않습니다 -- 탭을 옮길 때
+   히어로가 들쭉날쭉 끝나면 본문 시작점이 매번 튑니다. 내용이 더 길면
+   그만큼 늘어납니다. */
 .pd-hero {
+  position: relative;
+  min-height: var(--pd-hero-min-h, 178px);
   background: var(--pd-cobalt);
   color: var(--pd-on-cobalt);
   border-radius: 0 0 var(--pd-r-hero) var(--pd-r-hero);
   box-shadow: var(--pd-shadow-hero);
   padding-bottom: 20px;
+}
+/* 마스코트는 데스크탑(.pd-dk-hero-mascot)과 같은 규칙으로 헤더 바로 아래 ·
+   오른쪽 끝입니다. 흐름에서 빼 두어야 히어로마다 다른 본문 배치에
+   밀리지 않습니다. */
+.pd-hero-mascot {
+  position: absolute;
+  top: 46px;
+  right: 16px;
+  z-index: 2;
+  display: block;
+  width: 66px;
+  height: 66px;
 }
 
 /* ── 터치 타깃 ─────────────────────────────────────────────

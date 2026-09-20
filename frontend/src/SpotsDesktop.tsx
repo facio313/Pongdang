@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -104,6 +103,7 @@ function SpotsListDesktop() {
             context={`강릉 · 수집된 물놀이 장소 · ${dateLabel()}`}
           />
         }
+        mascot="spot"
       >
         <div className="sk-hero">
           <div className="sk-hero-lead">
@@ -134,13 +134,6 @@ function SpotsListDesktop() {
                 고를 것이 없습니다(spotsRoute.sortPlaces). */}
             <span className="sk-hero-order">이름순</span>
           </div>
-          <img
-            className="sk-hero-mascot"
-            src={mascotUrl("spot")}
-            alt={MASCOT_ALT}
-            width={186}
-            height={186}
-          />
         </div>
       </DesktopHero>
 

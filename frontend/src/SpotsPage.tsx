@@ -92,7 +92,7 @@ function ListHero({
             </div>
           </div>
           <img
-            className="sp-hero-mascot"
+            className="pd-hero-mascot"
             src={mascotUrl("spot")}
             alt={MASCOT_ALT}
             width={66}

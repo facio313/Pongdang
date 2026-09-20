@@ -20,11 +20,6 @@
   line-height: 1.25;
   margin: 8px 0 0;
 }
-.pd-desktop .mk-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -4px;
-}
 .pd-desktop .mk-filters {
   flex: none;
   display: flex;

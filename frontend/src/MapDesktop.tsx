@@ -127,19 +127,13 @@ export function MapDesktop() {
         }
         band
         wave="static"
+        mascot="map"
       >
         <div className="mk-hero">
           <div className="mk-hero-lead">
             <div className="pd-dk-kick mk-hero-kick">지도</div>
             <h1 className="mk-hero-title">어디로 갈지 지도에서 고르기</h1>
           </div>
-          <img
-            className="mk-hero-mascot"
-            src={mascotUrl("map")}
-            alt={MASCOT_ALT}
-            width={86}
-            height={86}
-          />
           {/* 예전에는 여기 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가 있었고
               눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은 두지
               않습니다. 대신 실제로 목록을 바꾸는 검색을 둡니다. */}

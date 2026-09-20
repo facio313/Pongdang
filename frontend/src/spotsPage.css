@@ -14,12 +14,15 @@
   gap: 5px;
   color: var(--pd-sky);
 }
+/* 마스코트는 흐름 밖(.pd-hero-mascot)에서 오른쪽 위에 섭니다. 제목이 그
+   아래로 들어가지 않도록 오른쪽을 비워 둡니다. */
 .spots-page .sp-hero-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   margin-top: 8px;
+  padding-right: 78px;
 }
 .spots-page .sp-hero-title {
   font-weight: 700;
@@ -31,11 +34,6 @@
   font-size: var(--pd-fs-cap);
   color: var(--pd-on-cobalt-2);
   margin-top: 5px;
-}
-.spots-page .sp-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -4px;
 }
 /* 정렬 버튼 자리였습니다. 고를 것이 하나뿐이라 순서를 말로 적습니다. */
 .spots-page .sp-hero-order {

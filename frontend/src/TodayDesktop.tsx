@@ -1,5 +1,5 @@
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
+import { mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -107,15 +107,9 @@ function TodayHero({
           context={`${placeName} · ${dateLabel()}`}
         />
       }
+      mascot="surf"
     >
       <div className="td-hero">
-        <img
-          className="td-hero-mascot"
-          src={mascotUrl("surf")}
-          alt={MASCOT_ALT}
-          width={196}
-          height={196}
-        />
         <div className="td-hero-lead">
           <div className="pd-dk-kick td-hero-kick">
             {best ? scoreTitle(best.activity) : "오늘의 판정"}
