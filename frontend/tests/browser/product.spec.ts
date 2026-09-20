@@ -287,8 +287,15 @@ test("preference → recommendation → persisted plan → selected plan detail"
   ).toBeVisible();
   await page.getByRole("button", { name: "온천", exact: true }).first().click();
   await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
-  for (let index = 0; index < 6; index++)
+  // 카드 수는 추천 후보가 바뀌면 함께 바뀝니다(갯벌이 빠지며 여섯에서 다섯이
+  // 됐습니다). 횟수를 박아 두면 마지막 카드가 사라진 뒤를 누르게 되므로,
+  // 화면이 세는 「N / M번째 카드」를 읽고 한 장씩 넘어간 것을 확인하며 누릅니다.
+  const counter = page.getByText(/\d+ \/ \d+\s*번째 카드입니다/);
+  const total = Number((await counter.innerText()).match(/\/\s*(\d+)/)![1]);
+  for (let index = 1; index <= total; index++) {
+    await expect(counter).toContainText(`${index} / ${total}`);
     await page.getByRole("button", { name: "패스", exact: true }).click();
+  }
   await page.getByRole("button", { name: "취향 저장하고 코스 보기" }).click();
   await expect(page.locator(".rc-stop-name").first()).toContainText(
     "OFFLINE TEST",
