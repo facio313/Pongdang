@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { routePreference } from "./recommendation";
 
 test.use({ viewport: { width: 1440, height: 1000 } });
 
 test("desktop course URLs show the empty course flow and a working recommendation link", async ({ page }) => {
+  await routePreference(page, ["물 보며 쉬기"]);
   await page.goto("#map?view=course");
   await expect(page.locator(".map-page")).toBeVisible();
   await expect(page.locator(".mk-stage")).toHaveCount(0);

@@ -1,5 +1,5 @@
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
+import { mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -115,15 +115,9 @@ function TodayHero({
           context={`${placeName} · ${dateLabel()}`}
         />
       }
+      mascot="surf"
     >
       <div className="td-hero">
-        <img
-          className="td-hero-mascot"
-          src={mascotUrl("surf")}
-          alt={MASCOT_ALT}
-          width={196}
-          height={196}
-        />
         <div className="td-hero-lead">
           <div className="pd-dk-kick td-hero-kick">
             {best ? scoreTitle(best.activity) : "오늘의 판정"}
@@ -148,6 +142,17 @@ function TodayHero({
             )}
           </h1>
           {verdict && <span className="td-hero-chip">{verdict}</span>}
+          {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳.
+              결론(제목) 바로 밑입니다 -- 근거는 결론을 읽은 자리에서 이어
+              읽혀야 합니다. 아래로 내려 두면 점수 · 관측 타일을 지나서야
+              나오고, 그 사이의 숫자들이 근거인 것처럼 읽혔습니다. */}
+          <RecommendationReason
+            data={recommendation}
+            error={recommendationError}
+            loading={recommendationLoading}
+            glass
+            className="td-hero-why"
+          />
         </div>
         <div className="td-hero-score">
           <div className="pd-dk-num td-hero-score-num">
@@ -209,17 +214,19 @@ function TodayHero({
           : baselineLoading ? "장소 자료를 조회하고 있습니다."
           : baseline ? "–는 해당 자료가 없다는 뜻입니다." : "장소 자료 없음."}
       </p>
-      {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳.
-          점수 산출 근거와 출처 · 면책은 아래 「근거 보기」에 그대로 남습니다. */}
-      <RecommendationReason
-        data={recommendation}
-        error={recommendationError}
-        loading={recommendationLoading}
-        glass
-        className="td-hero-why"
-      />
-      <EvidenceNote data={conditions} className="td-hero-note" glass />
-      <ScoreExplainer data={conditions} />
+      {/* 근거 「데이터」만 남은 자리입니다 -- 관측 요약 한 줄과, 접힌 「근거
+          보기」 · 「퐁당 점수란?」 두 손잡이. 출처 · 격자 번호 · 방법론 · 면책
+          전문은 한 글자도 지우지 않고 그 안에 그대로 있습니다. 펴지 않은
+          상태에서 두 줄을 넘기지 않습니다 -- 사용자가 결론을 읽는 데 쓰는
+          정보가 아니라, 따져 보려는 사람이 펴 보는 자료이기 때문입니다. */}
+      <div className="td-hero-evidence">
+        <EvidenceNote
+          data={conditions}
+          className="td-hero-note"
+          glass
+          extra={<ScoreExplainer data={conditions} />}
+        />
+      </div>
     </DesktopHero>
   );
 }

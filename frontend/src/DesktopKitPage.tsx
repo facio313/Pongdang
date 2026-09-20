@@ -46,7 +46,7 @@ export function DesktopKitPage() {
       <DesktopHero
         nav={<DesktopNav active="home" context={CONTEXT} />}
         wave="animated"
-        minHeight={250}
+        mascot="home"
       >
         <div className="dk-kit-hero">
           <div>
@@ -65,13 +65,6 @@ export function DesktopKitPage() {
               </span>
             </div>
           </div>
-          <img
-            className="dk-kit-hero-mascot"
-            src={mascotUrl("home")}
-            alt={MASCOT_ALT}
-            width={250}
-            height={250}
-          />
           <div className="dk-kit-hero-metrics">
             <div>
               <div className="pd-dk-num dk-kit-metric-value">22.1°C</div>

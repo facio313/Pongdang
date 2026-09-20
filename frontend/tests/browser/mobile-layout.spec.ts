@@ -11,11 +11,11 @@ for (const width of [390, 768, 979, 1079]) {
       const link = actions.locator(":scope > a");
       const before = await link.boundingBox();
       expect(before).not.toBeNull();
-      await actions.getByText("퐁당 점수란?", { exact: true }).click();
-      await expect(actions.locator("details")).toHaveAttribute("open", "");
+      await page.getByText("퐁당 점수란?", { exact: true }).click();
+      await expect(page.locator("details").filter({ hasText: "퐁당 점수란?" })).toHaveAttribute("open", "");
       const layout = await actions.evaluate(element => {
         const cta = element.querySelector("a")!;
-        const details = element.querySelector("details")!;
+        const details = [...document.querySelectorAll("details")].find(item => item.textContent?.includes("퐁당 점수란?"))!;
         const rect = cta.getBoundingClientRect();
         return {
           ctaWidth: rect.width,
@@ -81,7 +81,9 @@ for (const width of [390, 768, 1079]) {
     await page.goto("#recommend");
     await page.getByRole("button", { name: "+ 더 고르기" }).click();
     await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
-    const next = page.getByRole("button", { name: "다음 · 카드로 확정하기" });
+    for (let index = 0; index < 10; index++) {
+    const next = page.getByRole("button", { name: /^(다음|다음 · 카드로 확정하기)$/ });
+    const lastCategory = (await next.innerText()).includes("카드");
     const layout = await next.evaluate(button => ({
       scrollY: window.scrollY,
       bottom: button.getBoundingClientRect().bottom,
@@ -97,6 +99,8 @@ for (const width of [390, 768, 1079]) {
     // A real pointer click (without Playwright's automatic scrolling) catches interception.
     const rect = await next.boundingBox();
     await page.mouse.click(rect!.x + rect!.width / 2, rect!.y + rect!.height / 2);
+    if (lastCategory) break;
+    }
     await expect(page.getByRole("heading", { name: "이건 어떠세요?" })).toBeVisible();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
   });

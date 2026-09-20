@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -13,6 +12,7 @@ import {
   SplitBody,
 } from "./pongdangDesktop";
 import {
+  Icon,
   ScoreExplainer,
   ScoreGauge,
   ScoreReason,
@@ -105,6 +105,7 @@ function SpotsListDesktop() {
             context={`강릉 · 수집된 물놀이 장소 · ${dateLabel()}`}
           />
         }
+        mascot="spot"
       >
         <div className="sk-hero">
           <div className="sk-hero-lead">
@@ -120,30 +121,29 @@ function SpotsListDesktop() {
               )}
               곳
             </h1>
-            <label className="sk-hero-search">
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                maxLength={100}
-                placeholder="장소명 · 지역 검색"
-                aria-label="장소명·지역 검색"
-              />
-            </label>
-            {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는
-                채 비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는
-                고를 것이 없습니다(spotsRoute.sortPlaces). */}
-            <span className="sk-hero-order">이름순</span>
           </div>
-          <img
-            className="sk-hero-mascot"
-            src={mascotUrl("spot")}
-            alt={MASCOT_ALT}
-            width={186}
-            height={186}
-          />
         </div>
       </DesktopHero>
+
+      {/* 검색은 히어로(코발트 면)가 아니라 그 아래, 걸러낼 목록 바로 위에
+          둡니다. 무엇을 바꾸는 컨트롤인지 자리로 말합니다. */}
+      <div className="sk-searchbar">
+        <label className="sk-search">
+          <Icon name="search" size={17} />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            maxLength={100}
+            placeholder="장소명 · 지역 검색"
+            aria-label="장소명·지역 검색"
+          />
+        </label>
+        {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는
+            채 비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는
+            고를 것이 없습니다(spotsRoute.sortPlaces). */}
+        <span className="sk-search-order">이름순</span>
+      </div>
 
       <LabelRow
         kick="목록"

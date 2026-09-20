@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ACTIVITY_LABEL, headlineOf, routeRecommendation, serverRecommendation } from "./recommendation";
+import { ACTIVITY_LABEL, headlineOf, routePreference, routeRecommendation, serverRecommendation } from "./recommendation";
 
 test("home and today render calculated server condition scores and their evidence", async ({
   page,
@@ -36,9 +36,15 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".pd-hero .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
   // 왜 이 활동인가. 서버가 사유 코드를 준 경우에만 줄이 섭니다 -- 없으면 화면이
   // 문장을 지어내지 않는다는 뜻이므로 그쪽도 사실입니다.
-  if (recommendation.reasons.length)
-    await expect(page.locator(".pd-hero .pd-why-line").first()).toBeVisible();
-  await expect(page.locator(".hm-hero-note")).toContainText("근거 확보");
+  // 히어로에는 이 한 줄만 얹힙니다. 뺀 이유 · 물때 · 대신 갈 곳과 근거 전문은
+  // 바로 아래 「오늘 이 활동인 이유」 카드로 내려갔습니다 -- 문구가 사라진 것이
+  // 아니라 층이 나뉜 것이므로, 양쪽을 다 확인합니다.
+  if (recommendation.reasons.length) {
+    await expect(page.locator(".pd-hero .pd-why-line")).toHaveCount(1);
+    await expect(page.locator(".pd-hero .pd-why-line.is-choice")).toBeVisible();
+  }
+  await expect(page.locator(".hm-why-card")).toContainText("오늘 이 활동인 이유");
+  await expect(page.locator(".hm-why-note")).toContainText("근거 확보");
 
   // 「오늘 한눈에」는 이제 그 점수를 이루는 항목들입니다. 항목 구성은 활동마다
   // 다르므로 고정 네 칸이 아니라 서버가 준 components 를 그대로 따릅니다.
@@ -152,13 +158,13 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   );
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
-  await expect(page.locator(".hm-hero-note")).toContainText("예보 기준");
-  await expect(page.locator(".hm-hero-note")).toContainText("25% (1/4개)");
-  await expect(page.locator(".hm-hero-note")).toContainText("안전 판정이 아닙니다");
+  await expect(page.locator(".hm-why-note")).toContainText("예보 기준");
+  await expect(page.locator(".hm-why-note")).toContainText("25% (1/4개)");
+  await expect(page.locator(".hm-why-note")).toContainText("안전 판정이 아닙니다");
   blocked = true;
   forecasts = 0;
   await page.reload();
-  await expect(page.locator(".hm-hero-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
+  await expect(page.locator(".hm-why-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
   // 제한 상태를 예보로 우회하지 않습니다.
   expect(forecasts).toBe(0);
@@ -290,21 +296,28 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
   await expect.poll(() => requests).toBeGreaterThan(1);
   release();
-  await expect(page.locator(".hm-hero-note")).toContainText("계산에 필요한 근거 부족");
+  await expect(page.locator(".hm-why-note")).toContainText("계산에 필요한 근거 부족");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
 });
 
 test("preference → recommendation → persisted plan → selected plan detail", async ({
   page,
 }) => {
+  // 저장된 취향이 남아 있으면 태그가 이미 눌린 채로 시작합니다. 이 검사는
+  // 「고르고 → 저장하고 → 코스가 남는다」를 보므로 빈 상태에서 출발합니다.
+  await routePreference(page, []);
   await page.goto("#recommend");
   await page
     .getByRole("button", { name: "태그로 바로 받기", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "온천", exact: true }).first(),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "온천", exact: true }).first().click();
+  // 태그는 카테고리 하나가 한 화면입니다. 「온천」이 있는 화면까지 넘깁니다.
+  const onsen = page.getByRole("button", { name: "온천", exact: true }).first();
+  const nextTag = page.getByRole("button", { name: "다음", exact: true });
+  for (let step = 0; step < 8 && !(await onsen.isVisible()); step++)
+    await nextTag.click();
+  await expect(onsen).toBeVisible();
+  await onsen.click();
+  while (await nextTag.count()) await nextTag.click();
   await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
   // 카드 수는 추천 후보가 바뀌면 함께 바뀝니다(갯벌이 빠지며 여섯에서 다섯이
   // 됐습니다). 횟수를 박아 두면 마지막 카드가 사라진 뒤를 누르게 되므로,
@@ -626,15 +639,23 @@ test("추천 취향 항목은 서버 카탈로그에서 오고, 없는 이름을
       category.options.map((option) => option.label),
     );
 
+  await routePreference(page, []);
   await page.goto("#recommend");
   await page.getByRole("button", { name: "태그로 바로 받기", exact: true }).click();
-  const buttons = page.locator(".rc-tags .rc-tag");
-  const labels = await buttons.allInnerTexts();
+  // 카테고리 라벨도 서버가 준 것이며, 상한도 서버 값을 그대로 적습니다.
+  // 한 화면에 한 카테고리이므로 첫 화면에서 확인합니다.
+  await expect(page.locator(".recommend-page")).toContainText("장소 유형 · 최대 4개");
+  // 화면을 넘겨 가며 **모든** 카테고리의 선택 항목을 모읍니다.
+  const labels: string[] = [];
+  const nextTag = page.getByRole("button", { name: "다음", exact: true });
+  for (let step = 0; step < 8; step++) {
+    labels.push(...(await page.locator(".rc-tags .rc-tag").allInnerTexts()));
+    if (!(await nextTag.count())) break;
+    await nextTag.click();
+  }
   expect(labels.length).toBeGreaterThan(0);
   for (const label of labels)
     expect(served, `서버에 없는 선택 항목: ${label}`).toContain(label.trim());
-  // 카테고리 라벨도 서버가 준 것이며, 상한도 서버 값을 그대로 적습니다.
-  await expect(page.locator(".recommend-page")).toContainText("장소 유형 · 최대 4개");
 
   // 활동 카드도 서버가 발행한 활동입니다.
   const activityLabels: string[] = catalogue.categories
@@ -644,4 +665,17 @@ test("추천 취향 항목은 서버 카탈로그에서 오고, 없는 이름을
   const counter = page.getByText(/\d+ \/ \d+\s*번째 카드입니다/);
   await expect(counter).toContainText(`/ ${activityLabels.length}`);
   await expect(page.locator(".rc-swipe-name")).toHaveText(activityLabels[0]);
+});
+
+test("모바일 추천은 저장한 취향을 히어로에서 말하고 대화로 이어 간다", async ({
+  page,
+}) => {
+  // 취향은 서버에 저장돼 있는데(travel/preferences) 화면은 처음 온 사람과 같은
+  // 말을 걸고 있었습니다 -- 「취향에 맞는 일정을 만들어 드릴까요?」.
+  await routePreference(page, ["온천"]);
+  await page.goto("#recommend");
+  await expect(page.locator(".rc-hero-title")).toContainText("저장한 취향으로");
+  await expect(page.locator(".rc-hero-taste")).toHaveText("온천");
+  await page.getByRole("button", { name: /AI에게 이어서 물어보기/ }).click();
+  await expect(page.getByLabel("컨시어지에게 보낼 내용")).toBeVisible();
 });

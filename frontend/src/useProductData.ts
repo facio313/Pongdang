@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
@@ -6,6 +5,7 @@ import { usePlacePhotos } from "./usePlacePhotos";
 import {
   periodPath,
   productPlaces,
+  sessionNow,
   type ClassifiedWaterPlace,
   type TideResult,
   type WaterQualityGrade,
@@ -42,7 +42,9 @@ export function settledWithoutPlace<T extends { loading: boolean; error?: string
 }
 
 export function useProductData(mode: "swim" | "best" = "swim") {
-  const [now] = useState(() => new Date().toISOString());
+  // 마운트마다 새로 잡지 않습니다. 이 값이 조회 경로에 들어가므로, 폭이 바뀌어
+  // 레이아웃이 갈릴 때마다 같은 자료를 다른 경로로 다시 묻게 됩니다(sessionNow 주석).
+  const now = sessionNow();
   const catalog = useResource<DefaultPlaceSelection>("water-index/default-place");
   const photos = usePlacePhotos(catalog.data ? productPlaces(catalog.data.rows).rows : undefined);
   const places = { ...catalog, data: photos.rows ? { rows: photos.rows, total: photos.rows.length } : undefined };

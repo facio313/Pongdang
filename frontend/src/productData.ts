@@ -87,7 +87,12 @@ export interface ConditionScore {
 
 // Only the server's calculated condition index is displayable. The separate
 // environment/safety contract is intentionally not a fallback for this value.
-export function conditionScore(data?: Conditions): number | null {
+/** 점수로 **보여 줄 수 있는** 값인지 판정합니다. 전체 봉투와 목록 요약이 같은
+ *  판정을 써야 두 화면이 같은 숫자를 말합니다 -- 그래서 인자를
+ *  `condition_score` 하나만 요구합니다. */
+export function conditionScore(
+  data?: { condition_score?: ConditionScore | null },
+): number | null {
   const index = data?.condition_score;
   return index && ["evaluated", "partial"].includes(index.status) &&
     typeof index.score === "number" && Number.isFinite(index.score) &&
@@ -292,6 +297,21 @@ export function waterQualityDescription(data?: WaterQualityGrade) {
   return `${location} · ${kstDate(data.observed_at)} 검사${data.status === "historical" ? ` · ${data.age_days}일 전 과거 자료` : ""}. ${data.grade != null ? `${data.grade}등급 ${data.label ?? ""}` : "등급을 확인할 수 없습니다"}${data.wqi != null ? ` · WQI ${data.wqi}` : ""}. 해역의 생태 수질 등급이며 오늘 해변의 수질·입수 안전 판정은 아닙니다.`;
 }
 export type RowPage<T> = { rows: T[]; total: number; status?: string };
+
+/** 조회 경로에 들어가는 「지금」. **10분 단위로 끊습니다.**
+ *
+ *  이 값은 periodPath 의 from · reference_at 이 되어 **조회 경로의 일부**가
+ *  됩니다. 컴포넌트마다 `new Date()` 를 잡으면 같은 화면의 두 레이아웃이 서로
+ *  다른 경로를 물어, 창 폭을 넘나들었다는 이유만으로 같은 자료를 다시
+ *  받았습니다(useResource 의 조회 기억 주석). 끊어 두면 두 레이아웃이 같은
+ *  경로를 말하고, 10분마다 자연히 갱신됩니다.
+ *
+ *  화면에 적는 시각에는 쓰지 않습니다 -- 「지금 06:07」을 06:00 으로 적으면
+ *  실제와 다른 사실이 됩니다. 그 자리는 그대로 `timeLabel(new Date())` 입니다. */
+export const SESSION_NOW_STEP = 600000;
+export const sessionNow = () =>
+  new Date(Math.floor(Date.now() / SESSION_NOW_STEP) * SESSION_NOW_STEP).toISOString();
+
 export const kstDate = (value: Date | string = new Date()) =>
   new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
@@ -347,6 +367,56 @@ export function conditionPath(
     : // 장소를 아직 모르는 것은 자료가 없는 것과 다릅니다(useResource 의
       // ResourcePath 주석 참고). 「해당 없음」은 부르는 쪽이 null 로 적습니다.
       undefined;
+}
+/** 목록 한 줄이 쓰는 요약. 전체 봉투(Conditions)에서 서버가 **뽑아낸** 것이며
+ *  따로 계산한 값이 아닙니다 -- 목록과 상세가 다른 숫자를 말하면 안 됩니다. */
+export interface ConditionSummary {
+  spot_id: number;
+  place_name: string | null;
+  support_status: string;
+  safety_status: string;
+  condition_score?: ConditionScore | null;
+  water_temperature?: Metric | null;
+  /** 이 요약을 떠받치는 근거 중 가장 먼저 만료되는 시각. 요약에는 metric
+   *  트리가 없으므로 서버가 대신 계산해 실어 줍니다. */
+  expires_at: string | null;
+}
+export interface ConditionSummaries {
+  contract_version: string;
+  activity: Activity;
+  mode: string;
+  as_of: string;
+  rows: ConditionSummary[];
+  /** 읽지 못한 지점. 값이 없는 상태가 안전을 뜻하지 않으므로, 조용히 빠지지
+   *  않고 사유와 함께 남습니다. */
+  unavailable: { spot_id: number; reason: string }[];
+}
+/** 서버가 한 요청에 받는 지점 수(condition_api.py 의 SUMMARY_BATCH_MAX). */
+export const SUMMARY_BATCH_MAX = 25;
+/** 목록 여러 줄의 조건을 **한 번에** 묻는 경로.
+ *
+ *  placePhotosPath 와 같은 방식으로 정렬 · 중복 제거해 **안정된 문자열 키**를
+ *  만듭니다 -- 이게 useResource 의 기억이 먹는 전제입니다. 순서가 렌더마다
+ *  흔들리면 같은 목록이 매번 새 키가 되어 기억이 무용지물이 됩니다. */
+export function conditionSummaryPath(
+  ids: number[],
+  activity: Activity = "swim",
+): string | null {
+  const selected = [...new Set(ids)]
+    .filter((id) => Number.isSafeInteger(id) && id > 0)
+    .sort((a, b) => a - b);
+  return selected.length
+    ? "water-index/conditions/summary?" +
+        new URLSearchParams({ spot_ids: selected.join(","), activity })
+    : // 물어볼 지점이 없는 것은 「해당 없음」입니다. 조회는 나가지 않습니다.
+      null;
+}
+/** 요약 여러 묶음에서 가장 먼저 만료되는 시각. 없으면 undefined. */
+export function summariesExpiry(rows: ConditionSummary[]): number | undefined {
+  const expiries = rows
+    .map((row) => (row.expires_at ? Date.parse(row.expires_at) : NaN))
+    .filter(Number.isFinite);
+  return expiries.length ? Math.min(...expiries) : undefined;
 }
 export function conditionTargetInRange(at: string | undefined, now = Date.now()) {
   const target = at ? Date.parse(at) : NaN;

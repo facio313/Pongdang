@@ -20,11 +20,6 @@
   line-height: 1.25;
   margin: 8px 0 0;
 }
-.pd-desktop .mk-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -4px;
-}
 .pd-desktop .mk-filters {
   flex: none;
   display: flex;
@@ -59,6 +54,7 @@
   padding: 44px 26px 44px var(--dk-pad);
   border-right: 1px solid var(--dk-rule);
 }
+/* 히어로(코발트) 안에 있던 검색을 흰 면의 지점 목록 위로 내렸습니다. */
 .pd-desktop .mk-search {
   display: flex;
   align-items: center;
@@ -69,6 +65,15 @@
   padding: 0 14px;
   font-size: 12.5px;
   color: var(--dk-ink-2);
+}
+.pd-desktop .mk-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--dk-ink);
+  font: inherit;
 }
 .pd-desktop .mk-side-kick {
   margin: 18px 0 4px;

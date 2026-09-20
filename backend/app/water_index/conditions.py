@@ -360,6 +360,98 @@ class ConditionsEnvelope(Record):
         return self
 
 
+SUMMARY_CONTRACT = "water-conditions-summary.v1"
+#: 목록이 한 줄에 보여 주는 수치. 요약은 이것만 싣습니다 -- 근거 막대와 설명은
+#: 전체 봉투가 필요하고, 그건 고른 지점 한 곳에서만 읽습니다.
+SUMMARY_METRIC: MetricName = "water_temperature"
+
+
+def summary_expiry(envelope: ConditionsEnvelope) -> AwareDatetime | None:
+    """점수를 떠받치는 근거 중 **가장 먼저** 못 쓰게 되는 시각.
+
+    화면(productData.ts 의 conditionScoreExpiry)이 전체 metric 트리를 훑어
+    구하던 값을 서버가 대신 계산합니다. 요약에는 트리가 없으므로, 이게
+    없으면 목록은 자기가 든 숫자가 언제 만료되는지 알 길이 없습니다 --
+    만료를 모르면 「낡은 값을 계속 보여 주거나」 「쉬지 않고 다시 묻거나」
+    둘 중 하나가 됩니다. 규칙은 화면 쪽과 같아야 합니다.
+    """
+    score = envelope.condition_score
+    used = {
+        (c.metric, c.station_id)
+        for c in (score.components if score else ())
+        if c.status == "evaluated" and c.score is not None
+    }
+    shown = {(d.name, d.station_id) for d in envelope.display_metrics}
+    expiries = [
+        source.valid_until
+        for metric in (*envelope.metrics, *envelope.context_metrics)
+        if (metric.name, metric.station_id) in used
+        or (metric.name, metric.station_id) in shown
+        for source in metric.evidence
+        if source.valid_until is not None
+    ]
+    return min(expiries) if expiries else None
+
+
+class ConditionSummary(Record):
+    """한 지점의 목록용 요약. 전체 봉투에서 **뽑아낸** 것이며 따로 계산하지
+    않습니다 -- 목록과 상세가 다른 숫자를 말하면 안 됩니다."""
+
+    spot_id: int
+    place_name: str | None
+    support_status: Literal["supported", "unsupported", "unknown"]
+    safety_status: Literal["restricted", "caution", "unknown"]
+    condition_score: ActivityScore | None = None
+    water_temperature: DisplayMetric | ConditionMetric | None = None
+    expires_at: AwareDatetime | None
+
+
+class SummaryFailure(Record):
+    """읽지 못한 지점. **값이 없는 상태는 안전을 뜻하지 않으므로**, 조용히
+    빼지 않고 못 읽었다는 사실과 사유를 그대로 싣습니다."""
+
+    spot_id: int
+    reason: str
+
+
+class ConditionSummaries(Record):
+    contract_version: Literal["water-conditions-summary.v1"] = SUMMARY_CONTRACT
+    model: ConditionModel = Field(default_factory=ConditionModel)
+    activity: Activity
+    mode: Literal["observation"] = "observation"
+    as_of: AwareDatetime
+    rows: Annotated[tuple[ConditionSummary, ...], Field(max_length=100)]
+    unavailable: Annotated[tuple[SummaryFailure, ...], Field(max_length=100)] = ()
+
+
+def summarize_conditions(envelope: ConditionsEnvelope) -> ConditionSummary:
+    """Pure projection of a full evidence bundle onto the list row fields."""
+    shown = next(
+        (
+            metric
+            for metric in envelope.display_metrics
+            if metric.name == SUMMARY_METRIC
+        ),
+        None,
+    ) or next(
+        (
+            metric
+            for metric in (*envelope.metrics, *envelope.context_metrics)
+            if metric.name == SUMMARY_METRIC and metric.status == "available"
+        ),
+        None,
+    )
+    return ConditionSummary(
+        spot_id=envelope.spot_id,
+        place_name=envelope.place_name,
+        support_status=envelope.support_status,
+        safety_status=envelope.safety_status,
+        condition_score=envelope.condition_score,
+        water_temperature=shown,
+        expires_at=summary_expiry(envelope),
+    )
+
+
 class CriterionResult(Criterion):
     status: Literal["matched", "not_matched", "unavailable"]
     value: Finite | None

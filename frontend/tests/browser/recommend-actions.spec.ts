@@ -1,7 +1,9 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import { routePreference } from "./recommendation";
 import type { RecommendationResult, TripPlan } from "../../src/travelApi";
 
 test.use({ viewport: { width: 1440, height: 1000 } });
+test.beforeEach(async ({ page }) => { await routePreference(page, ["물 보며 쉬기"]); });
 
 const candidatesPath = "**/api/data/travel/recommendations";
 const findCandidates = (page: Page) =>
@@ -53,6 +55,7 @@ test("candidate search replaces a pending desktop conversation and releases wait
     await route.fulfill({ json: await realCandidates(route, "새 후보") });
   });
   await page.goto("#recommend");
+  await page.getByRole("button", { name: "AI에게 이어서 물어보기 →" }).click();
   await page.getByLabel("컨시어지에게 보낼 내용").fill("물 보면서 쉬고 싶어요");
   await page.getByRole("button", { name: "보내기" }).click();
   try {
@@ -61,8 +64,9 @@ test("candidate search replaces a pending desktop conversation and releases wait
     await findCandidates(page).click();
     await expect.poll(() => candidateRequests).toBe(1);
     await expect(page.locator(".rd-step-name").first()).toHaveText("새 후보 1");
-    await expect(page.locator(".rd-bubbles")).not.toContainText("답변을 조회하고 있습니다");
     await expect(cancelCandidates(page)).toHaveCount(0);
+    await page.getByRole("button", { name: "AI에게 이어서 물어보기 →" }).click();
+    await expect(page.locator(".rd-bubbles")).not.toContainText("답변을 조회하고 있습니다");
     await page.getByLabel("컨시어지에게 보낼 내용").fill("다음 대화");
     await expect(page.getByRole("button", { name: "보내기" })).toBeEnabled();
   } finally {
@@ -70,6 +74,7 @@ test("candidate search replaces a pending desktop conversation and releases wait
   }
   await chatFinished.promise;
   await expect(page.locator(".rd-bubbles")).not.toContainText("늦게 도착한 대화 답변");
+  await page.getByRole("button", { name: "후보와 경로 보기 →" }).click();
   await expect(page.locator(".rd-step-name").first()).toHaveText("새 후보 1");
 });
 
@@ -155,6 +160,7 @@ test("canceling a candidate read releases waiting state without publishing the l
     await cancelCandidates(page).click();
     await expect(cancelCandidates(page)).toHaveCount(0);
     await expect(findCandidates(page)).toBeEnabled();
+    await page.getByRole("button", { name: "AI에게 이어서 물어보기 →" }).click();
     await page.getByLabel("컨시어지에게 보낼 내용").fill("대화도 다시 보낼 수 있나요");
     await expect(page.getByRole("button", { name: "보내기" })).toBeEnabled();
   } finally {

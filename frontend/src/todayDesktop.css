@@ -47,11 +47,6 @@
   gap: 40px;
   padding: 20px 0 0;
 }
-.pd-desktop .td-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -4px;
-}
 .pd-desktop .td-hero-lead {
   flex: 1;
   min-width: 0;
@@ -78,6 +73,12 @@
   padding: 4px 10px;
   border-radius: var(--dk-r-pill);
 }
+/* 근거는 결론(제목 · 판정 칩) 바로 밑입니다. 히어로 오른쪽의 점수 · 관측
+   타일과 마주보는 줄이 아니므로 폭을 읽기 좋은 만큼으로 끊습니다. */
+.pd-desktop .td-hero-why {
+  margin-top: 14px;
+  max-width: 58ch;
+}
 .pd-desktop .td-hero-score {
   flex: none;
   text-align: right;
@@ -89,27 +90,59 @@
   line-height: 0.9;
   letter-spacing: -0.04em;
 }
+/* ── 근거 데이터 (접힌 두 줄) ──────────────────────────────
+   1줄: 관측 요약 + 안전 상태 칩. 2줄: 「근거 보기」 · 「퐁당 점수란?」.
+   펴기 전에는 여기서 끝납니다. 결론을 읽는 데 쓰는 정보가 아니라 따져
+   보려는 사람이 펴 보는 자료라, 결론 옆에서 두 줄 넘게 차지하지 않습니다.
+   펴면 전문이 그대로 나옵니다 -- 줄인 것은 자리이지 문장이 아닙니다. */
+.pd-desktop .td-hero-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2px 18px;
+  margin-top: 12px;
+  padding-bottom: 12px;
+}
+.pd-desktop .td-hero-evidence > .pd-evidence {
+  min-width: 0;
+}
+/* 두 손잡이(근거 보기 · 퐁당 점수란?)는 둘째 줄에 나란히 섭니다. 펴면 각자
+   아래로 본문이 열리므로 세로로 쌓이게 둡니다. */
+.pd-desktop .td-hero-evidence .pd-evidence-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 18px;
+  margin-top: 6px;
+}
+/* 요약은 한 줄로 끊습니다 -- 「근거 보기」가 그 아래 줄에 서야 두 손잡이가
+   한 줄에 나란히 놓입니다. */
+.pd-desktop .td-hero-evidence .pd-evidence-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
 /* 히어로는 코발트 위입니다. 근거 줄과 「퐁당 점수란?」이 --dk-blue 로 나오면
-   어두운 배경에 묻히므로 밝은 쪽으로 덮습니다. */
-.pd-desktop .td-hero-note .pd-evidence-line,
-.pd-desktop .td-hero-note .pd-explainer-body {
+   어두운 배경에 묻히므로 밝은 쪽으로 덮습니다. 예전에는 이 덮는 규칙이
+   `.pd-dk-hero > .pd-explainer` 였는데 실제 부모는 히어로 본문(.pd-dk-hero-body)
+   이라 한 번도 맞지 않았고, 「퐁당 점수란?」이 코발트 위에서 남색으로 묻혀
+   있었습니다. */
+.pd-desktop .td-hero-evidence .pd-evidence-line,
+.pd-desktop .td-hero-evidence .pd-explainer-body {
   font-size: var(--dk-fs-cap);
   color: var(--dk-onc-2);
 }
-.pd-desktop .td-hero-note .pd-evidence-control {
+.pd-desktop .td-hero-evidence .pd-evidence-control {
   color: var(--dk-onc);
+}
+/* 펼친 본문이 히어로 폭 전부로 퍼지면 읽는 자리를 놓칩니다. */
+.pd-desktop .td-hero-evidence .pd-explainer-body {
+  max-width: 78ch;
 }
 .pd-desktop .td-hero .pd-gauge {
   max-width: 220px;
   margin: 8px 10px 0 auto;
-}
-.pd-desktop .td-hero-note .pd-explainer > summary,
-.pd-desktop .pd-dk-hero > .pd-explainer > summary {
-  color: var(--dk-sky);
-}
-.pd-desktop .pd-dk-hero > .pd-explainer .pd-explainer-body,
-.pd-desktop .pd-dk-hero > .pd-explainer .pd-explainer-scale td {
-  color: var(--dk-onc-2);
 }
 
 .pd-desktop .td-hero-score-grade {
@@ -521,10 +554,6 @@
   }
   .pd-desktop .td-hero-score-num {
     font-size: 78px;
-  }
-  .pd-desktop .td-hero-mascot {
-    width: 140px;
-    height: 140px;
   }
   .pd-desktop .td-hero-tiles {
     width: 240px;

@@ -19,11 +19,6 @@
   line-height: 1.25;
   margin: 8px 0 0;
 }
-.pd-desktop .cd-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -4px;
-}
 .pd-desktop .cd-hero-summary {
   flex: none;
   display: flex;

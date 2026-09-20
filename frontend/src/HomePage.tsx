@@ -41,7 +41,8 @@ import {
 } from "./productData";
 import { spotLink } from "./spotsRoute";
 import { useWaterPlaces } from "./useWaterPlaces";
-import { newWebcamShuffleSeed } from "./livecamPreviewApi";
+import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
+import { WAVE_LOOP_PATH } from "./waveShape";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
 import "./homePage.css";
@@ -56,7 +57,6 @@ const CAM_BACKGROUNDS = [
 
 function Hero({
   placeName,
-  conditions,
   baseline,
   best,
   recommendation,
@@ -70,7 +70,6 @@ function Hero({
   recommendation?: Recommendation;
   recommendationLoading?: boolean;
   recommendationError?: string;
-  conditions?: Conditions;
   /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답. 점수용 응답과 다릅니다 --
    *  서버는 그 활동이 보는 지표만 내려주기 때문입니다(useProductData 주석). */
   baseline?: Conditions;
@@ -207,30 +206,66 @@ function Hero({
             뭘 해도 되는지를 한 줄로 붙입니다. 값이 없으면 문장을 지어내지 않고
             비워 둡니다 -- 모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */}
         {verdict && <p className="hm-hero-verdict">{verdict}</p>}
-        {/* 예전에는 이 자리가 「수온 13°C — 이 조건이 점수를 가장 많이 낮췄어요」
-            한 줄이었습니다. 그건 점수를 어떻게 깎았는지이지 오늘 왜 이걸 하라는
-            건지가 아닙니다. 이제 서버가 고른 이유 · 뺀 이유 · 물때 · 대신 갈 곳이
-            옵니다. 항목별 점수 근거는 아래 「점수를 이루는 항목」 카드에 그대로
-            남아 있습니다. */}
+        {/* 히어로에는 「왜 이 활동인가」 **한 줄만** 얹습니다. 예전에는 뺀 이유 ·
+            물때 · 대신 갈 곳 · 근거 전문 · 점수 설명이 모두 이 코발트 면 안에
+            있어서, 결론(무엇을 · 몇 점)이 감사 기록에 묻혔습니다. 나머지는
+            사라진 것이 아니라 바로 아래 「오늘 이 활동인 이유」 카드로
+            내려갔습니다(WhyCard). */}
         <RecommendationReason
           data={recommendation}
           error={recommendationError}
           loading={recommendationLoading}
+          variant="lead"
           glass
         />
-
-        {/* 이 자리는 예전에 근거 전문 한 문단이었습니다. 문구는 그대로 두고
-            「근거 보기」 안으로 층만 나눕니다(EvidenceNote 주석 참고). */}
-        <EvidenceNote data={conditions} className="hm-hero-note" glass />
 
         <div className="hm-hero-actions">
           <a className="pd-inline pd-tap" href="#today">
             오늘 후보 활동 {recommendedActivities.length}가지 보기 →
           </a>
-          <ScoreExplainer data={conditions} />
         </div>
       </div>
+      {/* 물결. 데스크탑 히어로와 같은 굴곡을 2겹으로 흘립니다(waveShape.ts).
+          「동작 줄이기」를 켜면 pongdang.css 의 규칙이 멈춰 세웁니다. */}
+      <div className="hm-hero-anim" aria-hidden="true">
+        <svg className="hm-wave-back" viewBox="0 0 2880 96" preserveAspectRatio="none">
+          <path d={WAVE_LOOP_PATH} />
+        </svg>
+        <svg className="hm-wave-front" viewBox="0 0 2880 96" preserveAspectRatio="none">
+          <path d={WAVE_LOOP_PATH} opacity="0.5" />
+        </svg>
+      </div>
     </header>
+  );
+}
+
+/** 히어로에서 내려온 근거 층입니다. **문구는 한 글자도 줄이지 않았습니다** --
+ *  뺀 이유 · 물때 · 대신 갈 곳(RecommendationReason 의 2 · 3 · 4 번), 출처와
+ *  면책 전문(EvidenceNote), 점수 읽는 법(ScoreExplainer)이 그대로 있습니다.
+ *  히어로는 결론을, 이 카드는 그 결론의 근거를 말합니다. */
+function WhyCard({
+  conditions,
+  recommendation,
+  recommendationError,
+  recommendationLoading = false,
+}: {
+  conditions?: Conditions;
+  recommendation?: Recommendation;
+  recommendationError?: string;
+  recommendationLoading?: boolean;
+}) {
+  return (
+    <div className="pd-card hm-why-card">
+      <div className="pd-card-title">오늘 이 활동인 이유</div>
+      <RecommendationReason
+        data={recommendation}
+        error={recommendationError}
+        loading={recommendationLoading}
+        variant="detail"
+      />
+      <EvidenceNote data={conditions} className="hm-why-note" />
+      <ScoreExplainer data={conditions} />
+    </div>
   );
 }
 
@@ -481,7 +516,9 @@ function RouteCard() {
 }
 
 function LivecamModule() {
-  const [shuffleSeed, setShuffleSeed] = useState(newWebcamShuffleSeed);
+  // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
+  // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
+  const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
   const { result, error, loading, expired, now } = useWebcamCatalog(1, "", shuffleSeed);
   const cameras = (result?.rows ?? []).flatMap(camera => {
     const player = previewPlayerUrl(camera, result!.valid_until, now);
@@ -497,7 +534,7 @@ function LivecamModule() {
           </span>
           <div className="pd-card-title">라이브캠 물멍</div>
         </div>
-        <button className="pd-state-chip pd-tap" disabled={loading} onClick={() => setShuffleSeed(newWebcamShuffleSeed)}>다른 풍경 보기</button>
+        <button className="pd-state-chip pd-tap" disabled={loading} onClick={() => setShuffleSeed(shuffleWebcams())}>다른 풍경 보기</button>
       </div>
       <div className="hm-cam-row">
         {cameras.map(({ camera: cam, href, label }, index) => (
@@ -547,7 +584,6 @@ function HomeScreen() {
         hero={
           <Hero
             placeName={displayName}
-            conditions={conditions.data}
             baseline={baseline.data}
             best={best}
             recommendation={recommendation.data}
@@ -558,6 +594,14 @@ function HomeScreen() {
           />
         }
       >
+          {/* 히어로 바로 아래입니다. 결론 다음에 그 근거가 오고, 그 다음에
+              점수를 이루는 항목이 옵니다. */}
+          <WhyCard
+            conditions={conditions.data}
+            recommendation={recommendation.data}
+            recommendationError={recommendation.error}
+            recommendationLoading={isInitialLoad(recommendation)}
+          />
           <GlanceCard
             quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}

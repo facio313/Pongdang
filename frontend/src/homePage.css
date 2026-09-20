@@ -3,6 +3,92 @@
 
 /* ── 히어로 ─────────────────────────────────────────────── */
 
+/* 물결과 숨쉬는 빛을 담을 면입니다. 둘 다 절대배치라 기준이 필요하고, 히어로
+   아래 모서리 밖으로 삐져나가지 않게 잘라 둡니다. 바닥 여백은 물결이 CTA 줄을
+   덮지 않을 만큼 둡니다. */
+.home-page .pd-hero {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 52px;
+}
+/* 코발트 면 위에서 아주 느리게 부푸는 빛 한 겹. 합성 가능한 속성(transform ·
+   opacity)만 움직입니다 -- background-position 을 애니메이션하면 매 프레임
+   배경을 다시 칠합니다. */
+.home-page .pd-hero::before {
+  content: "";
+  position: absolute;
+  inset: -30% -20% auto -20%;
+  height: 120%;
+  background: radial-gradient(
+    50% 50% at 30% 30%,
+    rgba(158, 212, 255, 0.36) 0%,
+    rgba(158, 212, 255, 0) 70%
+  );
+  transform-origin: 30% 30%;
+  animation: hm-hero-breathe 16s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hm-hero-breathe {
+  0%,
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.18) translate3d(4%, 2%, 0);
+    opacity: 1;
+  }
+}
+/* 히어로 하단의 물결 2겹. 데스크탑과 같은 굴곡(waveShape.ts)을 2880 폭으로
+   흘립니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. 색은 히어로 아래 본문
+   바탕과 같아야 경계가 물러납니다. */
+.home-page .hm-hero-anim {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 64px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-page .hm-hero-anim svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1920px;
+  height: 64px;
+}
+.home-page .hm-hero-anim path {
+  fill: var(--pd-mist);
+}
+.home-page .hm-hero-anim .hm-wave-back {
+  opacity: 0.34;
+  animation: hm-wave-back 19s linear infinite;
+}
+.home-page .hm-hero-anim .hm-wave-front {
+  animation: hm-wave-front 13s linear infinite;
+}
+@keyframes hm-wave-back {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-640px);
+  }
+}
+@keyframes hm-wave-front {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-480px);
+  }
+}
+
+/* 히어로 안쪽은 물결 · 빛보다 위에 있어야 합니다. */
+.home-page .hm-hero-inner,
+.home-page .pd-hero > .pd-header {
+  position: relative;
+  z-index: 1;
+}
 .home-page .hm-hero-inner {
   padding: 6px 20px 0;
 }
@@ -65,12 +151,6 @@
   font-size: 42px;
   line-height: 1;
 }
-.home-page .hm-hero-note {
-  font-size: var(--pd-fs-cap);
-  line-height: 1.6;
-  color: var(--pd-on-cobalt-2);
-  margin: 12px 0 0;
-}
 
 /* 게이지 마커가 0점·100점에서 좌우로 넘치므로 히어로 안쪽에 여백을 줍니다. */
 .home-page .pd-gauge {
@@ -86,31 +166,30 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
-.home-page .hm-hero-actions > .pd-inline {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-.home-page .hm-hero-actions > .pd-explainer {
-  min-width: 0;
-}
-/* 열린 설명은 별도 행에서 읽으며 옆 링크의 폭을 줄이지 않습니다. */
-.home-page .hm-hero-actions > .pd-explainer[open] {
-  flex-basis: 100%;
-}
-.home-page .hm-hero-actions .pd-inline,
-.home-page .hm-hero-actions .pd-explainer > summary {
-  font-size: var(--pd-fs-cap);
+.home-page .hm-hero-actions .pd-inline {
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
   color: var(--pd-sky);
 }
-.home-page .hm-hero-actions .pd-explainer-body {
-  color: var(--pd-on-cobalt-2);
+
+/* ── 오늘 이 활동인 이유 ──────────────────
+   히어로에서 내려온 근거 층입니다. 이제 흰 카드 위라 글래스 변형(is-glass)을
+   쓰지 않고 본문 색을 그대로 씁니다. */
+
+.home-page .hm-why-card .pd-why {
+  margin-top: 4px;
 }
-.home-page .hm-hero-actions .pd-explainer-body td {
-  color: var(--pd-on-cobalt-2);
+.home-page .hm-why-note {
+  font-size: var(--pd-fs-cap);
+  line-height: 1.6;
+  color: var(--pd-ink-2);
+  margin: 12px 0 0;
+}
+.home-page .hm-why-card .pd-explainer {
+  margin-top: 10px;
 }
 
 /* ── 오늘 한눈에 · 점수를 이루는 항목들 ─────────────────── */

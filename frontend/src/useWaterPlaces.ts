@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   productPlaces,
   type ClassifiedWaterPlace,
@@ -30,24 +31,30 @@ export function useWaterPlaces(search = "") {
   const defaultPlace = useResource<DefaultPlaceSelection>(
     search ? null : "water-index/default-place",
   );
+  // 합치기와 걸러내기를 **메모 안에서** 합니다. 예전에는 둘 다 매 렌더에서
+  // 새 배열을 만들었고, 그 새 참조가 usePlacePhotos 메모 → 지도 마커 →
+  // KakaoMapCanvas 의 effect 까지 그대로 번져 **지도를 매 렌더 헐고 다시
+  // 지었습니다**. 지도가 다시 지어지며 부모를 또 렌더시켜, 멈추지 않는
+  // 렌더 루프가 됐습니다(모바일 MapPage 는 JSON 키로 이걸 우회하고 있었고,
+  // 데스크탑 지도에는 그 우회가 없었습니다). 원인은 여기 하나입니다.
+  const rows: Place[] | undefined = useMemo(() => {
+    const data = search
+      ? catalog.data
+      : defaultPlace.data || catalog.data
+        ? [...(defaultPlace.data?.rows ?? []), ...(catalog.data ?? [])]
+        : undefined;
+    // 기본 장소 선정 결과와 검색 목록이 같은 장소를 담을 수 있습니다. 먼저 온
+    // 것(근거로 고른 쪽)을 남깁니다.
+    return data
+      ? productPlaces(data).rows.filter(
+          (place, index, all) =>
+            all.findIndex((item) => item.id === place.id) === index,
+        )
+      : undefined;
+  }, [search, catalog.data, defaultPlace.data]);
   const merged = search
     ? catalog
-    : {
-        ...catalog,
-        error: defaultPlace.error ?? catalog.error,
-        data:
-          defaultPlace.data || catalog.data
-            ? [...(defaultPlace.data?.rows ?? []), ...(catalog.data ?? [])]
-            : undefined,
-      };
-  // 기본 장소 선정 결과와 검색 목록이 같은 장소를 담을 수 있습니다. 먼저 온
-  // 것(근거로 고른 쪽)을 남깁니다.
-  const rows: Place[] | undefined = merged.data
-    ? productPlaces(merged.data).rows.filter(
-        (place, index, all) =>
-          all.findIndex((item) => item.id === place.id) === index,
-      )
-    : undefined;
+    : { ...catalog, error: defaultPlace.error ?? catalog.error };
   const photos = usePlacePhotos(rows);
   return {
     rows: photos.rows,

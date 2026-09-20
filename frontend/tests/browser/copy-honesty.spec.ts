@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { routePreference } from "./recommendation";
 
 for (const width of [390, 1440]) {
   test(`the ${width}px home activity link describes the five actual today tiles`, async ({ page }) => {
@@ -42,12 +43,13 @@ test("desktop footnotes reflect connected photos and activity scoring, with read
   await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("서핑");
   await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("온천 활동 점수");
   await expect(page.locator(".pd-desktop")).not.toContainText("서핑 · 온천 점수는 수집 항목이 아닙니다");
-  await expect(page.locator(".pd-state-chip").filter({ hasText: /^자료 없음$/ })).toBeVisible();
+  await expect(page.locator(".pd-dk-foot-missing")).toBeVisible();
   await expect(page.locator(".pd-state-chip").filter({ hasText: /^(no_data|partial)$/ })).toHaveCount(0);
 });
 
 test("desktop recommendation evidence explains the returned status in Korean", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await routePreference(page, ["물 보며 쉬기"]);
   await page.goto("#recommend");
   const responsePromise = page.waitForResponse((response) =>
     response.url().endsWith("/api/data/travel/recommendations") &&
@@ -57,6 +59,7 @@ test("desktop recommendation evidence explains the returned status in Korean", a
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   expect((await response.json()).status).toBe("partial");
+  await page.getByRole("button", { name: "← 대화로 좁히기", exact: true }).click();
   const evidence = page.locator(".rd-answer .pd-ai-basis");
   await expect(evidence).toContainText("상태 일부 자료");
   await expect(evidence).not.toContainText(/\b(no_data|partial|unavailable|evaluated)\b/);

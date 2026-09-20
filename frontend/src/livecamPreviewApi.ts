@@ -82,8 +82,32 @@ export function newWebcamShuffleSeed(previous?: number): number {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   return seed === previous ? (seed + 1) >>> 0 : seed;
 }
+/** 이 페이지가 쓰는 셔플 시드. **마운트마다 새로 뽑지 않습니다.**
+ *
+ *  시드는 조회 키의 일부입니다. 컴포넌트가 마운트할 때 뽑으면, 창 폭이 바뀌어
+ *  레이아웃이 갈릴 때마다 웹캠 목록을 다시 받고 풍경까지 바뀝니다 -- 사용자가
+ *  「다른 풍경 보기」를 누른 적이 없는데 말입니다. 새 시드는 그 버튼만
+ *  뽑습니다(newWebcamShuffleSeed). */
+let sessionSeed: number | undefined;
+export function sessionWebcamShuffleSeed(): number {
+  return (sessionSeed ??= newWebcamShuffleSeed());
+}
+/** 「다른 풍경 보기」. 고른 결과는 이 페이지 전체가 기억하므로, 폭이 바뀌어도
+ *  방금 뽑은 풍경이 그대로 남습니다. */
+export function shuffleWebcams(): number {
+  sessionSeed = newWebcamShuffleSeed(sessionSeed);
+  return sessionSeed;
+}
+/** 아직 유효기간이 남은 목록. **응답이 스스로 말하는 valid_until 까지만**
+ *  기억합니다 -- 그 시각이 지나면 타임랩스 링크가 죽으므로 화면이 「다른 풍경
+ *  보기」를 요구해야 하고(useWebcamCatalog 의 expired), 그 전까지는 같은 시드로
+ *  같은 것을 다시 받을 이유가 없습니다. 화면을 다시 마운트했다는 것은 창 폭이
+ *  바뀌었거나 탭을 갔다 왔다는 뜻이지 목록이 낡았다는 뜻이 아닙니다. */
+const catalogMemory = new Map<string, PreviewResult>();
 export function loadWebcamCatalog(base: string, page: number, category: WebcamCategory | '', shuffleSeed = 0, fetcher: typeof fetch = fetch): Promise<PreviewResult> {
   const key = JSON.stringify([base, page, category, shuffleSeed]);
+  const known = catalogMemory.get(key);
+  if (known && Date.parse(known.valid_until) > Date.now()) return Promise.resolve(known);
   let pending = pendingCatalog.get(key);
   if (!pending) {
     // Navigating from Home can ask for another shuffle while the five-provider
@@ -92,6 +116,7 @@ export function loadWebcamCatalog(base: string, page: number, category: WebcamCa
     const previous = [...pendingCatalog.values()].at(-1);
     const request = () => requestPreview(base, { page, shuffle_seed: shuffleSeed, ...(category ? { category } : {}) }, AbortSignal.timeout(100000), fetcher);
     pending = (previous ? previous.catch(() => undefined).then(request) : request())
+      .then(result => { catalogMemory.set(key, result); return result; })
       .finally(() => { pendingCatalog.delete(key); });
     pendingCatalog.set(key, pending);
   }

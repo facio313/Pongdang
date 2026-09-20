@@ -40,7 +40,6 @@ import {
   routeReasonsText,
   travelJson,
   type PlanInput,
-  type Preference,
   type RecommendationResult,
   type RouteResult,
   type TravelRequest,
@@ -52,6 +51,11 @@ import {
   useTravelConcierge,
   type Bubble,
 } from "./useTravelConcierge";
+import {
+  CARD_CATEGORY,
+  useTastePreference,
+  type KeywordCatalogue,
+} from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import type { ModelTraceTurn } from "./aiApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
@@ -61,26 +65,14 @@ type Step = "entry" | "taste" | "chat" | "course" | "realert";
 
 const TODAY_LABEL = dateLabel();
 
-interface KeywordCatalogue {
-  categories: {
-    id: string;
-    label: string;
-    max_selections: number;
-    options: { id: string; label: string }[];
-  }[];
-}
-/** 이 화면이 고르게 하는 서버 카테고리. 데스크탑 추천과 같은 목록입니다.
+/** 고를 수 있는 항목 · 저장된 취향은 useTastePreference 가 읽습니다. 데스크탑
+ *  추천과 같은 카테고리 · 같은 저장 계약입니다.
  *
  *  예전에는 태그 열두 개가 파일 안 상수였습니다 -- 「SUP」 · 「갯벌 체험」 ·
  *  「바다 뷰 카페」 · 「주차 편한 곳」 · 「샤워장」 · 「반려동물」. 서버 카탈로그에
  *  없는 이름이라 고르면 서버가 할 수 있는 일이 없었고, 같은 함수가 바로 옆에서
  *  travel/keywords 를 이미 조회하고 있었습니다. 프런트가 키워드를 만들지
  *  않습니다. */
-const PICKABLE = ["place_type", "activity", "companion", "atmosphere"];
-
-/** 카드로 확정하는 단계가 쓰는 카테고리. 활동은 서버가 발행한 다섯 가지입니다 --
- *  예전에는 이 카드 다섯 장도 파일 안 상수였습니다. */
-const CARD_CATEGORY = "activity";
 
 /** 대화를 여는 한 줄. 예전에는 고정 3턴 대본의 첫 질문이었고, 서버가 무엇을
  *  되묻든 화면이 다음 질문을 미리 정해 두고 그 순서대로 진행했습니다 -- 대화가
@@ -111,6 +103,7 @@ function EntryStep({
   shortcuts,
   picked,
   canPick,
+  savedTastes,
   togglePick,
   onChat,
   onTags,
@@ -120,10 +113,14 @@ function EntryStep({
   shortcuts: { id: string; label: string }[];
   picked: string[];
   canPick: (id: string) => boolean;
+  /** 서버에 **저장돼 있는** 취향 라벨. 화면에서 지금 고르는 중인 것(picked)과
+   *  다른 사실이므로 따로 받습니다. */
+  savedTastes: string[];
   togglePick: (id: string) => void;
   onChat: () => void;
   onTags: () => void;
 }) {
+  const saved = savedTastes.length > 0;
   return (
     <AppShell
       tab="recommend"
@@ -135,12 +132,42 @@ function EntryStep({
           onCobalt
         />
         <div className="rc-hero-inner">
-          <p className="pd-lbl">{TODAY_LABEL} · 오늘 조건 반영</p>
+          {/* 이미 취향을 고른 사람에게 「고르시겠어요?」를 다시 묻지 않습니다.
+              저장된 것을 그대로 말하고, 거기서 대화로 바로 이어 갑니다. */}
+          <p className="pd-lbl">
+            {saved
+              ? `${TODAY_LABEL} · 저장한 취향 ${savedTastes.length}개`
+              : `${TODAY_LABEL} · 오늘 조건 반영`}
+          </p>
           <h1 className="rc-hero-title">
-            취향에 맞는 일정을
-            <br />
-            만들어 드릴까요?
+            {saved ? (
+              <>
+                저장한 취향으로
+                <br />
+                바로 찾아 드릴까요?
+              </>
+            ) : (
+              <>
+                취향에 맞는 일정을
+                <br />
+                만들어 드릴까요?
+              </>
+            )}
           </h1>
+          {saved && (
+            <>
+              <div className="rc-hero-tastes">
+                {savedTastes.map((label) => (
+                  <span className="rc-hero-taste" key={label}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <button type="button" className="rc-hero-ai" onClick={onChat}>
+                AI에게 이어서 물어보기 →
+              </button>
+            </>
+          )}
         </div>
         </header>
       }
@@ -218,11 +245,20 @@ function EntryStep({
   );
 }
 
-// ── 2. B1 취향 수집 (3단계) ────────────────────────────────
+// ── 2. B1 취향 수집 (카테고리별 → 카드 → 요약) ─────────────
+//
+// 예전에는 첫 단계가 서버 카테고리 **전부**를 한 화면에 펼쳤습니다. 고를 것이
+// 한 화면에 다 쌓여 있어 어디까지 답했는지 알 수 없었습니다. 이제 카테고리
+// 하나가 한 화면이고, 진행 점이 몇 개 중 몇 번째인지 말합니다.
+
+/** 취향 수집 안의 화면. 태그는 카테고리 수만큼 반복됩니다. */
+type TastePhase = "tags" | "cards" | "summary";
 
 function TasteStep({
-  tasteStep,
-  setTasteStep,
+  phase,
+  groupIndex,
+  stepNo,
+  stepTotal,
   catalogue,
   groups,
   cards,
@@ -235,6 +271,9 @@ function TasteStep({
   removePick,
   cardIndex,
   liked,
+  onNext,
+  onPrev,
+  onRestart,
   onLike,
   onPass,
   onDone,
@@ -243,8 +282,12 @@ function TasteStep({
   busy,
   signalError,
 }: {
-  tasteStep: 1 | 2 | 3;
-  setTasteStep: (step: 1 | 2 | 3) => void;
+  phase: TastePhase;
+  /** 태그 화면에서 지금 보고 있는 카테고리. */
+  groupIndex: number;
+  /** 전체에서 몇 번째 화면인지(1부터). 진행 점·제목이 같은 값을 씁니다. */
+  stepNo: number;
+  stepTotal: number;
   catalogue: { loading: boolean; error?: string };
   /** 서버가 발행한 선택 항목. 프런트가 만든 목록이 아닙니다. */
   groups: KeywordCatalogue["categories"];
@@ -258,6 +301,9 @@ function TasteStep({
   removePick: (id: string) => void;
   cardIndex: number;
   liked: string[];
+  onNext: () => void;
+  onPrev: () => void;
+  onRestart: () => void;
   onLike: () => void;
   onPass: () => void;
   onDone: () => void;
@@ -274,6 +320,7 @@ function TasteStep({
   // 활동 카드에는 점수가 없습니다. 장소와 날짜를 고르기 전이라 조건을 조회할
   // 대상이 없고, 0 이나 「보통」으로 채우지 않습니다.
   const grade = gradeOf(null);
+  const group = phase === "tags" ? groups[groupIndex] : undefined;
 
   return (
     <AppShell
@@ -281,7 +328,7 @@ function TasteStep({
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title={`STEP ${tasteStep} / 3`}
+          title={`STEP ${stepNo} / ${stepTotal}`}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
@@ -290,30 +337,34 @@ function TasteStep({
             ← 추천 처음으로
           </button>
           <p className="pd-lbl rc-hero-lbl">
-            STEP {tasteStep} ·{" "}
-            {tasteStep === 1 ? "태그" : tasteStep === 2 ? "활동 카드" : "요약"}
+            STEP {stepNo} ·{" "}
+            {phase === "tags"
+              ? (group?.label ?? "태그")
+              : phase === "cards"
+                ? "활동 카드"
+                : "요약"}
           </p>
           <h1 className="rc-hero-title">
-            {tasteStep === 1
-              ? "뭘 하고 싶으세요?"
-              : tasteStep === 2
+            {phase === "tags"
+              ? (group ? `${group.label}을(를) 골라 주세요` : "뭘 하고 싶으세요?")
+              : phase === "cards"
                 ? "이건 어떠세요?"
                 : "이렇게 정리했어요"}
           </h1>
           <div className="rc-progress" aria-hidden="true">
-            <span className={tasteStep >= 1 ? "is-on" : ""} />
-            <span className={tasteStep >= 2 ? "is-on" : ""} />
-            <span className={tasteStep >= 3 ? "is-on" : ""} />
+            {Array.from({ length: stepTotal }, (_, index) => (
+              <span key={index} className={index < stepNo ? "is-on" : ""} />
+            ))}
           </div>
         </div>
         </header>
       }
     >
-        {tasteStep === 1 && (
+        {phase === "tags" && (
           <>
             <div className="pd-card rc-taste-tags">
-              {groups.map((group) => (
-                <div key={group.id}>
+              {group ? (
+                <div>
                   <p className="pd-lbl rc-group-lbl">
                     {group.label} · 최대 {group.max_selections}개
                   </p>
@@ -337,8 +388,7 @@ function TasteStep({
                     ))}
                   </div>
                 </div>
-              ))}
-              {!groups.length && (
+              ) : (
                 <p className="pd-note" role={catalogue.error ? "alert" : "status"}>
                   {catalogue.error ??
                     (catalogue.loading
@@ -354,19 +404,23 @@ function TasteStep({
               {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
             </div>
             <AppActions>
-              <button
-                type="button"
-                className="pd-primary"
-                onClick={() => setTasteStep(2)}
-                disabled={Boolean(selectionIssue)}
-              >
-                다음 · 카드로 확정하기
+            <div className="rc-stack">
+              <button type="button" className="pd-primary" onClick={onNext} disabled={Boolean(group && selectedIds.filter(id => group.options.some(option => option.id === id)).length > group.max_selections)}>
+                {groupIndex + 1 >= groups.length
+                  ? "다음 · 카드로 확정하기"
+                  : "다음"}
               </button>
+              {groupIndex > 0 && (
+                <button type="button" className="pd-secondary" onClick={onPrev}>
+                  이전
+                </button>
+              )}
+            </div>
             </AppActions>
           </>
         )}
 
-        {tasteStep === 2 && (
+        {phase === "cards" && (
           <>
             <div className="pd-card">
               {signalError && <p className="pd-note" role="alert">{signalError}</p>}
@@ -426,7 +480,7 @@ function TasteStep({
               <button
                 type="button"
                 className="pd-secondary"
-                onClick={() => setTasteStep(1)}
+                onClick={onRestart}
               >
                 다시 고르기
               </button>
@@ -434,7 +488,7 @@ function TasteStep({
           </>
         )}
 
-        {tasteStep === 3 && (
+        {phase === "summary" && (
           <>
             <div className="pd-card">
               <div className="pd-card-title">좋아요 한 활동</div>
@@ -500,7 +554,7 @@ function TasteStep({
                 <button
                   type="button"
                   className="pd-secondary"
-                  onClick={() => setTasteStep(1)}
+                  onClick={onRestart}
                   disabled={busy}
                 >
                   다시 고르기
@@ -1265,41 +1319,42 @@ function RecommendScreen() {
       : "entry",
   );
   const [tags, setTags] = useState<string[] | null>(null);
-  const profile = useResource<{ preference: Preference; revision: number }>(
-    "travel/preferences",
-  );
-  const keywordOptions = useResource<KeywordCatalogue>("travel/keywords");
   // 고를 수 있는 것은 서버가 정합니다. 프런트는 그 id 를 그대로 들고 다니고,
   // 라벨은 표시할 때만 씁니다 -- 예전에는 라벨이 곧 값이라, 서버에 없는
   // 이름(「SUP」·「바다 뷰 카페」)을 골라도 서버가 할 수 있는 일이 없었습니다.
-  const groups = (keywordOptions.data?.categories ?? []).filter((category) =>
-    PICKABLE.includes(category.id),
-  );
-  const optionIndex = new Map(
-    groups.flatMap((category) =>
-      category.options.map(
-        (option) => [option.id, { category: category.id, label: option.label }] as const,
-      ),
-    ),
-  );
-  const labelOf = (id: string) => optionIndex.get(id)?.label ?? id;
+  const {
+    catalogue: keywordOptions,
+    groups,
+    optionIndex,
+    labelOf,
+    savedIds,
+    preference,
+    profileError,
+    savePreference: saveTaste,
+  } = useTastePreference();
   const cards = groups.find((group) => group.id === CARD_CATEGORY)?.options ?? [];
-  // 저장된 취향은 라벨로 쌓여 있습니다. 같은 이름의 서버 항목이 있으면 그
-  // id 로 되읽고, 없는 이름은 버립니다 -- 서버가 모르는 값을 다시 보내지
-  // 않습니다.
-  const storedPicks = (profile.data?.preference.tags ?? []).flatMap((tag) => {
-    const match = [...optionIndex].find(([, option]) => option.label === tag);
-    return match ? [match[0]] : [];
-  });
-  const picked = tags ?? storedPicks;
-  const [tasteStep, setTasteStep] = useState<1 | 2 | 3>(1);
+  const picked = tags ?? savedIds;
+  // 방금 저장한 취향. 저장 직후의 travel/preferences 는 조회 기억(60초) 때문에
+  // 아직 옛 값이라, 히어로가 「저장했다」를 바로 말하려면 이 값이 필요합니다.
+  const [justSaved, setJustSaved] = useState<string[] | null>(null);
+  const savedTastes = justSaved ?? savedIds.map(labelOf);
+  const [tastePhase, setTastePhase] = useState<TastePhase>("tags");
+  const [groupIndex, setGroupIndex] = useState(0);
+  // 태그 화면(카테고리 수) + 활동 카드 + 요약.
+  const tasteTotal = groups.length + 2;
+  const tasteStepNo =
+    tastePhase === "tags"
+      ? groupIndex + 1
+      : tastePhase === "cards"
+        ? groups.length + 1
+        : tasteTotal;
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
   const lastSignalledCard = useRef<string | null>(null);
   const [signalError, setSignalError] = useState("");
   useEffect(() => {
     lastSignalledCard.current = null;
-  }, [cardIndex, tasteStep]);
+  }, [cardIndex, tastePhase]);
   const [preferenceSaved, setPreferenceSaved] = useState(false);
   const selectedIds = [...new Set([...picked, ...liked])];
   const selectionCount = (categoryId: string) => selectedIds.filter((id) =>
@@ -1402,27 +1457,9 @@ function RecommendScreen() {
         ? { ...baseRequest, dates: [days[index].id], day_trip: true }
         : requestFor(index);
       if (savePreference) {
-        const current = await travelJson<{
-          preference: Preference;
-          revision: number;
-        }>(
-          import.meta.env.BASE_URL,
-          "travel/preferences",
-          "GET",
-          undefined,
-          signal,
-        );
-        await travelJson(
-          import.meta.env.BASE_URL,
-          "travel/preferences",
-          "PUT",
-          {
-            preference: { ...current.preference, tags: request.preferred_tags },
-            expected_revision: current.revision,
-          },
-          signal,
-        );
+        await saveTaste(request.preferred_tags, signal);
         if (signal.aborted) return;
+        setJustSaved(request.preferred_tags);
         setPreferenceSaved(true);
       }
       const result = await travelJson<RecommendationResult>(
@@ -1432,7 +1469,7 @@ function RecommendScreen() {
         {
           request,
           preference: {
-            ...(profile.data?.preference ?? {}),
+            ...(preference ?? {}),
             tags: request.preferred_tags,
           },
           limit: 5,
@@ -1455,7 +1492,7 @@ function RecommendScreen() {
       setLiked((current) => [...new Set([...current, card.id])]);
       if (!selectedIds.includes(card.id)) setPreferenceSaved(false);
     }
-    if (cardIndex + 1 >= cards.length) setTasteStep(3);
+    if (cardIndex + 1 >= cards.length) setTastePhase("summary");
     else setCardIndex(cardIndex + 1);
     void travelJson(
       import.meta.env.BASE_URL,
@@ -1534,13 +1571,25 @@ function RecommendScreen() {
     if (action.busy) return;
     window.history.replaceState(null, "", "#recommend");
     setStep("entry");
-    setTasteStep(1);
+    restartTaste();
+    reset();
+  };
+  /** 취향 수집을 첫 화면부터 다시. 카드 진행과 좋아요도 함께 되돌립니다 --
+   *  「다시 고르기」가 태그만 되돌리고 카드는 끝난 채로 두면, 다음 화면이
+   *  아무 카드도 없는 요약으로 건너뜁니다. */
+  const restartTaste = () => {
+    setTastePhase("tags");
+    setGroupIndex(0);
     setCardIndex(0);
     setLiked([]);
     lastSignalledCard.current = null;
     setSignalError("");
     setPreferenceSaved(false);
-    reset();
+  };
+  /** 태그 화면의 다음. 마지막 카테고리 다음은 활동 카드입니다. */
+  const nextTaste = () => {
+    if (groupIndex + 1 < groups.length) setGroupIndex(groupIndex + 1);
+    else setTastePhase("cards");
   };
   const status =
     action.error ||
@@ -1558,18 +1607,21 @@ function RecommendScreen() {
               shortcuts={cards.slice(0, 3)}
               picked={selectedIds}
               canPick={canPick}
+              savedTastes={savedTastes}
               togglePick={togglePick}
               onChat={() => setStep("chat")}
               onTags={() => {
-                setTasteStep(1);
+                restartTaste();
                 setStep("taste");
               }}
             />
           )}
           {step === "taste" && (
             <TasteStep
-              tasteStep={tasteStep}
-              setTasteStep={setTasteStep}
+              phase={tastePhase}
+              groupIndex={groupIndex}
+              stepNo={tasteStepNo}
+              stepTotal={tasteTotal}
               catalogue={keywordOptions}
               groups={groups}
               cards={cards}
@@ -1582,6 +1634,9 @@ function RecommendScreen() {
               removePick={removePick}
               cardIndex={cardIndex}
               liked={liked}
+              onNext={nextTaste}
+              onPrev={() => setGroupIndex(Math.max(groupIndex - 1, 0))}
+              onRestart={restartTaste}
               onLike={() => advanceCard(true)}
               onPass={() => advanceCard(false)}
               onDone={() => recommend(dayIndex, true)}
@@ -1633,7 +1688,7 @@ function RecommendScreen() {
           action.busy ||
           requestedPlan.loading ||
           requestedPlan.error ||
-          (step === "entry" && profile.error)) && (
+          (step === "entry" && profileError)) && (
           <p
             className={"rc-status" + (action.error ? " is-error" : "")}
             role={action.error ? "alert" : "status"}
@@ -1641,7 +1696,7 @@ function RecommendScreen() {
             {status ||
               (requestedPlan.loading
                 ? "저장 상세를 불러오는 중입니다."
-                : profile.error)}
+                : profileError)}
           </p>
         )}
     </article>

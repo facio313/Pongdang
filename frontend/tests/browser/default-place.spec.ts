@@ -20,7 +20,11 @@ test("home uses the selected fallback beach ID, name and conditions consistently
   await expect(page.locator(".hm-hero-place")).toContainText(beach.name);
   await expect(page.locator(".hm-hero-score-num")).toHaveText("73");
   await expect(page.locator(".home-page")).toContainText("경포 자료가 부족");
-  expect(ids.length).toBeGreaterThan(0);
+  // 시간대 예보는 히어로가 값을 말한 뒤에 나갑니다. 조회 기억(useResource)이
+  // 들어오면서 첫 페인트가 빨라져 이 자리에서 아직 안 나간 상태가 되므로,
+  // 순서에 기대지 않고 실제로 나갈 때까지 기다립니다 -- 확인하려는 것은
+  // 「언제」가 아니라 **모든 조회가 고른 장소 id 를 쓰는가**입니다.
+  await expect.poll(() => ids.length).toBeGreaterThan(0);
   expect(new Set(ids)).toEqual(new Set([987]));
   await page.goto("#today");
   await expect(page.locator(".td-hero .pd-lbl")).toContainText(beach.name);

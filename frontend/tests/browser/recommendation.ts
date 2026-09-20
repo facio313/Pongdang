@@ -88,3 +88,34 @@ export const ACTIVITY_LABEL: Record<string, string> = {
  *  (recommendationText.activityHeadline 과 같은 규칙). */
 export const headlineOf = (activity: string) =>
   activity === "relax" ? "물에 들어가지 않는 하루" : ACTIVITY_LABEL[activity];
+
+/** 저장된 취향. 추천 화면은 이 값으로 **첫 단계**를 정합니다 -- 저장된 취향이
+ *  있으면 시작 화면, 없으면 취향 고르기입니다. 일회용 DB 는 앞선 검사가 남긴
+ *  취향을 그대로 들고 있으므로, 어느 쪽을 보는 검사인지 여기서 못박습니다.
+ *  저장(PUT)도 이 픽스처가 받아 실제 DB 에 남기지 않습니다. */
+export async function routePreference(page: Page, tags: string[] = []) {
+  let current = [...tags];
+  let revision = tags.length ? 1 : 0;
+  await page.route("**/api/data/travel/preferences", async (route) => {
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON() as {
+        preference?: { tags?: string[] };
+      };
+      current = body?.preference?.tags ?? [];
+      revision += 1;
+    }
+    return route.fulfill({
+      json: { preference: { tags: current }, revision },
+    });
+  });
+}
+
+/** Walk the server's category wizard without changing the chosen tags. */
+export async function finishMobileTags(page: Page) {
+  for (let index = 0; index < 10; index++) {
+    const next = page.getByRole("button", { name: "다음", exact: true });
+    if (!(await next.count())) break;
+    await next.click();
+  }
+  await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+}

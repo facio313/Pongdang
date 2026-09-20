@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { finishMobileTags } from "./recommendation";
 import type { Preference } from "../../src/travelApi";
 
 test.use({ viewport: { width: 390, height: 844 } });
@@ -43,14 +44,14 @@ test.afterEach(async ({ page }) => {
 async function openTags(page: Page) {
   await page.goto("#recommend");
   await page.getByRole("button", { name: "태그로 바로 받기" }).click();
-  await expect(page.getByRole("button", { name: "다음 · 카드로 확정하기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
 }
 
 test("mobile activity likes stop at the server limit and valid preferences receive a real PUT 200", async ({ page }) => {
   const activity = (await catalogue(page)).find((group) => group.id === "activity")!;
   expect(activity.options.length).toBeGreaterThan(activity.max_selections);
   await openTags(page);
-  await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+  await finishMobileTags(page);
 
   for (const [index, option] of activity.options.entries()) {
     await expect(page.locator(".rc-swipe-name")).toHaveText(option.label);
@@ -88,12 +89,14 @@ test("tag and card selections share the limit, and the summary can remove either
   const companion = groups.find((group) => group.id === "companion")!;
   const tagged = activity.options.at(-1)!;
   await openTags(page);
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: tagged.label, exact: true }).click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
   await page.getByRole("button", { name: companion.options[0].label, exact: true }).click();
   await expect(page.getByRole("button", { name: companion.options[1].label, exact: true })).toBeDisabled();
   await page.getByRole("button", { name: companion.options[0].label, exact: true }).click();
   await expect(page.getByRole("button", { name: companion.options[1].label, exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+  await finishMobileTags(page);
 
   for (const [index, option] of activity.options.entries()) {
     await expect(page.locator(".rc-swipe-name")).toHaveText(option.label);
@@ -123,7 +126,8 @@ test("previously stored activity selections above the limit can be reduced befor
   const activity = (await catalogue(page)).find((group) => group.id === "activity")!;
   await replacePreference(page, { ...original, tags: activity.options.map((option) => option.label) });
   await openTags(page);
-  const next = page.getByRole("button", { name: "다음 · 카드로 확정하기" });
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  const next = page.getByRole("button", { name: "다음", exact: true });
   await expect(next).toBeDisabled();
   await expect(page.getByRole("alert")).toContainText(`최대 ${activity.max_selections}개`);
   for (const option of activity.options.slice(activity.max_selections)) {
@@ -131,7 +135,7 @@ test("previously stored activity selections above the limit can be reduced befor
   }
   await expect(next).toBeEnabled();
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await next.click();
+  await finishMobileTags(page);
   await expect(page.locator(".rc-swipe-name")).toHaveText(activity.options[0].label);
 });
 
@@ -147,7 +151,7 @@ test("pending and failed card signals do not block the next card or navigation",
   });
   try {
     await openTags(page);
-    await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+    await finishMobileTags(page);
     for (const [index, name] of ["좋아요", "패스"].entries()) {
       await page.getByRole("button", { name, exact: true }).click();
       await expect(page.locator(".rc-swipe-name")).toHaveText(activity.options[index + 1].label);
@@ -179,10 +183,11 @@ test("equal place and activity labels are sent once while category IDs survive",
   const activity = (await catalogue(page)).find((group) => group.id === "activity")!;
   await openTags(page);
   const onsen = page.getByRole("button", { name: "온천", exact: true });
-  await onsen.nth(0).click();
-  await onsen.nth(1).click();
+  await onsen.click();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+  await onsen.click();
   await page.getByRole("button", { name: "서핑", exact: true }).click();
-  await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+  await finishMobileTags(page);
   for (const option of activity.options) {
     await expect(page.locator(".rc-swipe-name")).toHaveText(option.label);
     await page.getByRole("button", { name: "패스", exact: true }).click();
@@ -235,7 +240,7 @@ test("preference save stays guarded through PUT and an empty candidate response"
   });
   try {
     await openTags(page);
-    await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+    await finishMobileTags(page);
     for (const option of activity.options) {
       await expect(page.locator(".rc-swipe-name")).toHaveText(option.label);
       await page.getByRole("button", { name: "패스", exact: true }).click();

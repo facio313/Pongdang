@@ -1,11 +1,11 @@
 # 현재 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
 
-- 사용자 승인: 현재 수정 커밋, 도구 브랜치 통합/삭제, main 머지·푸시·운영 배포. 앞 작업의 푸시·배포 금지는 이 후속 승인으로 해제됐다. .env·SSO·키·데이터 변경은 요청 범위가 아니다.
-- 목표: 로컬·origin에 main, dev, feature/connect, feature/today-page, feature/api만 유지. feat/today-page는 feature/today-page로 이름을 맞춘다. 유효한 변경과 사용자 로컬 파일을 보존하고 dev CI → main CI/자동 배포를 거친다.
-- 시작: 현재 feature/connect-cursor 4a20c72와 검증된 미커밋 수정, origin/dev d6538fa, origin/main 9e6055f. main에 화면·추천 단계·지도 조회 개선 9개 커밋이 있으므로 통합 후 재검증 필요.
-- 모든 worktree 상태 확인: 주 작업 트리에만 이번 수정과 report.md/.byeori가 있다. feature/connect 및 codex/report-md 트리는 tracked 변경 없음. .byeori는 로컬 파일로 보존한다.
-- 삭제 후보는 대부분 현재 계보에 포함된다. Cursor d86cee2는 오래된 별도 추천 실험과 ` 2.py`/` 2.mjs` 복사본을 포함하므로 현재 흐름과 대조해 통합/퇴역을 결정한다. 삭제 전에 원래 refs와 전체 이력을 별도 Git bundle로 보존한다.
-- 다음: 검증된 수정 커밋 → 최신 main 통합·필요한 충돌 해결 → 전체 검사·dev CI → main 푸시·배포 확인 → 불필요 refs/worktree 정리.
+- 사용자 승인: 수정 커밋, 도구 브랜치 통합·삭제, main 머지·push·운영 배포. 유지할 이름: main, dev, feature/connect, feature/today-page, feature/api. .env·SSO·키·DB 스키마 변경 없음.
+- 수정 커밋 68648ca와 최신 main 9e6055f를 dev에 통합했다. 최신 카테고리별 UI/공용 조회/지도 배치 API와 R37/R22/R60 등 검증된 수정 모두 유지한다. report.md 완료 23개는 백업과 바이트 동일하다.
+- 로컬 검증: frontend lint/106 unit/build, Ruff lint/format, backend 1170 passed/2 Docker skips. 전체 browser 121 통과 뒤 화면 단계 변경에 따른 검사 순서 1개 수정, 해당 6개 재실행 전부 통과. 390×844 실제 클릭·노트 간격·신호 비차단·중복 없는 저장 확인과 원래 취향 복구 완료.
+- 외부 bundle 및 번호 복사본 120개 보존: `/Users/cksmacbook/.codex/backups/pongdang-branches-2026-09-21-e66k67t8/`. `.byeori/`, 기존 stash, feature/connect worktree의 로컬 의존성은 보존한다.
+- Cursor d86cee2의 대체된 실험은 파일 변경 없는 ours merge로 이력을 보존한다. 이후 dev CI → 동일 SHA main CI/자동 배포 → 불필요 브랜치/깨끗한 report worktree 정리 순서다. 최종 Actions URL·배포 SHA·브랜치/health 결과는 백업 디렉터리 `release-verification.json`에 기록한다.
+- 상세 결정·검증: [BRANCH-CONSOLIDATION-2026-09-21.md](BRANCH-CONSOLIDATION-2026-09-21.md). 자동 검사 DB 51907은 검증 뒤 종료하며 기존 확인 서버 5173/8000/51906은 유지한다.
 
 # 이전 작업 · R37 노트 겹침 / 카드 신호 / 태그 중복 · 2026-09-21
 

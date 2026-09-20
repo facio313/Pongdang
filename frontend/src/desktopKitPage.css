@@ -27,11 +27,6 @@
   gap: 10px;
   margin-top: 22px;
 }
-.dk-kit-hero-mascot {
-  display: block;
-  flex: none;
-  margin-bottom: -58px;
-}
 .dk-kit-hero-metrics {
   display: flex;
   flex: none;
@@ -161,11 +156,6 @@
   }
   .dk-kit-hero-title {
     font-size: 34px;
-  }
-  .dk-kit-hero-mascot {
-    width: 140px;
-    height: 140px;
-    margin-bottom: -38px;
   }
   .dk-kit-hero-metrics {
     padding-bottom: 12px;

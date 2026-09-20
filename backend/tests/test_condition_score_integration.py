@@ -633,3 +633,115 @@ def test_provider_activity_product_cannot_be_scored_as_another_activity(database
         )
         assert swim["score"] is None
         assert swim["status"] == "incomplete"
+
+
+def summary(client, spot_ids, activity="swim", **params):
+    response = client.get(
+        BASE + "/conditions/summary",
+        params={
+            "spot_ids": ",".join(str(i) for i in spot_ids),
+            "activity": activity,
+            **params,
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    return response.json()
+
+
+def test_summary_rows_agree_with_the_single_spot_reading(database):
+    """목록과 상세가 다른 숫자를 말하면 안 됩니다 -- 요약은 같은 봉투에서
+    뽑아낸 것이지 따로 계산한 값이 아닙니다."""
+    store_batch(
+        database,
+        source(
+            values=[
+                Value(name="air_temperature", numeric_value=22, unit="degC"),
+                Value(name="water_temperature", numeric_value=19.5, unit="degC"),
+            ]
+        ),
+    )
+    _, spot = station(database)
+    with TestClient(create_app(database)) as client:
+        view = conditions(client, spot)
+        rows = summary(client, [spot])["rows"]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["spot_id"] == spot
+        assert row["place_name"] == view["place_name"]
+        assert row["support_status"] == view["support_status"]
+        assert row["safety_status"] == view["safety_status"]
+        assert row["condition_score"] == view["condition_score"]
+        assert row["water_temperature"]["value"] == 19.5
+        assert row["expires_at"] is not None
+
+
+def test_summary_reports_unreadable_spots_instead_of_dropping_them(database):
+    """값이 없는 상태는 안전을 뜻하지 않습니다. 못 읽은 지점은 조용히 빠지지
+    않고 사유와 함께 남아야 합니다."""
+    store_batch(database, source())
+    _, spot = station(database)
+    missing = spot + 9999
+    with TestClient(create_app(database)) as client:
+        payload = summary(client, [spot, missing])
+        assert [row["spot_id"] for row in payload["rows"]] == [spot]
+        assert payload["unavailable"] == [
+            {"spot_id": missing, "reason": "place_not_found"}
+        ]
+        assert payload["contract_version"] == "water-conditions-summary.v1"
+        assert payload["mode"] == "observation"
+
+
+@pytest.mark.parametrize(
+    "spot_ids",
+    [
+        ",".join(str(i) for i in range(1, 27)),  # 상한 초과
+        "1,1",  # 중복
+        "1,-2",  # 음수
+        "1,x",  # 비정수
+        "1, 2",  # 공백
+        "",  # 빈 값
+    ],
+)
+def test_summary_rejects_unclear_id_lists(database, spot_ids):
+    store_batch(database, source())
+    with TestClient(create_app(database)) as client:
+        response = client.get(
+            BASE + "/conditions/summary",
+            params={"spot_ids": spot_ids, "activity": "swim"},
+        )
+        assert response.status_code == 422, response.text
+
+
+def test_summary_rejects_duplicate_query_parameters(database):
+    store_batch(database, source())
+    _, spot = station(database)
+    with TestClient(create_app(database)) as client:
+        response = client.get(
+            BASE + f"/conditions/summary?spot_ids={spot}&spot_ids={spot}&activity=swim"
+        )
+        assert response.status_code == 422, response.text
+
+
+def test_summary_reads_many_spots_on_one_connection(database):
+    """연결 슬롯은 네 개뿐입니다(DataReader). 지점마다 따로 물으면 목록이
+    스스로를 굶겼습니다. 한 요청이 여러 지점을 답해야 합니다."""
+    store_batch(database, source())
+    store_batch(
+        database,
+        source(source_id="fixture-reading-b", station_id="fixture-weather-b"),
+    )
+    with connect(database) as c:
+        spots = [
+            row[0]
+            for row in c.execute(
+                "SELECT DISTINCT spot_id FROM pongdang_data.collection_station "
+                "WHERE spot_id IS NOT NULL ORDER BY spot_id"
+            ).fetchall()
+        ]
+    assert len(spots) >= 2
+    before = counts(database)
+    with TestClient(create_app(database)) as client:
+        payload = summary(client, spots)
+        assert [row["spot_id"] for row in payload["rows"]] == spots
+    assert counts(database) == before

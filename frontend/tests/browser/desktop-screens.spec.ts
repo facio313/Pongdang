@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { serverRecommendation } from "./recommendation";
+import { routePreference, serverRecommendation } from "./recommendation";
 
 // 데스크탑 오늘 · 지도 · 내 코스는 훅이 하나도 없는 통짜 더미 화면이었습니다.
 // 점수 82 · 수온 22.1°C · 「3곳 · 12.0km · 4h 30m」 같은 값이 파일 안 상수로
@@ -95,8 +95,9 @@ test("desktop map lists real places and scores only the chosen one", async ({ pa
 
   await expect(page.locator(".mk-side-kick")).toContainText(`${mappable.length}곳`);
   await expect(page.locator(".mk-spot")).toHaveCount(mappable.length);
-  // 눌러도 아무 일이 없던 활동 필터는 사라지고 실제로 목록을 바꾸는 검색이 있습니다.
-  await expect(page.locator(".mk-hero-search input")).toBeVisible();
+  // 눌러도 아무 일이 없던 활동 필터는 사라지고 실제로 목록을 바꾸는 검색이
+  // 있습니다. 그 검색은 히어로가 아니라 걸러낼 목록 바로 위에 섭니다.
+  await expect(page.locator(".mk-search input")).toBeVisible();
   await expect(page.locator(".mk-hero")).not.toContainText("주차 · 샤워장");
 
   const body = page.locator(".pd-desktop");
@@ -166,6 +167,9 @@ test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 �
   // 없었고, 그러면서 데스크탑 내 코스는 「추천에서 코스 만들기 →」로 여기
   // 보냈습니다 -- 닫힌 고리였습니다. 저장한 코스를 여는 쪽도 없어서, 내 코스가
   // 만드는 `#recommend?plan_id=…` 링크는 이 폭에서 무시됐습니다.
+  // 취향이 저장돼 있으면 추천은 시작 화면부터 엽니다. 이 검사가 보려는 것은
+  // 저장 경로이므로 취향 고르기를 다시 통과하지 않습니다.
+  await routePreference(page, ["온천"]);
   await page.goto("#recommend");
   await page.getByRole("button", { name: "이 조건으로 후보 찾기" }).click();
   await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
@@ -251,7 +255,10 @@ test("desktop recommend chat opens the sanitized model exchange dialog", async (
       },
     });
   });
+  await routePreference(page, ["온천"]);
   await page.goto("#recommend");
+  // 대화는 한 단계이며, 시작 화면에서 들어갑니다.
+  await page.getByRole("button", { name: /대화로 좁히기/ }).click();
   await page.getByLabel("컨시어지에게 보낼 내용").fill("차량");
   await page.getByRole("button", { name: "보내기" }).click();
   await page.getByRole("button", { name: "주고받은 기록" }).click();
@@ -259,4 +266,58 @@ test("desktop recommend chat opens the sanitized model exchange dialog", async (
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("travel_recommend");
   await expect(dialog).toContainText("explain");
+});
+
+test("데스크탑 추천은 취향을 한 화면에 한 단계씩 묻고, 저장한 취향은 히어로가 말한다", async ({
+  page,
+}) => {
+  // 예전에는 네 단계(취향 · 대화 · 후보 · 지도)가 한 페이지에 전부 펼쳐져
+  // 있었습니다. 아직 아무것도 고르지 않은 사람에게 앞으로 할 일을 한꺼번에
+  // 보여 주고, 후보·지도 자리는 「아직 후보가 없습니다」만 적힌 채였습니다.
+  await routePreference(page, []);
+  await page.goto("#recommend");
+
+  // 카테고리는 서버가 발행합니다. 개수를 박아 두지 않고 그 수를 읽습니다.
+  const catalogue = await (
+    await page.request.get("api/data/travel/keywords")
+  ).json();
+  const pickable = ["place_type", "activity", "companion", "atmosphere"];
+  const categories = catalogue.categories.filter((category: { id: string }) =>
+    pickable.includes(category.id),
+  );
+
+  // 한 화면에 한 카테고리입니다. 나머지 단계는 아직 그려지지 않습니다.
+  await expect(page.locator(".rd-taste-group")).toHaveCount(1);
+  await expect(page.getByLabel("컨시어지에게 보낼 내용")).toHaveCount(0);
+  await expect(page.locator(".rd-map")).toHaveCount(0);
+  // 진행 점은 카테고리 수 + 요약 한 장입니다.
+  await expect(page.locator(".rd-progress span")).toHaveCount(
+    categories.length + 1,
+  );
+
+  for (let index = 0; index < categories.length; index++) {
+    await expect(page.locator(".rd-taste-group .pd-dk-kick")).toContainText(
+      `${categories[index].label} · 최대 ${categories[index].max_selections}개`,
+    );
+    if (index === 0)
+      await page
+        .getByRole("button", { name: categories[0].options[0].label, exact: true })
+        .click();
+    await page.getByRole("button", { name: /^다음/ }).click();
+  }
+
+  // 요약에서 저장합니다. 예전에는 데스크탑이 고른 조건을 이번 요청에만 쓰고
+  // 버렸고, 저장은 모바일 추천에만 있었습니다.
+  await page.getByRole("button", { name: "취향 저장하고 후보 찾기" }).click();
+  await expect(page.locator(".rd-step-name").first()).toContainText(
+    "OFFLINE TEST",
+  );
+
+  // 저장한 취향은 히어로가 그대로 말하고, 거기서 대화로 이어 갑니다.
+  await expect(page.locator(".rd-hero-taste").first()).toHaveText(
+    categories[0].options[0].label,
+  );
+  await page.getByRole("button", { name: /AI에게 이어서 물어보기/ }).click();
+  await expect(page.getByLabel("컨시어지에게 보낼 내용")).toBeVisible();
+  await expect(page).toHaveURL(/#recommend$/);
 });

@@ -28,6 +28,43 @@
   max-width: 60ch;
   margin: 12px 0 0;
 }
+/* 저장된 취향. 히어로는 이 사람이 **이미 말한 것**을 되풀이해 확인해 주는
+   자리이지, 다시 고르라는 자리가 아닙니다. 그래서 칩은 누를 수 없습니다. */
+.pd-desktop .rd-hero-tastes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0 0;
+}
+.pd-desktop .rd-hero-taste {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  padding: 6px 12px;
+  border-radius: var(--dk-r-pill);
+}
+.pd-desktop .rd-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.pd-desktop .rd-hero-ai {
+  background: #fff;
+  color: var(--dk-deep);
+  font-size: 12px;
+  padding: 11px 18px;
+}
+.pd-desktop .rd-hero-edit {
+  font-size: 12px;
+  padding: 11px 18px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+}
+
 .pd-desktop .rd-hero-metrics {
   flex: none;
   display: flex;
@@ -70,9 +107,25 @@
   flex: 1;
 }
 
-/* ── 1 · 취향 ──────────────────────────────────────────
+/* ── 취향 ──────────────────────────────────────────────
    선택은 색 하나로 말하지 않습니다 -- 색 + ✓ 아이콘 두 겹입니다.
-   항목은 서버 키워드 카탈로그에서 카테고리별로 옵니다. */
+   항목은 서버 키워드 카탈로그에서 카테고리별로 옵니다. 한 화면에 한
+   카테고리이며, 몇 개 중 몇 번째인지는 아래 진행 점이 말합니다. */
+
+.pd-desktop .rd-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.pd-desktop .rd-progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dk-rule-weak);
+}
+.pd-desktop .rd-progress span.is-on {
+  background: var(--dk-blue);
+}
 
 .pd-desktop .rd-taste-group + .rd-taste-group {
   margin-top: 16px;

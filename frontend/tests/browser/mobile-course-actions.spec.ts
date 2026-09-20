@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { finishMobileTags } from "./recommendation";
 import type { Preference, TripPlan } from "../../src/travelApi";
 
 const writeHeaders = { Origin: "http://127.0.0.1:5177" };
@@ -64,7 +65,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1079, height: 900 
         await page.goto("#recommend");
         await page.getByRole("button", { name: "태그로 바로 받기", exact: true }).click();
         await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
-        await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+        await finishMobileTags(page);
         const counter = page.getByText(/\d+ \/ \d+\s*번째 카드입니다/);
         const total = Number((await counter.innerText()).match(/\/\s*(\d+)/)![1]);
         for (let index = 1; index <= total; index++) {

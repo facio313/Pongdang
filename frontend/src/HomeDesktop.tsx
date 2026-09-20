@@ -49,7 +49,7 @@ import type { ActivityCondition } from "./useBestActivity";
 import { spotLink } from "./spotsRoute";
 import { useWaterPlaces } from "./useWaterPlaces";
 import { useTravelSession } from "./travelSession";
-import { newWebcamShuffleSeed } from "./livecamPreviewApi";
+import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
 import "./homeDesktop.css";
@@ -80,7 +80,6 @@ const BAR_MAX_HEIGHT = 104;
  *  따라 다른 사실을 말하면 안 됩니다. */
 function HomeHero({
   placeName,
-  conditions,
   baseline,
   best,
   recommendation,
@@ -88,13 +87,10 @@ function HomeHero({
   recommendationError,
   quality,
   qualityLoading = false,
-  qualityData,
-  qualityError,
   loading = false,
   baselineLoading = false,
 }: {
   placeName: string;
-  conditions?: Conditions;
   /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
   recommendation?: Recommendation;
   recommendationLoading?: boolean;
@@ -104,9 +100,6 @@ function HomeHero({
   best: ActivityCondition | null;
   quality: string;
   qualityLoading?: boolean;
-  /** 등급을 낸 검사값. 히어로 아래 「수질 기준과 검사값」이 이것을 폅니다. */
-  qualityData?: WaterQualityGrade;
-  qualityError?: string;
   loading?: boolean;
   baselineLoading?: boolean;
 }) {
@@ -121,7 +114,7 @@ function HomeHero({
         />
       }
       wave="animated"
-      minHeight={250}
+      mascot="home"
     >
       <div className="hd-hero">
         <div className="hd-hero-lead">
@@ -166,13 +159,15 @@ function HomeHero({
           {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 값이 없으면
               문장을 지어내지 않고 비워 둡니다. */}
           {verdict && <p className="hd-hero-verdict">{verdict}</p>}
-          {/* 모바일 홈과 같은 근거 줄입니다 -- 왜 이 활동인가 · 왜 저것이
-              아닌가 · 지금 물때 · 대신 갈 곳. 점수 항목별 근거는 아래
-              「점수 근거」 줄에 그대로 남습니다. */}
+          {/* 히어로에는 「왜 이 활동인가」 한 줄만 얹습니다. 뺀 이유 · 물때 ·
+              대신 갈 곳 · 근거 전문 · 수질 상세 · 점수 읽는 법은 사라진 것이
+              아니라 바로 아래 「오늘 이 활동인 이유」 행으로 내려갔습니다
+              (WhyRow). 모바일 홈과 같은 층 나눔입니다. */}
           <RecommendationReason
             data={recommendation}
             error={recommendationError}
             loading={recommendationLoading}
+            variant="lead"
             glass
           />
           <div className="hd-hero-buttons">
@@ -184,13 +179,6 @@ function HomeHero({
             </a>
           </div>
         </div>
-        <img
-          className="hd-hero-mascot"
-          src={mascotUrl("home")}
-          alt={MASCOT_ALT}
-          width={250}
-          height={250}
-        />
         <div className="hd-hero-metrics">
           <div>
             <div className="hd-metric-name">수온</div>
@@ -224,20 +212,51 @@ function HomeHero({
           </div>
         </div>
       </div>
-      <EvidenceNote data={conditions} className="hd-hero-note" glass />
-      {/* 수질 등급의 근거와 한계. 모바일 홈은 같은 자리에서 이것을 펼치는데
-          이 화면은 값과 「조회 실패」 한 낱말뿐이었습니다 -- 등급만 보여 주고
-          무엇을 잰 등급인지 말하지 않으면 입수 통제까지 포함한 판정으로
-          읽힙니다. */}
-      <WaterQualityDetails
-        data={qualityData}
-        error={qualityError}
-        className="hd-hero-quality"
-      />
-      <div className="hd-hero-actions">
-        <ScoreExplainer data={conditions} />
-      </div>
     </DesktopHero>
+  );
+}
+
+/** 히어로에서 내려온 근거 행입니다. **문구는 한 글자도 줄이지 않았습니다** --
+ *  뺀 이유 · 물때 · 대신 갈 곳, 출처와 면책 전문, 수질 등급의 근거와 한계,
+ *  점수 읽는 법이 그대로 있습니다. 모바일 홈의 「오늘 이 활동인 이유」 카드와
+ *  같은 층입니다. */
+function WhyRow({
+  conditions,
+  recommendation,
+  recommendationError,
+  recommendationLoading = false,
+  qualityData,
+  qualityError,
+}: {
+  conditions?: Conditions;
+  recommendation?: Recommendation;
+  recommendationError?: string;
+  recommendationLoading?: boolean;
+  qualityData?: WaterQualityGrade;
+  qualityError?: string;
+}) {
+  return (
+    <LabelRow kick="근거" title="오늘 이 활동인 이유">
+      <div className="hd-why">
+        <RecommendationReason
+          data={recommendation}
+          error={recommendationError}
+          loading={recommendationLoading}
+          variant="detail"
+        />
+        <EvidenceNote data={conditions} className="hd-why-note" />
+        {/* 수질 등급의 근거와 한계. 등급만 보여 주고 무엇을 잰 등급인지 말하지
+            않으면 입수 통제까지 포함한 판정으로 읽힙니다. */}
+        <WaterQualityDetails
+          data={qualityData}
+          error={qualityError}
+          className="hd-why-quality"
+        />
+        <div className="hd-why-actions">
+          <ScoreExplainer data={conditions} />
+        </div>
+      </div>
+    </LabelRow>
   );
 }
 
@@ -318,14 +337,6 @@ function HourBars({
             말합니다. */}
         <ScoreReason text={scoreReason(conditions).text} loading={loading} />
       </div>
-
-      <div className="hd-hour-summary">
-        <span className="hd-hour-note">
-          막대는 그날 안에서의 상대 위치이며 점수 기여도가 아닙니다. 값이 없는
-          시각은 –이고 0점이 아닙니다. 항목 점수는 100점 만점이며, 총점은 이
-          항목들을 같은 비중으로 평균낸 값입니다.
-        </span>
-      </div>
     </>
   );
 }
@@ -377,7 +388,9 @@ export function HomeDesktop() {
     ),
   ];
   const course = session.route?.route ?? null;
-  const [shuffleSeed, setShuffleSeed] = useState(newWebcamShuffleSeed);
+  // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
+  // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
+  const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
   const webcams = useWebcamCatalog(1, "", shuffleSeed);
   const cameras = (webcams.result?.rows ?? [])
     .flatMap((camera) => {
@@ -393,7 +406,6 @@ export function HomeDesktop() {
     <DesktopShell>
       <HomeHero
         placeName={displayName}
-        conditions={conditions.data}
         baseline={baseline.data}
         best={best}
         recommendation={recommendation.data}
@@ -401,10 +413,19 @@ export function HomeDesktop() {
         recommendationError={recommendation.error}
         quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
-        qualityData={quality.data}
-        qualityError={quality.error}
         loading={isInitialLoad(conditions)}
         baselineLoading={isInitialLoad(baseline)}
+      />
+
+      {/* 히어로 바로 아래입니다. 결론 다음에 그 근거가 오고, 그 다음에 점수를
+          이루는 항목이 옵니다. */}
+      <WhyRow
+        conditions={conditions.data}
+        recommendation={recommendation.data}
+        recommendationError={recommendation.error}
+        recommendationLoading={isInitialLoad(recommendation)}
+        qualityData={quality.data}
+        qualityError={quality.error}
       />
 
       <LabelRow
@@ -415,7 +436,7 @@ export function HomeDesktop() {
             : `${displayName} · 시간대별`
         }
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
-        desc="지점 비교 · 7일 예보 · 물때 · 수질 근거는 오늘 탭에 있습니다. 홈에서는 지금 상태와 다음 행동만 둡니다."
+        desc="더 자세한 비교와 예보, 수질 근거가 궁금하다면 오늘 탭을 살펴보세요!"
         link={{ href: "#today", label: "오늘 탭에서 근거 보기" }}
       >
         <HourBars
@@ -429,7 +450,7 @@ export function HomeDesktop() {
             장소를 골랐는지를 말할 뿐이라, 목록을 못 읽은 사실을 덮습니다. */}
         <p
           className="hd-row-note"
-          role={places.error ?? conditions.error ? "alert" : "status"}
+          role={(places.error ?? conditions.error) ? "alert" : "status"}
         >
           {places.error ?? conditions.error ?? selectionMessage}
         </p>
@@ -445,7 +466,7 @@ export function HomeDesktop() {
           </>
         }
         chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
-        desc="서버가 카테고리와 장소명을 보고 해변으로 분류한 곳입니다. 상태 열람에서 장소 선택으로 바로 넘어가게 붙입니다."
+        desc="명소 페이지로 가서 더 많은 강릉 명소를 둘러보세요."
         link={{ href: "#spots", label: "명소 탭 전체 보기" }}
       >
         <div className="hd-beaches">
@@ -463,8 +484,8 @@ export function HomeDesktop() {
         )}
         <p className="hd-row-note">
           명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는
-          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은
-          아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
+          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은 아직
+          내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
           표시합니다. 리뷰 평점은 쓰지 않습니다.
         </p>
       </LabelRow>
@@ -482,7 +503,7 @@ export function HomeDesktop() {
             알려 주세요
           </>
         }
-        desc="고른 취향은 추천 탭의 코스 생성에 그대로 쓰입니다."
+        desc="취향을 골라 나만의 코스를 만들어보세요."
       >
         <SplitBody columns="1.25fr 1fr">
           <div className="hd-taste">
@@ -571,19 +592,30 @@ export function HomeDesktop() {
         >
           <SplitBody>
             {tastePicks.map((item) => (
-              <div
-                className="hd-taste-spot"
-                key={item.spot_id}
-              >
-                <a className="place-photo-link" href={spotLink(item)} aria-label={`${item.name} 상세`}>
-                  <PlacePhoto className="hd-taste-photo" name={item.name} photo={item.photo} />
+              <div className="hd-taste-spot" key={item.spot_id}>
+                <a
+                  className="place-photo-link"
+                  href={spotLink(item)}
+                  aria-label={`${item.name} 상세`}
+                >
+                  <PlacePhoto
+                    className="hd-taste-photo"
+                    name={item.name}
+                    photo={item.photo}
+                  />
                 </a>
                 <span>
-                  <a className="hd-taste-spot-name place-photo-link" href={spotLink(item)}>{item.name}</a>
+                  <a
+                    className="hd-taste-spot-name place-photo-link"
+                    href={spotLink(item)}
+                  >
+                    {item.name}
+                  </a>
                   <span className="hd-taste-spot-meta">
                     {item.region ?? "지역 미확인"} ·{" "}
-                    {item.activities.map((activity) => activity.label).join(" · ") ||
-                      "활동 미확인"}
+                    {item.activities
+                      .map((activity) => activity.label)
+                      .join(" · ") || "활동 미확인"}
                   </span>
                   <PlacePhotoCredit photo={item.photo} />
                 </span>
@@ -604,7 +636,7 @@ export function HomeDesktop() {
             : "코스를 만들면 여기에"
         }
         chip={<StateChip kind={course ? "live" : "partial"} />}
-        desc="추천에서 장소를 고르고 지도에서 경로를 요청하면 그 결과가 여기에 들어옵니다."
+        desc="최적의 여행 코스를 만들어보세요."
       >
         {course ? (
           <SplitBody>
@@ -633,7 +665,7 @@ export function HomeDesktop() {
           <span className="hd-row-note">
             {course
               ? `예상 이동 ${course.travel_minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.`
-              : "코스를 만들기 전에는 보여 줄 순서가 없습니다. 없는 코스를 예시로 채우지 않습니다."}
+              : ""}
           </span>
           <a className="pd-dk-button is-pill" href="#map?view=course">
             지도에서 경로 탐색 →
@@ -648,7 +680,7 @@ export function HomeDesktop() {
         kick="라이브캠"
         title="지금 바다 보기"
         chip={<StateChip kind={webcams.result ? "live" : "no_data"} />}
-        desc="붐빔 정도 · 파도 모양 · 하늘은 수치로 저장하지 않습니다. 눈으로 확인하는 구간입니다."
+        desc="지금 이 순간의 바다, 그 풍경을 직접 느껴보세요"
         link={{ href: "#livecam", label: "전체 화면으로" }}
       >
         {/* 모바일 홈에는 재추첨이 있는데 이 화면에는 없었습니다. 목록 유효기간이
@@ -657,7 +689,7 @@ export function HomeDesktop() {
           type="button"
           className="pd-dk-button is-pill hd-cams-reshuffle"
           disabled={webcams.loading}
-          onClick={() => setShuffleSeed(newWebcamShuffleSeed())}
+          onClick={() => setShuffleSeed(shuffleWebcams())}
         >
           다른 풍경 보기
         </button>
@@ -671,6 +703,16 @@ export function HomeDesktop() {
               key={camera.provider_camera_id}
             >
               <div className="pd-dk-slot hd-cam-frame">
+                {/* 영상 썸네일을 내려주는 API 가 없습니다. 점선만 있는 칸은
+                    무엇이 들어올 자리인지 말하지 않으므로 표지 마스코트를
+                    둡니다 -- 옆에 카메라 이름이 이미 있어 alt 는 비웁니다. */}
+                <img
+                  className="hd-cam-mascot"
+                  src={mascotUrl("livecam")}
+                  alt=""
+                  width={84}
+                  height={84}
+                />
                 {camera.title}
                 <span className="hd-cam-live">
                   <span className="hd-cam-dot" />
@@ -703,11 +745,11 @@ export function HomeDesktop() {
         </div>
         <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
           {webcams.error ??
-            "위치와 관계없이 고른 랜덤 물 풍경입니다. 배경은 영상 썸네일이 아닙니다."}{" "}
+            "장소와 관계없이 무작위로 선택된 물 풍경이며, 배경은 영상 썸네일이 아닙니다."}{" "}
           {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
               적는데 이 화면은 말없이 링크만 바꿨습니다. */}
           {webcams.expired &&
-            "목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
+            "원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
           Webcams provided by windy.com
         </p>
       </LabelRow>

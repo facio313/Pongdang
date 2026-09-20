@@ -3,6 +3,9 @@ import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon } from "./pongdangUi";
+import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
+// 물결 굴곡은 모바일 홈 히어로와 공유합니다(waveShape.ts 주석).
+import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
 
 // 데스크탑(≥1080px) 화면 7개가 공유하는 레이아웃 프리미티브입니다. 핸드오프
@@ -18,16 +21,6 @@ import "./pongdangDesktop.css";
 // 값을 모바일 레이아웃과 나눠 쓰기 위해서입니다.
 //
 // 카드 · 그림자 · 흰 테두리는 쓰지 않습니다. 구분은 괘선과 여백으로만 만듭니다.
-
-/** 물결 경계. 코발트 히어로가 흰 본문으로 넘어가는 자리에 깔립니다. */
-const WAVE_PATH =
-  "M0 34 C 160 8, 320 8, 480 30 S 800 62, 960 34 S 1280 6, 1440 26 L1440 58 L0 58Z";
-
-/** 애니메이션 파도용. 위 경계와 같은 굴곡을 2880 폭으로 이어 붙여, 가로로
- *  흘렸을 때 이음매가 보이지 않게 합니다. */
-const WAVE_LOOP_PATH =
-  "M0 54 C 160 28, 320 28, 480 50 S 800 82, 960 54 S 1280 26, 1440 46 " +
-  "S 1760 28, 1920 50 S 2240 82, 2400 54 S 2720 26, 2880 46 L2880 96 L0 96Z";
 
 export function DesktopNav({
   active,
@@ -77,6 +70,7 @@ export function DesktopHero({
   nav,
   wave = "static",
   band = false,
+  mascot,
   minHeight,
   children,
 }: {
@@ -86,6 +80,12 @@ export function DesktopHero({
   wave?: "static" | "animated";
   /** 지도 · 내 코스처럼 히어로를 얇은 띠로 줄이는 화면. */
   band?: boolean;
+  /** 히어로 오른쪽 위 표지. 자리 · 크기는 화면이 정하지 않습니다 --
+   *  어느 화면을 가도 같은 곳에 같은 크기로 서 있어야 하므로 여기서만
+   *  그리고, 화면은 어떤 포즈인지(MascotRole)만 고릅니다. */
+  mascot?: MascotRole;
+  /** 히어로 최소 높이는 CSS(--dk-hero-min-h)가 정합니다. 이 prop 은 그보다
+   *  더 높게 잡아야 하는 화면만 씁니다. */
   minHeight?: number;
   children: ReactNode;
 }) {
@@ -93,11 +93,25 @@ export function DesktopHero({
     minHeight === undefined ? undefined : { minHeight };
   return (
     <header
-      className={"pd-dk-hero" + (band ? " is-band" : "")}
+      className={
+        "pd-dk-hero" + (band ? " is-band" : "") + (mascot ? " has-mascot" : "")
+      }
       style={style}
     >
       {nav}
-      <div className="pd-dk-hero-body">{children}</div>
+      <div className="pd-dk-hero-body">
+        {children}
+        {mascot && (
+          <img
+            className="pd-dk-hero-mascot"
+            src={mascotUrl(mascot)}
+            alt={MASCOT_ALT}
+            width={200}
+            height={200}
+          />
+        )}
+      </div>
+
       {wave === "animated" && (
         // 2겹입니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. 「동작 줄이기」를
         // 켜면 pongdangDesktop.css 가 멈춥니다.
