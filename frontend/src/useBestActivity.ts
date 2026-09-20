@@ -41,8 +41,8 @@ export interface ActivityCondition {
  *  고를 것이 없으면 `best` 는 null 입니다. 이때 화면은 «–» 로 두어야 하며,
  *  0 점이나 「안전함」으로 바꾸지 않습니다 -- 근거가 없는 것과 조건이 나쁜 것은
  *  다른 사실입니다. */
-export function useBestActivity(id?: number) {
-  const recommendation = useRecommendation(id);
+export function useBestActivity(id?: number, enabled = true) {
+  const recommendation = useRecommendation(id, undefined, enabled);
   const { data, loading, error, previousData } = recommendation;
   const find = (source: typeof data, activity: Activity) =>
     source?.conditions.find((item) => item.activity === activity);

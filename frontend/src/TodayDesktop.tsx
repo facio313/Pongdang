@@ -435,9 +435,9 @@ function OperatingRow({
 }
 
 export function TodayDesktop() {
-  const { now, place, places, conditions, best, recommendation, displayName, selectionMessage } =
+  const { now, place, places, conditions, best, recommendation, displayName, selectionMessage, placeSettled } =
     useProductData("best");
-  const { tides, quality } = useTodayData(place?.id, now);
+  const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
   const activity: Activity = best?.activity ?? "swim";

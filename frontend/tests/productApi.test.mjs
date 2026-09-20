@@ -6,7 +6,10 @@ import { travelJson, recommendationPlan, selectedActivities, directionLink } fro
 test('product dates use KST, including midnight and year boundaries', () => {
   assert.equal(kstDate('2026-12-31T16:00:00Z'), '2027-01-01');
   assert.deepEqual(calendarDays('2026-12-31T16:00:00Z', 2).map(day => day.id), ['2027-01-01', '2027-01-02']);
-  assert.equal(conditionPath(undefined), null);
+  // 장소를 아직 모르는 것은 「해당 없음」(null)이 아니라 「조회 중」입니다.
+  // useResource 가 둘을 갈라 읽으므로 undefined 여야 합니다 -- null 이면 첫
+  // 페인트가 묻지도 않은 것을 「자료 없음」으로 그립니다.
+  assert.equal(conditionPath(undefined), undefined);
   assert.match(conditionPath(7), /spot_id=7&activity=swim&mode=observation/);
 });
 test('missing, conflicting, and stale observations never become zero or another station’s value', () => {

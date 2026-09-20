@@ -5,9 +5,20 @@ import { useResource } from "./useResource";
 
 /** Some official products publish only forecasts. Keep that mode explicit and
  * never replace an available observation score or bypass an official block. */
-export function useConditions(id?: number, activity: Activity = "swim", at?: string) {
+/** `enabled: false` 는 **이 조회를 하지 않는다**는 뜻입니다 -- 훅은 조건부로
+ *  부를 수 없어 쓰지 않는 쪽도 함께 부르는 자리(useProductData)에서 씁니다.
+ *  장소를 아직 모르는 동안(`id` 없음)과 달라서 「조회 중」으로 읽히지 않습니다. */
+export function useConditions(
+  id?: number,
+  activity: Activity = "swim",
+  at?: string,
+  enabled = true,
+) {
   const [revision, setRevision] = useState(() => Date.now());
-  const primary = useResource<Conditions>(conditionPath(id, activity, at), revision);
+  const primary = useResource<Conditions>(
+    enabled ? conditionPath(id, activity, at) : null,
+    revision,
+  );
   const needsForecast = !at && primary.data && conditionScore(primary.data) === null &&
     primary.data.condition_score?.status !== "blocked" &&
     primary.data.safety_status !== "restricted" && primary.data.support_status !== "unsupported";

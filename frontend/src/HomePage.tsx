@@ -25,7 +25,7 @@ import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { isInitialLoad, useResource } from "./useResource";
-import { useProductData } from "./useProductData";
+import { settledWithoutPlace, useProductData } from "./useProductData";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import { HourlyConditions } from "./HourlyConditions";
 import {
@@ -528,10 +528,13 @@ function LivecamModule() {
 function HomeScreen() {
   // 홈은 여섯 활동을 모두 보고 오늘 가장 좋은 하나를 고릅니다. 다른 화면은
   // 예전처럼 수영 한 번만 조회합니다(useProductData 의 mode 주석 참고).
-  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage } =
+  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage, placeSettled } =
     useProductData("best");
-  const quality = useResource<WaterQualityGrade>(
-    place ? `quality/grade?spot_id=${place.id}` : null,
+  const quality = settledWithoutPlace(
+    useResource<WaterQualityGrade>(
+      place ? `quality/grade?spot_id=${place.id}` : undefined,
+    ),
+    placeSettled,
   );
 
   return (

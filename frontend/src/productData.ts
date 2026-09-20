@@ -308,7 +308,9 @@ export function conditionPath(
           mode: at ? "forecast" : "observation",
           ...(at ? { at } : {}),
         })
-    : null;
+    : // 장소를 아직 모르는 것은 자료가 없는 것과 다릅니다(useResource 의
+      // ResourcePath 주석 참고). 「해당 없음」은 부르는 쪽이 null 로 적습니다.
+      undefined;
 }
 export function conditionTargetInRange(at: string | undefined, now = Date.now()) {
   const target = at ? Date.parse(at) : NaN;
@@ -332,7 +334,7 @@ export function periodPath(
           page_size: "100",
           ...(endpoint === "tides/events" ? { reference_at: now } : {}),
         })
-    : null;
+    : undefined;
 }
 // Multiple station values are not interchangeable; keep an ambiguous metric unknown.
 export function metric(

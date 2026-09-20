@@ -17,7 +17,20 @@ export function isInitialLoad(state: {
   return state.loading && state.previousData === undefined;
 }
 
-export function useResource<T>(path: string | null, revision = 0) {
+/** 조회할 경로. **없음에는 두 가지 뜻이 있고, 둘은 다른 사실입니다.**
+ *
+ *  - `undefined` — **대상을 아직 모름.** 기본 해수욕장을 조회하는 중이라 장소
+ *    id 가 없는 동안이 여기입니다. 곧 경로가 정해지므로 「조회 중」입니다.
+ *  - `null` — **해당 없음.** 관측이 막히지 않아 예보로 물러설 필요가 없거나
+ *    (useConditions), 대상 시각이 31일 범위 밖이라 애초에 묻지 않는 경우
+ *    (MyCoursesPage)입니다. 조회가 끝난 것과 같아 「없음」입니다.
+ *
+ *  둘을 한 값으로 두면 첫 페인트에서 **아직 묻지도 않은 것을 「자료 없음」으로
+ *  그립니다** -- 홈이 「오늘 점수를 낼 수 있는 활동이 없어요」를 먼저 보여 주고
+ *  장소가 도착한 뒤에야 스켈레톤을 띄우던 순서가 그것이었습니다. */
+export type ResourcePath = string | null | undefined;
+
+export function useResource<T>(path: ResourcePath, revision = 0) {
   const origin = "data";
   const key = `${origin}:${path}:${revision}`;
   const [result, setResult] = useState<{
@@ -26,7 +39,7 @@ export function useResource<T>(path: string | null, revision = 0) {
     error?: string;
   }>();
   useEffect(() => {
-    if (path === null) return;
+    if (path == null) return;
     const controller = new AbortController();
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]);
     async function load() {
@@ -49,7 +62,10 @@ export function useResource<T>(path: string | null, revision = 0) {
     void load();
     return () => controller.abort();
   }, [path, key, origin]);
-  return path === null
+  return path === undefined
+    ? // 대상 미정. 요청은 나가지 않지만 화면에는 「조회 중」입니다.
+      { loading: true, data: undefined, previousData: undefined, error: undefined }
+    : path === null
     ? { loading: false, data: undefined, previousData: undefined, error: undefined }
     : result?.key === key
     ? { ...result, previousData: result.data, loading: false }

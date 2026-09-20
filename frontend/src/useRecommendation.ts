@@ -24,9 +24,14 @@ export function shownConditions(data?: Recommendation) {
  *
  *  조회 중과 「고를 것이 없음」은 다른 사실입니다. `data` 가 와도 `choice` 는
  *  null 일 수 있고, 그때 화면은 «–» 로 두어야 합니다. */
-export function useRecommendation(id?: number, at?: string) {
+export function useRecommendation(id?: number, at?: string, enabled = true) {
   const [revision, setRevision] = useState(() => Date.now());
-  const state = useResource<Recommendation>(recommendationPath(id, at), revision);
+  // enabled: false 는 「이 조회를 하지 않는다」입니다. 장소 미정(id 없음)과
+  // 달라 「조회 중」으로 읽히지 않습니다(useResource 의 ResourcePath 주석).
+  const state = useResource<Recommendation>(
+    enabled ? recommendationPath(id, at) : null,
+    revision,
+  );
   // 근거가 만료되면 점수는 못 쓰는 값이 됩니다. 그 시각에 맞춰 다시 읽고,
   // 그 전까지는 5 분마다 확인합니다(useConditions 와 같은 규칙).
   const expiresAt = conditionScoreExpiry(shownConditions(state.data));

@@ -40,7 +40,7 @@ import {
   type WaterQualityGrade,
 } from "./productData";
 import { isInitialLoad, useResource } from "./useResource";
-import { useProductData } from "./useProductData";
+import { settledWithoutPlace, useProductData } from "./useProductData";
 import { useHourlyScores } from "./useHourlyScores";
 import type { ActivityCondition } from "./useBestActivity";
 import { spotLink } from "./spotsRoute";
@@ -328,10 +328,13 @@ function BeachCard({ place }: { place: Place }) {
 }
 
 export function HomeDesktop() {
-  const { now, place, conditions, baseline, best, recommendation, displayName, selectionMessage } =
+  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage, placeSettled } =
     useProductData("best");
-  const quality = useResource<WaterQualityGrade>(
-    place ? `quality/grade?spot_id=${place.id}` : null,
+  const quality = settledWithoutPlace(
+    useResource<WaterQualityGrade>(
+      place ? `quality/grade?spot_id=${place.id}` : undefined,
+    ),
+    placeSettled,
   );
   // 아래 네 덩어리는 모바일 홈이 이미 쓰는 것과 같은 소스입니다. 예전에는 이
   // 자리들이 전부 파일 안 상수였습니다.
@@ -395,8 +398,13 @@ export function HomeDesktop() {
           conditions={conditions.data}
           loading={isInitialLoad(conditions)}
         />
-        <p className="hd-row-note" role={conditions.error ? "alert" : "status"}>
-          {conditions.error ?? selectionMessage}
+        {/* 장소 목록 조회 실패도 싣습니다. 선정 문구(selectionMessage)는 어느
+            장소를 골랐는지를 말할 뿐이라, 목록을 못 읽은 사실을 덮습니다. */}
+        <p
+          className="hd-row-note"
+          role={places.error ?? conditions.error ? "alert" : "status"}
+        >
+          {places.error ?? conditions.error ?? selectionMessage}
         </p>
       </LabelRow>
 

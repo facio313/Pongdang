@@ -100,5 +100,6 @@ export function recommendationPath(id?: number, at?: string) {
           mode: at ? "forecast" : "observation",
           ...(at ? { at } : {}),
         })
-    : null;
+    : // 장소 미정은 「조회 중」입니다(useResource 의 ResourcePath 주석 참고).
+      undefined;
 }

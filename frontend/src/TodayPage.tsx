@@ -694,8 +694,8 @@ function UnlinkedAlert() {
 }
 
 function TodayScreen() {
-  const { now, place, places, conditions, displayName, selectionMessage } = useProductData();
-  const { forecasts, tides, quality } = useTodayData(place?.id, now);
+  const { now, place, places, conditions, displayName, selectionMessage, placeSettled } = useProductData();
+  const { forecasts, tides, quality } = useTodayData(place?.id, now, placeSettled);
   return (
     <article className="today-page">
       <AppShell
