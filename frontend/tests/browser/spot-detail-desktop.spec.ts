@@ -32,7 +32,7 @@ test("the desktop detail map link selects that same place", async ({ page }) => 
   const mapLink = page.getByRole("link", { name: "지도 탭에서 보기" });
   await expect(mapLink).toHaveAttribute("href", `#map?spot_id=${place.id}`);
   await mapLink.click();
-  await expect(page.locator(".mk-panel-name")).toHaveText(place.name);
+  await expect(page.locator(".mk-detail-name")).toHaveText(place.name);
 });
 
 test("a failed desktop draft request remains an error rather than successful navigation", async ({ page }) => {

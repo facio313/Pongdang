@@ -12,10 +12,11 @@ import "./pongdangDesktop.css";
 // 「구현 가이드 — 데스크탑 · 모바일」 §2 의 "데스크탑 공통 문법"이 여기 전부
 // 들어 있고, 화면은 이 네 가지 조립만으로 그립니다.
 //
-//   DesktopNav  상단 인라인 네비 (모바일 하단 탭바의 데스크탑 대응)
-//   DesktopHero 코발트 면 + 물결 경계
-//   LabelRow    200px 라벨 열 + 1fr 본문. 본문의 기본 단위
-//   FootNote    미연동 항목 · 안전 판단 불가 문구
+//   DesktopNav     상단 인라인 네비 (모바일 하단 탭바의 데스크탑 대응)
+//   DesktopHero    코발트 면 + 물결 경계
+//   DesktopMapShell 지도가 뷰포트를 다 쓰는 화면(지도 · 내 코스)의 무대
+//   LabelRow       200px 라벨 열 + 1fr 본문. 본문의 기본 단위
+//   FootNote       미연동 항목 · 안전 판단 불가 문구
 //
 // 표시 전용입니다. 데이터 훅을 부르지 않고 전부 props 로만 받습니다 -- 같은
 // 값을 모바일 레이아웃과 나눠 쓰기 위해서입니다.
@@ -26,6 +27,7 @@ export function DesktopNav({
   active,
   context,
   onSurface = false,
+  onMap = false,
 }: {
   /** 현재 화면. 모바일 탭바와 같은 키를 씁니다. */
   active: TabKey;
@@ -33,10 +35,19 @@ export function DesktopNav({
   context?: ReactNode;
   /** 흰 배경 위에 얹힐 때(코발트 히어로가 없는 화면). */
   onSurface?: boolean;
+  /** 풀스크린 지도 위에 얹힐 때. 네비가 그 화면의 **유일한 히어로 레이어**가
+   *  되므로 코발트 면을 스스로 깝니다(디자인 시스템 v2 §07 — 히어로는 화면당
+   *  하나, 항상 최상단). 지도 타일 위 가독성을 위해 별도의 반투명 스크림을
+   *  만들지 않습니다: 그라디언트는 코발트 히어로 하나뿐입니다. */
+  onMap?: boolean;
 }) {
   return (
     <nav
-      className={"pd-dk-nav" + (onSurface ? " is-on-surface" : "")}
+      className={
+        "pd-dk-nav" +
+        (onSurface ? " is-on-surface" : "") +
+        (onMap ? " is-on-map" : "")
+      }
       aria-label="주요 탭"
     >
       {/* 탭바가 담는 여행 흐름 밖의 항목(저장한 코스 · 즐겨찾기 · 알림 설정 ·
@@ -69,7 +80,6 @@ export function DesktopNav({
 export function DesktopHero({
   nav,
   wave = "static",
-  band = false,
   mascot,
   minHeight,
   children,
@@ -78,8 +88,6 @@ export function DesktopHero({
   nav?: ReactNode;
   /** "animated" 는 홈 화면 전용입니다. 다른 화면은 정적 경계만 씁니다. */
   wave?: "static" | "animated";
-  /** 지도 · 내 코스처럼 히어로를 얇은 띠로 줄이는 화면. */
-  band?: boolean;
   /** 히어로 오른쪽 위 표지. 자리 · 크기는 화면이 정하지 않습니다 --
    *  어느 화면을 가도 같은 곳에 같은 크기로 서 있어야 하므로 여기서만
    *  그리고, 화면은 어떤 포즈인지(MascotRole)만 고릅니다. */
@@ -93,9 +101,7 @@ export function DesktopHero({
     minHeight === undefined ? undefined : { minHeight };
   return (
     <header
-      className={
-        "pd-dk-hero" + (band ? " is-band" : "") + (mascot ? " has-mascot" : "")
-      }
+      className={"pd-dk-hero" + (mascot ? " has-mascot" : "")}
       style={style}
     >
       {nav}
@@ -141,6 +147,44 @@ export function DesktopHero({
         <path d={WAVE_PATH} fill="#ffffff" />
       </svg>
     </header>
+  );
+}
+
+/** 풀스크린 지도 화면(지도 · 내 코스)의 무대입니다. `DesktopHero` 를 쓰지
+ *  않는 유일한 두 화면이 이것을 대신 씁니다.
+ *
+ *  왜 히어로가 없나: 디자인 시스템 v2 §01 은 히어로(코발트 글래스) 레이어의
+ *  역할을 「오늘의 상태 · **지도** · 라이브캠」이라고 적습니다. 지도 면 자체가
+ *  히어로 레이어입니다. 그래서 지도 위에 코발트 히어로를 한 겹 더 쌓는 대신,
+ *  **네비 띠 하나만 코발트로 두고 지도가 화면을 다 쓰게** 합니다. 화면당 코발트
+ *  면은 여전히 하나입니다(§07).
+ *
+ *  나머지(검색 · 목록 · 근거 · 폼)는 전부 밝은 레이어 패널로 지도 위에 뜹니다
+ *  -- 「근거 · 표 · 폼은 항상 밝은 레이어에」(§07). 지도 위에 떠 있는 패널은
+ *  데스크탑에서 그림자를 쓰는 유일한 예외입니다(구현 가이드 §2).
+ *
+ *  페이지는 스크롤되지 않습니다. 넘치는 내용은 패널 **안에서** 스크롤합니다. */
+export function DesktopMapShell({
+  nav,
+  map,
+  children,
+}: {
+  /** `<DesktopNav … onMap />`. 지도 위에 절대배치되며 격자 밖입니다 --
+   *  좌우 끝까지 가야 하므로 아래 크롬 격자의 패딩에 묶이면 안 됩니다. */
+  nav: ReactNode;
+  /** `<KakaoMapCanvas … />`. 캔버스가 inset:0 이라 무대가 relative 입니다. */
+  map: ReactNode;
+  /** 지도 위에 뜨는 것들(.pd-dk-mappanel · .pd-dk-mapcontrols). */
+  children: ReactNode;
+}) {
+  return (
+    <div className="pd-dk-mapshell">
+      {map}
+      {nav}
+      {/* 크롬 레이어 자체는 클릭을 받지 않습니다(pointer-events:none). 그래야
+          패널 사이의 빈 곳에서 지도를 끌 수 있습니다. 자식만 되살립니다. */}
+      <div className="pd-dk-mapshell-chrome">{children}</div>
+    </div>
   );
 }
 
@@ -279,10 +323,19 @@ export function FootNote({
 /** 데스크탑 화면의 바깥 껍데기. 토큰 루트(.pd-desktop)와 1600px 상한을 잡고,
  *  모바일 셸과 같은 사이드 메뉴를 답니다 -- 폭에 따라 갈 수 있는 곳이 달라지면
  *  안 됩니다. */
-export function DesktopShell({ children }: { children: ReactNode }) {
+export function DesktopShell({
+  fullscreen = false,
+  children,
+}: {
+  /** 지도가 뷰포트를 다 쓰는 화면(지도 · 내 코스). 페이지가 스크롤되지 않고
+   *  1600px 본문 상한도 풀립니다 -- 그 상한은 **읽는 본문**을 위한 것이고
+   *  지도 면은 본문이 아닙니다. */
+  fullscreen?: boolean;
+  children: ReactNode;
+}) {
   return (
     <SideMenuProvider>
-      <div className="pd-desktop">
+      <div className={"pd-desktop" + (fullscreen ? " is-fullscreen" : "")}>
         <div className="pd-desktop-page">{children}</div>
         {/* 메뉴 패널의 색 토큰(--pd-*)은 `.pd-app` 에 선언돼 있습니다. 여기는
             `--dk-*` 팔레트라 그 안에 그대로 두면 흰 패널이 투명해집니다.

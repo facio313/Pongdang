@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { setTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
+import { DESKTOP_MAP } from "./desktopMap";
 import {
-  DesktopHero,
+  DesktopMapShell,
   DesktopNav,
   DesktopShell,
   FootNote,
-  LabelRow,
 } from "./pongdangDesktop";
 import { GradeIcon, Skeleton, StateChip } from "./pongdangUi";
 import { planItems, type TripPlan } from "./travelApi";
@@ -23,8 +23,17 @@ import { isInitialLoad, useResource } from "./useResource";
 import { usePlacesById } from "./usePlacesById";
 import "./coursesDesktop.css";
 
-// 데스크탑 내 코스(핸드오프 18d)입니다. 왼쪽 지도(고정) + 오른쪽 시간축 일정,
-// 아래 괘선 행에 저장한 코스 목록을 둡니다.
+// 데스크탑 내 코스입니다. 지도가 화면을 다 쓰고, 저장한 코스 목록(왼쪽)과
+// 고른 코스의 시간축 일정(오른쪽)이 그 위에 패널로 뜹니다.
+//
+// 핸드오프 18d 는 「얇은 띠 히어로 + 지도 | 일정」 2열이었습니다. 그 구성에서는
+// 저장 코스 목록을 보려면 지도를 스크롤 밖으로 밀어내야 했고, 목록에서 코스를
+// 고르는 동안 정작 그 코스의 핀이 보이지 않았습니다. 지도 · 지도 탭과 같은
+// 무대(DesktopMapShell)로 옮겨 세 가지를 한 화면에 둡니다.
+//
+// 디자인 시스템 v2 는 그대로입니다: 지도 면이 곧 히어로 레이어이고(§01) 코발트
+// 면은 상단 네비 띠 하나뿐입니다(§07). 목록 · 일정 · 상태 칩은 전부 밝은 레이어
+// 패널 안에 있습니다.
 //
 // 예전에는 이 화면에 훅이 하나도 없었습니다. 「저장한 코스 3개 · 9월 15일」 ·
 // 「3곳 · 12.0km · 4h 30m」 · 09:20 경포 서핑 → 12:00 안목 카페 → 14:30 사천진
@@ -138,32 +147,123 @@ export function CoursesDesktop() {
   );
 
   return (
-    <DesktopShell>
-      <DesktopHero
+    <DesktopShell fullscreen>
+      <DesktopMapShell
         nav={
           <DesktopNav
             active="my-courses"
             context={`저장한 코스 ${countLabel} · ${dateLabel()}`}
+            onMap
           />
         }
-        band
-        wave="static"
-        mascot="course"
+        map={
+          <KakaoMapCanvas
+            markers={markers}
+            selectedId={null}
+            insets={{
+              top: DESKTOP_MAP.nav,
+              left: DESKTOP_MAP.panel,
+              right: DESKTOP_MAP.panel,
+              bottom: DESKTOP_MAP.edge,
+            }}
+            renderMarker={(id) => {
+              const marker = markers.find((item) => item.id === id);
+              const stop = stops.find((item) => String(item.spot_id) === id);
+              if (!marker || !stop) return null;
+              return (
+                <span className="cd-pin">
+                  <span className="pd-dk-num cd-pin-core">{marker.order}</span>
+                  <span className="cd-pin-label">{stop.name}</span>
+                </span>
+              );
+            }}
+          />
+        }
       >
-        <div className="cd-hero">
-          <div className="cd-hero-lead">
-            <div className="pd-dk-kick cd-hero-kick">내 코스</div>
-            <h1 className="cd-hero-title">
-              {selected ? selected.name
-                : plans.error ? "저장 코스를 확인하지 못했습니다"
-                : plans.loading ? "저장 코스를 불러오는 중입니다"
-                : "저장한 코스가 없습니다"}
-            </h1>
+        {/* 왼쪽 패널: 저장한 코스 목록. 예전에는 지도 아래 괘선 행에 있어서
+            고르는 동안 그 코스의 핀이 보이지 않았습니다. */}
+        <aside className="pd-dk-mappanel is-start" aria-label="저장한 코스">
+          <div className="pd-dk-mappanel-badge">
+            저장된 코스 장소 · 경로선은 지도 탭에서 계산합니다
+          </div>
+          <div className="cd-panel-head">
+            <span className="pd-dk-kick">저장한 코스 {countLabel}</span>
+            {readState}
+          </div>
+          <p className="cd-note">
+            추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다.
+          </p>
+          {courses.map((course) => (
+            <button
+              type="button"
+              className={
+                "cd-saved" + (course.id === picked?.id ? " is-selected" : "")
+              }
+              key={course.id}
+              aria-pressed={course.id === picked?.id}
+              onClick={() =>
+                // 다시 누르면 접힙니다. 예전에는 한 번 고르면 해제할 수 없었고,
+                // 첫 코스가 늘 강제로 펼쳐져 있었습니다.
+                setSelectedId((current) =>
+                  current === course.id ? null : course.id,
+                )
+              }
+            >
+              <div className="cd-saved-body">
+                <div className="cd-saved-name">{course.name}</div>
+                <div className="cd-saved-meta">
+                  {course.date ?? "날짜 미정"} · {course.items.length}곳 ·{" "}
+                  {course.items.map((item) => item.name).join(" · ") ||
+                    "장소 없음"}
+                </div>
+                <div className="cd-saved-alarm">
+                  {/* 조회 중과 「꺼짐」은 다릅니다. 모르는 것을 꺼짐으로 바꾸지
+                      않습니다. */}
+                  {sessions.error
+                    ? "동행 알림 조회 실패"
+                    : sessions.loading
+                      ? "동행 알림 조회 중"
+                      : course.alarm
+                        ? "동행 알림 켬"
+                        : "동행 알림 꺼짐"}
+                </div>
+              </div>
+              {/* 이동 거리 · 소요 시간은 코스 목록 API 에 없습니다. «–» 이며
+                  0 이 아닙니다. */}
+              <span className="pd-dk-num cd-saved-duration is-empty">–</span>
+            </button>
+          ))}
+          {!courses.length && (
+            <p className="cd-note" role={plans.error ? "alert" : "status"}>
+              {plans.error ??
+                (plans.loading
+                  ? "저장 코스를 불러오는 중입니다."
+                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}
+            </p>
+          )}
+        </aside>
+
+        {/* 오른쪽 패널: 고른 코스의 요약과 시간축 일정. 요약 3칸은 예전에
+            히어로에 있던 것으로, 히어로가 없어졌을 뿐 값은 그대로입니다. */}
+        <aside className="pd-dk-mappanel is-end" aria-label="코스 일정">
+          <div className="cd-panel-head">
+            {/* 조회 중 · 조회 실패 · 저장 없음은 서로 다른 사실입니다.
+                히어로가 말하던 구분을 이 패널 머리가 그대로 이어받습니다. */}
+            <span className="pd-dk-kick">
+              {selected
+                ? selected.name
+                : plans.error
+                  ? "저장 코스를 확인하지 못했습니다"
+                  : plans.loading
+                    ? "저장 코스를 불러오는 중입니다"
+                    : "저장한 코스가 없습니다"}
+            </span>
+            {readState}
           </div>
           {/* 예전에는 여기가 「3곳 · 12.0km · 4h 30m」이었습니다. 이동 거리와
               소요 시간을 코스 목록 API 가 내려주지 않으므로 장소 수만 싣고,
               없는 값은 «–» 로 둡니다. */}
-          <div className="cd-hero-summary">
+          <div className="cd-summary">
             <div>
               <div className="cd-summary-name">장소</div>
               <div className="pd-dk-num cd-summary-value">
@@ -180,40 +280,6 @@ export function CoursesDesktop() {
               <div className="cd-summary-name">이동 · 소요</div>
               <div className="pd-dk-num cd-summary-value is-empty">–</div>
             </div>
-          </div>
-        </div>
-      </DesktopHero>
-
-      <div className="cd-stage">
-        <div className="cd-map">
-          <KakaoMapCanvas
-            markers={markers}
-            selectedId={null}
-            renderMarker={(id) => {
-              const marker = markers.find((item) => item.id === id);
-              const stop = stops.find((item) => String(item.spot_id) === id);
-              if (!marker || !stop) return null;
-              return (
-                <span className="cd-pin">
-                  <span className="pd-dk-num cd-pin-core">{marker.order}</span>
-                  <span className="cd-pin-label">{stop.name}</span>
-                </span>
-              );
-            }}
-            overlay={
-              <span className="cd-map-badge">
-                저장된 코스 장소 · 경로선은 지도 탭에서 계산합니다
-              </span>
-            }
-          />
-        </div>
-
-        <div className="cd-schedule">
-          <div className="cd-schedule-head">
-            <span className="pd-dk-kick">
-              {selected ? selected.name : "일정"}
-            </span>
-            {readState}
           </div>
           {stops.map((stop, index) => {
             // 점수는 첫 정차지만 조회합니다. 정차지마다 부르면 요청이 코스
@@ -290,77 +356,25 @@ export function CoursesDesktop() {
             <a className="pd-dk-button is-quiet" href="#map?view=course">
               지도에서 경로 계산 →
             </a>
-            <span className="cd-note">
-              {places.error ??
-                "정차지 좌표는 저장된 장소를 조회해 찍습니다. 좌표가 없는 장소는 지도에 나타나지 않습니다."}{" "}
-              {/* 나머지 정차지의 «–» 는 조건이 나쁜 것이 아니라 묻지 않은
-                  것입니다. 그 사실을 적지 않으면 자료 없음으로 읽힙니다. */}
-              점수는 첫 정차지만 조회합니다 -- 나머지 –는 조회하지 않았다는
-              뜻이며 자료 없음이 아닙니다.
-            </span>
           </div>
-        </div>
-      </div>
-
-      <LabelRow
-        kick="저장한 코스"
-        title={countLabel}
-        chip={readState}
-        desc="추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다."
-      >
-        {courses.map((course) => (
-          <button
-            type="button"
-            className={
-              "cd-saved" + (course.id === picked?.id ? " is-selected" : "")
-            }
-            key={course.id}
-            aria-pressed={course.id === picked?.id}
-            onClick={() =>
-              // 다시 누르면 접힙니다. 예전에는 한 번 고르면 해제할 수 없었고,
-              // 첫 코스가 늘 강제로 펼쳐져 있었습니다.
-              setSelectedId((current) =>
-                current === course.id ? null : course.id,
-              )
-            }
-          >
-            <div className="cd-saved-body">
-              <div className="cd-saved-name">{course.name}</div>
-              <div className="cd-saved-meta">
-                {course.date ?? "날짜 미정"} · {course.items.length}곳 ·{" "}
-                {course.items.map((item) => item.name).join(" · ") || "장소 없음"}
-              </div>
-              <div className="cd-saved-alarm">
-                {/* 조회 중과 「꺼짐」은 다릅니다. 모르는 것을 꺼짐으로 바꾸지
-                    않습니다. */}
-                {sessions.error
-                  ? "동행 알림 조회 실패"
-                  : sessions.loading
-                    ? "동행 알림 조회 중"
-                    : course.alarm
-                      ? "동행 알림 켬"
-                      : "동행 알림 꺼짐"}
-              </div>
-            </div>
-            {/* 이동 거리 · 소요 시간은 코스 목록 API 에 없습니다. «–» 이며
-                0 이 아닙니다. */}
-            <span className="pd-dk-num cd-saved-duration is-empty">–</span>
-          </button>
-        ))}
-        {!courses.length && (
-          <p className="cd-note" role={plans.error ? "alert" : "status"}>
-            {plans.error ??
-              (plans.loading
-                ? "저장 코스를 불러오는 중입니다."
-                : "아직 저장한 코스가 없습니다.")}
+          <p className="cd-note">
+            {places.error ??
+              "정차지 좌표는 저장된 장소를 조회해 찍습니다. 좌표가 없는 장소는 지도에 나타나지 않습니다."}{" "}
+            {/* 나머지 정차지의 «–» 는 조건이 나쁜 것이 아니라 묻지 않은
+                것입니다. 그 사실을 적지 않으면 자료 없음으로 읽힙니다. */}
+            점수는 첫 정차지만 조회합니다 -- 나머지 –는 조회하지 않았다는 뜻이며
+            자료 없음이 아닙니다.
           </p>
-        )}
-      </LabelRow>
 
-      <FootNote
-        missing="이동 거리 · 소요 시간 · 코스 공유 · 순서 변경"
+          {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
+              자리가 없어 이 패널의 마지막에 들어옵니다 -- 자리를 옮겼을 뿐
+              생략하지 않습니다. */}
+          <FootNote
+            missing="이동 거리 · 소요 시간 · 코스 공유 · 순서 변경"
         note="날짜 · 소요 시간이 없는 코스는 «–» 로 둡니다 — 0 이 아닙니다. 점수는 첫 정차지 기준이며, 정차지마다 조회하지 않습니다."
-      />
+          />
+        </aside>
+      </DesktopMapShell>
     </DesktopShell>
   );
 }

@@ -73,18 +73,26 @@ export function AppShell({
   title,
   hero,
   bare = false,
+  fullscreen = false,
   children,
 }: {
   tab: TabKey;
   title?: string;
   hero?: ReactNode;
   bare?: boolean;
+  /** 지도가 프레임을 다 쓰는 화면(지도 · 내 코스). 프레임 높이를 뷰포트에
+   *  고정하고 페이지 스크롤을 끕니다 -- 넘치는 내용은 지도 위에 뜬 바텀 시트
+   *  **안에서만** 스크롤합니다. 탭바 슬롯도 자리를 비웁니다.
+   *
+   *  이 모드는 bare 와 함께 씁니다. .pd-body 가 없으므로 AppFootNote 도 여기서
+   *  그리지 않습니다 -- 전역 주의 문구는 화면이 시트 안 마지막에 직접 둡니다. */
+  fullscreen?: boolean;
   children: ReactNode;
 }) {
   return (
     <SideMenuProvider>
-      <div className="pd-app">
-        <div className="pd-frame">
+      <div className={"pd-app" + (fullscreen ? " is-fullscreen" : "")}>
+        <div className={"pd-frame" + (fullscreen ? " is-fullscreen" : "")}>
           {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
           {bare ? (
             children
@@ -94,7 +102,7 @@ export function AppShell({
               <AppFootNote />
             </div>
           )}
-          <AppTabBar active={tab} />
+          <AppTabBar active={tab} floating={fullscreen} />
           {/* 토큰이 .pd-app 에 있으므로 메뉴 패널도 그 안에서 그립니다. */}
           <SideMenuOutlet />
         </div>

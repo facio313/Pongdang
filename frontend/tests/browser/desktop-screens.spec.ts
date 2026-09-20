@@ -96,9 +96,9 @@ test("desktop map lists real places and scores only the chosen one", async ({ pa
   await expect(page.locator(".mk-side-kick")).toContainText(`${mappable.length}곳`);
   await expect(page.locator(".mk-spot")).toHaveCount(mappable.length);
   // 눌러도 아무 일이 없던 활동 필터는 사라지고 실제로 목록을 바꾸는 검색이
-  // 있습니다. 그 검색은 히어로가 아니라 걸러낼 목록 바로 위에 섭니다.
-  await expect(page.locator(".mk-search input")).toBeVisible();
-  await expect(page.locator(".mk-hero")).not.toContainText("주차 · 샤워장");
+  // 있습니다. 그 검색은 걸러낼 목록 바로 위, 왼쪽 패널 안에 섭니다.
+  await expect(page.locator(".pd-dk-mappanel.is-start .mk-search input")).toBeVisible();
+  await expect(page.locator(".pd-desktop")).not.toContainText("주차 · 샤워장");
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);
@@ -110,11 +110,11 @@ test("desktop courses says there is no saved course rather than showing one", as
     route.fulfill({ json: { rows: [] } }),
   );
   await page.goto("#my-courses");
-  await expect(page.locator(".cd-hero-title")).toContainText("저장한 코스가 없습니다");
+  // 히어로가 없어졌으므로 「저장한 코스가 없습니다」는 오른쪽 패널이 말합니다.
   await expect(page.locator(".pd-desktop")).toContainText("아직 저장한 코스가 없습니다");
   await expect(page.locator(".cd-item")).toHaveCount(0);
   // 이동 거리 · 소요 시간은 API 에 없습니다. «–» 이며 0 이 아닙니다.
-  await expect(page.locator(".cd-hero-summary")).toContainText("–");
+  await expect(page.locator(".cd-summary")).toContainText("–");
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);

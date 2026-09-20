@@ -10,39 +10,38 @@
 }
 
 /* ── 지도 무대 ─────────────────────────────────────────── */
-/* 높이를 300px 로 못 박으면 작은 기기에서는 무대가 화면을 다 먹고 큰 기기에서는
-   허전합니다. 화면 높이에 따라 늘었다 줄되 상·하한을 둡니다. */
+/* 지도가 프레임을 다 씁니다. 예전에는 위쪽 고정 높이 띠(clamp(280px,42dvh,
+   380px))였고 그 아래로 본문이 흘렀습니다. 이제 헤더 · 검색 · 시트가 지도 위에
+   얹힙니다. */
 
 .map-page .mp-stage {
-  position: relative;
-  height: clamp(280px, 42dvh, 380px);
+  position: absolute;
+  inset: 0;
+  /* KakaoMapCanvas 의 .wim-map-canvas 가 inset:0 으로 깔립니다. 지도가 뜨기
+     전에도 흰 구멍이 아니라 물빛 면으로 보이게 배경을 둡니다. */
   background-color: #cddff0;
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      rgba(47, 106, 168, 0.1) 0 1px,
-      transparent 1px 26px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(47, 106, 168, 0.1) 0 1px,
-      transparent 1px 26px
-    );
 }
-/* 무대 위 헤더는 흐름에서 빼지 않고 그대로 두되, 핀 · 슬롯보다 위에 둡니다. */
-.map-page .mp-stage .pd-header {
-  position: relative;
-  z-index: 2;
-}
-.map-page .mp-stage .pd-header-mark {
-  color: var(--pd-ink);
+
+/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 -- 공용 .pd-hero 의
+   코발트 · 하단 라운드 · 히어로 그림자를 그대로 물려받고 자리와 높이만
+   덮습니다. 지도 타일의 밝기를 예측할 수 없다고 해서 반투명 스크림을 새로
+   만들지 않습니다: 그라디언트는 코발트 히어로 하나뿐입니다(디자인 시스템 v2
+   §07). */
+.map-page .mp-topbar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 5;
+  min-height: 0;
+  padding-bottom: 10px;
 }
 .map-page .mp-searchbar {
   position: absolute;
+  /* 코발트 띠 바로 아래. 띠 높이는 노치 여백(.pd-header)에 따라 달라지므로
+     같은 계산식을 씁니다. */
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);
   left: 16px;
   right: 16px;
-  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 34px);
-  z-index: 2;
+  z-index: 4;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -59,17 +58,6 @@
 .map-page .mp-searchbar.is-course {
   color: var(--pd-ink);
   font-weight: 700;
-}
-.map-page .mp-tile-slot {
-  align-content: start;
-  padding-top: 12px;
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 82px);
-  bottom: 18px;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.35);
 }
 
 /* 지점 핀 — 점수 링(conic) + 흰 원 안에 점수. 색만으로 판단을 전달하지
@@ -126,28 +114,14 @@
   font-size: var(--pd-fs-cap);
 }
 
-/* ── 바텀 시트 ─────────────────────────────────────────── */
+/* ── 시트 머리의 보기 전환 ────────────────────────────── */
+/* 시트 자체(.pd-sheet)는 mapSheet.css 가 그립니다 -- 내 코스와 함께 쓰는
+   공용 시트이기 때문입니다. 여기에는 이 화면의 컨트롤만 남깁니다.
 
-.map-page .mp-sheet {
-  position: relative;
-  z-index: 3;
-  margin-top: -18px;
-  padding: 14px 18px 18px;
-  border-radius: var(--pd-r-hero) var(--pd-r-hero) 0 0;
-  background: var(--pd-mist);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.map-page .mp-handle {
-  width: 38px;
-  height: 4px;
-  border-radius: 2px;
-  background: #c6d5e6;
-  margin: 0 auto 4px;
-}
+   드래그 핸들(.mp-handle)은 없앴습니다. 38×4 막대가 있었지만 시트는
+   드래그되지 않았습니다 -- 할 수 없는 조작을 모양으로 약속하지 않습니다.
+   대신 실제로 동작하는 토글 버튼이 시트 맨 위에 있습니다. */
 
-/* 보기 전환 */
 .map-page .mp-switch {
   display: flex;
   gap: 6px;
@@ -359,4 +333,15 @@
 .map-page .mp-pin[data-inline-pin="true"] {
   position: relative;
   transform: none;
+}
+
+/* 지도 로딩 · 실패 알림(.wim-map-status)은 기본값이 지도 면 왼쪽 위인데,
+   풀스크린에서는 거기가 코발트 띠와 검색 알약 밑입니다 -- 카카오 키가 없거나
+   네트워크가 끊겼을 때 「지도를 불러오지 못했습니다」와 재시도 버튼이 가려져,
+   화면이 조용히 빈 물빛 면만 보여 주게 됩니다. 그 아래로 내립니다. */
+.map-page .mp-stage .wim-map-status {
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 108px);
+  left: 16px;
+  right: 16px;
+  max-width: none;
 }

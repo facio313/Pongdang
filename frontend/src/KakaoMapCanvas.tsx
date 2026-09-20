@@ -56,7 +56,16 @@ function mapControls(map: KakaoMap, sdk: KakaoMapsNamespace): MapControlApi {
   };
 }
 
-export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS, overlay, onReady }: {
+/** 지도 면 위에 패널이 덮고 있는 가장자리(px)입니다. 핀이 그 아래로 숨지
+ *  않도록 setBounds 여백으로 씁니다. */
+export interface MapInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
+export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS, overlay, onReady, insets }: {
   markers: readonly MapMarker[];
   paths?: readonly (readonly (readonly number[])[])[];
   selectedId: string | null;
@@ -67,8 +76,22 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
   /** 지도가 준비되면 조작 API 를, 정리되면 null 을 넘깁니다. 렌더 중이 아니라
    *  effect 안에서 호출되므로 부모는 이 값을 state 에 담아 두면 됩니다. */
   onReady?: (api: MapControlApi | null) => void;
+  /** 패널이 덮는 가장자리. **주면 아래 .wim-panel 추정은 쓰지 않습니다.**
+   *  풀스크린 지도처럼 좌 · 우 · 아래를 동시에 덮는 화면은 추정으로 맞출 수
+   *  없으므로 화면이 직접 말합니다. */
+  insets?: MapInsets;
 }) {
   const container = useRef<HTMLDivElement>(null);
+  // insets 는 지도 생성 effect 의 의존성에 **넣지 않습니다.** 넣으면 패널이
+  // 열리고 닫힐 때마다 지도를 통째로 다시 만듭니다(report.md R01 과 같은
+  // 함정). 최신 값만 ref 로 들고 가고, 바뀌면 fit() 만 다시 부릅니다.
+  const insetsRef = useRef(insets);
+  useEffect(() => {
+    insetsRef.current = insets;
+  });
+  // 객체 참조가 아니라 값으로 비교해야 매 렌더 새로 만든 리터럴에 반응하지
+  // 않습니다.
+  const insetsKey = JSON.stringify(insets ?? null);
   // onReady 를 지도 생성 effect 의 의존성에 넣으면, 부모가 인라인 함수를 넘길
   // 때마다 지도를 통째로 다시 만들게 됩니다. 최신 콜백만 ref 로 들고 갑니다.
   const onReadyRef = useRef(onReady);
@@ -133,12 +156,25 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
           if (controller.signal.aborted || !element!.clientWidth || !element!.clientHeight) return;
           map.relayout();
           mounted.forEach(({ element: content, overlay }) => overlay.setContent(content));
+          const markerHeight = Math.max(0, ...mounted.map(({ element: content }) => content.offsetHeight));
+          if (bounds.isEmpty()) return;
+          // 화면이 덮인 가장자리를 직접 말해 줬으면 그대로 씁니다.
+          const given = insetsRef.current;
+          if (given) {
+            map.setBounds(
+              bounds,
+              markerHeight + 16 + (given.top ?? 16),
+              given.right ?? 16,
+              given.bottom ?? 16,
+              given.left ?? 16,
+            );
+            return;
+          }
+          // 말해 주지 않은 화면(명소 · 추천 등)은 예전처럼 패널 하나를 추정합니다.
           const panel = element!.parentElement?.querySelector(".wim-panel")
             ?.getBoundingClientRect();
           const stacked = panel && panel.width > element!.clientWidth * 0.8;
           const edge = panel ? 48 : 16;
-          const markerHeight = Math.max(0, ...mounted.map(({ element: content }) => content.offsetHeight));
-          if (bounds.isEmpty()) return;
           map.setBounds(bounds, markerHeight + 16, stacked ? edge : (panel?.width ?? 0) + edge,
             stacked ? panel.height + edge : edge, edge);
         }
@@ -170,6 +206,12 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
   useEffect(() => {
     active?.markers.forEach(({ id, overlay }) => overlay.setZIndex(id === selectedId ? 3 : 2));
   }, [active, selectedId]);
+
+  // 패널이 열리고 닫혀 덮이는 면적이 달라지면 화면을 다시 맞춥니다. 지도를
+  // 다시 만들지는 않습니다 -- fit() 만 부릅니다.
+  useEffect(() => {
+    active?.fit?.();
+  }, [active, insetsKey]);
 
   return (
     <>

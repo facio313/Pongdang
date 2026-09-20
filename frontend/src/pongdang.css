@@ -89,6 +89,13 @@ main:has(.pd-app) {
   padding: 0;
 }
 
+/* 풀스크린 지도 화면(지도 · 내 코스)은 페이지가 스크롤되지 않습니다. 넘치는
+   내용은 지도 위에 뜬 바텀 시트 안에서만 스크롤합니다. */
+main:has(.pd-app.is-fullscreen) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .pd-frame {
   position: relative;
   width: 100%;
@@ -96,9 +103,23 @@ main:has(.pd-app) {
   background: var(--pd-mist);
 }
 
+/* 목업 폰 프레임은 화면 둘레에 여백을 둡니다. 풀스크린 프레임의 높이는 그
+   여백만큼을 뷰포트에서 뺀 값이라야 딱 맞습니다. 값을 두 군데(패딩 · 높이)에
+   따로 적으면 조용히 어긋나므로, 여백 합을 토큰으로 두고 아래 계단에서만
+   갱신합니다. 기본(풀블리드)은 여백이 없습니다. */
+.pd-app {
+  --pd-frame-gap: 0px;
+}
+.pd-frame.is-fullscreen {
+  height: calc(100dvh - var(--pd-frame-gap));
+  min-height: 0;
+  overflow: hidden;
+}
+
 @media (min-width: 431px) {
   .pd-app {
     padding: 10px 14px 24px;
+    --pd-frame-gap: 34px; /* 위 10 + 아래 24 */
   }
   .pd-frame {
     width: min(520px, 100%);
@@ -115,6 +136,7 @@ main:has(.pd-app) {
 @media (min-width: 768px) {
   .pd-app {
     padding: 18px 20px 28px;
+    --pd-frame-gap: 46px; /* 위 18 + 아래 28 */
   }
   .pd-frame {
     width: min(640px, 100%);
