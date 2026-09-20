@@ -9,7 +9,13 @@ import { useConditionDays } from "./useConditionDays";
 import { useConditions } from "./useConditions";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
+import { RecommendationReason } from "./RecommendationReason";
 import { WaterQualityDetails } from "./WaterQualityDetails";
+import type { ActivityCondition } from "./useBestActivity";
+import type { Recommendation } from "./recommendationApi";
+import { activities, type Activity } from "./aiApi";
+import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
+import { scoreTitle } from "./scoreMeaning";
 import {
   conditionScore,
   conditionModeLabel,
@@ -80,6 +86,10 @@ function Hero({
   place,
   displayName,
   conditions,
+  best,
+  recommendation,
+  recommendationLoading = false,
+  recommendationError,
   loading = false,
   quality,
   qualityLoading = false,
@@ -87,12 +97,17 @@ function Hero({
   place?: Place;
   displayName: string;
   conditions?: Conditions;
+  /** 서버가 고른 오늘의 활동. 없으면 「고를 것이 없다」이거나 조회 실패입니다. */
+  best?: ActivityCondition | null;
+  recommendation?: Recommendation;
+  recommendationLoading?: boolean;
+  recommendationError?: string;
   /** 조건 조회 중. 「자료 없음」(–)과 구분해 그립니다. */
   loading?: boolean;
   quality: string;
   qualityLoading?: boolean;
 }) {
-  const heroScore = conditionScore(conditions);
+  const heroScore = best?.score ?? conditionScore(conditions);
   return (
     <header className="pd-hero td-hero">
       <AppHeader
@@ -105,10 +120,27 @@ function Hero({
           {dateLabel()} · {displayName} {conditionModeLabel(conditions)} 기준
         </p>
         <div className="td-hero-row">
+          {/* 예전에는 「오늘의 수영 조건 / 자료를 확인하세요」 라는 상수
+              문장이었습니다. 수영은 서버가 고른 활동이 아니라 화면이 박아 둔
+              종목이었고, 그래서 이 탭만 홈과 다른 활동을 말할 수 있었습니다.
+              조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 뗍니다. */}
           <h1 className="td-hero-sentence">
-            오늘의 수영 조건
-            <br />
-            자료를 확인하세요
+            {recommendationLoading ? (
+              <Skeleton width="7em" glass label="오늘의 활동 조회 중" />
+            ) : best ? (
+              <>
+                오늘 가장 좋은 활동
+                <br />
+                <b>{activityHeadline(best.activity)}</b>
+              </>
+            ) : (
+              // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
+              <>
+                {missingChoiceHeadline(recommendationError)[0]}
+                <br />
+                {missingChoiceHeadline(recommendationError)[1]}
+              </>
+            )}
           </h1>
           <div className="td-hero-score">
             <div className="pd-num td-hero-score-num">
@@ -118,7 +150,13 @@ function Hero({
                 (heroScore ?? "–")
               )}
             </div>
-            <GradeChip score={heroScore} loading={loading} glass bare />
+            <GradeChip
+              score={heroScore}
+              prefix={best ? scoreTitle(best.activity) : undefined}
+              loading={loading}
+              glass
+              bare
+            />
           </div>
         </div>
         <div className="td-hero-tiles">
@@ -170,6 +208,16 @@ function Hero({
             <div className="td-tile-name">수질 · 최근 검사</div>
           </div>
         </div>
+        {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. 홈과
+            같은 줄입니다. 이 탭에는 아래에 물때 카드가 따로 있는데, 그쪽은
+            만·간조 시각표이고 여기는 그 물때가 오늘의 활동 선택에 어떻게
+            작용했는지입니다 -- 두 값을 합치지 않고 역할로 가릅니다. */}
+        <RecommendationReason
+          data={recommendation}
+          error={recommendationError}
+          loading={recommendationLoading}
+          glass
+        />
         {/* 「값이 없으면 –…」 같은 전역 규칙 문장은 화면 바닥의 AppFootNote 가
             한 번만 말합니다. 여기는 이 지점의 근거만 남깁니다. */}
         <EvidenceNote data={conditions} className="td-hero-note" glass />
@@ -180,14 +228,17 @@ function Hero({
 
 function SpotComparisonRow({
   spot,
+  activity,
   selected,
   onSelect,
 }: {
   spot: Place;
+  /** 오늘 고른 활동. 위에 크게 뜬 점수와 다른 기준의 막대를 그리지 않습니다. */
+  activity: Activity;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const conditions = useConditions(spot.id);
+  const conditions = useConditions(spot.id, activity);
   const score = conditionScore(conditions.data);
   const grade = gradeOf(score);
   return (
@@ -217,21 +268,24 @@ function SpotComparisonRow({
 
 function SpotSection({
   rows,
+  activity,
   status,
   statusIsError,
 }: {
   rows: Place[];
+  activity: Activity;
   status: string;
   statusIsError?: boolean;
 }) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
   const selected = resolved.find((spot) => spot.id === selectedSpotId);
-  const conditions = useConditions(selected?.id);
+  // 다른 장소의 점수라 추천 응답에 없습니다. 여기는 따로 조회합니다.
+  const conditions = useConditions(selected?.id, activity);
   return (
     <section>
       <SectionHead
-        label="지점 비교 · 수영 점수"
+        label={`지점 비교 · ${activities[activity]} 점수`}
         href="#map"
         linkLabel="전체 지도 →"
       />
@@ -241,6 +295,7 @@ function SpotSection({
             <SpotComparisonRow
               key={spot.id}
               spot={spot}
+              activity={activity}
               selected={spot.id === selectedSpotId}
               onSelect={() =>
                 setSelectedSpotId((current) =>
@@ -265,7 +320,7 @@ function SpotSection({
               <dd>{selected.address ?? "–"}</dd>
               <dt>검증 상태</dt>
               <dd>{selected.catalog_verification ?? "–"}</dd>
-              <dt>수영 점수</dt>
+              <dt>{activities[activity]} 점수</dt>
               <dd>
                 {conditionScore(conditions.data) ?? "–"} · 수온{" "}
                 {metricText(conditions.data, "water_temperature")} ·{" "}
@@ -285,27 +340,30 @@ function SpotSection({
   );
 }
 
-function ActivitySection({ id }: { id?: number }) {
-  const states = [
-    useConditions(id, "swim"),
-    useConditions(id, "surf"),
-    useConditions(id, "relax"),
-    useConditions(id, "mudflat"),
-    useConditions(id, "rafting"),
-    useConditions(id, "onsen"),
-  ];
-  const activities = ACTIVITY_ROWS.map((item, index) => ({
-    ...item,
-    score: conditionScore(states[index].data),
-    data: states[index].data,
-    error: states[index].error,
-  }));
+/** 활동별 점수. 추천이 판단에 쓴 조건 응답을 그대로 씁니다.
+ *
+ *  예전에는 이 자리가 활동마다 따로 묻는 여섯 번의 조회였습니다. 추천 응답이
+ *  같은 활동들의 조건을 이미 싣고 오는데 화면이 같은 것을 다시 물은 것이고,
+ *  응답들의 시각이 서로 달라 히어로 점수와 이 타일이 다른 순간을 가리킬 수도
+ *  있었습니다.
+ *
+ *  짝은 **활동 id 로** 맞춥니다. 갯벌이 후보에서 빠졌을 때 표시 줄은 다섯으로
+ *  줄었는데 조회 배열은 여섯 그대로여서, 인덱스로 짝짓던 이 자리가 「래프팅」
+ *  타일에 갯벌 점수를, 「온천」 타일에 래프팅 점수를 넣고 있었습니다. */
+function ActivitySection({ states }: { states: ActivityCondition[] }) {
+  const activities = ACTIVITY_ROWS.map((item) => {
+    const state = states.find((entry) => entry.activity === item.id);
+    return {
+      ...item,
+      score: state?.score ?? null,
+      data: state?.data,
+      error: state?.error,
+    };
+  });
   const [basisId, setBasisId] = useState<string>(ACTIVITY_ROWS[0].id);
   const basis = activities.find((activity) => activity.id === basisId);
-  const errors = states
-    .map((state) => state.error)
-    .filter(Boolean)
-    .join(" · ");
+  // 한 번의 조회이므로 오류도 하나입니다. 같은 문장을 다섯 번 잇지 않습니다.
+  const errors = states.find((state) => state.error)?.error ?? "";
   return (
     <section>
       <SectionHead label="활동별 점수 · 선택 장소 조건" />
@@ -373,21 +431,23 @@ function ForecastSection({
   id,
   rows,
   now,
+  activity,
   status,
 }: {
   id?: number;
   rows: Forecast[];
   now: string;
+  activity: Activity;
   status: string;
 }) {
-  const days = useConditionDays(id, now);
+  const days = useConditionDays(id, now, activity);
   const [forecastDayId, setForecastDayId] = useState(days[0].id);
   const selected = days.find((day) => day.id === forecastDayId) ?? days[0];
   const maxScore = Math.max(...days.map((day) => day.score ?? 0), 1);
 
   return (
     <section>
-      <SectionHead label="7일 예보" suffix="A2" />
+      <SectionHead label={`7일 예보 · ${activities[activity]}`} suffix="A2" />
       <div className="pd-card">
         <div className="td-bars" role="group" aria-label="날짜 선택">
           {days.map((day) => {
@@ -525,7 +585,12 @@ function TideNote({ tides, status }: { tides?: TideResult; status: string }) {
               : `관측소 ${event.station_name}${distance ? ` ${distance}` : ""}`}
           </span>
         )}
-        <span>공식 조석 예측의 간조·만조 시각입니다. {dataStatusText(status)}</span>
+        <span>
+          공식 조석 예측의 간조·만조 시각입니다. 이 시각이 오늘의 활동 선택에
+          어떻게 작용했는지는 위 추천 근거에 있습니다 -- 여기 값과 그쪽 값은
+          서로 다른 조회라 시각이 어긋날 수 있어 합치지 않습니다.{" "}
+          {dataStatusText(status)}
+        </span>
       </p>
       <details className="pd-explainer">
         <summary className="pd-tap">이 시각의 한계</summary>
@@ -694,8 +759,17 @@ function UnlinkedAlert() {
 }
 
 function TodayScreen() {
-  const { now, place, places, conditions, displayName, selectionMessage, placeSettled } = useProductData();
+  // 이 탭도 홈과 같은 한 번의 추천 조회를 씁니다. 예전에는 수영 한 종목으로
+  // 고정돼 있어서, 같은 장소 같은 시각을 두고 홈은 「온천」을 권하는데 이
+  // 화면은 수영 조건만 늘어놓았습니다.
+  const {
+    now, place, places, conditions, activities: activityStates, best,
+    recommendation, displayName, selectionMessage, placeSettled,
+  } = useProductData("best");
   const { forecasts, tides, quality } = useTodayData(place?.id, now, placeSettled);
+  // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
+  // 물러서되(화면에 그렇게 적습니다) 히어로 점수를 그것으로 채우지 않습니다.
+  const activity: Activity = best?.activity ?? "swim";
   return (
     <article className="today-page">
       <AppShell
@@ -707,12 +781,17 @@ function TodayScreen() {
             place={place}
             displayName={displayName}
             conditions={conditions.data}
+            best={best}
+            recommendation={recommendation.data}
+            recommendationLoading={isInitialLoad(recommendation)}
+            recommendationError={recommendation.error}
             loading={isInitialLoad(conditions)}
           />
         }
       >
           <SpotSection
             rows={places.data?.rows ?? []}
+            activity={activity}
             statusIsError={Boolean(places.error ?? conditions.error)}
             status={
               places.error ??
@@ -720,11 +799,12 @@ function TodayScreen() {
               selectionMessage
             }
           />
-          <ActivitySection id={place?.id} />
+          <ActivitySection states={activityStates} />
           <ForecastSection
             id={place?.id}
             rows={forecasts.data?.rows ?? []}
             now={now}
+            activity={activity}
             status={
               forecasts.error ??
               (forecasts.loading

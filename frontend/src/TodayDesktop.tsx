@@ -256,10 +256,12 @@ function SpotComparison({
   rows,
   activity,
   status,
+  statusIsError,
 }: {
   rows: Place[];
   activity: Activity;
   status: string;
+  statusIsError?: boolean;
 }) {
   const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
   return (
@@ -276,7 +278,11 @@ function SpotComparison({
       {resolved.map((place) => (
         <SpotRow key={place.id} place={place} activity={activity} max={100} />
       ))}
-      {!resolved.length && <p className="td-note">{status}</p>}
+      {!resolved.length && (
+        <p className="td-note" role={statusIsError ? "alert" : "status"}>
+          {status}
+        </p>
+      )}
       <p className="td-note">
         지점마다 자기 조건을 따로 조회합니다. 막대는 100점 만점 대비 위치이며
         기여도가 아닙니다. 값이 없으면 –이고 0점이 아닙니다.
@@ -285,24 +291,24 @@ function SpotComparison({
   );
 }
 
-/** 활동 한 칸. 여섯 활동을 고정 순서로 조회합니다(훅 순서 규칙). */
+/** 활동 한 칸. 점수는 추천이 판단에 쓴 조건 응답에서 옵니다 -- 활동마다 따로
+ *  묻지 않습니다(useBestActivity 의 all). */
 function ActivityCell({
-  id,
+  state,
   activity,
   mascot,
 }: {
-  id?: number;
+  state?: ActivityCondition;
   activity: Activity;
   mascot: string;
 }) {
-  const conditions = useConditions(id, activity);
-  const score = conditionScore(conditions.data);
+  const score = state?.score ?? null;
   const grade = gradeOf(score);
   return (
     <div className="td-activity" data-grade={grade.key}>
       <img src={mascotUrl(mascot as never)} alt="" width={78} height={78} />
       <div className="pd-dk-num td-activity-score">
-        {isInitialLoad(conditions) ? (
+        {state && isInitialLoad(state) ? (
           <Skeleton width="1.6em" label="점수 조회 중" />
         ) : (
           (score ?? "–")
@@ -317,20 +323,35 @@ function ActivityCell({
   );
 }
 
-function ActivityScores({ id, placeName }: { id?: number; placeName: string }) {
+function ActivityScores({
+  states,
+  placeName,
+}: {
+  states: ActivityCondition[];
+  placeName: string;
+}) {
+  // 한 번의 조회이므로 오류도 하나입니다.
+  const error = states.find((state) => state.error)?.error;
   return (
     <div>
       <div className="pd-dk-kick">활동별 점수 · {placeName}</div>
       <div className="td-activities">
+        {/* 짝은 활동 id 로 맞춥니다. 인덱스로 맞추면 후보가 바뀐 날 옆 활동의
+            점수가 들어갑니다(모바일 오늘 탭에서 실제로 그랬습니다). */}
         {ACTIVITY_ROWS.map((row) => (
           <ActivityCell
             key={row.id}
-            id={id}
+            state={states.find((state) => state.activity === row.id)}
             activity={row.id}
             mascot={row.mascot}
           />
         ))}
       </div>
+      {error && (
+        <p className="td-note" role="alert">
+          {error}
+        </p>
+      )}
       <p className="td-note">
         활동마다 보는 조건이 다릅니다. 지원하지 않는 활동은 –이며 0점이
         아닙니다.
@@ -353,6 +374,9 @@ function WeekForecast({
     ...days.flatMap((day) => (day.score === null ? [] : [day.score])),
     1,
   );
+  // 일곱 날을 따로 조회하므로 실패도 날마다입니다. 모바일 오늘 탭은 이것을
+  // 알리는데 이 화면은 값이 없는 날과 구별 없이 «–» 로만 그렸습니다.
+  const error = days.find((day) => day.error)?.error;
   return (
     <section className="td-section">
       <div className="td-head">
@@ -394,6 +418,11 @@ function WeekForecast({
           );
         })}
       </div>
+      {error && (
+        <p className="td-note" role="alert">
+          {error}
+        </p>
+      )}
     </section>
   );
 }
@@ -435,8 +464,10 @@ function OperatingRow({
 }
 
 export function TodayDesktop() {
-  const { now, place, places, conditions, best, recommendation, displayName, selectionMessage, placeSettled } =
-    useProductData("best");
+  const {
+    now, place, places, conditions, activities: activityStates, best,
+    recommendation, displayName, selectionMessage, placeSettled,
+  } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
@@ -462,8 +493,9 @@ export function TodayDesktop() {
           rows={places.data?.rows ?? []}
           activity={activity}
           status={places.error ?? selectionMessage}
+          statusIsError={Boolean(places.error)}
         />
-        <ActivityScores id={place?.id} placeName={displayName} />
+        <ActivityScores states={activityStates} placeName={displayName} />
       </section>
 
       {/* 점수를 이루는 항목들. 모바일 「오늘 한눈에」와 같은 구성입니다. */}
@@ -481,6 +513,14 @@ export function TodayDesktop() {
           text={scoreReason(conditions.data).text}
           loading={isInitialLoad(conditions)}
         />
+        {/* 조건 조회 실패는 이 화면 어디에도 나타나지 않았습니다. 항목 막대가
+            빈 채로 서 있으면 「자료가 없는 날」로 읽히는데, 못 읽은 것과 없는
+            것은 다른 사실입니다. */}
+        {conditions.error && (
+          <p className="td-note" role="alert">
+            {conditions.error}
+          </p>
+        )}
       </LabelRow>
 
       <WeekForecast id={place?.id} now={now} activity={activity} />
