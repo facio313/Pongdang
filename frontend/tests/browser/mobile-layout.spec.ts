@@ -4,33 +4,32 @@ for (const width of [390, 768, 979, 1079]) {
   test.describe(`${width}px mobile layout`, () => {
     test.use({ viewport: { width, height: 985 } });
 
-    test("opening the score explanation keeps the activity link readable", async ({ page }) => {
+    test("the home activity link stays readable and opens today's score explanation", async ({ page }) => {
       await page.goto("#home");
       await page.waitForLoadState("networkidle");
       const actions = page.locator(".hm-hero-actions");
       const link = actions.locator(":scope > a");
-      const before = await link.boundingBox();
-      expect(before).not.toBeNull();
-      await page.getByText("퐁당 점수란?", { exact: true }).click();
-      await expect(page.locator("details").filter({ hasText: "퐁당 점수란?" })).toHaveAttribute("open", "");
+      await expect(link).toHaveText("오늘 후보 활동 5가지 보기 →");
       const layout = await actions.evaluate(element => {
         const cta = element.querySelector("a")!;
-        const details = [...document.querySelectorAll("details")].find(item => item.textContent?.includes("퐁당 점수란?"))!;
-        const rect = cta.getBoundingClientRect();
         return {
-          ctaWidth: rect.width,
-          ctaHeight: rect.height,
-          ctaBottom: rect.bottom,
+          height: cta.getBoundingClientRect().height,
           lineHeight: Number.parseFloat(getComputedStyle(cta).lineHeight),
-          detailsTop: details.getBoundingClientRect().top,
           contentWidth: element.clientWidth,
           scrollWidth: element.scrollWidth,
         };
       });
-      expect(layout.ctaWidth).toBeGreaterThanOrEqual(before!.width - 1);
-      expect(layout.ctaHeight).toBeLessThanOrEqual(layout.lineHeight + 1);
-      expect(layout.detailsTop).toBeGreaterThanOrEqual(layout.ctaBottom);
+      expect(layout.height).toBeLessThanOrEqual(layout.lineHeight + 1);
       expect(layout.scrollWidth).toBeLessThanOrEqual(layout.contentWidth + 1);
+      // Main moved detailed evidence into Today; the existing home CTA must
+      // still lead to a working explanation at every mobile breakpoint.
+      await link.click();
+      await expect(page).toHaveURL(/#today$/);
+      await page.getByText("퐁당 점수란?", { exact: true }).click();
+      const explanation = page.locator(".pd-explainer").filter({ has: page.getByText("퐁당 점수란?", { exact: true }) });
+      await expect(explanation).toHaveAttribute("open", "");
+      await expect(explanation).toContainText("안전 판정이 아니며");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ path: `test-results/score-help-${width}.png`, fullPage: true });
     });
 

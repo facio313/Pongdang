@@ -38,6 +38,7 @@ import {
   GradeIcon,
   Icon,
   MetricValue,
+  ScoreExplainer,
   Skeleton,
   StateChip,
 } from "./pongdangUi";
@@ -229,7 +230,7 @@ function Hero({
         />
         {/* 「값이 없으면 –…」 같은 전역 규칙 문장은 화면 바닥의 AppFootNote 가
             한 번만 말합니다. 여기는 이 지점의 근거만 남깁니다. */}
-        <EvidenceNote data={conditions} className="td-hero-note" glass />
+        <EvidenceNote data={conditions} className="td-hero-note" glass extra={<ScoreExplainer data={conditions} />} />
       </div>
     </header>
   );

@@ -36,15 +36,11 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".pd-hero .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
   // 왜 이 활동인가. 서버가 사유 코드를 준 경우에만 줄이 섭니다 -- 없으면 화면이
   // 문장을 지어내지 않는다는 뜻이므로 그쪽도 사실입니다.
-  // 히어로에는 이 한 줄만 얹힙니다. 뺀 이유 · 물때 · 대신 갈 곳과 근거 전문은
-  // 바로 아래 「오늘 이 활동인 이유」 카드로 내려갔습니다 -- 문구가 사라진 것이
-  // 아니라 층이 나뉜 것이므로, 양쪽을 다 확인합니다.
+  // 히어로에는 한 줄만 얹고, 상세 근거는 오늘 탭에서 확인합니다.
   if (recommendation.reasons.length) {
     await expect(page.locator(".pd-hero .pd-why-line")).toHaveCount(1);
     await expect(page.locator(".pd-hero .pd-why-line.is-choice")).toBeVisible();
   }
-  await expect(page.locator(".hm-why-card")).toContainText("오늘 이 활동인 이유");
-  await expect(page.locator(".hm-why-note")).toContainText("근거 확보");
 
   // 「오늘 한눈에」는 이제 그 점수를 이루는 항목들입니다. 항목 구성은 활동마다
   // 다르므로 고정 네 칸이 아니라 서버가 준 components 를 그대로 따릅니다.
@@ -70,6 +66,7 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".td-hero-note")).toContainText("대표 관측소");
   await expect(page.locator(".td-tile-value").nth(2)).toHaveText("21.3°C");
   await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
+  await expect(page.locator(".td-hero-note")).toContainText("근거 확보");
   await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
   await expect(page.locator(".td-act")).toHaveCount(5);
   // 근거는 활동 6개의 <details> 6줄이 아니라 하나로 합치고 활동을 셀렉트로
@@ -158,16 +155,21 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   );
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
-  await expect(page.locator(".hm-why-note")).toContainText("예보 기준");
-  await expect(page.locator(".hm-why-note")).toContainText("25% (1/4개)");
-  await expect(page.locator(".hm-why-note")).toContainText("안전 판정이 아닙니다");
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
+  await expect(page.locator(".td-hero-note")).toContainText("예보 기준");
+  await expect(page.locator(".td-hero-note")).toContainText("25% (1/4개)");
+  await expect(page.locator(".td-hero-note")).toContainText("안전 판정이 아닙니다");
+  await page.goto("#home");
+  // Finish Today's independent weekly reads before measuring a fresh home load.
+  await page.waitForLoadState("networkidle");
   blocked = true;
   forecasts = 0;
   await page.reload();
-  await expect(page.locator(".hm-why-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
-  // 제한 상태를 예보로 우회하지 않습니다.
+  // 홈은 제한 상태를 예보로 우회하지 않습니다. 오늘의 별도 주간 예보 조회 전 확인합니다.
   expect(forecasts).toBe(0);
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
+  await expect(page.locator(".td-hero-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
 });
 
 test("forecast date changes display that date's server score and clear unavailable days", async ({ page }) => {
@@ -296,8 +298,9 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
   await expect.poll(() => requests).toBeGreaterThan(1);
   release();
-  await expect(page.locator(".hm-why-note")).toContainText("계산에 필요한 근거 부족");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
+  await expect(page.locator(".td-hero-note")).toContainText("계산에 필요한 근거 부족");
 });
 
 test("preference → recommendation → persisted plan → selected plan detail", async ({
