@@ -101,7 +101,7 @@ test("desktop map keeps an explicit outside-page selection while summaries remai
   await page.setViewportSize({ width: 1440, height: 1000 });
   const requests = await mockCatalog(page);
   await page.goto("#map?spot_id=999");
-  await expect(page.locator(".mk-panel-name")).toHaveText(linkedPlace.name);
+  await expect(page.locator(".mk-detail-name")).toHaveText(linkedPlace.name);
   await expect(page.locator(".mk-spot")).toHaveCount(101);
   await expect.poll(() => requests.summaries.flat().length).toBe(100);
   expect(requests.summaries.every(ids => ids.length <= 25 && ids.every(id => id <= 100))).toBe(true);
@@ -109,7 +109,7 @@ test("desktop map keeps an explicit outside-page selection while summaries remai
   await expect(pagination).toContainText("전체 105곳 · 1/2페이지 · 현재 100곳");
   await pagination.getByRole("button", { name: "다음", exact: true }).click();
   await expect(page.locator(".mk-spot")).toHaveCount(5);
-  await expect(page.locator(".mk-panel-name")).toHaveText("PAGE TEST 101");
+  await expect(page.locator(".mk-detail-name")).toHaveText("PAGE TEST 101");
   await expect.poll(() => requests.summaries.some(ids => ids.includes(105))).toBe(true);
   expect(requests.summaries.flat()).not.toContain(999);
 });

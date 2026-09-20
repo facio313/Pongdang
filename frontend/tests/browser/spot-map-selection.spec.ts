@@ -30,7 +30,7 @@ async function routeMapCatalog(page: Page) {
 for (const width of [390, 1440]) {
   test.describe(`${width}px map spot_id selection`, () => {
     test.use({ viewport: { width, height: 1000 } });
-    const selectedName = width < 1080 ? ".mp-spot-name" : ".mk-panel-name";
+    const selectedName = width < 1080 ? ".mp-spot-name" : ".mk-detail-name";
 
     test("waits for the linked place outside the list without choosing the default beach", async ({ page }) => {
       await routeMapCatalog(page);

@@ -46,3 +46,12 @@
 - 검사환경: frontend `/var/folders/ns/8yh7k1zn3q9flcsx0msyzfhm0000gn/T/pongdang-gangwon-frontend-58q0b2cs/`에 검증로그·스크린샷·verified-frontend-changes.json(최종수정28파일) 보관. backend `/var/folders/ns/8yh7k1zn3q9flcsx0msyzfhm0000gn/T/pongdang-ui-backend-check-kxaq1q9h/`에105회귀/실제자료/성능JSON 보관. 폐기용PG55469/55470 모두종료. 실제preview51906/primary5432에테스트fixture를쓰지않음.
 - iCloud dataless 때문에 원본읽기·스냅샷복사·일부검사가중단됨. 중단검사는통과로포함하지않음. 마지막변경저자의정확한편집입력과기존보관본으로검증복사본을갱신하고작업소유파일만원래mode/동시변경확인후실체화하여최종28파일SHA256일치확인. 기존다른변경보존. 검증용dependency symlink의Vite폰트allowlist문제는외부임시config에서만보완.
 - 로컬확인서버 `http://127.0.0.1:5173/pongdang/#spots` 유지. backend8000 PID82422는이전snapshot/backend에최신regions.py적용, frontend5173 PID84754는새검증폴더의live-frontend에서실행하며기존.env.local보존. iCloud읽기지연을피하기위한고정복사본이므로후속소스수정시live-frontend동기화또는원본Vite재시작필요. 서비스metadata는새폴더와이전implementation폴더의services.json에갱신.
+
+## 최신 운영 main 통합 · 2026-09-21
+
+- 사용자 승인에 따라 원격 main `281f4e5`를 강원도 확장 원본 `4dd1938`에 병합했다. 28개 파일 충돌은 최신 로고·파비콘·푸터·전체 화면 지도·내 코스·다국어 동작을 보존하고 강원도 지역·장소 선택을 결합하는 방식으로 해결했다. 기존 main 대비 제품 레이아웃 CSS를 교체하지 않았다.
+- Node 24 frontend lint/123 unit/type/build 통과. Python 3.14 backend Ruff 및 1,266개 테스트 통과, 로컬 Docker 미설치 관련 2개 skip은 CI smoke에서 확인한다. 테스트 DB는 독립 `55469/pongdang_test`다.
+- 전체 browser 140개 중 139개 통과. 나머지 하나는 main에서 변경된 지도 이름 요소의 옛 선택자를 사용한 검사였으며 `.mk-detail-name`으로 정정한 뒤 관련 4개 모두 통과했다. 테스트의 장소·페이지·요청 건수 검증은 유지했다.
+- 실제 지역 조회를 사용하는 별도 5179 화면에서 강원도 162곳/속초시 5곳, 데스크톱 패널·모바일 하단 시트 및 폭 변경 시 지역 보존을 확인했다. 이 검증 전용 화면은 지도 키 없이 실행했으며 운영 환경의 기존 지도 키를 변경하지 않았다.
+- 원본 Git 읽기가 iCloud에서 정체되어 외부 캐시 체크아웃에서 통합했다. 백업 패치로 재구성한 tree와 원본 커밋 SHA가 정확히 동일함을 검증했고 원본/운영 기준 이력을 Git bundle로 백업했다. `.byeori/`, `.playwright-cli/`, `output/`, 비공개 환경 파일은 커밋에서 제외한다.
+- 운영 배포는 dev CI 통과 후 동일 커밋을 main으로 전진시켜 기존 CI·deploy를 실행한다. v9 → v10 추가형 마이그레이션과 수집기 건강 상태는 기존 initialize/Compose 배포 흐름에서 검사한다. 관측·안전 근거의 지역 한계와 제공처 원본 모순은 앞의 제한을 유지한다.

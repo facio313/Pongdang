@@ -1,10 +1,14 @@
 import { t } from "./i18n.ts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CoursesDesktop } from "./CoursesDesktop";
+import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { MapSheet } from "./MapSheet";
+import { useSheetHeight } from "./useSheetHeight";
+import { usePlacesById } from "./usePlacesById";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
-import { AppHeader, AppShell } from "./AppShell";
+import { AppFootNote, AppHeader, AppShell } from "./AppShell";
 import { useResource } from "./useResource";
 import { planItems, unknownConditionsText, type TripPlan } from "./travelApi";
 import type { Activity } from "./aiApi";
@@ -13,6 +17,18 @@ import { setTravelSession } from "./travelSession";
 import { timeLabel, conditionPath, conditionScore, conditionTargetInRange, dataStatusText, type Conditions } from "./productData";
 import { useAction } from "./useAction";
 import "./myCoursesPage.css";
+
+// 모바일 내 코스입니다. 지도가 프레임을 다 쓰고, 저장한 코스 목록과 상세가
+// 그 위에 뜬 시트 안에 있습니다.
+//
+// 예전에는 이 화면에 **지도가 아예 없었습니다.** 「경포 · 안목 · 사천진」 같은
+// 코스를 저장해 두고도 그게 어디인지는 글로만 읽었고, 지도로 보려면 지도 탭으로
+// 건너가 코스를 다시 골라야 했습니다. 데스크탑 내 코스는 처음부터 지도를 갖고
+// 있었으므로, 같은 라우트가 폭에 따라 다른 사실을 말하고 있었습니다.
+//
+// 이제 데스크탑과 **같은 방식**으로 정차지 좌표를 조회해 순번 핀을 찍습니다
+// (CoursesDesktop 의 markerKey 메모 주석 참고). 좌표가 없는 장소는 핀을 만들지
+// 않습니다 -- 없는 위치를 임의로 만들지 않습니다.
 
 const TODO_SCREENS = [
   {
@@ -70,35 +86,139 @@ function MyCoursesScreen() {
     plan,
   }));
   const selected = courses.find((course) => course.id === selectedId) ?? null;
-  const selectedStops = selected?.plan.days.flatMap((day) => day.items.map((item) => ({
-    ...item, at: item.arrival_at ?? day.date + "T12:00:00+09:00",
-  }))) ?? [];
+  // 정차지는 조회 결과에서 곧바로 고릅니다. courses 는 매 렌더 새로 만들어지지만
+  // plans.data.rows 의 원소는 조회가 바뀔 때만 달라지므로, 그 참조에 기대어
+  // 정차지 배열을 고정할 수 있습니다 -- 매 렌더 새 배열을 만들면 아래 지도가
+  // 계속 다시 그려집니다(CoursesDesktop 과 같은 방식).
+  const rows = plans.data?.rows;
+  const plan = useMemo(
+    () => rows?.find((item) => item.plan_id === selectedId) ?? null,
+    [rows, selectedId],
+  );
+  const selectedStops = useMemo(
+    () =>
+      plan?.days.flatMap((day) =>
+        day.items.map((item) => ({
+          ...item,
+          at: item.arrival_at ?? day.date + "T12:00:00+09:00",
+        })),
+      ) ?? [],
+    [plan],
+  );
   const first = selectedStops[0];
   const firstTargetValid = conditionTargetInRange(first?.at);
   const selectedConditions = useResource<Conditions>(firstTargetValid
     ? conditionPath(first?.spot_id, selected?.plan.request.activity ?? "relax", first?.at) : null);
   const selectedScore = conditionScore(selectedConditions.data);
 
+  // 정차지 좌표. 코스를 고르기 전에는 조회하지 않습니다 -- 목록만 보는 동안
+  // 장소 조회를 낼 이유가 없습니다.
+  const places = usePlacesById(selectedStops.map((stop) => stop.spot_id));
+  // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
+  // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다. 콜백이 바깥 값을 직접
+  // 읽지 않도록 원시 값만 담은 문자열 키에 의존을 좁힙니다(CoursesDesktop 과
+  // 같은 방식).
+  const markerKey = JSON.stringify(
+    selectedStops.map((stop, index) => {
+      const place = places.rows.find((row) => row.id === stop.spot_id);
+      return [stop.spot_id, place?.lat ?? null, place?.lng ?? null, index + 1];
+    }),
+  );
+  const markers = useMemo(() => {
+    const coords = JSON.parse(markerKey) as [
+      number,
+      number | null,
+      number | null,
+      number,
+    ][];
+    // 좌표가 없는 장소는 핀을 만들지 않습니다 -- 없는 위치를 임의로 만들지
+    // 않습니다.
+    return coords.flatMap(([id, latitude, longitude, order]) =>
+      latitude !== null && longitude !== null
+        ? [{ id: String(id), latitude, longitude, order }]
+        : [],
+    );
+  }, [markerKey]);
+  const sheet = useSheetHeight();
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <article className="my-courses-page">
       <AppShell
         tab="my-courses"
+        bare
+        fullscreen
         hero={
-        <header className="pd-hero mc-hero">
-          <AppHeader title={t("강원도")} time={timeLabel(new Date().toISOString())} onCobalt />
-          <div className="mc-hero-inner">
-            <p className="pd-lbl">
-              {plans.error ? t("저장 코스 개수 미확인")
-                : plans.loading ? t("저장 코스 조회 중")
-                : t("저장 {count}개", { count: courses.length })}
-            </p>
-            <h1 className="mc-hero-title">{t("내 코스")}</h1>
-            <p className="mc-hero-sub">{t("내가 저장한 여행 일정을 확인하세요")}</p>
-            <p className="mc-hero-note">{t("기존 SSO 계정에 저장된 코스입니다. 여행 알림은 시작된 동행 세션의 설정을 표시하며 백그라운드 발송과 다릅니다.")}</p>
+          <div className="mc-stage">
+            <KakaoMapCanvas
+              markers={markers}
+              selectedId={null}
+              insets={{
+                top: 60,
+                right: 16,
+                bottom: sheet.height + 12,
+                left: 16,
+              }}
+              renderMarker={(id) => {
+                const marker = markers.find((item) => item.id === id);
+                const stop = selectedStops.find(
+                  (item) => String(item.spot_id) === id,
+                );
+                if (!marker || !stop) return null;
+                // 코스 핀은 점수가 아니라 **순서**를 말합니다. 점수 핀(지도
+                // 화면)과 모양을 다르게 두어 혼동하지 않게 합니다.
+                return (
+                  <span className="mc-pin">
+                    <span className="pd-num mc-pin-core">{marker.order}</span>
+                    <span className="mc-pin-label">{stop.name}</span>
+                  </span>
+                );
+              }}
+            />
+
+            {/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 --
+                공용 .pd-hero 규칙을 그대로 쓰고 자리만 지도 위로 옮깁니다. */}
+            <header className="pd-hero mc-topbar">
+              <AppHeader
+                title={t("내 코스")}
+                time={timeLabel(new Date().toISOString())}
+                onCobalt
+              />
+            </header>
+
+            {!markers.length && (
+              // 빈 지도를 성공처럼 보이게 하지 않습니다. 코스를 고르지 않은
+              // 것 · 조회 중인 것 · 찍을 좌표가 없는 것은 서로 다른 사실이므로
+              // 구분해 말합니다. 조회 중을 「좌표 없음」으로 단정하지 않습니다.
+              <p
+                className="mc-map-note"
+                role={places.error ? "alert" : "status"}
+              >
+                {!selected
+                  ? t("코스를 고르면 정차지를 지도에 찍습니다.")
+                  : (places.error ??
+                    (places.loading
+                      ? t("정차지 좌표를 조회하고 있습니다.")
+                      : t("이 코스의 정차지는 등록 좌표가 없어 지도에 찍지 않았습니다.")))}
+              </p>
+            )}
           </div>
-        </header>
         }
       >
+        <MapSheet
+          title={
+            selected
+              ? selected.name
+              : plans.error
+                ? t("저장 코스 개수 미확인")
+                : plans.loading
+                  ? t("저장 코스 조회 중")
+                  : t("저장 {count}개", { count: courses.length })
+          }
+          expanded={expanded}
+          onToggle={() => setExpanded((value) => !value)}
+          sheetRef={sheet.ref}
+        >
           <p
             className="pd-note mc-lead"
             role={plans.error ?? sessions.error ?? share.error ? "alert" : "status"}
@@ -191,6 +311,8 @@ function MyCoursesScreen() {
                 {first?.name ?? t("첫 장소 없음")} · {first?.at ?? t("일정 시각 없음")}.{" "}
                 {firstTargetValid ? selectedConditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.")}
               </p>
+              {/* 정차지마다 점수를 묻지 않습니다. 아래 펼침은 눌렀을 때만
+                  조회합니다. */}
               <ConditionScoreDetails data={selectedConditions.data} className="pd-note" />
               {selectedStops.map((stop) => <PlanStopScore
                 key={stop.item_id} id={stop.spot_id} name={stop.name} at={stop.at} activity={selected.plan.request.activity}
@@ -245,6 +367,11 @@ function MyCoursesScreen() {
             </div>
           ))}
 
+          {/* 전역 주의 문구입니다. 풀스크린에서는 .pd-body 가 없어 AppShell 이
+              그리지 않으므로 시트 끝에 직접 둡니다 -- 자리를 옮겼을 뿐
+              생략하지 않습니다. */}
+          <AppFootNote />
+        </MapSheet>
       </AppShell>
     </article>
   );

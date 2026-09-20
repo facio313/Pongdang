@@ -409,8 +409,7 @@ function WeekForecast({
       <div className="td-head">
         <span className="pd-dk-kick">
           {t("이번 주 {activity} 예보", { activity: t(activities[activity]) })}</span>
-        <span className="td-head-note">
-          {t("값이 없는 날은 «–»이며 0점이 아닙니다 · 막대는 주간 내 상대 위치")}</span>
+        <span className="td-head-note">{t("막대는 주간 내 상대 위치")}</span>
       </div>
       <div className="td-week">
         {days.map((day) => {

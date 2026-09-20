@@ -1,0 +1,98 @@
+/* 풀스크린 지도 화면의 바텀 시트(MapSheet.tsx). 모바일 지도 · 내 코스가 함께
+   씁니다. 토큰은 셸 루트(.pd-app, pongdang.css)에서 상속받습니다. */
+
+.pd-sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  /* 층위: 지도 핀 3 · 지도 상태 4 · 시트 4 · 탭바 5 · 백드롭 6 · 메뉴 7.
+     시트는 탭바 **아래** 층이므로 본문 아래쪽에 탭바만큼 여백을 둡니다. */
+  z-index: 4;
+  max-height: var(--pd-sheet-h);
+  display: flex;
+  flex-direction: column;
+  /* 상단만 라운드 22. 핸드오프 §4 의 시트 형태 그대로입니다. */
+  border-radius: var(--pd-r-hero) var(--pd-r-hero) 0 0;
+  background: var(--pd-mist);
+  /* 그림자는 한 단계만(디자인 시스템 v2 §01). 지도 위에 떠 있으므로 씁니다. */
+  box-shadow: var(--pd-shadow);
+  /* 200ms 이내(§07). 「동작 줄이기」에서는 pongdang.css 의 전역 규칙이 이
+     전환을 끕니다 -- 시트가 .pd-app 안에 있으므로 그 스코프에 걸립니다. */
+  transition: max-height 180ms ease-out;
+
+  /* 접힘 높이입니다. 화면이 낮으면 시트가 지도를 다 덮고, 높으면 제목만 남아
+     허전하므로 상 · 하한을 둡니다.
+
+     이 높이에는 아래 본문이 탭바를 위해 비워 두는 띠(--pd-tabbar-clearance)가
+     **포함**됩니다. 그만큼 읽을 수 있는 줄이 줄어들므로, 띠 높이를 더해 접힘
+     상태에서도 제목 아래로 한두 줄은 보이게 잡았습니다. */
+  --pd-sheet-h: clamp(216px, 32dvh, 290px);
+}
+.pd-sheet.is-expanded {
+  --pd-sheet-h: 86dvh;
+}
+
+.pd-sheet-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  /* 누를 수 있는 것은 44px 이상입니다. */
+  min-height: var(--pd-touch);
+  padding: 12px 18px 6px;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-sheet-title {
+  font-size: var(--pd-fs-body);
+  font-weight: 700;
+  color: var(--pd-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-sheet-toggle-label {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+}
+
+/* 접어 둬도 계속 눌러야 하는 컨트롤 자리. 본문 스크롤 밖입니다. */
+.pd-sheet-head {
+  flex: none;
+  padding: 6px 18px 0;
+}
+
+.pd-sheet-body {
+  /* 페이지가 아니라 여기가 스크롤합니다. contain 이 없으면 시트 끝에서
+     스크롤이 뒤 지도로 넘어갑니다. */
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 18px 0;
+  /* 스크롤 영역 자체를 탭바 위에서 끝냅니다. **아래 여백(padding)으로는
+     모자랍니다** -- 여백은 마지막 요소만 탭바 위로 밀어 올릴 뿐, 목록 중간의
+     줄을 살짝 스크롤해 꺼내면 그 줄은 스크롤 영역 바닥, 즉 탭바 **밑**에
+     멈춥니다. 눌러야 하는 줄이 거기 서면 누를 수 없습니다.
+
+     margin 은 스크롤 상자 자체를 줄이므로 시트 안 어떤 줄도 탭바 아래로
+     내려가지 않습니다. 시트의 바탕은 그 아래로 계속 이어져 화면 끝까지
+     붙어 있습니다.
+
+     높이를 다시 계산하지 않고 탭바가 선언한 --pd-tabbar-clearance 를 그대로
+     읽습니다 -- 탭바의 터치 높이 · 패딩 · 안전 영역이 바뀌면 이 값도 같이
+     따라와야 하고, 베껴 적은 상수는 그때 조용히 어긋납니다. 그 토큰은
+     ≤1079px 에서만 선언되므로(appTabBar.css) 폴백을 같이 둡니다. */
+  margin-bottom: var(
+    --pd-tabbar-clearance,
+    calc(var(--pd-touch) + 10px + max(10px, env(safe-area-inset-bottom, 0px)) + 12px)
+  );
+}

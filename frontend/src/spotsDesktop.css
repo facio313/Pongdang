@@ -369,7 +369,7 @@
   background: var(--g-bg);
   color: var(--g-ink);
   border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.2);
+  box-shadow: var(--dk-shadow-map);
 }
 
 .pd-desktop .sk-nearby {

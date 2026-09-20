@@ -1,60 +1,14 @@
-/* 데스크탑 지도(18c)에만 있는 것들. 페이지 루트(.pd-desktop)로 스코프합니다 --
-   모바일 지도 화면이 쓰는 .mp-* 와 이름이 겹치지 않게 접두사도 .mk- 로 나눴고,
-   스코프까지 걸어 두 번 막습니다. */
+/* 풀스크린 데스크탑 지도에만 있는 것들. 페이지 루트(.pd-desktop)로 스코프합니다
+   -- 모바일 지도 화면이 쓰는 .mp-* 와 이름이 겹치지 않게 접두사도 .mk- 로 나눴고,
+   스코프까지 걸어 두 번 막습니다.
 
-.pd-desktop .mk-hero {
-  display: flex;
-  align-items: flex-end;
-  gap: 30px;
-}
-.pd-desktop .mk-hero-lead {
-  flex: 1;
-  min-width: 0;
-}
-.pd-desktop .mk-hero-kick {
-  color: var(--dk-sky);
-}
-.pd-desktop .mk-hero-title {
-  font-weight: 700;
-  font-size: 30px;
-  line-height: 1.25;
-  margin: 8px 0 0;
-}
-.pd-desktop .mk-filters {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  padding-bottom: 6px;
-}
-.pd-desktop .mk-filter {
-  font-size: var(--dk-fs-cap);
-  font-weight: 700;
-  color: var(--dk-onc);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  padding: 4px 10px;
-  border-radius: var(--dk-r-pill);
-}
-.pd-desktop .mk-filter.is-on {
-  color: #0f2f7a;
-  background: #fff;
-  border-color: transparent;
-}
+   무대(지도 면 · 패널 격자 · 상단 코발트 띠)는 이 파일에 없습니다. 지도와 내
+   코스가 같은 무대를 쓰므로 pongdangDesktop.css 의 .pd-dk-mapshell 이 단일
+   출처이고, 여기에는 이 화면의 **내용**(목록 줄 · 핀 · 근거)만 남깁니다. */
 
-/* ── 지도 무대 ─────────────────────────────────────────
-   왼쪽 352px 목록 + 오른쪽 지도. 지도가 지배 요소이므로 높이를 크게 둡니다. */
+/* ── 왼쪽 패널: 검색 + 지점 목록 ──────────────────────── */
 
-.pd-desktop .mk-stage {
-  display: grid;
-  grid-template-columns: 352px 1fr;
-  align-items: stretch;
-  border-bottom: 1px solid var(--dk-rule);
-}
-.pd-desktop .mk-side {
-  padding: 44px 26px 44px var(--dk-pad);
-  border-right: 1px solid var(--dk-rule);
-}
-/* 히어로(코발트) 안에 있던 검색을 흰 면의 지점 목록 위로 내렸습니다. */
+/* 검색은 걸러낼 지점 목록 바로 위에 섭니다. */
 .pd-desktop .mk-search {
   display: flex;
   align-items: center;
@@ -144,52 +98,6 @@
   flex: none;
 }
 
-/* 지도 면. KakaoMapCanvas 의 .wim-map-canvas 가 inset:0 으로 깔리므로
-   부모가 position:relative 여야 합니다. */
-.pd-desktop .mk-map {
-  position: relative;
-  min-height: 560px;
-  background: #dfe8f2;
-}
-.pd-desktop .mk-map-badge {
-  position: absolute;
-  left: 18px;
-  top: 18px;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: rgba(15, 47, 122, 0.82);
-  color: var(--dk-onc);
-  font-weight: 700;
-  font-size: var(--dk-fs-cap);
-  padding: 7px 13px;
-  border-radius: var(--dk-r-pill);
-}
-.pd-desktop .mk-map-controls {
-  position: absolute;
-  right: 18px;
-  top: 18px;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-/* 지도 위에 떠 있는 패널은 그림자를 쓰는 유일한 예외입니다 -- 지도 면과
-   분리되어야 눌리는 것으로 읽힙니다. */
-.pd-desktop .mk-map-controls button {
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  display: grid;
-  place-items: center;
-  color: var(--dk-ink);
-  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.18);
-}
-.pd-desktop .mk-map-controls button.is-accent {
-  color: var(--dk-deep);
-}
-
 .pd-desktop .mk-pin {
   position: absolute;
   z-index: 3;
@@ -210,7 +118,7 @@
   background: var(--g-bg);
   color: var(--g-ink);
   border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(20, 44, 72, 0.2);
+  box-shadow: var(--dk-shadow-map);
 }
 .pd-desktop .mk-pin-label {
   font-size: 11px;
@@ -226,131 +134,89 @@
   outline-offset: 2px;
 }
 
-.pd-desktop .mk-panel {
-  position: absolute;
-  left: 18px;
-  bottom: 18px;
-  z-index: 4;
+/* ── 오른쪽 패널: 선택 지점과 그 근거 ──────────────────
+   예전에는 «지도 위 작은 카드(이름 · 점수)» 와 «스크롤을 내려야 나오는 근거
+   행» 이 따로였습니다. 고른 지점에 대해 화면이 할 말은 하나이므로 한 패널에
+   모았습니다.
+
+   .mk-evidence-row · .mk-facility-* 는 지어낸 비율 막대와 늘 「있음」이던 편의
+   시설을 그리던 규칙이었습니다. 그 마크업은 이미 없어졌으므로 규칙도 지웁니다.
+   근거 막대는 공용 ComponentBars 가 그립니다. */
+
+.pd-desktop .mk-evidence-kick {
+  margin-bottom: 14px;
+}
+.pd-desktop .mk-detail-head {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #fff;
-  padding: 14px 18px;
-  max-width: 520px;
-  box-shadow: 0 2px 12px rgba(20, 44, 72, 0.18);
 }
-.pd-desktop .mk-panel img {
+.pd-desktop .mk-detail-head img {
   display: block;
   flex: none;
 }
-.pd-desktop .mk-panel-body {
+.pd-desktop .mk-detail-lead {
   flex: 1;
   min-width: 0;
 }
-.pd-desktop .mk-panel-name {
+.pd-desktop .mk-detail-name {
   font-weight: 700;
   font-size: 15px;
 }
-.pd-desktop .mk-panel-meta {
+.pd-desktop .mk-detail-meta {
   font-size: 11.5px;
   color: var(--dk-ink-2);
   margin-top: 2px;
 }
-.pd-desktop .mk-panel-score {
+/* 점수는 숫자 · 등급명 · 등급 아이콘 · 색 네 겹입니다. 없으면 «–» 이며
+   0 점이 아닙니다. */
+.pd-desktop .mk-detail-score {
   flex: none;
   text-align: right;
   color: var(--g-ink);
 }
-.pd-desktop .mk-panel-score-num {
+.pd-desktop .mk-detail-score-num {
   font-size: 30px;
   line-height: 1;
 }
-.pd-desktop .mk-panel-score-grade {
+.pd-desktop .mk-detail-score-grade {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
   font-weight: 700;
   font-size: var(--dk-fs-cap);
 }
-.pd-desktop .mk-panel-add {
-  flex: none;
-  font-size: 11.5px;
-  padding: 10px 14px;
-  border-radius: 10px;
-}
-
-/* ── 선택 지점 근거 ────────────────────────────────────── */
-
-.pd-desktop .mk-evidence-row {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--dk-rule-weak);
-}
-.pd-desktop .mk-evidence-row:last-child {
-  border-bottom: 0;
-}
-.pd-desktop .mk-evidence-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12.5px;
-  color: var(--dk-ink-3);
-}
-.pd-desktop .mk-evidence-head.is-empty {
-  color: var(--dk-ink-2);
-}
-.pd-desktop .mk-evidence-track {
-  height: 6px;
-  background: #e7eef7;
-  margin-top: 6px;
-}
-.pd-desktop .mk-evidence-fill {
-  display: block;
-  height: 100%;
-  background: var(--dk-blue);
-}
-
-.pd-desktop .mk-facility-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 14px;
-}
-.pd-desktop .mk-facility {
+.pd-desktop .mk-detail-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 14px;
+  margin-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--dk-rule-weak);
+}
+.pd-desktop .mk-evidence-head-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.pd-desktop .mk-evidence-title {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
-}
-.pd-desktop .mk-facility-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #dfeaf7;
-  display: grid;
-  place-items: center;
-  color: var(--dk-deep);
-}
-/* 「정보 없음」은 없음이 아닙니다. 점선 원으로 모름을 형태로도 보여 줍니다. */
-.pd-desktop .mk-facility.is-unknown {
-  color: var(--dk-ink-2);
-}
-.pd-desktop .mk-facility.is-unknown .mk-facility-icon {
-  background: #e7ecf2;
-  color: #4b5563;
+  font-size: 15px;
+  margin: 0;
 }
 .pd-desktop .mk-detail-link {
-  display: inline-block;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--dk-deep);
   text-decoration: none;
-  margin-top: 12px;
 }
-
-@media (max-width: 1240px) {
-  .pd-desktop .mk-stage {
-    grid-template-columns: 300px 1fr;
-  }
-  .pd-desktop .mk-panel {
-    right: 18px;
-    max-width: none;
-  }
+/* 패널 안에서는 주의 문구가 마지막 블록입니다. 화면 아래 괘선 행이 아니라
+   패널 끝이므로 위 여백만 두고 좌우 패딩은 패널 것을 씁니다. */
+.pd-desktop .pd-dk-mappanel .pd-dk-foot {
+  margin-top: auto;
+  padding: 18px 0 0;
 }

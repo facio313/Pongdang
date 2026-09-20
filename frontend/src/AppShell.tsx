@@ -2,6 +2,9 @@ import { t } from "./i18n";
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
+import { LOGO_ALT, logoUrl } from "./brand";
+// 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
+import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import { TravelLanguageNote } from "./TravelLanguageSelector";
 
 /** 본문 흐름을 유지하며 모바일 주요 버튼을 하단 탭 위에 두는 공용 슬롯. */
@@ -33,7 +36,9 @@ export function AppHeader({
         <SideMenuButton />
         <span className="pd-header-time">{time}</span>
       </span>
-      <span className="pd-header-mark">PONGDANG</span>
+      <span className="pd-header-mark">
+        <img src={logoUrl()} alt={t(LOGO_ALT)} />
+      </span>
       <span>{title}</span>
     </div>
   );
@@ -47,7 +52,39 @@ export function AppHeader({
  *  데스크탑의 대응물은 pongdangDesktop.tsx 의 FootNote 입니다. */
 export function AppFootNote() {
   return (
-    <footer className="pd-foot">{t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</footer>
+    <footer className="pd-foot">
+      {/* 히어로가 코발트에서 본문으로 내려오는 물결을, 푸터는 거꾸로 세워
+          본문에서 코발트로 되돌립니다. 굴곡은 같은 waveShape.ts 를 쓰고 CSS 가
+          scaleY(-1) 로 뒤집습니다 -- 화면 위아래가 같은 물이어야 합니다. */}
+      <div className="pd-foot-anim" aria-hidden="true">
+        <svg
+          className="pd-foot-wave-back"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} />
+        </svg>
+        <svg
+          className="pd-foot-wave-front"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} opacity="0.5" />
+        </svg>
+      </div>
+      <svg
+        className="pd-foot-wave"
+        viewBox="0 0 1440 58"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path d={WAVE_PATH} />
+      </svg>
+
+      <div className="pd-foot-body">
+        {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
+        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />{t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</div>
+    </footer>
   );
 }
 
@@ -71,18 +108,26 @@ export function AppShell({
   title,
   hero,
   bare = false,
+  fullscreen = false,
   children,
 }: {
   tab: TabKey;
   title?: string;
   hero?: ReactNode;
   bare?: boolean;
+  /** 지도가 프레임을 다 쓰는 화면(지도 · 내 코스). 프레임 높이를 뷰포트에
+   *  고정하고 페이지 스크롤을 끕니다 -- 넘치는 내용은 지도 위에 뜬 바텀 시트
+   *  **안에서만** 스크롤합니다. 탭바 슬롯도 자리를 비웁니다.
+   *
+   *  이 모드는 bare 와 함께 씁니다. .pd-body 가 없으므로 AppFootNote 도 여기서
+   *  그리지 않습니다 -- 전역 주의 문구는 화면이 시트 안 마지막에 직접 둡니다. */
+  fullscreen?: boolean;
   children: ReactNode;
 }) {
   return (
     <SideMenuProvider>
-      <div className="pd-app">
-        <div className="pd-frame">
+      <div className={"pd-app" + (fullscreen ? " is-fullscreen" : "")}>
+        <div className={"pd-frame" + (fullscreen ? " is-fullscreen" : "")}>
           {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
           {tab === "recommend" && <TravelLanguageNote />}
           {bare ? (
@@ -93,7 +138,7 @@ export function AppShell({
               <AppFootNote />
             </div>
           )}
-          <AppTabBar active={tab} />
+          <AppTabBar active={tab} floating={fullscreen} />
           {/* 토큰이 .pd-app 에 있으므로 메뉴 패널도 그 안에서 그립니다. */}
           <SideMenuOutlet />
         </div>

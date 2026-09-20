@@ -5,7 +5,7 @@ import { MapDesktop } from "./MapDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { GradeChip, Icon, Skeleton, StateChip, type IconName } from "./pongdangUi";
-import { AppHeader, AppShell } from "./AppShell";
+import { AppFootNote, AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
@@ -42,7 +42,21 @@ import {
 } from "./RouteRequestForm";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { MapSheet } from "./MapSheet";
+import { useSheetHeight } from "./useSheetHeight";
 import "./mapPage.css";
+
+// 모바일 지도입니다. 지도가 프레임을 다 쓰고, 헤더 · 검색 · 시트가 그 위에
+// 뜹니다.
+//
+// 예전에는 지도가 화면 위쪽 고정 높이 띠(clamp(280px,42dvh,380px))였고 그 아래
+// «시트»는 사실 페이지와 함께 스크롤되는 블록이었습니다. 지점 정보를 읽으려면
+// 지도를 화면 밖으로 밀어내야 했습니다.
+//
+// 디자인 시스템 v2 는 그대로입니다: 히어로 레이어의 역할이 원래 「오늘의 상태 ·
+// 지도 · 라이브캠」이므로(§01) 지도 면이 곧 히어로 레이어이고, 코발트 면은 위
+// 헤더 띠 하나뿐입니다(§07 히어로는 화면당 하나). 근거 · 폼 · 상태 칩은 전부
+// 밝은 레이어인 시트 안에 둡니다(§07).
 
 type View = "spots" | "course";
 interface Spot extends Place {
@@ -60,6 +74,7 @@ function Stage({
   places,
   search,
   setSearch,
+  sheetHeight,
 }: {
   view: View;
   selectedSpotId: number | null;
@@ -68,6 +83,8 @@ function Stage({
   places: Place[];
   search: string;
   setSearch: (value: string) => void;
+  /** 시트가 지도를 덮는 높이. 핀이 시트 뒤로 숨으면 고를 수 없습니다. */
+  sheetHeight: number;
 }) {
   const session = useTravelSession();
   const calculated = session.route?.route;
@@ -97,10 +114,67 @@ function Stage({
   );
   return (
     <div className="mp-stage">
-      <AppHeader
-        title={view === "spots" ? t("지도") : t("코스 지도")}
-        time={timeLabel(new Date().toISOString())}
+      <KakaoMapCanvas
+        markers={markers}
+        paths={paths}
+        selectedId={selectedSpotId === null ? null : String(selectedSpotId)}
+        // 위는 코발트 헤더 + 검색 알약이, 아래는 시트가 덮습니다. 덮인 만큼
+        // 여백을 잡아야 핀이 그 뒤로 숨지 않습니다.
+        insets={{ top: 104, right: 16, bottom: sheetHeight + 12, left: 16 }}
+        renderMarker={(id) => {
+          if (id === "origin")
+            return (
+              <span className="mp-pin is-origin">
+                <span className="mp-pin-ring">
+                  <span className="mp-pin-core">{t("출발")}</span>
+                </span>
+                <span className="mp-pin-label">{start?.label ?? t("출발지")}</span>
+              </span>
+            );
+          const spot = spots.find((item) => item.id === Number(id));
+          if (!spot) return null;
+          const grade = gradeOf(spot.score);
+          return (
+            <button
+              type="button"
+              className={
+                "mp-pin" + (spot.id === selectedSpotId ? " is-selected" : "")
+              }
+              data-inline-pin="true"
+              aria-pressed={spot.id === selectedSpotId}
+              aria-label={spot.name}
+              onClick={() => onSelectSpot(spot.id)}
+            >
+              <span
+                className="mp-pin-ring"
+                style={{
+                  background: "conic-gradient(rgba(27,39,51,.16) 0 100%)",
+                }}
+              >
+                <span className="mp-pin-core" style={{ color: grade.color }}>
+                  {view === "course"
+                    ? courseIds.indexOf(spot.id) + 1
+                    : (spot.score ?? "–")}
+                </span>
+              </span>
+              <span className="mp-pin-label">
+                {spot.name} {spot.score ?? "–"}
+              </span>
+            </button>
+          );
+        }}
       />
+
+      {/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 -- 공용
+          .pd-hero 규칙(코발트 · 하단 라운드 22 · 히어로 그림자)을 그대로 쓰고
+          자리만 지도 위로 옮깁니다. 반투명 스크림을 새로 만들지 않습니다. */}
+      <header className="pd-hero mp-topbar">
+        <AppHeader
+          title={view === "spots" ? t("지도") : t("코스 지도")}
+          time={timeLabel(new Date().toISOString())}
+          onCobalt
+        />
+      </header>
 
       {view === "spots" ? (
         <label className="mp-searchbar">
@@ -121,58 +195,6 @@ function Stage({
           {t("선택 코스 · {count}곳 · {minutes}", { count: courseIds.length, minutes: session.route?.route ? t("{minutes}분 이동", { minutes: session.route.route.travel_minutes }) : t("경로 계산 전") })}
         </div>
       )}
-
-      <div className="pd-slot mp-tile-slot">
-        <KakaoMapCanvas
-          markers={markers}
-          paths={paths}
-          selectedId={selectedSpotId === null ? null : String(selectedSpotId)}
-          renderMarker={(id) => {
-            if (id === "origin")
-              return (
-                <span className="mp-pin is-origin">
-                  <span className="mp-pin-ring">
-                    <span className="mp-pin-core">{t("출발")}</span>
-                  </span>
-                  <span className="mp-pin-label">
-                    {start?.label ?? t("출발지")}
-                  </span>
-                </span>
-              );
-            const spot = spots.find((item) => item.id === Number(id));
-            if (!spot) return null;
-            const grade = gradeOf(spot.score);
-            return (
-              <button
-                type="button"
-                className={
-                  "mp-pin" + (spot.id === selectedSpotId ? " is-selected" : "")
-                }
-                data-inline-pin="true"
-                aria-pressed={spot.id === selectedSpotId}
-                aria-label={spot.name}
-                onClick={() => onSelectSpot(spot.id)}
-              >
-                <span
-                  className="mp-pin-ring"
-                  style={{
-                    background: "conic-gradient(rgba(27,39,51,.16) 0 100%)",
-                  }}
-                >
-                  <span className="mp-pin-core" style={{ color: grade.color }}>
-                    {view === "course"
-                      ? courseIds.indexOf(spot.id) + 1
-                      : (spot.score ?? "–")}
-                  </span>
-                </span>
-                <span className="mp-pin-label">
-                  {spot.name} {spot.score ?? "–"}
-                </span>
-              </button>
-            );
-          }}
-        />
-      </div>
     </div>
   );
 }
@@ -605,41 +627,53 @@ function MapScreen() {
             : {}),
         });
     });
+  const sheet = useSheetHeight();
+  const [expanded, setExpanded] = useState(false);
   return (
     <article className="map-page">
       <AppShell
         tab="map"
         bare
+        fullscreen
         hero={
           <Stage
-          view={view}
-          spots={spots}
-          places={raw}
-          selectedSpotId={selected?.id ?? null}
-          onSelectSpot={setSelectedSpotId}
-          search={search}
-          setSearch={(value) => {
-            setSearch(value);
-            setSelectedSpotId(null);
-          }}
+            view={view}
+            spots={spots}
+            places={raw}
+            selectedSpotId={selected?.id ?? null}
+            onSelectSpot={setSelectedSpotId}
+            search={search}
+            setSearch={(value) => {
+              setSearch(value);
+              setSelectedSpotId(null);
+            }}
+            sheetHeight={sheet.height}
           />
         }
       >
-        <div className="mp-sheet">
-          <div className="mp-handle" aria-hidden="true" />
-          <div className="mp-switch" role="group" aria-label={t("지도 보기 전환")}>
-            {(["spots", "course"] as const).map((key) => (
-              <button
-                type="button"
-                key={key}
-                className={"mp-switch-item" + (view === key ? " is-on" : "")}
-                aria-pressed={view === key}
-                onClick={() => setView(key)}
-              >
-                {key === "spots" ? t("지점 보기") : t("코스 경로")}
-              </button>
-            ))}
-          </div>
+        <MapSheet
+          title={
+            view === "spots" ? (spot?.name ?? t("지점 정보")) : t("선택 코스 경로")
+          }
+          expanded={expanded}
+          onToggle={() => setExpanded((value) => !value)}
+          sheetRef={sheet.ref}
+          head={
+            <div className="mp-switch" role="group" aria-label={t("지도 보기 전환")}>
+              {(["spots", "course"] as const).map((key) => (
+                <button
+                  type="button"
+                  key={key}
+                  className={"mp-switch-item" + (view === key ? " is-on" : "")}
+                  aria-pressed={view === key}
+                  onClick={() => setView(key)}
+                >
+                  {key === "spots" ? t("지점 보기") : t("코스 경로")}
+                </button>
+              ))}
+            </div>
+          }
+        >
           <fieldset className="mp-fieldset" disabled={action.busy}>
             {view === "spots" && <>
               <WaterPlaceFilters
@@ -713,7 +747,11 @@ function MapScreen() {
                 <br />{t("샤워장 · 주차 · 카페 · 반려동물 가능")}<br />{t("시설 근거별 필터 화면 미작성")}</div>
             </div>
           </fieldset>
-        </div>
+          {/* 전역 주의 문구입니다. 풀스크린에서는 .pd-body 가 없어 AppShell 이
+              그리지 않으므로 시트 끝에 직접 둡니다 -- 자리를 옮겼을 뿐
+              생략하지 않습니다. */}
+          <AppFootNote />
+        </MapSheet>
       </AppShell>
     </article>
   );

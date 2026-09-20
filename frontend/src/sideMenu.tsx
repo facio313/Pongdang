@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Icon, StateChip } from "./pongdangUi";
+import { LOGO_ALT, logoUrl } from "./brand";
 import { TravelLanguageSelector } from "./TravelLanguageSelector";
 import "./sideMenu.css";
 
@@ -126,7 +127,9 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
       >
         <div className="pd-menu-head">
           <div className="pd-menu-head-top">
-            <span className="pd-header-mark">PONGDANG</span>
+            <span className="pd-header-mark">
+              <img src={logoUrl()} alt={t(LOGO_ALT)} />
+            </span>
             <button
               type="button"
               className="pd-menu-close"

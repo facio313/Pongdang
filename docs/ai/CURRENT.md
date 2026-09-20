@@ -1,4 +1,13 @@
-# 현재 작업 · 언어 전환 main 통합 및 운영 배포 완료 · 2026-09-21
+# 현재 작업 · 강원도 확대 main 통합 및 운영 배포 · 2026-09-21
+
+- 사용자 승인: 최신 GitHub main 반영, 기존 강원도 확장 병합·충돌 해결, dev 검증 후 main push 및 운영 배포.
+- 기준 main `281f4e5`, 확장 원본 `4dd1938`. 28개 파일의 충돌을 확인했고 최신 로고·푸터·전체 화면 지도·내 코스·다국어 UI를 보존하면서 지역/장소 선택을 결합했다.
+- 실제 수집 DB가 아닌 별도 `55469/pongdang_test`에서 통합 검증을 진행한다. 운영 DB는 기존 배포 initialize의 추가형 v9 → v10 마이그레이션으로만 갱신한다.
+- iCloud Git 객체 읽기 지연을 피하려 별도 `/Users/cksmacbook/.cache/pongdang-gangwon-release-20260921`에서 작업한다. 원본 작업의 패치와 커밋 tree/SHA가 정확히 일치함을 검증했다. 백업: `/Users/cksmacbook/.codex/backups/pongdang-gangwon-release-20260921-053525`.
+- 구현과 범위 제한: [GANGWON-EXPANSION.md](GANGWON-EXPANSION.md). 관광·장소 검색은 강원도 전체, 실시간 관측·안전 근거의 공간 범위는 제공처별로 제한된다.
+- 통합 후 로컬 frontend lint/123 unit/type/build, backend Ruff/1,266 tests 통과(로컬 Docker 미설치 2 skip). 전체 browser 140개 중 139개 통과 후 최신 main 지도 요소명으로 테스트 선택자 1개를 정정했고 해당 지역/페이지 회귀 4개가 모두 통과했다. 제품 코드의 미해결 실패 없음. 다음 단계는 dev CI → 동일 커밋 main CI 및 자동 배포 확인이다.
+
+# 이전 작업 · 언어 전환 main 통합 및 운영 배포 완료 · 2026-09-21
 
 - 사용자 요청 완료: 최신 main `a047dce`의 전체 화면 지도·내 코스, 로고·파비콘·푸터를 보존하고 화면 언어 전환을 통합했다. 언어 변경 커밋은 `281f4e5927d36e76fb3b78935bb75e37be571554`이며 원격 main/dev 모두 같은 SHA다.
 - dev CI [35534550705](https://github.com/facio313/Pongdang/actions/runs/35534550705) 전체 성공 후 동일 커밋을 main에 push했다. main CI·운영 배포 [35535120595](https://github.com/facio313/Pongdang/actions/runs/35535120595)도 전체 성공했다.

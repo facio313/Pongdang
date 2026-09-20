@@ -8,6 +8,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <!-- 로고 원본(public/logo.png)은 2172x724 가로형이라 그대로 줄이면 16px
+         탭 아이콘에서 글자가 뭉갭니다. 첫 글자 `p` 한 자만 잘라 썼습니다.
+         절대경로(/favicon.png)를 쓰면 안 됩니다 -- 운영 배포는 `/pongdang/`
+         하위이고 Vite base 는 APP_BASE_PATH 로 바뀝니다. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./favicon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>Pongdang</title>
   </head>
   <body>
