@@ -108,7 +108,7 @@ class SummaryQuery(BaseModel):
     def ids(self) -> tuple[int, ...]:
         parts = self.spot_ids.split(",")
         if not 1 <= len(parts) <= SUMMARY_BATCH_MAX:
-            raise ValueError("between one and %d IDs" % SUMMARY_BATCH_MAX)
+            raise ValueError(f"between one and {SUMMARY_BATCH_MAX} IDs")
         ids = []
         for part in parts:
             if not part.isascii() or not part.isdecimal():

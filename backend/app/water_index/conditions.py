@@ -375,9 +375,10 @@ def summary_expiry(envelope: ConditionsEnvelope) -> AwareDatetime | None:
     만료를 모르면 「낡은 값을 계속 보여 주거나」 「쉬지 않고 다시 묻거나」
     둘 중 하나가 됩니다. 규칙은 화면 쪽과 같아야 합니다.
     """
+    score = envelope.condition_score
     used = {
         (c.metric, c.station_id)
-        for c in (envelope.condition_score.components if envelope.condition_score else ())
+        for c in (score.components if score else ())
         if c.status == "evaluated" and c.score is not None
     }
     shown = {(d.name, d.station_id) for d in envelope.display_metrics}
