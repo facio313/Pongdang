@@ -106,6 +106,24 @@ main:has(.pd-desktop) {
   gap: 30px;
   padding: 24px var(--dk-pad) 0;
 }
+/* 사이드 메뉴 손잡이. 모바일과 같은 컴포넌트라 .pd-menu-button 규칙을 그대로
+   받고, 데스크탑 팔레트(--dk-*)로만 덮습니다. 네비가 흰 배경 위에 얹히는
+   화면(명소 상세)에서는 코발트 잉크로 돌려놓습니다. */
+.pd-dk-nav .pd-menu-button {
+  margin-left: 0;
+  border-color: var(--dk-glass-line);
+  background: var(--dk-glass);
+  color: var(--dk-onc);
+}
+.pd-dk-nav.is-on-surface .pd-menu-button {
+  border-color: var(--dk-line);
+  background: var(--dk-mist);
+  color: var(--dk-ink);
+}
+/* 메뉴 패널만 담는 껍데기라 흐름에서 자리를 차지하면 안 됩니다. */
+.pd-desktop-menu-root {
+  display: contents;
+}
 .pd-dk-nav-mark {
   font-family: var(--dk-font-num);
   font-weight: 700;

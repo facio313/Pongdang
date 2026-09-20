@@ -21,7 +21,10 @@ const MENU_ITEMS: {
   { label: "알림 설정", href: "#first-swim" },
   { label: "데이터 출처와 갱신", href: "#info" },
   { label: "이용 안내", href: "#info" },
-  { label: "설정", href: "#recommend" },
+  // 「설정」은 #recommend 로 갔습니다. 거기는 설정 화면이 아니라 추천 탭이고,
+  // 탭바에서 이미 갈 수 있는 곳입니다. 설정 화면이 생기기 전까지는 그 이름으로
+  // 다른 곳에 데려다 놓지 않습니다.
+  { label: "설정", state: "uncollected" },
 ];
 
 /** 메뉴를 여는 손잡이입니다. 셸(AppShell)이 상태를 들고 있고, 헤더 안의
@@ -171,8 +174,8 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
           )}
         </nav>
         <p className="pd-menu-note">
-          개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 설정에서 추천
-          취향을 변경할 수 있습니다.
+          개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 추천 취향은
+          추천 탭의 취향 단계에서 바꿉니다.
         </p>
       </div>
     </>

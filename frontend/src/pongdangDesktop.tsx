@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
+import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon } from "./pongdangUi";
 import "./pongdangDesktop.css";
@@ -45,6 +46,11 @@ export function DesktopNav({
       className={"pd-dk-nav" + (onSurface ? " is-on-surface" : "")}
       aria-label="주요 탭"
     >
+      {/* 탭바가 담는 여행 흐름 밖의 항목(저장한 코스 · 즐겨찾기 · 알림 설정 ·
+          데이터 출처 · 이용 안내)으로 들어가는 유일한 길입니다. 예전에는 이
+          손잡이가 모바일 셸(AppShell)에만 있어서, 1080px 이상에서는 그 다섯
+          곳에 닿을 방법이 전혀 없었습니다. */}
+      <SideMenuButton />
       <a className="pd-dk-nav-mark" href="#home">
         PONGDANG
       </a>
@@ -256,11 +262,21 @@ export function FootNote({
   );
 }
 
-/** 데스크탑 화면의 바깥 껍데기. 토큰 루트(.pd-desktop)와 1600px 상한을 잡습니다. */
+/** 데스크탑 화면의 바깥 껍데기. 토큰 루트(.pd-desktop)와 1600px 상한을 잡고,
+ *  모바일 셸과 같은 사이드 메뉴를 답니다 -- 폭에 따라 갈 수 있는 곳이 달라지면
+ *  안 됩니다. */
 export function DesktopShell({ children }: { children: ReactNode }) {
   return (
-    <div className="pd-desktop">
-      <div className="pd-desktop-page">{children}</div>
-    </div>
+    <SideMenuProvider>
+      <div className="pd-desktop">
+        <div className="pd-desktop-page">{children}</div>
+        {/* 메뉴 패널의 색 토큰(--pd-*)은 `.pd-app` 에 선언돼 있습니다. 여기는
+            `--dk-*` 팔레트라 그 안에 그대로 두면 흰 패널이 투명해집니다.
+            패널은 position: fixed 라 이 껍데기가 자리를 차지하지 않습니다. */}
+        <div className="pd-app pd-desktop-menu-root">
+          <SideMenuOutlet />
+        </div>
+      </div>
+    </SideMenuProvider>
   );
 }

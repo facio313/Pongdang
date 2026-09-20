@@ -92,3 +92,42 @@ test("desktop courses says there is no saved course rather than showing one", as
   await expect(body).not.toContainText("순서 바꾸기");
   await page.screenshot({ path: "test-results/courses-desktop.png", fullPage: true });
 });
+
+test("데스크탑 여섯 화면 모두에서 사이드 메뉴가 열린다", async ({ page }) => {
+  // 사이드 메뉴는 모바일 셸(AppShell)에만 달려 있었습니다. 데스크탑 화면은
+  // DesktopShell 을 쓰므로 컨텍스트 밖이라 손잡이가 null 을 반환했고,
+  // 1080px 이상에서는 저장한 코스 · 지점 즐겨찾기 · 알림 설정 · 데이터 출처 ·
+  // 이용 안내에 닿을 길이 **전혀 없었습니다**. 탭바가 담는 여행 흐름 밖의
+  // 항목들이라 다른 입구도 없습니다.
+  for (const route of ["#home", "#today", "#spots", "#map", "#recommend", "#my-courses"]) {
+    await page.goto(route);
+    await expect(page.locator(".pd-desktop")).toBeVisible();
+    const handle = page.getByRole("button", { name: "사이드 메뉴 열기" });
+    await expect(handle, `${route} 에 메뉴 손잡이가 없습니다`).toBeVisible();
+    await handle.click();
+    const menu = page.locator(".pd-menu");
+    await expect(menu).toBeVisible();
+    // 패널이 실제로 보이는지. 토큰이 풀리면 흰 배경이 투명해져 글자만 뜹니다.
+    await expect(menu).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(menu).toContainText("저장한 코스");
+    await expect(menu).toContainText("지점 즐겨찾기");
+    // 눌러도 아무 데도 가지 않는 항목은 링크가 아니라 미수집으로 둡니다.
+    // (이름은 정확히 비교합니다 -- 「알림 설정」에 부분 일치하면 안 됩니다.)
+    await expect(
+      menu.getByRole("link", { name: "설정", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      menu.getByRole("button", { name: /^설정/, disabled: true }),
+    ).toHaveCount(1);
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("데스크탑 사이드 메뉴 항목은 실제로 그 화면을 연다", async ({ page }) => {
+  await page.goto("#home");
+  await page.getByRole("button", { name: "사이드 메뉴 열기" }).click();
+  await page.locator(".pd-menu").getByRole("link", { name: "저장한 코스" }).click();
+  await expect(page).toHaveURL(/#my-courses$/);
+  // 해시가 바뀌면 메뉴는 열린 채로 남지 않습니다.
+  await expect(page.locator(".pd-menu")).toHaveCount(0);
+});
