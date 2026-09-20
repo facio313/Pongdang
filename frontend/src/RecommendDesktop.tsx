@@ -10,7 +10,7 @@ import {
 } from "./pongdangDesktop";
 import { Icon, StateChip } from "./pongdangUi";
 import { AiSuggestion } from "./pongdangUi";
-import { dateLabel, kstDate, timeLabel } from "./productData";
+import { dataStatusText, dateLabel, kstDate, timeLabel } from "./productData";
 import { useAction } from "./useAction";
 import { useResource } from "./useResource";
 import {
@@ -407,7 +407,7 @@ export function RecommendDesktop() {
               headline={`대화 ${asked}턴 · ${listHeadline}`}
               basis={
                 recommendation
-                  ? `조회 ${timeLabel(recommendation.queried_at)} KST · 상태 ${recommendation.status} · ${recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`
+                  ? `조회 ${timeLabel(recommendation.queried_at)} KST · 상태 ${dataStatusText(recommendation.status)} · ${recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`
                   : "아직 서버 조회 결과가 없습니다. 조건을 보내면 실제 장소를 조회합니다."
               }
             />

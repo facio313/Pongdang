@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 
+/** 본문 흐름을 유지하며 모바일 주요 버튼을 하단 탭 위에 두는 공용 슬롯. */
+export function AppActions({ children }: { children: ReactNode }) {
+  return <div className="pd-action-slot">{children}</div>;
+}
+
 /** 화면 상단 헤더. 화면마다 복붙돼 있던 상태바 마크업을 대신합니다.
  *
  *  시계는 데스크톱의 목업 폰 프레임에서만 보입니다. 실기기(풀블리드)에서는

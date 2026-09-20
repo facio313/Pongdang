@@ -46,6 +46,23 @@ test("desktop footnotes reflect connected photos and activity scoring, with read
   await expect(page.locator(".pd-state-chip").filter({ hasText: /^(no_data|partial)$/ })).toHaveCount(0);
 });
 
+test("desktop recommendation evidence explains the returned status in Korean", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("#recommend");
+  const responsePromise = page.waitForResponse((response) =>
+    response.url().endsWith("/api/data/travel/recommendations") &&
+    response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "이 조건으로 후보 찾기", exact: true }).click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  expect((await response.json()).status).toBe("partial");
+  const evidence = page.locator(".rd-answer .pd-ai-basis");
+  await expect(evidence).toContainText("상태 일부 자료");
+  await expect(evidence).not.toContainText(/\b(no_data|partial|unavailable|evaluated)\b/);
+  await expect(page.locator(".pd-desktop")).not.toContainText(/\b(no_data|partial|unavailable|evaluated)\b/);
+});
+
 test("mobile preferences describe the existing save flow and show saved choices after reload", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 1000 });
   let stored = { revision: 0, preference: { tags: [] as string[] } };
@@ -86,3 +103,16 @@ test("mobile preferences describe the existing save flow and show saved choices 
   await expect(preferenceCard).toContainText("선택 후 저장");
   await expect(preferenceCard).not.toContainText("수집 미구현");
 });
+
+
+for (const width of [390, 1440]) {
+  test(`${width}px product screens keep internal data status codes out of body copy`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    for (const hash of ["#home", "#today", "#recommend", "#spots", "#map", "#my-courses"]) {
+      await page.goto(hash);
+      await expect(page.locator(`nav a[aria-current="page"][href="${hash}"]`)).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("main"), hash).not.toContainText(/\b(no_data|partial|unavailable|evaluated)\b/);
+    }
+  });
+}

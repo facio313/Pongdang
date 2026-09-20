@@ -191,6 +191,7 @@ test("forecast date changes display that date's server score and clear unavailab
   await page.locator(".td-bar").first().click();
   await expect(page.locator(".td-bar-detail .pd-grade-chip-num")).toHaveText("64.2");
   expect(new Set(targetDates.filter((value) => value.endsWith("T03:00:00.000Z"))).size).toBe(7);
+  await page.unrouteAll({ behavior: "wait" });
 });
 
 test("mobile weekly forecast reports failed reads instead of missing scores", async ({ page }) => {

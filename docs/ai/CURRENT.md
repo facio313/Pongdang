@@ -1,4 +1,30 @@
-# 현재 작업 · report.md 선별 결함 수정
+# 현재 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
+
+- 사용자 승인: 현재 수정 커밋, 도구 브랜치 통합/삭제, main 머지·푸시·운영 배포. 앞 작업의 푸시·배포 금지는 이 후속 승인으로 해제됐다. .env·SSO·키·데이터 변경은 요청 범위가 아니다.
+- 목표: 로컬·origin에 main, dev, feature/connect, feature/today-page, feature/api만 유지. feat/today-page는 feature/today-page로 이름을 맞춘다. 유효한 변경과 사용자 로컬 파일을 보존하고 dev CI → main CI/자동 배포를 거친다.
+- 시작: 현재 feature/connect-cursor 4a20c72와 검증된 미커밋 수정, origin/dev d6538fa, origin/main 9e6055f. main에 화면·추천 단계·지도 조회 개선 9개 커밋이 있으므로 통합 후 재검증 필요.
+- 모든 worktree 상태 확인: 주 작업 트리에만 이번 수정과 report.md/.byeori가 있다. feature/connect 및 codex/report-md 트리는 tracked 변경 없음. .byeori는 로컬 파일로 보존한다.
+- 삭제 후보는 대부분 현재 계보에 포함된다. Cursor d86cee2는 오래된 별도 추천 실험과 ` 2.py`/` 2.mjs` 복사본을 포함하므로 현재 흐름과 대조해 통합/퇴역을 결정한다. 삭제 전에 원래 refs와 전체 이력을 별도 Git bundle로 보존한다.
+- 다음: 검증된 수정 커밋 → 최신 main 통합·필요한 충돌 해결 → 전체 검사·dev CI → main 푸시·배포 확인 → 불필요 refs/worktree 정리.
+
+# 이전 작업 · R37 노트 겹침 / 카드 신호 / 태그 중복 · 2026-09-21
+
+- 범위: STEP 1 노트와 sticky CTA 겹침, STEP 2 신호의 전면 busy 차단, 서로 다른 카테고리의 같은 라벨 중복 전송만 수정. 기존 변경과 R37/R22/R60 완료 상태·23개 집계 유지. 커밋·푸시·배포·.env·SSO·키·스키마 변경 없음.
+- 구현: STEP 1 태그 간격과 CTA 높이 여유 공간, 카드 진행과 POST signals 분리 및 인라인 실패 안내, 전송 태그 문자열 Set 중복 제거. 카테고리 ID와 저장/후보/경로 액션의 busy·중복 제출 방지는 유지.
+- 검증 완료: 수정 전 신규 회귀 3개 실패 재현. 최종 frontend lint/106 unit/build, 전체 browser 115개 통과. backend Ruff/format 및 pytest 1160 passed, 2 skipped, 2 warnings. lint/browser 동시 실행의 test-results 경합은 종료 후 순차 검사로 해소했다.
+- 컴퓨터 유즈: 390×844 #recommend scrollY=0, note bottom=710.92, slot top=724, CTA bottom=768, tab top=780. CTA 실제 클릭→STEP 2. 좋아요/패스→다음 카드·busy=false·토스트 없음·오늘 탭 클릭 성공. 장소 온천+활동 온천 포함 저장 PUT200, GET tags=[물 보며 쉬기, 온천, 서핑], 빈 후보에서도 저장 안내 확인. 검증 후 원래 취향 복구·재조회 완료.
+- 격리: 실제 화면 5173/8000/51906 pongdang_test 유지; 자동 검사용 새 51907 pongdang_test는 종료. 운영 DB 접근 없음. 로그 `/tmp/pongdang-r37-residual-*`; 상세 [REPORT-R37-RESIDUALS-2026-09-21.md](REPORT-R37-RESIDUALS-2026-09-21.md).
+- 요청한 세 잔여 수정·검증 완료. report.md는 작업 시작 복사본과 바이트 단위로 동일하다. 명시적 제외 항목은 그대로 유지한다.
+
+# 이전 작업 · R37 / R22 / R60 완료 기준 수정
+
+- 목표: 추천 핵심 CTA의 하단 탭 겹침, 제품 문장의 원본 자료 상태 코드, 취향 마법사의 서버 선택 한도 불일치만 수정한다.
+- 브랜치 `feature/connect-cursor`, 기준 `4a20c72`. 커밋·푸시·배포·.env·SSO·키·DB 스키마·점수 계산식 변경 없음. 기존 사용자 `report.md`는 세 항목의 상태 행만 최종 결과로 갱신했고 `.byeori/`는 보존했다.
+- 구현과 컴퓨터 유즈 확인 완료. frontend lint/106 unit/build, backend Ruff/1160 pytest 통과. 전체 browser 110개 통과(기존 예보 테스트 응답 종료 경쟁 보완).
+- 로컬 실제 클릭은 5173/8000/51906 `pongdang_test`, 자동 검사는 별도 51907 `pongdang_test`를 사용하고 종료했다. 기존 확인 서버는 유지했으며 운영 DB는 사용하지 않았다.
+- 상세 근거: [REPORT-COMPLETION-FIXES-2026-09-20.md](REPORT-COMPLETION-FIXES-2026-09-20.md). 요청한 세 항목의 잔여 작업 없음. Docker CLI가 없어 Compose 검사 2건은 skip이다.
+
+# 이전 작업 · report.md 선별 결함 수정
 
 - 최종 구현·검증: [REPORT-FIXES-2026-09-20.md](REPORT-FIXES-2026-09-20.md). 지정한 29개 항목과 컴퓨터 유즈에서 추가 재현한 R04 빈 region 422 / R04·R05 실제 해변 station 404를 수정했다. 실제 송정해수욕장 즐겨찾기·초안·코스 저장 및 재조회, 송정해변 초안 추가를 로컬 실제 데이터 복사본(pongdang_test)에서 확인했다.
 - 최종 검사: 프론트 lint / 106 tests / build, 브라우저 101 tests, 백엔드 Ruff lint/format / 1,160 tests 통과. Docker CLI 부재 Compose 2 skips, 기존 deprecation 2 warnings. 자동 검증은 별도 pongdang_test(51907)에서 수행했다.

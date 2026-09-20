@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppActions } from "./AppShell";
 import { kstDate, timeLabel } from "./productData";
 import { originFromPlace, type Origin } from "./travelApi";
 import "./routeRequestForm.css";
@@ -291,14 +292,16 @@ export function RouteRequestForm({
         </fieldset>
       )}
 
-      <button
-        type="button"
-        className="rt-submit"
-        disabled={disabled}
-        onClick={submit}
-      >
-        {submitLabel}
-      </button>
+      <AppActions>
+        <button
+          type="button"
+          className="rt-submit"
+          disabled={disabled}
+          onClick={submit}
+        >
+          {submitLabel}
+        </button>
+      </AppActions>
       {problem && (
         <p className="pd-note rt-problem" role="alert">
           {problem}

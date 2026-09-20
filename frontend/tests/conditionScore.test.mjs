@@ -91,6 +91,10 @@ test('server status enums reach the screen as sentences, and unknown never reads
   assert.equal(dataStatusText(undefined), '');
   assert.match(dataStatusText('no_forecast_data'), /연결된 예보 자료 없음/);
   assert.match(dataStatusText('outside_forecast_horizon'), /예보 지원 기간 밖/);
+  assert.equal(dataStatusText('no_data'), '자료 없음');
+  assert.equal(dataStatusText('partial'), '일부 자료');
+  assert.equal(dataStatusText('unavailable'), '제공 불가');
+  assert.equal(dataStatusText('evaluated'), '평가 완료');
   // 모르는 코드를 유리한 상태로 바꾸지 않고 코드를 남깁니다.
   assert.match(dataStatusText('some_new_code'), /자료 상태 some_new_code/);
 });

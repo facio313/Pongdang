@@ -176,6 +176,10 @@ export function safetyStatusText(data?: Conditions) {
  *  유리한 상태로 매핑하지 않고 코드를 그대로 남깁니다. */
 export const DATA_STATUS: Record<string, string> = {
   available: "",
+  no_data: "자료 없음",
+  partial: "일부 자료",
+  unavailable: "제공 불가",
+  evaluated: "평가 완료",
   no_forecast_data: "연결된 예보 자료 없음.",
   outside_forecast_horizon: "예보 지원 기간 밖입니다.",
   missing_within_horizon: "지원 기간 안이지만 해당 시각의 자료가 없습니다.",

@@ -2,6 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
+test.afterEach(async ({ page }) => {
+  // Finish in-flight forecast handlers before Playwright disposes their responses.
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 const forecastsPath = "**/api/data/water-forecast/forecasts?**";
 const week = (page: Page) => page.getByRole("region", { name: "7일 예보", exact: true });
 

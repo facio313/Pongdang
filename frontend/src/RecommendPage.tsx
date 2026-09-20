@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { RecommendDesktop } from "./RecommendDesktop";
 import { useIsDesktop } from "./useIsDesktop";
@@ -11,7 +11,7 @@ import {
   StateChip,
   type IconName,
 } from "./pongdangUi";
-import { AppHeader, AppShell } from "./AppShell";
+import { AppActions, AppHeader, AppShell } from "./AppShell";
 import { useResource } from "./useResource";
 import { useAction } from "./useAction";
 import { useConditionDays } from "./useConditionDays";
@@ -23,6 +23,7 @@ import {
   conditionScore,
   conditionScoreText,
   conditionTargetInRange,
+  dataStatusText,
   dateLabel,
   kstDate,
   metricText,
@@ -109,6 +110,7 @@ function ExampleNote({ children }: { children: React.ReactNode }) {
 function EntryStep({
   shortcuts,
   picked,
+  canPick,
   togglePick,
   onChat,
   onTags,
@@ -117,6 +119,7 @@ function EntryStep({
    *  안에 박혀 있었고, 그 중 「카페」는 서버에 없는 이름이었습니다. */
   shortcuts: { id: string; label: string }[];
   picked: string[];
+  canPick: (id: string) => boolean;
   togglePick: (id: string) => void;
   onChat: () => void;
   onTags: () => void;
@@ -157,6 +160,7 @@ function EntryStep({
                   (picked.includes(option.id) ? " is-on" : "")
                 }
                 aria-pressed={picked.includes(option.id)}
+                disabled={!canPick(option.id)}
                 onClick={() => togglePick(option.id)}
               >
                 {option.label}
@@ -223,14 +227,21 @@ function TasteStep({
   groups,
   cards,
   picked,
+  selectedIds,
+  canPick,
+  selectionIssue,
   labelOf,
   togglePick,
+  removePick,
   cardIndex,
   liked,
   onLike,
   onPass,
   onDone,
   onBack,
+  preferenceSaved,
+  busy,
+  signalError,
 }: {
   tasteStep: 1 | 2 | 3;
   setTasteStep: (step: 1 | 2 | 3) => void;
@@ -239,16 +250,27 @@ function TasteStep({
   groups: KeywordCatalogue["categories"];
   cards: { id: string; label: string }[];
   picked: string[];
+  selectedIds: string[];
+  canPick: (id: string) => boolean;
+  selectionIssue: string;
   labelOf: (id: string) => string;
   togglePick: (id: string) => void;
+  removePick: (id: string) => void;
   cardIndex: number;
   liked: string[];
   onLike: () => void;
   onPass: () => void;
   onDone: () => void;
   onBack: () => void;
+  preferenceSaved: boolean;
+  busy: boolean;
+  signalError: string;
 }) {
   const card = cards[Math.min(cardIndex, Math.max(cards.length - 1, 0))];
+  const activityGroup = groups.find((group) => group.id === CARD_CATEGORY);
+  const activityCount = activityGroup?.options.filter((option) =>
+    selectedIds.includes(option.id),
+  ).length ?? 0;
   // 활동 카드에는 점수가 없습니다. 장소와 날짜를 고르기 전이라 조건을 조회할
   // 대상이 없고, 0 이나 「보통」으로 채우지 않습니다.
   const grade = gradeOf(null);
@@ -264,7 +286,7 @@ function TasteStep({
           onCobalt
         />
         <div className="rc-hero-inner">
-          <button type="button" className="rc-hero-back" onClick={onBack}>
+          <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             ← 추천 처음으로
           </button>
           <p className="pd-lbl rc-hero-lbl">
@@ -289,7 +311,7 @@ function TasteStep({
     >
         {tasteStep === 1 && (
           <>
-            <div className="pd-card">
+            <div className="pd-card rc-taste-tags">
               {groups.map((group) => (
                 <div key={group.id}>
                   <p className="pd-lbl rc-group-lbl">
@@ -301,13 +323,14 @@ function TasteStep({
                         type="button"
                         key={option.id}
                         className={
-                          "rc-tag" + (picked.includes(option.id) ? " is-on" : "")
+                          "rc-tag" + (selectedIds.includes(option.id) ? " is-on" : "")
                         }
-                        aria-pressed={picked.includes(option.id)}
+                        aria-pressed={selectedIds.includes(option.id)}
+                        disabled={!canPick(option.id)}
                         onClick={() => togglePick(option.id)}
                       >
                         {option.label}
-                        {picked.includes(option.id) && (
+                        {selectedIds.includes(option.id) && (
                           <Icon name="check" size={11} />
                         )}
                       </button>
@@ -328,20 +351,25 @@ function TasteStep({
                 읽습니다. 고른 것은 여행 취향이며, 편의시설의 실제 지원과 안전
                 판정은 별도로 확인해야 합니다.
               </ExampleNote>
+              {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
             </div>
-            <button
-              type="button"
-              className="pd-primary"
-              onClick={() => setTasteStep(2)}
-            >
-              다음 · 카드로 확정하기
-            </button>
+            <AppActions>
+              <button
+                type="button"
+                className="pd-primary"
+                onClick={() => setTasteStep(2)}
+                disabled={Boolean(selectionIssue)}
+              >
+                다음 · 카드로 확정하기
+              </button>
+            </AppActions>
           </>
         )}
 
         {tasteStep === 2 && (
           <>
             <div className="pd-card">
+              {signalError && <p className="pd-note" role="alert">{signalError}</p>}
               {card ? (
                 <>
                   <div className="pd-slot rc-photo-slot">
@@ -354,6 +382,11 @@ function TasteStep({
                     <GradeChip score={null} />
                   </div>
                   <div className="rc-stop-place">활동 취향 선택</div>
+                  <p className="pd-note" role="status">
+                    태그와 좋아요를 합쳐 활동 {activityCount} / {activityGroup?.max_selections}개 선택
+                    {!canPick(card.id) &&
+                      " · 최대 개수를 골랐습니다. 패스하거나 다시 고르기에서 선택을 줄여 주세요."}
+                  </p>
                   <p className="pd-note">
                     장소 선택 전 점수 – · {grade.label} — 실제 장소와 날짜를
                     고르면 조건 점수를 조회합니다.
@@ -370,6 +403,7 @@ function TasteStep({
                       type="button"
                       className="pd-primary"
                       onClick={onLike}
+                      disabled={!canPick(card.id)}
                     >
                       좋아요
                     </button>
@@ -388,13 +422,15 @@ function TasteStep({
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              className="pd-secondary"
-              onClick={() => setTasteStep(1)}
-            >
-              다시 고르기
-            </button>
+            <AppActions>
+              <button
+                type="button"
+                className="pd-secondary"
+                onClick={() => setTasteStep(1)}
+              >
+                다시 고르기
+              </button>
+            </AppActions>
           </>
         )}
 
@@ -410,9 +446,16 @@ function TasteStep({
                   </p>
                 ) : (
                   liked.map((id) => (
-                    <span className="rc-basis-chip" key={id}>
-                      {labelOf(id)}
-                    </span>
+                    <button
+                      type="button"
+                      className="rc-tag is-on"
+                      key={id}
+                      onClick={() => removePick(id)}
+                      disabled={busy}
+                      aria-label={`${labelOf(id)} 좋아요 선택 해제`}
+                    >
+                      {labelOf(id)} ×
+                    </button>
                   ))
                 )}
               </div>
@@ -422,9 +465,16 @@ function TasteStep({
                   <p className="pd-note rc-note-flush">고른 항목이 없습니다.</p>
                 ) : (
                   picked.map((id) => (
-                    <span className="rc-basis-chip" key={id}>
-                      {labelOf(id)}
-                    </span>
+                    <button
+                      type="button"
+                      className="rc-tag is-on"
+                      key={id}
+                      onClick={() => removePick(id)}
+                      disabled={busy}
+                      aria-label={`${labelOf(id)} 태그 선택 해제`}
+                    >
+                      {labelOf(id)} ×
+                    </button>
                   ))
                 )}
               </div>
@@ -433,19 +483,30 @@ function TasteStep({
                 추천받습니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가
                 조건을 만들어 붙이지 않습니다.
               </ExampleNote>
+              {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
+              {preferenceSaved && <p className="pd-note" role="status">취향을 저장했습니다.</p>}
+              {signalError && <p className="pd-note" role="alert">{signalError}</p>}
             </div>
-            <div className="rc-stack">
-              <button type="button" className="pd-primary" onClick={onDone}>
-                취향 저장하고 코스 보기 →
-              </button>
-              <button
-                type="button"
-                className="pd-secondary"
-                onClick={() => setTasteStep(1)}
-              >
-                다시 고르기
-              </button>
-            </div>
+            <AppActions>
+              <div className="rc-stack">
+                <button
+                  type="button"
+                  className="pd-primary"
+                  onClick={onDone}
+                  disabled={busy || Boolean(selectionIssue)}
+                >
+                  취향 저장하고 코스 보기 →
+                </button>
+                <button
+                  type="button"
+                  className="pd-secondary"
+                  onClick={() => setTasteStep(1)}
+                  disabled={busy}
+                >
+                  다시 고르기
+                </button>
+              </div>
+            </AppActions>
           </>
         )}
     </AppShell>
@@ -525,7 +586,7 @@ function ChatStep({
           </div>
         </div>
         <div className="rc-hero-inner">
-          <button type="button" className="rc-hero-back" onClick={onBack}>
+          <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             ← 추천 처음으로
           </button>
         </div>
@@ -834,6 +895,7 @@ function CourseStep({
   onRoute,
   busy,
   statusText,
+  preferenceSaved,
 }: {
   dayIndex: number;
   setDayIndex: (index: number) => void;
@@ -846,6 +908,7 @@ function CourseStep({
   onRoute: (value: RouteRequestValue) => void;
   busy: boolean;
   statusText: string;
+  preferenceSaved: boolean;
 }) {
   const session = useTravelSession();
   const [now] = useState(() => new Date().toISOString());
@@ -898,7 +961,7 @@ function CourseStep({
           onCobalt
         />
         <div className="rc-hero-inner">
-          <button type="button" className="rc-hero-back" onClick={onBack}>
+          <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             ← 추천 처음으로
           </button>
           <div className="rc-hero-row">
@@ -948,6 +1011,7 @@ function CourseStep({
         </header>
       }
     >
+        {preferenceSaved && <p className="pd-note" role="status">취향을 저장했습니다.</p>}
         {!hasForecast ? (
           /* 예보가 없는 날에는 코스를 만들지 않습니다. 없는 근거로 일정을
              지어내지 않고 빈 상태만 보여주며, 공유 · 저장 · 대안 행은
@@ -1031,6 +1095,7 @@ function CourseStep({
                   type="button"
                   className="pd-secondary"
                   onClick={onRealert}
+                  disabled={busy}
                 >
                   최신 조건으로 대안 조회 →
                 </button>
@@ -1049,7 +1114,7 @@ function CourseStep({
                 type="button"
                 className={"pd-primary" + (saved ? " is-done" : "")}
                 onClick={onSave}
-                disabled={saved}
+                disabled={busy || saved}
               >
                 <Icon name="save" size={16} />
                 {saved ? "저장됨" : "내 코스에 저장"}
@@ -1073,10 +1138,12 @@ function RealertStep({
   proposal,
   onApply,
   onBack,
+  busy,
 }: {
   proposal: RecommendationResult | null;
   onApply: () => void;
   onBack: () => void;
+  busy: boolean;
 }) {
   const session = useTravelSession();
   const previousItem = planItems(session.plan)[0];
@@ -1111,7 +1178,7 @@ function RealertStep({
           onCobalt
         />
         <div className="rc-hero-inner">
-          <button type="button" className="rc-hero-back" onClick={onBack}>
+          <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             ← 코스로 돌아가기
           </button>
           <p className="pd-lbl rc-hero-lbl">
@@ -1124,7 +1191,7 @@ function RealertStep({
           </h1>
           <div className="rc-change">
             <span className="rc-change-metric">
-              {proposal?.status ?? "조회 중"}
+              {proposal ? dataStatusText(proposal.status) : "조회 중"}
             </span>
             <span className="rc-change-scores">
               <span className="rc-change-from">{previousScore ?? "–"}</span>
@@ -1170,14 +1237,14 @@ function RealertStep({
               proposal?.clarification}
           </p>
           <div className="rc-actions">
-            <button type="button" className="pd-secondary" onClick={onBack}>
+            <button type="button" className="pd-secondary" onClick={onBack} disabled={busy}>
               그대로 두기
             </button>
             <button
               type="button"
               className="pd-primary"
               onClick={onApply}
-              disabled={!proposal?.recommendations.length}
+              disabled={busy || !proposal?.recommendations.length}
             >
               대안으로 바꾸기
             </button>
@@ -1225,15 +1292,42 @@ function RecommendScreen() {
     return match ? [match[0]] : [];
   });
   const picked = tags ?? storedPicks;
-  const togglePick = (id: string) =>
-    setTags(
-      picked.includes(id)
-        ? picked.filter((value) => value !== id)
-        : [...picked, id],
-    );
   const [tasteStep, setTasteStep] = useState<1 | 2 | 3>(1);
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
+  const lastSignalledCard = useRef<string | null>(null);
+  const [signalError, setSignalError] = useState("");
+  useEffect(() => {
+    lastSignalledCard.current = null;
+  }, [cardIndex, tasteStep]);
+  const [preferenceSaved, setPreferenceSaved] = useState(false);
+  const selectedIds = [...new Set([...picked, ...liked])];
+  const selectionCount = (categoryId: string) => selectedIds.filter((id) =>
+    optionIndex.get(id)?.category === categoryId,
+  ).length;
+  const canPick = (id: string) => {
+    if (selectedIds.includes(id)) return true;
+    const group = groups.find((group) => group.id === optionIndex.get(id)?.category);
+    return Boolean(group && selectionCount(group.id) < group.max_selections);
+  };
+  const overLimit = groups.find((group) =>
+    selectionCount(group.id) > group.max_selections,
+  );
+  const selectionIssue = overLimit
+    ? `${overLimit.label}은 최대 ${overLimit.max_selections}개까지 고를 수 있습니다. 선택한 항목을 눌러 줄여 주세요.`
+    : "";
+  const removePick = (id: string) => {
+    setTags(picked.filter((value) => value !== id));
+    setLiked((current) => current.filter((value) => value !== id));
+    setPreferenceSaved(false);
+  };
+  const togglePick = (id: string) => {
+    if (selectedIds.includes(id)) removePick(id);
+    else if (canPick(id)) {
+      setTags([...picked, id]);
+      setPreferenceSaved(false);
+    }
+  };
   const [dayIndex, setDayIndex] = useState(0);
   const [altOpen, setAltOpen] = useState(false);
   const [proposal, setProposal] = useState<RecommendationResult | null>(null);
@@ -1268,7 +1362,7 @@ function RecommendScreen() {
     // 적은 곳」이라는 라벨을 보고 화면이 weather/small_waves 를 끼워 넣고,
     // 「카페」·「캠핑」이라는 라벨을 보고 place_role 을 바꿨습니다. 그 라벨들은
     // 서버 카탈로그에 없는 이름이었습니다.
-    const chosenIds = [...new Set([...picked, ...liked])];
+    const chosenIds = selectedIds;
     // 상한도 서버 카탈로그의 max_selections 입니다. 숫자를 여기서 만들지
     // 않고, 넘치면 말없이 버리지 않고 던집니다(travelApi.keywordSelection).
     const keyword_selection = keywordSelection(
@@ -1285,7 +1379,7 @@ function RecommendScreen() {
       place_role: "visit",
       // 저장된 취향과 화면 표기가 같은 이름을 쓰도록 라벨로 싣습니다. 조건은
       // keyword_selection 이 전합니다(서버가 옵션의 tag 를 스스로 붙입니다).
-      preferred_tags: chosenIds.map(labelOf),
+      preferred_tags: [...new Set(chosenIds.map(labelOf))],
       activity: chosen?.[0] ?? "relax",
       keyword_selection,
       transport: "driving",
@@ -1328,6 +1422,8 @@ function RecommendScreen() {
           },
           signal,
         );
+        if (signal.aborted) return;
+        setPreferenceSaved(true);
       }
       const result = await travelJson<RecommendationResult>(
         import.meta.env.BASE_URL,
@@ -1349,22 +1445,27 @@ function RecommendScreen() {
       setDayIndex(index);
       setStep("course");
     });
-  const advanceCard = (like: boolean) =>
-    void action.run(async (signal) => {
-      const card = cards[cardIndex];
-      if (!card) return;
-      await travelJson(
-        import.meta.env.BASE_URL,
-        "travel/signals",
-        "POST",
-        { kind: "card", action: like ? "like" : "skip", tags: [card.label] },
-        signal,
-      );
-      if (signal.aborted) return;
-      if (like) setLiked((current) => [...current, card.id]);
-      if (cardIndex + 1 >= cards.length) setTasteStep(3);
-      else setCardIndex(cardIndex + 1);
+  const advanceCard = (like: boolean) => {
+    const card = cards[cardIndex];
+    if (!card || lastSignalledCard.current === card.id || (like && !canPick(card.id))) return;
+    lastSignalledCard.current = card.id;
+    // Local choices advance immediately. Recording a card reaction must not lock
+    // navigation or the separate preference / recommendation / route actions.
+    if (like) {
+      setLiked((current) => [...new Set([...current, card.id])]);
+      if (!selectedIds.includes(card.id)) setPreferenceSaved(false);
+    }
+    if (cardIndex + 1 >= cards.length) setTasteStep(3);
+    else setCardIndex(cardIndex + 1);
+    void travelJson(
+      import.meta.env.BASE_URL,
+      "travel/signals",
+      "POST",
+      { kind: "card", action: like ? "like" : "skip", tags: [card.label] },
+    ).catch(() => {
+      setSignalError("카드 반응을 서버에 기록하지 못했습니다. 선택은 유지되며 계속 고를 수 있습니다.");
     });
+  };
   const save = () =>
     void action.run(async (signal) => {
       if (!session.planInput) throw new Error("저장할 코스가 없습니다.");
@@ -1430,11 +1531,15 @@ function RecommendScreen() {
       if (!signal.aborted) setStep("course");
     });
   const goEntry = () => {
+    if (action.busy) return;
     window.history.replaceState(null, "", "#recommend");
     setStep("entry");
     setTasteStep(1);
     setCardIndex(0);
     setLiked([]);
+    lastSignalledCard.current = null;
+    setSignalError("");
+    setPreferenceSaved(false);
     reset();
   };
   const status =
@@ -1445,15 +1550,14 @@ function RecommendScreen() {
       : session.plan
         ? `서버 저장 확인 · ${session.plan.status}`
         : (session.recommendation?.clarification ??
-          session.recommendation?.status ??
-          ""));
+          dataStatusText(session.recommendation?.status)));
   return (
     <article className="recommend-page" aria-busy={action.busy}>
-      <fieldset className="rc-fieldset" disabled={action.busy}>
           {step === "entry" && (
             <EntryStep
               shortcuts={cards.slice(0, 3)}
-              picked={picked}
+              picked={selectedIds}
+              canPick={canPick}
               togglePick={togglePick}
               onChat={() => setStep("chat")}
               onTags={() => {
@@ -1470,14 +1574,21 @@ function RecommendScreen() {
               groups={groups}
               cards={cards}
               picked={picked}
+              selectedIds={selectedIds}
+              canPick={canPick}
+              selectionIssue={selectionIssue}
               labelOf={labelOf}
               togglePick={togglePick}
+              removePick={removePick}
               cardIndex={cardIndex}
               liked={liked}
               onLike={() => advanceCard(true)}
               onPass={() => advanceCard(false)}
               onDone={() => recommend(dayIndex, true)}
               onBack={goEntry}
+              preferenceSaved={preferenceSaved}
+              busy={action.busy}
+              signalError={signalError}
             />
           )}
           {step === "chat" && (
@@ -1507,6 +1618,7 @@ function RecommendScreen() {
                 onRoute={requestRoute}
                 busy={action.busy}
                 statusText={status}
+                preferenceSaved={preferenceSaved}
               />
             )}
           {step === "realert" && (
@@ -1514,9 +1626,9 @@ function RecommendScreen() {
               proposal={proposal}
               onApply={apply}
               onBack={() => setStep("course")}
+              busy={action.busy}
             />
           )}
-        </fieldset>
         {(action.error ||
           action.busy ||
           requestedPlan.loading ||

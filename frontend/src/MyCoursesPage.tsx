@@ -9,7 +9,7 @@ import { planItems, type TripPlan } from "./travelApi";
 import type { Activity } from "./aiApi";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { setTravelSession } from "./travelSession";
-import { timeLabel, conditionPath, conditionScore, conditionTargetInRange, type Conditions } from "./productData";
+import { timeLabel, conditionPath, conditionScore, conditionTargetInRange, dataStatusText, type Conditions } from "./productData";
 import { useAction } from "./useAction";
 import "./myCoursesPage.css";
 
@@ -188,7 +188,7 @@ function MyCoursesScreen() {
               </dl>
               <p className="pd-note">
                 <StateChip kind="live" /> 상태: {selected.plan.status} · 경로:{" "}
-                {selected.plan.route_status}. 미확인 조건:{" "}
+                {dataStatusText(selected.plan.route_status)}. 미확인 조건:{" "}
                 {selected.plan.unresolved.join(" · ") || "없음"}. 종합 안전
                 점수는 제공하지 않습니다.
               </p>
@@ -200,7 +200,7 @@ function MyCoursesScreen() {
               {selectedStops.map((stop) => <PlanStopScore
                 key={stop.item_id} id={stop.spot_id} name={stop.name} at={stop.at} activity={selected.plan.request.activity}
               />)}
-              <div className="mc-detail-actions">
+              <div className="mc-detail-actions pd-action-slot">
                 <button
                   type="button"
                   className="pd-secondary mc-action"
