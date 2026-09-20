@@ -407,9 +407,8 @@ def validate_plan(plan, session, request):
             raise ProviderError("ai_output_unverified")
         if not set(section.structured_ids) <= getattr(session, "structured", {}).keys():
             raise ProviderError("ai_output_unverified")
-    if (
-        plan.clarification == "location"
-        and "travel_recommend" in getattr(session, "features", [])
+    if plan.clarification == "location" and "travel_recommend" in getattr(
+        session, "features", []
     ):
         raise ProviderError("ai_output_unverified")
     if plan.intent == "compare" and not set(session.features).intersection(
