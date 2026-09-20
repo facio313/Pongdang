@@ -13,6 +13,15 @@
   grid-template-columns: 1.18fr 1fr;
   gap: 60px;
   align-items: start;
+  /* 왼쪽 머리(.td-head)에는 칩·링크가 붙어 그냥 두면 오른쪽 머리(.pd-dk-kick)
+     보다 높습니다. 두 열의 첫 줄이 같은 선에서 시작하도록 높이를 맞춥니다. */
+  --td-head-h: 24px;
+}
+.pd-desktop .td-compare .td-head,
+.pd-desktop .td-compare > * > .pd-dk-kick:first-child {
+  display: flex;
+  align-items: center;
+  min-height: var(--td-head-h);
 }
 
 .pd-desktop .td-head {

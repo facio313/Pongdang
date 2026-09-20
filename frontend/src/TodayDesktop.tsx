@@ -413,7 +413,7 @@ function WeekForecast({
           이번 주 {activities[activity]} 예보
         </span>
         <span className="td-head-note">
-          값이 없는 날은 «–»이며 0점이 아닙니다 · 막대는 주간 내 상대 위치
+          막대는 주간 내 상대 위치
         </span>
       </div>
       <div className="td-week">
