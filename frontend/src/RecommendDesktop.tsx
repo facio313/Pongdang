@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import {
   DesktopHero,
@@ -16,11 +16,14 @@ import { useResource } from "./useResource";
 import {
   kakaoRouteLink,
   routePaths,
+  planItems,
   routeReasonsText,
   travelJson,
   type RecommendationResult,
   type TravelRequest,
+  type TripPlan,
 } from "./travelApi";
+import { setTravelSession } from "./travelSession";
 import { RouteRequestForm } from "./RouteRequestForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import "./recommendDesktop.css";
@@ -80,6 +83,10 @@ export function RecommendDesktop() {
   const recommendation = session.recommendation;
   const calculated = session.route?.route;
   const items = calculated?.items ?? [];
+  // 저장된 코스를 열면 후보 목록(recommendation)은 없고 정차지만 있습니다.
+  // 그것도 보여 줄 코스이므로 같은 자리에 그립니다 -- 예전에는 이 화면이
+  // recommendation 하나만 보고 그려서, 저장한 코스를 열면 빈 화면이었습니다.
+  const savedStops = recommendation ? [] : planItems(session.plan);
 
   const requestList = () =>
     void action.run(async (signal) => {
@@ -92,6 +99,53 @@ export function RecommendDesktop() {
       );
       if (!signal.aborted) publish(result);
     });
+
+  // 코스 저장. 예전에는 이 화면에 저장 경로가 없어서, 데스크탑 사용자는 코스를
+  // 만들 수는 있어도 내 코스에 남길 수 없었습니다 -- 그러면서 데스크탑 내
+  // 코스 화면은 「추천에서 코스 만들기 →」로 여기 보냈습니다. 닫힌 고리였습니다.
+  // 모바일 추천과 같은 계약(POST travel/plans)이며, 저장 뒤 해시에 plan_id 를
+  // 남겨 새로고침·공유에도 같은 코스가 열립니다.
+  const save = () =>
+    void action.run(async (signal) => {
+      if (!session.planInput) throw new Error("저장할 코스가 없습니다.");
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans",
+        "POST",
+        session.planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        window.history.replaceState(null, "", `#recommend?plan_id=${plan.plan_id}`);
+        setTravelSession({ plan });
+      }
+    });
+
+  // 저장한 코스 열기. 내 코스 화면이 만드는 `#recommend?plan_id=…` 링크는
+  // 모바일 폭에서만 열렸습니다 -- 이 화면이 plan_id 를 읽지 않았기 때문입니다.
+  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
+    "plan_id",
+  );
+  const requestedPlan = useResource<TripPlan>(
+    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+      ? `travel/plans/${planId}`
+      : null,
+  );
+  // 방금 저장한 코스는 다시 싣지 않습니다. 저장이 해시에 plan_id 를 남기므로
+  // 이 조회가 곧장 따라 도는데, 그때 recommendation 을 비우면 **화면에 떠 있던
+  // 후보 목록이 저장하자마자 사라집니다**. 다른 코스를 여는 경우에만 갈아
+  // 끼웁니다.
+  const loadedPlanId = session.plan?.plan_id;
+  useEffect(() => {
+    const plan = requestedPlan.data;
+    if (!plan || plan.plan_id === loadedPlanId) return;
+    setTravelSession({
+      plan,
+      planInput: { request: plan.request, stops: plan.input_stops },
+      recommendation: null,
+      route: null,
+    });
+  }, [requestedPlan.data, loadedPlanId]);
 
   const { candidates, originOptions } = useRouteFormSources();
 
@@ -356,12 +410,16 @@ export function RecommendDesktop() {
         }
         chip={
           <StateChip
-            kind={recommendation?.recommendations.length ? "live" : "no_data"}
+            kind={
+              recommendation?.recommendations.length || savedStops.length
+                ? "live"
+                : "no_data"
+            }
           />
         }
         desc="활동 조건 점수는 저장된 3종(수영 · 래프팅 · 휴식) 기준이며, 서핑 · 온천 점수는 수집 항목이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다."
       >
-        {recommendation?.recommendations.length ? (
+        {recommendation?.recommendations.length || savedStops.length ? (
           <>
             <div className="rd-steps">
               {(calculated
@@ -375,11 +433,22 @@ export function RecommendDesktop() {
                       [item],
                     ),
                   }))
-                : recommendation.recommendations.map((item) => ({
+                : recommendation
+                ? recommendation.recommendations.map((item) => ({
                     key: String(item.spot_id),
                     no: item.rank,
                     name: item.name,
                     when: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
+                    link: null,
+                  }))
+                : // 저장된 코스의 정차지. 시각이 있으면 함께 적습니다.
+                  savedStops.map((stop, index) => ({
+                    key: `${stop.spot_id}:${index}`,
+                    no: index + 1,
+                    name: stop.name,
+                    when: stop.arrival_at
+                      ? `${timeLabel(stop.arrival_at)} 도착`
+                      : "시각 미정",
                     link: null,
                   }))
               ).map((step) => (
@@ -425,7 +494,10 @@ export function RecommendDesktop() {
             <RouteRequestForm
               places={originOptions}
               candidates={candidates}
-              defaultDate={recommendation.request.dates[0]}
+              defaultDate={
+                // 저장된 코스를 연 경우에는 그 코스의 날짜를 씁니다.
+                (recommendation ?? session.plan)?.request.dates[0]
+              }
               disabled={action.busy}
               submitLabel={
                 calculated ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
@@ -433,6 +505,19 @@ export function RecommendDesktop() {
               onSubmit={requestRoute}
             />
             <div className="rd-row-foot">
+              <button
+                type="button"
+                className="pd-dk-button"
+                disabled={action.busy || !session.planInput}
+                onClick={save}
+              >
+                {session.plan ? "이 코스 다시 저장" : "내 코스에 저장"}
+              </button>
+              {session.plan && (
+                <a className="pd-dk-button is-quiet" href="#my-courses">
+                  저장한 코스 보기 →
+                </a>
+              )}
               <a className="pd-dk-button is-quiet" href="#map?view=course">
                 지도 탭에서 보기 →
               </a>
@@ -447,6 +532,22 @@ export function RecommendDesktop() {
                 </a>
               )}
             </div>
+            {/* 저장 결과. 후보가 있는 동안에는 아래 빈 상태 문단이 그려지지
+                않으므로, 실패도 성공도 이 자리에서 말해야 합니다 -- 누르고 나서
+                아무 일도 없는 것처럼 보이면 안 됩니다.
+
+                useAction 의 error 는 없을 때 빈 문자열입니다. ?? 로 이으면
+                빈 줄이 그려지므로 || 로 잇습니다. */}
+            {(action.error || requestedPlan.error || session.plan) && (
+              <p className="rd-note" role={action.error ? "alert" : "status"}>
+                {action.error ||
+                  requestedPlan.error ||
+                  // 저장한 것과 저장돼 있던 것을 열어 본 것은 다른 사실입니다.
+                  (requestedPlan.data === session.plan
+                    ? "저장된 코스를 불러왔습니다. 조건을 바꾸면 다시 저장할 수 있습니다."
+                    : "내 코스에 저장했습니다. 이 주소(plan_id)로 다시 열 수 있습니다.")}
+              </p>
+            )}
           </>
         ) : (
           <p className="rd-note">

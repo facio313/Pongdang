@@ -214,6 +214,13 @@
   color: var(--dk-ink-2);
   margin-top: 2px;
 }
+/* 동행 알림 상태. 모바일 내 코스의 mc-alarm-chip 과 같은 사실입니다. */
+.pd-desktop .cd-saved-alarm {
+  font-size: var(--dk-fs-cap);
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  margin-top: 4px;
+}
 .pd-desktop .cd-saved-state {
   flex: none;
   font-size: var(--dk-fs-cap);

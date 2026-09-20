@@ -131,3 +131,70 @@ test("데스크탑 사이드 메뉴 항목은 실제로 그 화면을 연다", a
   // 해시가 바뀌면 메뉴는 열린 채로 남지 않습니다.
   await expect(page.locator(".pd-menu")).toHaveCount(0);
 });
+
+test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 연다", async ({ page }) => {
+  // 데스크탑 추천에는 저장 경로가 없었습니다. 코스를 만들 수는 있어도 남길 수
+  // 없었고, 그러면서 데스크탑 내 코스는 「추천에서 코스 만들기 →」로 여기
+  // 보냈습니다 -- 닫힌 고리였습니다. 저장한 코스를 여는 쪽도 없어서, 내 코스가
+  // 만드는 `#recommend?plan_id=…` 링크는 이 폭에서 무시됐습니다.
+  await page.goto("#recommend");
+  await page.getByRole("button", { name: "이 조건으로 후보 찾기" }).click();
+  await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
+
+  // 실패는 실패라고 적습니다.
+  await page.route("**/api/data/travel/plans", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({ status: 503, json: { detail: "fixture failure" } })
+      : route.continue(),
+  );
+  await page.getByRole("button", { name: "내 코스에 저장" }).click();
+  // 이 화면에는 카카오 지도 키 안내도 alert 로 떠 있으므로, 저장 결과 줄을
+  // 지목해 봅니다.
+  const saveNote = page.locator(".rd-note[role]");
+  await expect(saveNote).toContainText("서버에 연결하지 못했거나");
+  await expect(saveNote).toHaveAttribute("role", "alert");
+  await page.unroute("**/api/data/travel/plans");
+
+  await page.getByRole("button", { name: "내 코스에 저장" }).click();
+  await expect(page).toHaveURL(/#recommend\?plan_id=/);
+  await expect(page.locator(".rd-note").filter({ hasText: "내 코스에 저장했습니다" })).toBeVisible();
+
+  // 내 코스에 실제로 쌓입니다.
+  await page.goto("#my-courses");
+  await expect(page.locator(".cd-saved")).toHaveCount(1);
+  // 고른 코스를 그대로 추천으로 넘깁니다. 예전에는 #recommend 로만 보내
+  // 선택이 사라졌습니다.
+  await page.locator(".cd-saved").click();
+  await page.getByRole("link", { name: "이 코스 열기 →" }).click();
+  await expect(page).toHaveURL(/#recommend\?plan_id=/);
+  await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
+  // 새로고침해도 같은 코스가 열립니다 -- plan_id 로 다시 읽기 때문입니다.
+  await page.reload();
+  await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
+  await expect(
+    page.locator(".rd-note").filter({ hasText: "저장된 코스를 불러왔습니다" }),
+  ).toBeVisible();
+
+  // 이 검사는 일회용 DB 에 실제로 코스를 남깁니다. 지우지 않으면 뒤따르는
+  // 검사들이 「저장 0개」를 전제로 세운 단언에서 이 코스를 함께 셉니다.
+  // 페이지 안에서 지웁니다 -- 비-GET 은 페이지와 같은 출처에서 보내야 합니다.
+  const planId = new URL(page.url()).hash.split("plan_id=")[1];
+  const status = await page.evaluate(async (id) => {
+    const response = await fetch(`api/data/travel/plans/${id}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
+    return response.status;
+  }, planId);
+  expect(status).toBe(204);
+});
+
+test("데스크탑 내 코스는 고른 코스를 다시 눌러 접을 수 있다", async ({ page }) => {
+  await page.goto("#my-courses");
+  const saved = page.locator(".cd-saved");
+  if (!(await saved.count())) return; // 저장 코스가 없으면 볼 것이 없습니다.
+  await saved.first().click();
+  await expect(saved.first()).toHaveAttribute("aria-pressed", "true");
+  await saved.first().click();
+  await expect(saved.first()).toHaveAttribute("aria-pressed", "false");
+});
