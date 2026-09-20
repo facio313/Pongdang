@@ -657,9 +657,7 @@ def create_condition_router(settings):
             )
 
     @router.get("/conditions/summary", response_model=ConditionSummaries)
-    async def conditions_summary(
-        request: Request, q: Annotated[SummaryQuery, Query()]
-    ):
+    async def conditions_summary(request: Request, q: Annotated[SummaryQuery, Query()]):
         """목록 한 화면분의 점수 · 수온을 한 요청으로.
 
         예전에는 화면이 지점마다 /conditions 를 불렀습니다 -- 지도에 들어가면

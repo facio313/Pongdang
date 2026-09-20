@@ -718,8 +718,7 @@ def test_summary_rejects_duplicate_query_parameters(database):
     _, spot = station(database)
     with TestClient(create_app(database)) as client:
         response = client.get(
-            BASE + f"/conditions/summary?spot_ids={spot}&spot_ids={spot}"
-            "&activity=swim"
+            BASE + f"/conditions/summary?spot_ids={spot}&spot_ids={spot}&activity=swim"
         )
         assert response.status_code == 422, response.text
 
