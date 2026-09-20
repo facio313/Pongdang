@@ -9,7 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-RUN useradd --uid 10001 --create-home app
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid 10001 --create-home app \
+    && install -d -o app -g app -m 0750 /var/lib/pongdang/attachments
 COPY --chown=app:app app ./app
 USER app
 EXPOSE 8000

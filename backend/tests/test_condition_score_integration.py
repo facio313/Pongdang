@@ -546,6 +546,58 @@ def test_forecast_target_and_unknown_issue_remain_explicit(database, known_issue
             assert result["score"] is None
 
 
+def test_weekly_forecasts_remain_readable_with_accumulated_issue_history(database):
+    """A real-sized history must fit the API's unchanged 3-second SQL budget."""
+    now = datetime.now(UTC) - timedelta(seconds=1)
+    batch = source(
+        mode="forecast",
+        fetched_at=now,
+        observed_at=now,
+        issued_at=now - timedelta(hours=1),
+        provider="kma_short_forecast",
+        values=[
+            Value(name="air_temperature", numeric_value=24, unit="degC"),
+            Value(name="wind_speed", numeric_value=3, unit="m/s"),
+            Value(name="wave_height", numeric_value=0.5, unit="m"),
+            Value(name="precipitation", numeric_value=0, unit="mm/1h"),
+        ],
+    )
+    reading = batch.readings[0]
+    store_batch(
+        database,
+        batch.model_copy(
+            update={
+                "readings": [
+                    reading.model_copy(
+                        update={
+                            "source_id": f"issue-{issue}:target-{hour}",
+                            "issued_at": now - timedelta(hours=1 + issue * 3),
+                            "observed_at": now + timedelta(hours=hour),
+                            "valid_until": now + timedelta(hours=hour + 1),
+                        }
+                    )
+                    for issue in range(28)
+                    for hour in range(168)
+                ]
+            }
+        ),
+    )
+    _, spot = station(database)
+    with TestClient(create_app(database)) as client:
+        for day in range(7):
+            target = now + timedelta(days=day, hours=12)
+            result = conditions(client, spot, mode="forecast", at=target.isoformat())
+            air = metric(result, "air_temperature")
+            assert air["value"] == 24
+            assert air["status"] == "available"
+            assert datetime.fromisoformat(air["evidence"][0]["issued_at"]) == (
+                now - timedelta(hours=1)
+            )
+            assert datetime.fromisoformat(air["evidence"][0]["observed_at"]) == target
+            assert result["condition_score"]["score"] is not None
+            assert result["safety_status"] == "unknown"
+
+
 def test_provider_activity_product_cannot_be_scored_as_another_activity(database):
     now = datetime.now(UTC) - timedelta(seconds=1)
     target = now + timedelta(hours=1)

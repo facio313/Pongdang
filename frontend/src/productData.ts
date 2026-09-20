@@ -1,4 +1,5 @@
 import type { Activity } from "./aiApi";
+import type { PlacePhoto } from "./placePhotos";
 
 export interface Place {
   id: number;
@@ -9,6 +10,7 @@ export interface Place {
   lng: number | null;
   type: string | null;
   catalog_verification: string | null;
+  photo?: PlacePhoto;
 }
 export interface ClassifiedWaterPlace extends Omit<Place, "type" | "catalog_verification"> {
   place_kind: "beach" | "valley";

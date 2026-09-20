@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
@@ -47,16 +48,16 @@ const kindLabel = (place: Place) =>
 function ListRow({ place }: { place: Place }) {
   return (
     <div className="sk-row">
-      {/* 대표 사진을 내려주는 API 가 없습니다. 목록에서 줄마다 반복되는 자리라
-          점선 슬롯 대신 중립 자리표시자를 씁니다 -- 점선이 반복되면 화면
-          전체가 미완성으로 읽힙니다. */}
-      <span className="sk-row-photo" aria-label={`${place.name} 대표 사진 없음`} />
+      <a className="place-photo-link" href={spotLink(place)} aria-label={`${place.name} 상세`}>
+        <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} />
+      </a>
       <div className="sk-row-body">
         <div className="sk-row-head">
           <b className="sk-row-name">{place.name}</b>
           <span className="sk-row-category">{kindLabel(place)}</span>
         </div>
         <p className="sk-row-summary">{place.address ?? "주소 없음"}</p>
+        <PlacePhotoCredit photo={place.photo} />
         <div className="sk-row-meta">
           <span>
             <span className="sk-meta-name">지역</span>
@@ -168,8 +169,8 @@ function SpotsListDesktop() {
                 </span>
               ))}
             </span>
-            리뷰 평점은 쓰지 않습니다. 거리 · 운영시간 · 대표 사진은 아직
-            내려주는 API 가 없어 비워 둡니다.
+            리뷰 평점은 쓰지 않습니다. 거리 · 운영시간은 아직 내려주는 API 가
+            없어 비워 둡니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.
           </>
         }
       >
@@ -198,7 +199,7 @@ function SpotsListDesktop() {
       </LabelRow>
 
       <FootNote
-        missing="대표 이미지 · 운영시간 · 편의시설 · 현재 위치 거리 계산"
+        missing="운영시간 · 편의시설 · 현재 위치 거리 계산"
         note="퐁당 점수는 물놀이 조건 점수이며 명소의 품질 평가가 아닙니다. 목록에는 점수를 싣지 않습니다 -- 장소마다 따로 조회해야 하므로 상세에서 읽습니다. 리뷰 평점은 수집하지 않습니다."
       />
     </DesktopShell>
@@ -210,8 +211,10 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   // 수집 종류라 분류로 쓸 수 없습니다(useWaterPlaces 주석).
   const catalog = useWaterPlaces("");
   const lookup = usePlacesById([spotId]);
-  const place: Place | undefined =
-    catalog.rows?.find((item) => item.id === spotId) ?? lookup.rows[0];
+  const classified = catalog.rows?.find((item) => item.id === spotId);
+  const place: Place | undefined = useMemo(() => classified
+    ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
+    : lookup.rows[0], [classified, lookup.rows]);
   const { best, loading, recommendation } = useBestActivity(place?.id);
   const score = best?.score ?? null;
   const grade = gradeOf(score);
@@ -262,9 +265,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
 
       <div className="sk-detail">
         <div className="sk-detail-photo">
-          <span className="pd-dk-slot sk-detail-slot">
-            대표 사진 · 내려주는 API 없음
-          </span>
+          <PlacePhoto className="sk-detail-slot" name={place?.name ?? "장소"} photo={place?.photo} eager />
           <div className="sk-detail-caption">
             <div className="sk-detail-chips">
               <span className="sk-detail-chip">
@@ -293,6 +294,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
               {lookup.error}
             </p>
           )}
+          <PlacePhotoCredit photo={place?.photo} />
           <div className="sk-detail-score-row">
             <div>
               <div className="pd-dk-kick">
@@ -412,7 +414,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
         </SplitBody>
       </LabelRow>
 
-      <FootNote missing="대표 이미지 · 운영시간 · 편의시설 · 장소 간 거리" />
+      <FootNote missing="운영시간 · 편의시설 · 장소 간 거리" />
     </DesktopShell>
   );
 }

@@ -370,15 +370,13 @@ function WeekForecast({
   activity: Activity;
 }) {
   const days = useConditionDays(id, now, activity);
+  const errors = [...new Set(days.flatMap((day) => day.error ? [day.error] : []))];
   const max = Math.max(
     ...days.flatMap((day) => (day.score === null ? [] : [day.score])),
     1,
   );
-  // 일곱 날을 따로 조회하므로 실패도 날마다입니다. 모바일 오늘 탭은 이것을
-  // 알리는데 이 화면은 값이 없는 날과 구별 없이 «–» 로만 그렸습니다.
-  const error = days.find((day) => day.error)?.error;
   return (
-    <section className="td-section">
+    <section className="td-section" aria-label="이번 주 예보">
       <div className="td-head">
         <span className="pd-dk-kick">
           이번 주 {activities[activity]} 예보
@@ -392,7 +390,9 @@ function WeekForecast({
           const grade = gradeOf(day.score);
           return (
             <div className="td-day" data-grade={grade.key} key={day.at}>
-              <div className="pd-dk-num td-day-score">{day.score ?? "–"}</div>
+              <div className="pd-dk-num td-day-score">
+                {day.loading ? <Skeleton width="1.6em" label="예보 조회 중" /> : (day.score ?? "–")}
+              </div>
               <div className="td-day-track">
                 {/* 값이 없는 날은 막대를 그리지 않고 회색 기준선만 둡니다.
                     0 높이 막대로 그리면 「0점」으로 읽히기 때문입니다. */}
@@ -412,17 +412,17 @@ function WeekForecast({
               {/* 숫자 · 등급명 · 아이콘 · 색 네 겹을 좁은 칸에서도 지킵니다. */}
               <div className="td-day-grade">
                 <GradeIcon gradeKey={grade.key} size={11} />
-                {grade.label}
+                {day.loading ? "조회 중" : day.error ? "조회 실패" : grade.label}
               </div>
             </div>
           );
         })}
       </div>
-      {error && (
-        <p className="td-note" role="alert">
-          {error}
-        </p>
-      )}
+      {errors.length > 0 && <p className="td-note" role="alert">예보 조회 실패: {errors.join(" · ")}</p>}
+      <p className="td-note">
+        날짜별 12:00 KST에 유효한 수집 예보로 계산합니다. 일부 근거만 있는 날짜는
+        부분 점수이며, 해당 시각의 근거가 없으면 –입니다. 안전 판정은 별도입니다.
+      </p>
     </section>
   );
 }

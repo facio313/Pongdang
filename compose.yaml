@@ -43,6 +43,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pongdang}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       API_ROOT_PATH: ${API_ROOT_PATH:-}
+      ATTACHMENT_ROOT: /var/lib/pongdang/attachments
       SSO_PROXY_SECRET: ${SSO_PROXY_SECRET:-}
       SSO_ALLOWED_ORIGINS: ${SSO_ALLOWED_ORIGINS:-}
       NOTIFICATIONS_PROVIDER: ${NOTIFICATIONS_PROVIDER:-disabled}
@@ -76,6 +77,8 @@ services:
       AI_REQUEST_TIMEOUT_SECONDS: ${AI_REQUEST_TIMEOUT_SECONDS:-60}
       AI_MAX_CONCURRENCY: ${AI_MAX_CONCURRENCY:-2}
       AI_PRINCIPAL_REQUESTS_PER_MINUTE: ${AI_PRINCIPAL_REQUESTS_PER_MINUTE:-6}
+    volumes:
+      - attachment_data:/var/lib/pongdang/attachments:ro
     depends_on:
       db:
         condition: service_healthy
@@ -167,6 +170,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pongdang}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       DATA_GO_KR_KEY: ${DATA_GO_KR_KEY:-}
+      ATTACHMENT_ROOT: /var/lib/pongdang/attachments
+      PHOTO_COLLECTION_ENABLED: ${PHOTO_COLLECTION_ENABLED:-true}
+      PHOTO_COLLECTION_BATCH_SIZE: ${PHOTO_COLLECTION_BATCH_SIZE:-25}
+      PHOTO_REFRESH_DAYS: ${PHOTO_REFRESH_DAYS:-7}
+      PHOTO_MAX_BYTES: ${PHOTO_MAX_BYTES:-8388608}
       KMA_API_HUB_KEY: ${KMA_API_HUB_KEY:-}
       KAKAO_REST_KEY: ${KAKAO_REST_KEY:-}
       HRFCO_KEY: ${HRFCO_KEY:-}
@@ -193,6 +201,8 @@ services:
       VISITOR_REGION_CODE: ${VISITOR_REGION_CODE:-}
       TOURISM_TRADITIONAL_ENABLED: ${TOURISM_TRADITIONAL_ENABLED:-false}
       DAM_RELEASE_ENABLED: ${DAM_RELEASE_ENABLED:-false}
+    volumes:
+      - attachment_data:/var/lib/pongdang/attachments
     depends_on:
       db:
         condition: service_healthy
@@ -212,3 +222,4 @@ services:
 
 volumes:
   postgres_data:
+  attachment_data:

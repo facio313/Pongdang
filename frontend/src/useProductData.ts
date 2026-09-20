@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
+import { usePlacePhotos } from "./usePlacePhotos";
 import {
   periodPath,
   productPlaces,
@@ -45,8 +46,12 @@ export function settledWithoutPlace<T extends { loading: boolean; error?: string
 export function useProductData(mode: "swim" | "best" = "swim") {
   const [now] = useState(() => new Date().toISOString());
   const catalog = useResource<DefaultPlaceSelection>("water-index/default-place");
-  const places = { ...catalog, data: catalog.data ? productPlaces(catalog.data.rows) : undefined };
-  const place = catalog.data?.place ? productPlaces([catalog.data.place]).rows[0] : undefined;
+  const photos = usePlacePhotos(catalog.data ? productPlaces(catalog.data.rows).rows : undefined);
+  const places = { ...catalog, data: photos.rows ? { rows: photos.rows, total: photos.rows.length } : undefined };
+  const selected = catalog.data?.place;
+  const place = selected
+    ? photos.rows?.find((item) => item.id === selected.id) ?? productPlaces([selected]).rows[0]
+    : undefined;
   const displayName = catalog.data?.display_name ?? "강릉 경포대 해수욕장";
   const selectionMessage = catalog.error ?? (catalog.loading
     ? "기본 해수욕장의 수집 자료를 확인하고 있습니다."

@@ -4,6 +4,7 @@
 node_modules/
 dist/
 .venv/
+.local/
 __pycache__/
 *.py[cod]
 .pytest_cache/

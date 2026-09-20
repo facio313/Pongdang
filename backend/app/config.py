@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
@@ -48,6 +49,19 @@ class Settings(BaseSettings):
     tourism_traditional_enabled: bool = False
     dam_release_enabled: bool = False
     collector_poll_seconds: int = Field(default=30, ge=5, le=300)
+    attachment_root: Path = Path(__file__).resolve().parents[2] / ".local/attachments"
+    photo_collection_enabled: bool = True
+    photo_collection_batch_size: int = Field(default=25, ge=1, le=100)
+    photo_refresh_days: int = Field(default=7, ge=1, le=90)
+    photo_max_bytes: int = Field(default=8 * 1024 * 1024, ge=1024, le=16 * 1024 * 1024)
+
+    @field_validator("attachment_root")
+    @classmethod
+    def absolute_attachment_root(cls, value):
+        if not value.is_absolute():
+            raise ValueError("ATTACHMENT_ROOT must be an absolute path")
+        return value
+
     sso_proxy_secret: SecretStr = SecretStr("")
     sso_allowed_origins: str = ""
     notifications_provider: Literal["disabled", "resend"] = "disabled"

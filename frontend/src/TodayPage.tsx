@@ -462,14 +462,14 @@ function ForecastSection({
                 data-grade={grade.key}
                 aria-pressed={day.id === forecastDayId}
                 aria-label={`${day.weekday} ${day.dateLabel} · ${
-                  day.score === null
+                  day.loading ? "조회 중" : day.error ? "조회 실패" : day.score === null
                     ? "평가값 없음"
                     : `${day.score}점 ${grade.label}`
                 }`}
                 onClick={() => setForecastDayId(day.id)}
               >
                 <span className="td-bar-score">
-                  {day.score === null ? "–" : day.score}
+                  {day.loading ? "조회 중" : day.error ? "조회 실패" : day.score === null ? "–" : day.score}
                 </span>
                 <span
                   className="td-bar-fill"

@@ -193,6 +193,18 @@ test("forecast date changes display that date's server score and clear unavailab
   expect(new Set(targetDates.filter((value) => value.endsWith("T03:00:00.000Z"))).size).toBe(7);
 });
 
+test("mobile weekly forecast reports failed reads instead of missing scores", async ({ page }) => {
+  await page.route("**/api/data/water-index/conditions?**", (route) => {
+    if (new URL(route.request().url()).searchParams.get("mode") !== "forecast")
+      return route.continue();
+    return route.fulfill({ status: 503, json: { detail: "test read timeout" } });
+  });
+  await page.goto("#today");
+  await expect(page.locator(".td-bar-score")).toHaveText(Array(7).fill("조회 실패"));
+  await expect(page.getByRole("button", { name: /오늘 .*조회 실패/ })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "다시 시도해 주세요." })).toBeVisible();
+});
+
 test("saved course scores use its actual date and never query unsupported history", async ({ page }) => {
   const day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const savedAt = day + "T15:30:00+09:00";

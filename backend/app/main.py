@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 
 from app.ai.chat import create_chat_router
 from app.ai.service import create_ai_router
+from app.attachments.api import create_attachment_router
 from app.config import Settings
 from app.data_reader import create_data_router
 from app.database import check_database
@@ -63,6 +64,7 @@ def create_app(
         return {"status": "ok"}
 
     app.include_router(create_data_router(settings))
+    app.include_router(create_attachment_router(settings))
     app.include_router(create_water_index_router(settings))
     app.include_router(create_condition_router(settings))
     app.include_router(create_default_place_router(settings))

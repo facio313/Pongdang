@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import json
 import os
 import plistlib
 import shutil
@@ -12,6 +13,36 @@ import time
 from pathlib import Path
 
 LABEL = "work.bonifacio.pongdang.collector"
+
+
+def resolve_attachment_root(executable: Path, backend: Path) -> Path:
+    """Resolve source settings before moving the worker into its release directory."""
+    result = subprocess.run(
+        [
+            str(executable),
+            "-c",
+            (
+                "import json; from app.config import Settings; "
+                "print(json.dumps(str(Settings().attachment_root)))"
+            ),
+        ],
+        cwd=backend,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    # Settings validation errors may contain configuration inputs; never echo them.
+    if result.returncode:
+        raise SystemExit("Cannot resolve attachment storage; check backend settings")
+    try:
+        value = json.loads(result.stdout)
+        if not isinstance(value, str) or not Path(value).is_absolute():
+            raise ValueError("Attachment root must be absolute")
+    except (ValueError, TypeError) as error:
+        raise SystemExit(
+            "Invalid attachment storage path in backend settings"
+        ) from error
+    return Path(value)
 
 
 def main():
@@ -26,6 +57,8 @@ def main():
         parser.error("Python executable is unavailable")
     if not (root / "backend/.env").is_file():
         parser.error("Configure backend/.env before installing")
+    attachment_root = resolve_attachment_root(executable, root / "backend")
+    attachment_root.mkdir(parents=True, exist_ok=True, mode=0o750)
     # LaunchAgents must not depend on iCloud/Desktop's on-demand file access.
     # Install a source snapshot outside Desktop; rerun to apply checkout changes.
     runtime = Path.home() / ".local/share/pongdang/collector"
@@ -60,6 +93,7 @@ def main():
         "Label": LABEL,
         "ProgramArguments": [str(executable), "-u", "-m", "app.ingestion.worker"],
         "WorkingDirectory": str(release),
+        "EnvironmentVariables": {"ATTACHMENT_ROOT": str(attachment_root)},
         "RunAtLoad": True,
         "KeepAlive": True,
         "ThrottleInterval": 60,
@@ -91,6 +125,7 @@ def main():
         raise SystemExit("Collector is still stopping; retry installation shortly")
     subprocess.run(["launchctl", "bootstrap", domain, str(target)], check=True)
     print(f"Installed {LABEL}; logs: {logs}")
+    print(f"Attachments: {attachment_root}")
     print(f"Stop: launchctl bootout {domain}/{LABEL}")
 
 

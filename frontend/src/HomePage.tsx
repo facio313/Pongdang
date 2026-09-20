@@ -21,6 +21,9 @@ import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
 import { EvidenceNote } from "./EvidenceNote";
+import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import type { PlacePhoto as Photo } from "./placePhotos";
+import { usePlacePhotos } from "./usePlacePhotos";
 import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
@@ -307,7 +310,7 @@ function GlanceCard({
 }
 
 /** 홈의 명소 가로 줄. 「바다가 좋은 오늘」과 「고른 취향의 명소」가 같은 모양을
- *  쓰므로 한 컴포넌트로 둡니다. 사진은 아직 확보되지 않아 빈 슬롯입니다. */
+ *  쓰므로 한 컴포넌트로 둡니다. 수집된 대표 사진을 같은 규칙으로 보여줍니다. */
 function SpotScroller({
   title,
   note,
@@ -318,7 +321,7 @@ function SpotScroller({
   title: string;
   note: string;
   link: { href: string; label: string };
-  places: { id: number; name: string; meta: string }[];
+  places: { id: number; name: string; meta: string; photo?: Photo }[];
   children: ReactNode;
 }) {
   return (
@@ -332,16 +335,14 @@ function SpotScroller({
       <p className="pd-note hm-picks-note">{note}</p>
       <div className="hm-picks-row">
         {places.map((place) => (
-          <a className="hm-pick" href={spotLink(place)} key={place.id}>
-            {/* 사진은 아직 미확보입니다. 예전에는 점선 pd-slot 이었는데, 한
-                화면에 8칸 넘게 반복되면서 앱 전체가 미완성으로 읽혔습니다.
-                점선은 미설계 섹션에만 두고 여기는 중립 자리표시자입니다. */}
-            <span className="hm-pick-photo" aria-label={`${place.name} 대표 사진 없음`}>
-              <Icon name="pin" size={20} />
-            </span>
-            <span className="hm-pick-name">{place.name}</span>
-            <span className="hm-pick-meta">{place.meta}</span>
-          </a>
+          <div className="hm-pick" key={place.id}>
+            <a className="place-photo-link" href={spotLink(place)}>
+              <PlacePhoto className="hm-pick-photo" name={place.name} photo={place.photo} />
+              <span className="hm-pick-name">{place.name}</span>
+              <span className="hm-pick-meta">{place.meta}</span>
+            </a>
+            <PlacePhotoCredit photo={place.photo} />
+          </div>
         ))}
         {/* 점수 칩이 있던 자리입니다. 명소마다 점수를 붙이려면 장소마다 한
             번씩 조회해야 해서, 목록에서는 약속하지 않고 상세에서 읽습니다. */}
@@ -362,6 +363,7 @@ function BeachPicksCard() {
       id: place.id,
       name: place.name,
       meta: place.region ?? "지역 미확인",
+      photo: place.photo,
     }));
   if (!beaches.length)
     return (
@@ -384,8 +386,8 @@ function BeachPicksCard() {
       places={beaches}
     >
       <StateChip kind="live" />
-      명소를 고르면 그곳의 퐁당 점수를 조회합니다. 거리 · 운영시간 · 대표
-      사진은 아직 내려주는 API 가 없습니다.
+      명소를 고르면 그곳의 퐁당 점수를 조회합니다. 거리 · 운영시간은 아직
+      내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.
     </SpotScroller>
   );
 }
@@ -397,13 +399,14 @@ function BeachPicksCard() {
  *  받기 전에는 보여 줄 것이 없으므로 그 사실을 적고 추천으로 보냅니다. */
 function TastePicksCard() {
   const session = useTravelSession();
-  const picks = (session.recommendation?.recommendations ?? [])
+  const photoPicks = usePlacePhotos((session.recommendation?.recommendations ?? [])
     .slice(0, 4)
     .map((item) => ({
       id: item.spot_id,
       name: item.name,
       meta: item.region ?? "지역 미확인",
-    }));
+    })));
+  const picks = photoPicks.rows ?? [];
   const tags = [
     ...new Set(
       (session.recommendation?.recommendations ?? []).flatMap((item) =>

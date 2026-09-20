@@ -5,6 +5,7 @@ import {
 } from "./productData";
 import type { DefaultPlaceSelection } from "./useProductData";
 import { useResource } from "./useResource";
+import { usePlacePhotos } from "./usePlacePhotos";
 
 /** 분류된 물놀이 장소 목록.
  *
@@ -47,8 +48,9 @@ export function useWaterPlaces(search = "") {
           all.findIndex((item) => item.id === place.id) === index,
       )
     : undefined;
+  const photos = usePlacePhotos(rows);
   return {
-    rows,
+    rows: photos.rows,
     total: rows?.length ?? 0,
     /** 서버가 근거를 보고 고른 기본 장소. 화면이 처음 무엇을 펼칠지 정할 때
      *  씁니다. 검색 중에는 조회하지 않으므로 undefined 입니다. */

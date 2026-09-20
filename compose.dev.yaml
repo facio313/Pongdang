@@ -1,5 +1,21 @@
-# Optional DB port for running Vite and FastAPI directly on your workstation.
+# Local DB port and shared attachments for direct Python/Vite development.
+# Create the bind directory first; see docs/implementation/attachments-storage.md.
 services:
   db:
     ports:
       - "127.0.0.1:5432:5432"
+  backend:
+    volumes:
+      - type: bind
+        source: ${PONGDANG_ATTACHMENTS_DIR:-./.local/attachments}
+        target: /var/lib/pongdang/attachments
+        read_only: true
+        bind:
+          create_host_path: false
+  collector:
+    volumes:
+      - type: bind
+        source: ${PONGDANG_ATTACHMENTS_DIR:-./.local/attachments}
+        target: /var/lib/pongdang/attachments
+        bind:
+          create_host_path: false

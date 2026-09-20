@@ -32,6 +32,8 @@ import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recomme
 import type { Recommendation } from "./recommendationApi";
 import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
+import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { usePlacePhotos } from "./usePlacePhotos";
 import {
   conditionModeLabel,
   dateLabel,
@@ -330,20 +332,21 @@ function HourBars({
 
 function BeachCard({ place }: { place: Place }) {
   return (
-    <a className="hd-beach" href={spotLink(place)}>
-      {/* 대표 사진을 내려주는 API 가 없습니다. 네 칸이 반복되는 자리라 점선
-          슬롯 대신 중립 자리표시자를 씁니다. */}
-      <span className="hd-beach-photo" aria-label={`${place.name} 대표 사진 없음`} />
-      <span className="hd-beach-head">
-        <b className="hd-beach-name">{place.name}</b>
-        <span className="hd-beach-category">해변</span>
-      </span>
-      <span className="hd-beach-foot">
-        <span className="hd-beach-operating">
-          {place.region ?? "지역 미확인"}
+    <div className="hd-beach">
+      <a className="place-photo-link" href={spotLink(place)}>
+        <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} />
+        <span className="hd-beach-head">
+          <b className="hd-beach-name">{place.name}</b>
+          <span className="hd-beach-category">해변</span>
         </span>
-      </span>
-    </a>
+        <span className="hd-beach-foot">
+          <span className="hd-beach-operating">
+            {place.region ?? "지역 미확인"}
+          </span>
+        </span>
+      </a>
+      <PlacePhotoCredit photo={place.photo} />
+    </div>
   );
 }
 
@@ -363,7 +366,9 @@ export function HomeDesktop() {
     .filter((item) => item.type === "beach")
     .slice(0, 4);
   const session = useTravelSession();
-  const tastePicks = (session.recommendation?.recommendations ?? []).slice(0, 3);
+  const tastePhotos = usePlacePhotos((session.recommendation?.recommendations ?? [])
+    .slice(0, 3).map((item) => ({ ...item, id: item.spot_id })));
+  const tastePicks = tastePhotos.rows ?? [];
   const tags = [
     ...new Set(
       (session.recommendation?.recommendations ?? []).flatMap((item) =>
@@ -458,8 +463,9 @@ export function HomeDesktop() {
         )}
         <p className="hd-row-note">
           명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는
-          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간 ·
-          대표 사진은 아직 내려주는 API 가 없습니다. 리뷰 평점은 쓰지 않습니다.
+          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은
+          아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
+          표시합니다. 리뷰 평점은 쓰지 않습니다.
         </p>
       </LabelRow>
 
@@ -565,24 +571,23 @@ export function HomeDesktop() {
         >
           <SplitBody>
             {tastePicks.map((item) => (
-              <a
+              <div
                 className="hd-taste-spot"
-                href={spotLink({ id: item.spot_id })}
                 key={item.spot_id}
               >
-                <span
-                  className="hd-taste-photo"
-                  aria-label={`${item.name} 대표 사진 없음`}
-                />
+                <a className="place-photo-link" href={spotLink(item)} aria-label={`${item.name} 상세`}>
+                  <PlacePhoto className="hd-taste-photo" name={item.name} photo={item.photo} />
+                </a>
                 <span>
-                  <span className="hd-taste-spot-name">{item.name}</span>
+                  <a className="hd-taste-spot-name place-photo-link" href={spotLink(item)}>{item.name}</a>
                   <span className="hd-taste-spot-meta">
                     {item.region ?? "지역 미확인"} ·{" "}
                     {item.activities.map((activity) => activity.label).join(" · ") ||
                       "활동 미확인"}
                   </span>
+                  <PlacePhotoCredit photo={item.photo} />
                 </span>
-              </a>
+              </div>
             ))}
           </SplitBody>
         </LabelRow>

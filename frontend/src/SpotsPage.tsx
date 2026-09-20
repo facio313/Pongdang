@@ -3,6 +3,7 @@ import { AppHeader, AppShell } from "./AppShell";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
+import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
@@ -25,7 +26,7 @@ import "./spotsPage.css";
 // 화면에 적힌 「72점 · 1.2km · 10:00–21:00」은 읽는 사람에게 사실로 남았습니다.
 //
 // 이제 목록은 서버가 분류한 실제 장소입니다(useWaterPlaces). 서버에 없는 것은
-// 지어내지 않고 자리를 비웁니다 -- 거리 · 운영시간 · 사진 · 소개는 주는 API 가
+// 지어내지 않고 자리를 비웁니다 -- 거리 · 운영시간 · 소개는 주는 API 가
 // 없습니다.
 
 /** 서버가 유도하는 분류는 beach · valley 둘뿐입니다(place_kind). 예전의 다섯
@@ -120,15 +121,13 @@ function ListHero({
 
 function SpotRow({ place }: { place: Place }) {
   return (
-    <a className="sp-row pd-pressable" href={spotLink(place)}>
-      {/* 사진 미확보. 목록에서 줄마다 반복되는 자리라 점선 슬롯 대신 중립
-          자리표시자를 씁니다(홈의 hm-pick-photo 와 같은 판단). */}
-      <span className="sp-row-photo" aria-label={`${place.name} 대표 사진 없음`}>
-        <Icon name="pin" size={18} />
-      </span>
+    <div className="sp-row">
+      <a className="place-photo-link" href={spotLink(place)} aria-label={`${place.name} 상세`}>
+        <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} />
+      </a>
       <span className="sp-row-body">
         <span className="sp-row-head">
-          <b className="sp-row-name">{place.name}</b>
+          <a className="sp-row-name place-photo-link" href={spotLink(place)}>{place.name}</a>
           <span className="sp-row-category">{kindLabel(place)}</span>
         </span>
         {/* 점수는 고른 장소만 조회합니다. 목록 전체에 붙이려면 장소마다 한
@@ -136,8 +135,9 @@ function SpotRow({ place }: { place: Place }) {
             약속하지 않고 무엇을 눌러야 보이는지만 밝힙니다. */}
         <span className="sp-row-where">{place.region ?? "지역 미확인"}</span>
         <span className="sp-row-address">{place.address ?? "주소 없음"}</span>
+        <PlacePhotoCredit photo={place.photo} />
       </span>
-    </a>
+    </div>
   );
 }
 
@@ -188,7 +188,8 @@ function SpotsList() {
         <p className="pd-note">
           장소를 고르면 그곳의 <b>퐁당 점수</b>를 조회합니다. 목록에 점수를 함께
           싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영
-          시간 · 대표 사진 · 소개는 아직 내려주는 API 가 없어 비워 둡니다.
+          시간 · 소개는 아직 내려주는 API 가 없어 비워 둡니다. 대표 사진은
+          수집된 사진이 있는 장소에 표시합니다.
         </p>
       </AppShell>
     </article>

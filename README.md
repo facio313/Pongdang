@@ -67,6 +67,10 @@ docker compose up -d --build --wait
 `initialize` 일회성 서비스가 자체 스키마를 초기화·이전하고 은퇴한
 `pongdang_demo`만 제거한 뒤 backend와 collector가 시작됩니다.
 기존 실제 데이터와 `postgres_data` 볼륨은 유지합니다.
+장소 사진 파일은 별도 `attachment_data` 볼륨에 보관하며 collector만 쓰고 backend는
+읽기 전용으로 제공합니다. 직접 실행과 로컬 Compose는 `.local/attachments/`를
+공유할 수 있습니다. [사진 저장소·개발 설정·백업 안내](docs/implementation/attachments-storage.md)를
+참고하세요.
 collector는 `restart: unless-stopped`로 계속 실행하며 DB/API 포트는 공개하지 않습니다.
 웹 포트만 `127.0.0.1:5188`에 바인딩합니다.
 

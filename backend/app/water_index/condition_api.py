@@ -377,18 +377,21 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
             raise HTTPException(422, "ambiguous_station_mapping")
         # Revision selection precedes missing/stale filtering. All tied latest
         # observations survive so conflicting records cannot silently overwrite.
+        # Materialize the natural key once. Recomputing COALESCE across the
+        # DISTINCT subqueries can leave it as a residual merge-join filter,
+        # comparing every source slot against every revision at one station.
         rows = await (
             await c.execute(
-                "WITH known AS (SELECT * FROM "
+                "WITH known AS (SELECT *,COALESCE(source_record_id,"
+                "provider_record_id) AS source_key FROM "
                 "pongdang_data.conditions_observationsnapshot WHERE station_id=ANY(%s) "
                 "AND fetched_at<=%s AND (issued_at IS NULL OR issued_at<=%s)), "
                 "revisions AS (SELECT DISTINCT ON (station_id,provider,"
-                "COALESCE(source_record_id,provider_record_id)) * FROM known "
-                "ORDER BY station_id,provider,"
-                "COALESCE(source_record_id,provider_record_id),"
+                "source_key) * FROM known "
+                "ORDER BY station_id,provider,source_key,"
                 "fetched_at DESC,id DESC), "
                 "slots AS (SELECT DISTINCT s.station_id,s.provider,"
-                "COALESCE(s.source_record_id,s.provider_record_id) AS source_key,"
+                "s.source_key,"
                 "m.name,m.mode FROM known s JOIN "
                 "pongdang_data.conditions_observationmetric m ON m.snapshot_id=s.id "
                 "WHERE m.name=ANY(%s) AND m.mode=%s), candidates AS (SELECT "
@@ -402,8 +405,7 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
                 "COALESCE(m.fetched_at,s.fetched_at) AS fetched_at,"
                 "m.valid_until,EXISTS (SELECT 1 FROM known active WHERE "
                 "active.station_id=s.station_id AND active.provider=s.provider "
-                "AND COALESCE(active.source_record_id,active.provider_record_id)="
-                "COALESCE(s.source_record_id,s.provider_record_id) "
+                "AND active.source_key=s.source_key "
                 "AND active.state<>'superseded' AND active.fetched_at<s.fetched_at) "
                 "AS revision_ambiguous,dense_rank() OVER (PARTITION BY "
                 "s.station_id,k.name ORDER BY COALESCE(m.observed_at,s.observed_at) "
@@ -411,7 +413,7 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
                 "('kma_short_forecast','kma_ultra_forecast') THEN s.issued_at END "
                 "DESC NULLS LAST) AS target_rank FROM revisions s JOIN slots k ON "
                 "k.station_id=s.station_id AND k.provider=s.provider AND "
-                "k.source_key=COALESCE(s.source_record_id,s.provider_record_id) "
+                "k.source_key=s.source_key "
                 "LEFT JOIN pongdang_data.conditions_observationmetric m "
                 "ON m.snapshot_id=s.id AND m.name=k.name AND m.mode=k.mode "
                 "WHERE COALESCE(m.observed_at,s.observed_at)<=%s "

@@ -118,6 +118,47 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/demo/summary)" = 404
           docker compose --project-name pongdang-ci exec -T collector python -m app.ingestion.health
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/collector/summary)" = 404
+      - name: Verify attachment volume access and recreation persistence
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+
+          for service, writable in (("collector", True), ("backend", False)):
+              mounts = json.loads(subprocess.check_output([
+                  "docker", "inspect", "--format", "{{json .Mounts}}",
+                  f"pongdang-ci-{service}",
+              ], text=True))
+              mount, = [m for m in mounts if m["Destination"] == "/var/lib/pongdang/attachments"]
+              assert mount["Type"] == "volume"
+              assert mount["Name"] == "pongdang-ci_attachment_data"
+              assert mount["RW"] is writable
+          PY
+          docker compose --project-name pongdang-ci exec -T collector python - <<'PY'
+          import os
+          from pathlib import Path
+
+          assert os.getuid() == os.getgid() == 10001
+          root = Path("/var/lib/pongdang/attachments")
+          assert root.stat().st_uid == root.stat().st_gid == 10001
+          (root / ".ci-volume-check").write_text("persistent attachment")
+          PY
+          docker compose --project-name pongdang-ci exec -T backend python - <<'PY'
+          import errno
+          from pathlib import Path
+
+          root = Path("/var/lib/pongdang/attachments")
+          assert (root / ".ci-volume-check").read_text() == "persistent attachment"
+          try:
+              (root / ".ci-write-must-fail").write_text("unexpected write")
+          except OSError as error:
+              assert error.errno == errno.EROFS
+          else:
+              raise AssertionError("Backend attachment volume is writable")
+          PY
+          docker compose --project-name pongdang-ci up -d --no-deps --force-recreate --wait --wait-timeout 180 backend collector
+          docker compose --project-name pongdang-ci exec -T backend python -c 'from pathlib import Path; assert Path("/var/lib/pongdang/attachments/.ci-volume-check").read_text() == "persistent attachment"'
+          docker compose --project-name pongdang-ci exec -T collector python -c 'from pathlib import Path; Path("/var/lib/pongdang/attachments/.ci-volume-check").unlink()'
       - name: Show container logs on failure
         if: failure()
         run: docker compose --project-name pongdang-ci logs --no-color --tail=80

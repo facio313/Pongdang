@@ -58,6 +58,35 @@ test("desktop today reads the same server values as mobile", async ({ page }) =>
   await page.screenshot({ path: "test-results/today-desktop.png", fullPage: true });
 });
 
+test("weekly forecast distinguishes loading, failed reads and missing evidence", async ({ page }) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/data/water-index/conditions?**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("mode") !== "forecast") return route.continue();
+    await pending;
+    const at = url.searchParams.get("at")!;
+    const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    if (new Date(Date.parse(at) + 9 * 3600000).toISOString().startsWith(today)) {
+      return route.fulfill({ status: 503, json: { detail: "예보 DB 조회 지연" } });
+    }
+    return route.continue();
+  });
+  await page.goto("#today");
+  const week = page.getByRole("region", { name: "이번 주 예보" });
+  try {
+    await expect(week.locator(".td-day-grade").first()).toHaveText("조회 중");
+    await expect(week.getByLabel("예보 조회 중").first()).toBeVisible();
+  } finally {
+    release();
+  }
+  await expect(week.locator(".td-day-grade").first()).toHaveText("조회 실패");
+  await expect(week.getByRole("alert")).toContainText("예보 조회 실패:");
+  await expect(week.getByRole("alert")).toContainText("다시 시도해 주세요.");
+  await expect(week.locator(".td-day-grade").nth(1)).toHaveText("평가값 없음");
+  await expect(week.locator(".td-day-score")).toHaveText(Array(7).fill("–"));
+});
+
 test("desktop map lists real places and scores only the chosen one", async ({ page }) => {
   await page.goto("#map");
   const response = await page.request.get("api/data/livecams/preview/places?q=");

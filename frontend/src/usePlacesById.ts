@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { travelJson } from "./travelApi";
 import type { Place, RowPage } from "./productData";
+import { usePlacePhotos } from "./usePlacePhotos";
 
 // Saved plans can refer to places outside the current 100-row search page.
 export function usePlacesById(ids: number[]) {
@@ -50,5 +51,7 @@ export function usePlacesById(ids: number[]) {
     () => ({ key, rows: [] as Place[], error: undefined as string | undefined }),
     [key],
   );
-  return result?.key === key ? result : pending;
+  const current = result?.key === key ? result : pending;
+  const photos = usePlacePhotos(current.rows);
+  return { ...current, rows: photos.rows ?? current.rows };
 }

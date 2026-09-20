@@ -15,6 +15,7 @@ from app.schema import connect
 
 
 def registered_jobs(settings):
+    from app.attachments.collector import attachment_jobs
     from app.feature_jobs import feature_jobs
     from app.ingestion.environment import environment_jobs
     from app.ingestion.marine import marine_jobs
@@ -33,6 +34,7 @@ def registered_jobs(settings):
         + environment_jobs(settings)
         + water_tour_extra_jobs(settings)
         + feature_jobs(settings)
+        + attachment_jobs(settings)
     )
 
 

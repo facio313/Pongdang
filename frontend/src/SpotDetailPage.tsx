@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppHeader, AppShell } from "./AppShell";
+import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
@@ -23,8 +24,8 @@ import "./spotsPage.css";
 // 이 화면이 지키는 것:
 //  - 점수 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다.
 //  - 값이 없으면 «–» 이며 0 · 정상 · 안전으로 치환하지 않습니다.
-//  - 서버에 없는 항목(운영 · 개장 기간 · 주차 · 편의시설 · 문의 · 소개 ·
-//    사진)은 지어내지 않고 비운 채 그 사실을 밝힙니다.
+//  - 서버에 없는 항목(운영 · 개장 기간 · 주차 · 편의시설 · 문의 · 소개)은
+//    지어내지 않고 비운 채 그 사실을 밝힙니다.
 
 function InfoRow({ name, value }: { name: string; value: string | null }) {
   return (
@@ -47,7 +48,9 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   const catalog = useWaterPlaces("");
   const lookup = usePlacesById([spotId]);
   const classified = catalog.rows?.find((item) => item.id === spotId);
-  const place: Place | undefined = classified ?? lookup.rows[0];
+  const place: Place | undefined = classified
+    ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
+    : lookup.rows[0];
   // 홈 히어로와 같은 규칙으로 오늘 가장 좋은 활동을 고릅니다. 장소마다 조건이
   // 다르므로 「이 명소에서 무엇을 하기 좋은가」가 상세의 답입니다.
   const { best, loading, recommendation } = useBestActivity(place?.id);
@@ -64,13 +67,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
         tab="spots"
         hero={
           <header className="sd-hero">
-            {/* 대표 사진을 내려주는 API 가 없습니다. 한 화면에 한 번뿐인
-                자리이므로 점선 슬롯으로 무엇이 들어올 자리인지 밝힙니다. */}
-            <span className="pd-slot sd-hero-photo">
-              대표 사진
-              <br />
-              내려주는 API 없음
-            </span>
+            <PlacePhoto className="sd-hero-photo" name={place?.name ?? "장소"} photo={place?.photo} eager />
             <div className="sd-hero-bar">
               <AppHeader
                 title="명소"
@@ -97,6 +94,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           </header>
         }
       >
+        <PlacePhotoCredit photo={place?.photo} />
         <a className="sd-back pd-inline" href="#spots">
           ← 명소 목록
         </a>
