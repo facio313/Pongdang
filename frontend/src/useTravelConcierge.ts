@@ -12,6 +12,7 @@ import type { OriginOption, RouteRequestValue } from "./RouteRequestForm";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import type { DefaultPlaceSelection } from "./useProductData";
+import type { ModelTraceTurn } from "./aiApi";
 
 export interface Bubble {
   role: "user" | "assistant";
@@ -85,6 +86,7 @@ export function useTravelConcierge({
   ]);
   const [draft, setDraft] = useState("");
   const [chatRequest, setChatRequest] = useState<TravelRequest | null>(null);
+  const [lastTrace, setLastTrace] = useState<ModelTraceTurn[] | null>(null);
   const asked = bubbles.filter((bubble) => bubble.role === "user").length;
 
   const publish = (result: RecommendationResult) =>
@@ -138,6 +140,7 @@ export function useTravelConcierge({
       if (signal.aborted) return;
       // The server's own request state becomes the next form state.
       setChatRequest(result.travel?.request ?? request);
+      setLastTrace(result.model_trace ?? []);
       setBubbles((current) => [
         ...current,
         ...[result.answer, result.clarification]
@@ -242,6 +245,7 @@ export function useTravelConcierge({
     setBubbles([{ role: "assistant", content: opener }]);
     setDraft("");
     setChatRequest(null);
+    setLastTrace(null);
   };
 
   return {
@@ -251,6 +255,7 @@ export function useTravelConcierge({
     draft,
     setDraft,
     chatRequest,
+    lastTrace,
     publish,
     send,
     requestRoute,

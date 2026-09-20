@@ -476,6 +476,40 @@ test("chat answers reach the travel contract and the actual response is displaye
   await expect(page.locator(".rc-chat")).toContainText("OFFLINE TEST");
 });
 
+test("chat exchange dialog shows the sanitized model trace", async ({ page }) => {
+  await page.route("**/api/data/ai/chat", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    return route.fulfill({
+      json: {
+        answer: "이번 여행은 이렇게 골라보시면 좋겠어요.",
+        clarification: null,
+        status: "available",
+        fallback: false,
+        reason_codes: [],
+        model_trace: [
+          { kind: "tool", name: "travel_recommend", arguments: { limit: 5 } },
+          {
+            kind: "plan",
+            plan: { intent: "explain", clarification: null, sections: [] },
+            error: null,
+          },
+        ],
+      },
+    });
+  });
+  await page.goto("#recommend");
+  await page.getByRole("button", { name: "대화로 추천받기" }).click();
+  await page.getByLabel("컨시어지에게 보낼 내용").fill("차량");
+  await page.getByRole("button", { name: "보내기" }).click();
+  await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
+  await page.getByRole("button", { name: "주고받은 기록" }).click();
+  const dialog = page.getByRole("dialog", { name: "주고받은 기록" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("travel_recommend");
+  await expect(dialog).toContainText("explain");
+  await expect(dialog).not.toContainText("37.123456789");
+});
+
 test("favorites and explicit notification settings use owner-scoped APIs", async ({
   page,
 }) => {

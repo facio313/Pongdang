@@ -51,6 +51,8 @@ import {
   useTravelConcierge,
   type Bubble,
 } from "./useTravelConcierge";
+import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
+import type { ModelTraceTurn } from "./aiApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import "./recommendPage.css";
 
@@ -457,6 +459,7 @@ function ChatStep({
   draft,
   setDraft,
   busy,
+  lastTrace,
   onSend,
   onRoute,
   onReset,
@@ -466,6 +469,7 @@ function ChatStep({
   draft: string;
   setDraft: (value: string) => void;
   busy: boolean;
+  lastTrace: ModelTraceTurn[] | null;
   onSend: (text: string) => void;
   onRoute: (value: RouteRequestValue) => void;
   onReset: () => void;
@@ -480,6 +484,7 @@ function ChatStep({
   const quick = FOLLOWUPS;
   const pickReply = (reply: string) => setDraft(reply);
   const session = useTravelSession();
+  const [traceOpen, setTraceOpen] = useState(false);
   const { candidates, originOptions } = useRouteFormSources();
   const conditions = useResource<Conditions>(
     conditionPath(
@@ -550,6 +555,16 @@ function ChatStep({
             </div>
           )}
         </div>
+        <ModelTraceButton
+          trace={lastTrace}
+          onOpen={() => setTraceOpen(true)}
+        />
+        {traceOpen && (
+          <ModelTraceDialog
+            trace={lastTrace}
+            onClose={() => setTraceOpen(false)}
+          />
+        )}
 
         <div className="rc-replies">
           {quick.map((reply) => (
@@ -1277,7 +1292,7 @@ function RecommendScreen() {
       day_trip: true,
     };
   };
-  const { bubbles, draft, setDraft, publish, send, requestRoute, reset } =
+  const { bubbles, draft, setDraft, publish, send, requestRoute, reset, lastTrace } =
     useTravelConcierge({
       opener: OPENER,
       baseRequest: () => requestFor(dayIndex),
@@ -1471,6 +1486,7 @@ function RecommendScreen() {
               draft={draft}
               setDraft={setDraft}
               busy={action.busy}
+              lastTrace={lastTrace}
               onSend={send}
               onRoute={requestRoute}
               onReset={reset}

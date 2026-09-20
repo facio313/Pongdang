@@ -26,6 +26,7 @@ import {
 import { setTravelSession } from "./travelSession";
 import { RouteRequestForm } from "./RouteRequestForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
+import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import "./recommendDesktop.css";
 
 // 데스크탑 추천(핸드오프 18b)입니다. 모바일의 여러 단계(취향 고르기 → 대화 →
@@ -78,8 +79,9 @@ export function RecommendDesktop() {
       .map(([category, values]) => ({ category, values })),
   });
 
-  const { session, bubbles, asked, draft, setDraft, publish, send, requestRoute } =
+  const { session, bubbles, asked, draft, setDraft, publish, send, requestRoute, lastTrace } =
     useTravelConcierge({ opener: OPENER, baseRequest, action });
+  const [traceOpen, setTraceOpen] = useState(false);
   const recommendation = session.recommendation;
   const calculated = session.route?.route;
   const items = calculated?.items ?? [];
@@ -396,6 +398,16 @@ export function RecommendDesktop() {
                 <div className="rd-bubble">답변을 조회하고 있습니다…</div>
               )}
             </div>
+            <ModelTraceButton
+              trace={lastTrace}
+              onOpen={() => setTraceOpen(true)}
+            />
+            {traceOpen && (
+              <ModelTraceDialog
+                trace={lastTrace}
+                onClose={() => setTraceOpen(false)}
+              />
+            )}
             <p className="rd-note">
               AI 문장은 서버가 조회한 근거로만 만들어집니다. 안전 판단에는 쓸 수
               없습니다.

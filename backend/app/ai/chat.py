@@ -162,6 +162,14 @@ class ResponsePlan(StrictModel):
     sections: list[SectionPlan] = Field(max_length=5)
 
 
+class ModelTraceTurn(StrictModel):
+    kind: Literal["tool", "plan"]
+    name: str | None = None
+    arguments: dict | None = None
+    plan: dict | None = None
+    error: str | None = None
+
+
 class ChatResponse(StrictModel):
     contract_version: str = "pongdang-concierge.v1"
     request_id: str
@@ -183,6 +191,7 @@ class ChatResponse(StrictModel):
     sections: list[dict]
     travel: TravelContext | None = None
     travel_results: dict = Field(default_factory=dict)
+    model_trace: list[ModelTraceTurn] = Field(default_factory=list)
 
 
 def strict_schema(schema):
@@ -230,6 +239,35 @@ def private_text(text):
     # SSO identity is never included at all; remove obvious pasted credentials/PII.
     text = re.sub(r"\b[^\s@]+@[^\s@]+\.[^\s@]+", "[이메일 생략]", text)
     return re.sub(r"\bsk-[A-Za-z0-9_-]+", "[비밀값 생략]", text)
+
+
+TRACE_DROP = frozenset(
+    {
+        "origin",
+        "selection_token",
+        "latitude",
+        "longitude",
+        "lat",
+        "lng",
+        "encrypted_content",
+    }
+)
+
+
+def public_trace_value(value):
+    if isinstance(value, str):
+        return private_text(value)
+    if isinstance(value, dict):
+        return {
+            key: public_trace_value(item)
+            for key, item in value.items()
+            if key not in TRACE_DROP
+        }
+    if isinstance(value, list):
+        return [public_trace_value(item) for item in value[:20]]
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return None
 
 
 def initial_input(request, now):
@@ -369,6 +407,11 @@ def validate_plan(plan, session, request):
             raise ProviderError("ai_output_unverified")
         if not set(section.structured_ids) <= getattr(session, "structured", {}).keys():
             raise ProviderError("ai_output_unverified")
+    if (
+        plan.clarification == "location"
+        and "travel_recommend" in getattr(session, "features", [])
+    ):
+        raise ProviderError("ai_output_unverified")
     if plan.intent == "compare" and not set(session.features).intersection(
         {
             "place_conditions",
@@ -496,7 +539,7 @@ async def deterministic_reads(session, request):
     return ResponsePlan(intent="explain", clarification=None, sections=[])
 
 
-def assemble(session, request, now, request_id, plan, reasons, model):
+def assemble(session, request, now, request_id, plan, reasons, model, trace=()):
     facts = list(session.facts.values())
     candidates = list(session.candidates.values())
     reasons = list(dict.fromkeys([*session.reason_codes, *reasons]))
@@ -601,6 +644,12 @@ def assemble(session, request, now, request_id, plan, reasons, model):
         reason_codes=reasons,
         context=context,
         sections=sections,
+        model_trace=[
+            turn
+            if isinstance(turn, ModelTraceTurn)
+            else ModelTraceTurn.model_validate(turn)
+            for turn in trace
+        ],
     )
 
 
@@ -618,7 +667,7 @@ async def converse(
     session = session_factory(settings, now)
     request_id = uuid4().hex
     started, calls, tool_count = time.monotonic(), 0, 0
-    reasons, plan, model, lease = [], None, None, None
+    reasons, plan, model, lease, trace = [], None, None, None, []
     measured_input, measured_output, reserved_bytes = 0, 0, 0
     try:
         async with asyncio.timeout(settings.ai_request_timeout_seconds):
@@ -696,11 +745,31 @@ async def converse(
                                 )
                             except Exception:
                                 reasons.append("ai_usage_record_unavailable")
-                        output, pending, proposed = parse_response(raw)
+                        try:
+                            output, pending, proposed = parse_response(raw)
+                        except ProviderError as exc:
+                            if exc.code == "ai_output_unverified":
+                                trace.append(
+                                    ModelTraceTurn(kind="plan", error=exc.code)
+                                )
+                            raise
                         if final_answer_only and pending:
                             raise ProviderError("ai_final_tool_call_rejected")
                         if proposed is not None:
-                            validate_plan(proposed, session, request)
+                            try:
+                                validate_plan(proposed, session, request)
+                            except ProviderError as exc:
+                                trace.append(
+                                    ModelTraceTurn(
+                                        kind="plan",
+                                        plan=proposed.model_dump(),
+                                        error=exc.code,
+                                    )
+                                )
+                                raise
+                            trace.append(
+                                ModelTraceTurn(kind="plan", plan=proposed.model_dump())
+                            )
                             plan, model = proposed, settings.ai_model
                             break
                         # Preserve original output/reasoning items and call IDs
@@ -723,6 +792,14 @@ async def converse(
                             if signature in signatures:
                                 raise ProviderError("ai_repeated_tool")
                             signatures.add(signature)
+                            if isinstance(args, dict):
+                                trace.append(
+                                    ModelTraceTurn(
+                                        kind="tool",
+                                        name=call["name"],
+                                        arguments=public_trace_value(args),
+                                    )
+                                )
                             result = await session.execute(call["name"], args)
                             inputs.append(
                                 {
@@ -797,7 +874,8 @@ async def converse(
     from app.travel.chat import assemble_travel
 
     return assemble_travel(
-        assemble(session, request, now, request_id, plan, reasons, model), session
+        assemble(session, request, now, request_id, plan, reasons, model, trace),
+        session,
     )
 
 

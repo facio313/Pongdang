@@ -24,6 +24,13 @@ export interface AiFact {
   fact_id: string; text: string; evidence_refs: string[]; feature: string;
   spot_id?: number | null; data_status: string; metadata: Record<string, unknown>;
 }
+export interface ModelTraceTurn {
+  kind: "tool" | "plan";
+  name?: string | null;
+  arguments?: Record<string, unknown> | null;
+  plan?: Record<string, unknown> | null;
+  error?: string | null;
+}
 export interface ChatResponse {
   request_id: string; status: string; answer: string; clarification: string | null;
   fallback: boolean; provider: "openai" | "deterministic"; model: string | null;
@@ -31,6 +38,7 @@ export interface ChatResponse {
   candidates: AiCandidate[]; facts: AiFact[]; sources: { id: string; name: string; url?: string | null }[];
   warnings: string[]; limitations: string[]; features: string[]; reason_codes: string[];
   context: AiContext; sections: { title: string; fact_ids: string[]; candidate_ids: string[] }[];
+  model_trace?: ModelTraceTurn[];
 }
 
 const routes = new Set(["favorites", "travel-history", "data", "info", "ai", "water-index", "water-index-map", "water-forecast", "tide", "water-quality", "livecam", "first-swim", "water-temperature"]);

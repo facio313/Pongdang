@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { activities, aiReasonTexts, aiStatusText, displayTime, ConversationRequest, requestJson, safeInternalLink, safeSourceUrl, type AiContext, type AiFact, type AiStatus, type ChatMessage, type ChatResponse } from "./aiApi";
+import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import "./aiConcierge.css";
 
 const exampleQuestions = ["오늘 강릉에서 수영 조건을 확인할 수 있는 곳이 있어?", "내일 오후 서핑 조건을 비교해줘.", "수질 자료가 서로 다르게 나오는데 무슨 뜻이야?", "여기서 어떤 기능을 사용할 수 있어?"];
@@ -50,6 +51,7 @@ function FactCard({ fact }: { fact: AiFact }) {
 export function AiResponseView({ response }: { response: ChatResponse }) {
   const groupedFacts = new Set(response.sections.flatMap((section) => section.fact_ids));
   const groupedCandidates = new Set(response.sections.flatMap((section) => section.candidate_ids));
+  const [traceOpen, setTraceOpen] = useState(false);
   function candidateCards(ids: Set<string>) {
     return <div className="ai-candidates">{response.candidates.filter((candidate) => ids.has(candidate.candidate_id)).map((candidate) => <article className="ai-candidate" key={candidate.candidate_id}>
       <h3>{candidate.name}</h3><p>{candidate.region ?? "지역 기록 없음"} · 장소 ID {candidate.spot_id}</p>
@@ -60,6 +62,13 @@ export function AiResponseView({ response }: { response: ChatResponse }) {
   return <div className="ai-response">
     <div className="ai-badges"><strong>{response.fallback ? "기존 자료 기반 대체 응답" : response.provider === "openai" ? "Luna · 서버 근거 검증 완료" : "Pongdang 자료 안내"}</strong><span>처리 상태: {response.status}</span></div>
     <p className="ai-plain-text">{response.answer}</p>
+    <ModelTraceButton trace={response.model_trace ?? []} onOpen={() => setTraceOpen(true)} />
+    {traceOpen && (
+      <ModelTraceDialog
+        trace={response.model_trace ?? []}
+        onClose={() => setTraceOpen(false)}
+      />
+    )}
     {response.reason_codes.some((code) => Object.hasOwn(aiReasonTexts, code)) && <p className="ai-notice">{response.reason_codes.filter((code) => Object.hasOwn(aiReasonTexts, code)).map((code) => aiReasonTexts[code]).join(" ")}</p>}
     {response.clarification && response.clarification !== response.answer && <p className="ai-clarification">{response.clarification}</p>}
     <p className="table-note">이번 조회 기준: {displayTime(response.scope.as_of)} · 이전 대화의 수치를 현재 자료로 재사용하지 않습니다.</p>

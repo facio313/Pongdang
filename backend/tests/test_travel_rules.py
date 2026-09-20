@@ -161,6 +161,127 @@ def test_model_cannot_invent_fact_place_or_itinerary_identity(field, value):
         validate_plan(plan, session, ChatRequest(message="일정 만들어줘"))
 
 
+def test_recommendation_rank_ids_are_not_accepted_as_candidates():
+    plan = ResponsePlan(
+        intent="explain",
+        clarification=None,
+        sections=[
+            SectionPlan(
+                title="recommendations",
+                fact_ids=[],
+                candidate_ids=["recommendation:1:7"],
+                structured_ids=[],
+            )
+        ],
+    )
+    session = SimpleNamespace(
+        facts={},
+        candidates={"spot:7": {"candidate_id": "spot:7"}},
+        structured={},
+        features=["travel_recommend"],
+        travel_results={"recommendations": {}},
+    )
+    with pytest.raises(ProviderError, match="ai_output_unverified"):
+        validate_plan(plan, session, ChatRequest(message="추천해줘"))
+
+
+def test_spot_candidate_ids_from_recommend_session_are_accepted():
+    plan = ResponsePlan(
+        intent="explain",
+        clarification=None,
+        sections=[
+            SectionPlan(
+                title="recommendations",
+                fact_ids=[],
+                candidate_ids=["spot:7"],
+                structured_ids=["travel_recommend:abc"],
+            )
+        ],
+    )
+    session = SimpleNamespace(
+        facts={},
+        candidates={"spot:7": {"candidate_id": "spot:7"}},
+        structured={"travel_recommend:abc": {}},
+        features=["travel_recommend"],
+        travel_results={"recommendations": {}},
+    )
+    validate_plan(plan, session, ChatRequest(message="추천해줘"))
+
+
+def test_location_clarify_after_travel_recommend_is_unverified():
+    plan = ResponsePlan(intent="clarify", clarification="location", sections=[])
+    session = SimpleNamespace(
+        facts={}, candidates={}, structured={}, features=["travel_recommend"]
+    )
+    with pytest.raises(ProviderError, match="ai_output_unverified"):
+        validate_plan(plan, session, ChatRequest(message="추천해줘"))
+
+
+def test_location_clarify_before_recommend_remains_allowed():
+    plan = ResponsePlan(intent="clarify", clarification="location", sections=[])
+    session = SimpleNamespace(facts={}, candidates={}, structured={}, features=[])
+    validate_plan(plan, session, ChatRequest(message="어디가 좋아?"))
+
+
+def test_recommend_tool_payload_uses_spot_candidate_ids(monkeypatch):
+    from app.config import Settings
+
+    row = SimpleNamespace(
+        recommendation_id="recommendation:1:7",
+        spot_id=7,
+        rank=1,
+        name="경포",
+        region="강릉",
+        confirmed={
+            "kind": "beach",
+            "latitude": 37.8,
+            "longitude": 128.9,
+            "catalog_verified_at": NOW.isoformat(),
+        },
+        reason="등록된 장소",
+        activities=[],
+        unknown_conditions=[],
+        evidence=[SimpleNamespace(evidence_id="e1", provider="TEST")],
+        actions={"view": "#spots"},
+    )
+
+    async def fake_recommend(*_args, **_kwargs):
+        return SimpleNamespace(
+            selection_token="tok",
+            clarification=None,
+            status="available",
+            candidate_scope={},
+            recommendations=[row],
+            model_dump=lambda mode="json": {
+                "recommendations": [
+                    {"recommendation_id": "recommendation:1:7", "spot_id": 7}
+                ]
+            },
+        )
+
+    monkeypatch.setattr("app.travel.chat.recommend", fake_recommend)
+    session = TravelToolSession(
+        Settings(_env_file=None, postgres_password="offline-only"),
+        NOW,
+        body=ChatRequest(message="추천해줘", travel={}),
+        owner="isolated",
+        catalog=CatalogFixture(),
+    )
+    payload = asyncio.run(
+        session.execute("travel_recommend", {"changes": {}, "limit": 1})
+    )
+    listed = payload["result"]["recommendations"][0]
+    assert listed["candidate_id"] == "spot:7"
+    assert "recommendation_id" not in listed
+    assert "spot:7" in session.candidates
+    assert (
+        session.travel_results["recommendations"]["recommendations"][0][
+            "recommendation_id"
+        ]
+        == "recommendation:1:7"
+    )
+
+
 def test_unknown_routes_keep_precision_and_total_cost_unknown_but_prove_conflicts():
     body = PlanInput(
         request=request(budget={"amount": 100}),

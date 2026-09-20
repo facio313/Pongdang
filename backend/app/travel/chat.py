@@ -108,7 +108,10 @@ weekend but not a day, ask the date instead of selecting Saturday automatically.
 Mood is an editable proposal: never confirm it or persist it on behalf of the user.
 For 'second place' call travel_draft rank=2; server binds the previous candidate
 order. It is only a draft. Origin, dates and budget changes require recomputation.
-Your final sections may reference current structured_ids. The server renders them
+Your final sections may reference current structured_ids and candidate_id values
+from the tool output (spot:{id}). Never cite recommendation:{rank}:{id}. After
+travel_recommend returns places and travel_request.region is already set, use
+intent=explain and clarification=null. The server renders sections
 in its own validated order and user's locale. No private IDs, location coordinates,
 selection tokens, stored history or raw reviews may be sent to the model.
 Use travel_companion for the supplied session's current status and events.
@@ -416,7 +419,7 @@ class TravelToolSession(ToolSession):
             }
             summaries.append(
                 {
-                    "recommendation_id": row.recommendation_id,
+                    "candidate_id": f"spot:{row.spot_id}",
                     "rank": row.rank,
                     "spot_id": row.spot_id,
                     "name": row.name,

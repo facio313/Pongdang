@@ -223,6 +223,48 @@ def test_multi_turn_function_protocol_budget_and_server_composition(settings):
     assert result.facts[1]["mandatory"]  # model omission cannot drop caution
     assert result.context.spot_ids == [45]
     assert result.model_dump()["facts"][1]["metadata"]["score"] is None
+    assert result.model_trace[0].kind == "tool"
+    assert result.model_trace[0].name == "place_conditions"
+    assert result.model_trace[1].kind == "plan"
+    assert result.model_trace[1].plan["intent"] == "explain"
+    assert "encrypted_content" not in json.dumps(result.model_dump())
+
+
+def test_model_trace_keeps_unverified_plan_and_strips_private_fields(settings):
+    result, _, _ = run(
+        settings,
+        [
+            call(
+                arguments={
+                    "spot_ids": [45],
+                    "activity": "swim",
+                    "origin": {"latitude": 37.123456789, "longitude": 128.9},
+                    "selection_token": "secret-token",
+                }
+            ),
+            final(
+                sections=[
+                    {
+                        "title": "conditions",
+                        "fact_ids": ["fact-1"],
+                        "candidate_ids": ["spot:999"],
+                    }
+                ]
+            ),
+        ],
+    )
+    assert result.fallback
+    assert "ai_output_unverified" in result.reason_codes
+    tool = result.model_trace[0]
+    assert tool.kind == "tool" and tool.name == "place_conditions"
+    assert "origin" not in (tool.arguments or {})
+    assert "selection_token" not in (tool.arguments or {})
+    dumped = json.dumps(result.model_dump())
+    assert "37.123456789" not in dumped
+    assert "secret-token" not in dumped
+    plan = next(turn for turn in result.model_trace if turn.kind == "plan")
+    assert plan.error == "ai_output_unverified"
+    assert plan.plan["sections"][0]["candidate_ids"] == ["spot:999"]
 
 
 def test_last_of_three_attempts_composes_after_search_and_conditions(settings):
@@ -333,14 +375,9 @@ def test_invalid_model_output_never_replaces_current_facts(settings, bad):
     result, _, _ = run(settings, [call(), bad])
     assert result.fallback and result.provider == "deterministic"
     assert len(result.facts) == 2
-    assert (
-        "안전하다" not in result.model_dump_json()
-        and "evil.test" not in result.model_dump_json()
-    )
-    assert (
-        "fake" not in result.model_dump_json()
-        and "spot:999" not in result.model_dump_json()
-    )
+    composed = result.model_dump_json(exclude={"model_trace"})
+    assert "안전하다" not in composed and "evil.test" not in composed
+    assert "fake" not in composed and "spot:999" not in composed
 
 
 @pytest.mark.parametrize(

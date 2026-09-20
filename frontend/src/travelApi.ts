@@ -1,4 +1,5 @@
 import type { Activity } from "./aiApi";
+import type { ModelTraceTurn } from "./aiApi";
 
 const CONDITION_LABELS: Record<string, string> = {
   activity_support: "활동 지원 여부",
@@ -155,6 +156,9 @@ export interface TravelChatResponse {
   answer: string;
   clarification: string | null;
   status: string;
+  fallback?: boolean;
+  reason_codes?: string[];
+  model_trace?: ModelTraceTurn[];
   travel?: {
     action: string;
     request: TravelRequest;

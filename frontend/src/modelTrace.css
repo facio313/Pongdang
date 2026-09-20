@@ -1,0 +1,88 @@
+.pd-trace-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--pd-touch, 44px);
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 10px;
+  background: var(--pd-mist, #f5f7fa);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pd-trace-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  background: rgba(15, 47, 122, 0.32);
+  cursor: pointer;
+}
+
+.pd-trace {
+  position: fixed;
+  z-index: 7;
+  inset: auto 12px 12px;
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 16px;
+  background: var(--pd-card, #fff);
+  color: var(--pd-ink, #1b2430);
+}
+
+.pd-trace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pd-trace-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.pd-trace-close {
+  min-height: var(--pd-touch, 44px);
+  padding: 0 12px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pd-trace-empty,
+.pd-trace-turns {
+  margin: 0;
+}
+
+.pd-trace-turns {
+  padding-left: 1.2rem;
+}
+
+.pd-trace-turns li + li {
+  margin-top: 12px;
+}
+
+.pd-trace pre {
+  margin: 8px 0 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--pd-mist, #f5f7fa);
+  white-space: pre-wrap;
+}
+
+@media (min-width: 1080px) {
+  .pd-trace {
+    inset: 12% 18%;
+    max-height: none;
+  }
+}
