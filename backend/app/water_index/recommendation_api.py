@@ -19,6 +19,7 @@ from app.tides.service import tide_event
 from app.travel.catalog import ROLE_CODES, VISIT_KINDS
 from app.water_index.api import WaterIndexRoute, error_response
 from app.water_index.condition_api import ConditionQuery, read_conditions
+from app.water_index.conditions import ConditionsEnvelope
 from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity, Record
 from app.water_index.recommendation import (
     CONTRACT,
@@ -108,6 +109,10 @@ class Recommendation(Record):
     reasons: tuple[Reason, ...]
     tide: Tide | None
     alternatives: tuple[Alternative, ...]
+    #: 판단에 쓴 활동별 조건 응답 전부. 화면이 같은 자료를 다시 조회하지
+    #: 않도록 함께 싣습니다 -- 따로 조회하면 두 응답의 시각이 어긋나 히어로
+    #: 점수와 그 아래 근거가 서로 다른 순간을 가리킵니다.
+    conditions: tuple[ConditionsEnvelope, ...]
     rules: tuple[Rule, ...] = RULES
     limitations: tuple[str, ...] = LIMITATIONS
     reason_codes: tuple[str, ...]
@@ -266,14 +271,49 @@ def _alternative(kind, row) -> Alternative:
     )
 
 
+async def read_activity(reader, q: RecommendationQuery, activity: Activity, now):
+    """관측으로 점수가 나오지 않으면 같은 시각의 예보로 한 번 더 읽습니다.
+
+    화면(useConditions)이 하던 물러서기를 서버로 옮긴 것입니다. 활동마다 두
+    번씩 왕복하던 것을 한 응답에 담기 위한 것이며, 규칙은 그대로입니다 --
+    공식 제한·활동 미지원·계산 보류는 예보로 우회하지 않습니다.
+    """
+    evidence = await read_conditions(reader, q.for_activity(activity), now=now)
+    score = evidence.condition_score
+    if (
+        q.mode == "forecast"
+        or q.at is not None
+        or score is None
+        or score.score is not None
+        or score.status == "blocked"
+        or evidence.safety_status == "restricted"
+        or evidence.support_status == "unsupported"
+    ):
+        return evidence
+    forecast = await read_conditions(
+        reader,
+        q.for_activity(activity).model_copy(
+            update={"mode": "forecast", "at": evidence.at}
+        ),
+        now=now,
+    )
+    # 예보로 점수가 나오거나 근거가 더 많을 때만 바꿉니다. 빈 예보로 관측
+    # 근거를 덮지 않습니다.
+    forecast_score = forecast.condition_score
+    return (
+        forecast
+        if (forecast_score is not None and forecast_score.score is not None)
+        or len(forecast.metrics) > len(evidence.metrics)
+        else evidence
+    )
+
+
 async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
     now = now or datetime.now(UTC)
     at, as_of = q.times(now)
     envelopes = {}
     for activity in RECOMMENDED_ACTIVITIES:
-        envelopes[activity] = await read_conditions(
-            reader, q.for_activity(activity), now=now
-        )
+        envelopes[activity] = await read_activity(reader, q, activity, now)
     first = envelopes[RECOMMENDED_ACTIVITIES[0]]
 
     async with reader.connection() as c:
@@ -333,6 +373,7 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
         reasons=decision.reasons,
         tide=tide,
         alternatives=tuple(alternatives),
+        conditions=tuple(envelopes[a] for a in RECOMMENDED_ACTIVITIES),
         reason_codes=decision.reason_codes,
     )
 

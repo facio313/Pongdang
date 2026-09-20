@@ -295,6 +295,8 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
               <div className="pd-dk-kick">
                 {best
                   ? `오늘 여기서 가장 좋은 활동 · ${activityHeadline(best.activity)}`
+                  : recommendation.error
+                  ? "오늘의 활동을 불러오지 못했습니다"
                   : "오늘 이 장소의 물놀이 조건"}
               </div>
               <DesktopScore
@@ -310,6 +312,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
               {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. */}
               <RecommendationReason
                 data={recommendation.data}
+                error={recommendation.error}
                 loading={isInitialLoad(recommendation)}
               />
               <ScoreReason

@@ -121,29 +121,34 @@ test("home and map use actual category-classified beaches when only the address 
 test("missing observations use an explicitly labelled forecast and never bypass a restriction", async ({ page }) => {
   let blocked = false;
   let forecasts = 0;
+  // 관측 점수가 없을 때 예보로 물러서는 것은 이제 서버가 합니다
+  // (recommendation_api.read_activity). 화면은 그 결과를 예보라고 밝혀 그리고,
+  // 공식 제한이면 점수를 만들지 않는지만 봅니다.
   await page.route("**/api/data/water-index/conditions?**", async (route) => {
     const url = new URL(route.request().url());
-    const mode = url.searchParams.get("mode");
-    // Fixed-hour forecast rows are independent from the hero's fallback.
-    if (mode === "forecast" && url.searchParams.get("at")?.endsWith("Z")) forecasts++;
-    await route.fulfill({ json: {
-      spot_id: Number(url.searchParams.get("spot_id")), activity: url.searchParams.get("activity"),
-      place_name: "OFFLINE TEST", mode, at: url.searchParams.get("at") ?? new Date().toISOString(),
-      safety_status: blocked ? "restricted" : "unknown", support_status: "unknown",
-      environment_score: null, metrics: [], reason_codes: [],
-      condition_score: {
-        label: "활동 조건 참고 점수", model_id: "browser-fixture", model_version: "1", methodology: "fixture",
-        score: blocked ? 99 : mode === "forecast" ? 81 : null,
-        status: blocked ? "blocked" : mode === "forecast" ? "partial" : "unavailable",
-        coverage: mode === "forecast" ? 0.25 : 0, available_components: mode === "forecast" ? 1 : 0,
-        total_components: 4, components: [], sources: [], reason_codes: [],
-      },
-    } });
+    if (url.searchParams.get("mode") === "forecast" && url.searchParams.get("at")?.endsWith("Z"))
+      forecasts++;
+    await route.continue();
   });
-  // 공식 제한이 걸리면 추천도 고를 것이 없습니다. 조건 응답과 같은 상태를
-  // 따라가야 화면이 한쪽만 바뀐 것처럼 보이지 않습니다.
-  await routeRecommendation(page, () =>
-    blocked ? null : { activity: "swim", score: 81 },
+  const envelope = () => ({
+    spot_id: 1, place_name: "OFFLINE TEST", activity: "swim",
+    mode: blocked ? "observation" : "forecast", at: new Date().toISOString(),
+    as_of: new Date().toISOString(), safety_status: blocked ? "restricted" : "unknown",
+    support_status: "unknown", restriction_refs: [], environment_score: null,
+    metrics: [], context_metrics: [], display_metrics: [], missing_metrics: [],
+    required_evidence: [], reason_codes: [],
+    condition_score: {
+      label: "활동 조건 참고 점수", model_id: "browser-fixture", model_version: "1",
+      methodology: "fixture", score: blocked ? null : 81,
+      status: blocked ? "blocked" : "partial",
+      coverage: blocked ? 0 : 0.25, available_components: blocked ? 0 : 1,
+      total_components: 4, components: [], sources: [], reason_codes: [],
+    },
+  });
+  await routeRecommendation(
+    page,
+    () => (blocked ? null : { activity: "swim", score: 81 }),
+    { get conditions() { return [envelope()]; } },
   );
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
@@ -155,6 +160,7 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   await page.reload();
   await expect(page.locator(".hm-hero-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  // 제한 상태를 예보로 우회하지 않습니다.
   expect(forecasts).toBe(0);
 });
 
@@ -227,44 +233,44 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   let requests = 0;
   let release!: () => void;
   const refresh = new Promise<void>((resolve) => { release = resolve; });
-  await page.route("**/api/data/water-index/conditions?**", async (route) => {
-    const query = new URL(route.request().url()).searchParams;
-    if (query.get("mode") === "forecast") {
-      await route.continue();
-      return;
-    }
-    // 만료를 세는 것은 히어로가 그리는 활동(수영) 하나입니다. 나머지 활동은
-    // 타일용 조회이므로 값 없이 바로 돌려줍니다 -- 그쪽을 붙잡아 두면 이
-    // 검사가 만료가 아니라 응답 지연을 보게 됩니다.
-    if (query.get("activity") !== "swim") {
-      await route.fulfill({ json: {
-        spot_id: 1, activity: query.get("activity"), mode: "observation", at: now.toISOString(),
-        safety_status: "unknown", environment_score: null, reason_codes: [], metrics: [],
-        condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1",
-          methodology: "fixture", status: "unavailable", score: null, coverage: 0,
-          available_components: 0, total_components: 4, components: [], sources: [], reason_codes: [] },
-      } });
-      return;
-    }
+  // 만료는 추천 응답이 싣고 온 근거의 유효기간으로 잽니다. 두 번째 조회는
+  // 붙잡아 두어, 갱신을 기다리는 동안 지난 점수가 남지 않는지 봅니다.
+  const evidence = {
+    provider: "TEST", observed_at: now.toISOString(), issued_at: null,
+    fetched_at: now.toISOString(), valid_until: new Date(now.getTime() + 10000).toISOString(),
+  };
+  await page.route("**/api/data/water-index/recommendation?**", async (route) => {
     const number = ++requests;
     if (number > 1) await refresh;
+    const fresh = number === 1;
     await route.fulfill({ json: {
-      spot_id: 1, activity: "swim", mode: "observation", at: now.toISOString(),
-      safety_status: "unknown", environment_score: null, reason_codes: [],
-      metrics: number === 1 ? [{ name: "water_temperature", label: "수온", station_id: 2,
-        status: "available", value: 21, unit: "°C", relation: "representative_station", station_name: "TEST",
-        evidence: [{ provider: "TEST", observed_at: now.toISOString(), valid_until: new Date(now.getTime() + 10000).toISOString() }] }] : [],
-      condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1", methodology: "fixture",
-        status: number === 1 ? "partial" : "unavailable", score: number === 1 ? 75 : null,
-        coverage: number === 1 ? 0.25 : 0, available_components: number === 1 ? 1 : 0, total_components: 4,
-        components: number === 1 ? [{ metric: "water_temperature", label: "수온", value: 21, unit: "°C", score: 75,
-          weight: 1, station_id: 2, status: "evaluated", reason_codes: [], criterion: "fixture" }] : [],
-        sources: [], reason_codes: [],
-      },
+      contract_version: "water-recommendation.v1", model_id: "pongdang-activity-recommendation",
+      model_version: "1.0.0", scientific_validation: "not_evaluated",
+      spot_id: 1, place_name: "TEST", place_kind: "beach",
+      at: now.toISOString(), as_of: now.toISOString(), mode: "observation",
+      choice: fresh ? { activity: "swim", score: 75, status: "partial" } : null,
+      ranked: [], reasons: [], tide: null, alternatives: [],
+      rules: [], limitations: [], reason_codes: [],
+      conditions: [{
+        spot_id: 1, place_name: "TEST", activity: "swim", mode: "observation",
+        at: now.toISOString(), as_of: now.toISOString(), safety_status: "unknown",
+        support_status: "unknown", restriction_refs: [], environment_score: null,
+        context_metrics: [], display_metrics: [], missing_metrics: [],
+        required_evidence: [], reason_codes: [],
+        metrics: fresh ? [{ name: "water_temperature", label: "수온", station_id: 2,
+          status: "available", value: 21, unit: "°C", relation: "representative_station",
+          station_name: "TEST", evidence: [evidence] }] : [],
+        condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1",
+          methodology: "fixture", status: fresh ? "partial" : "unavailable",
+          score: fresh ? 75 : null, coverage: fresh ? 0.25 : 0,
+          available_components: fresh ? 1 : 0, total_components: 4,
+          components: fresh ? [{ metric: "water_temperature", label: "수온", value: 21,
+            unit: "°C", score: 75, weight: 1, station_id: 2, status: "evaluated",
+            reason_codes: [], criterion: "fixture" }] : [],
+          sources: [], reason_codes: [] },
+      }],
     } });
   });
-  // 만료 판정은 조건 응답이 합니다. 추천은 활동만 고르므로 여기서는 고정입니다.
-  await routeRecommendation(page, { activity: "swim", score: 75 });
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.clock.fastForward(10001);

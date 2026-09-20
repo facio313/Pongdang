@@ -27,6 +27,10 @@ export async function routeRecommendation(
         as_of: new Date().toISOString(),
         mode: "observation",
         choice: choice ? { ...choice, status: "evaluated" } : null,
+        // 화면은 판단에 쓴 조건 응답도 이 한 번의 조회에서 읽습니다. 기본값은
+        // 고른 활동 하나짜리 최소 응답이며, 근거 문구까지 보는 검사는
+        // `extra.conditions` 로 실제 응답을 실어 줍니다.
+        conditions: choice ? [conditionsFixture(choice)] : [],
         ranked: [],
         reasons: [],
         tide: null,
@@ -51,6 +55,23 @@ export async function serverRecommendation(page: Page, spotId: number) {
     reasons: { code: string }[];
     alternatives: { kind: string; name: string }[];
     tide: { phase: string } | null;
+  };
+}
+
+/** 점수 하나만 필요한 검사를 위한 최소 조건 응답. */
+export function conditionsFixture(choice: { activity: string; score: number }) {
+  return {
+    spot_id: 1, place_name: "browser fixture", activity: choice.activity,
+    mode: "observation", at: new Date().toISOString(), as_of: new Date().toISOString(),
+    safety_status: "unknown", support_status: "unknown", restriction_refs: [],
+    environment_score: null, metrics: [], context_metrics: [], display_metrics: [],
+    missing_metrics: [], required_evidence: [], reason_codes: [],
+    condition_score: {
+      label: "활동 조건 참고 점수", model_id: "browser-fixture", model_version: "1",
+      methodology: "fixture", status: "partial", score: choice.score, coverage: 0.5,
+      available_components: 2, total_components: 4, components: [], sources: [],
+      reason_codes: [],
+    },
   };
 }
 

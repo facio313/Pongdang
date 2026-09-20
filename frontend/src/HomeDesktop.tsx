@@ -28,7 +28,7 @@ import {
   verdictOf,
 } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
-import { activityHeadline, choiceReason } from "./recommendationText";
+import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import { EvidenceNote } from "./EvidenceNote";
 import {
@@ -82,6 +82,7 @@ function HomeHero({
   best,
   recommendation,
   recommendationLoading = false,
+  recommendationError,
   quality,
   qualityLoading = false,
   loading = false,
@@ -92,6 +93,7 @@ function HomeHero({
   /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
   recommendation?: Recommendation;
   recommendationLoading?: boolean;
+  recommendationError?: string;
   /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답(useProductData 주석). */
   baseline?: Conditions;
   best: ActivityCondition | null;
@@ -128,10 +130,11 @@ function HomeHero({
                 {activityHeadline(best.activity)}
               </>
             ) : (
+              // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
               <>
-                오늘 점수를 낼 수 있는
+                {missingChoiceHeadline(recommendationError, true)[0]}
                 <br />
-                활동이 없습니다
+                {missingChoiceHeadline(recommendationError, true)[1]}
               </>
             )}
           </h1>
@@ -160,6 +163,7 @@ function HomeHero({
               「점수 근거」 줄에 그대로 남습니다. */}
           <RecommendationReason
             data={recommendation}
+            error={recommendationError}
             loading={recommendationLoading}
             glass
           />
@@ -366,6 +370,7 @@ export function HomeDesktop() {
         best={best}
         recommendation={recommendation.data}
         recommendationLoading={isInitialLoad(recommendation)}
+        recommendationError={recommendation.error}
         quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
@@ -486,7 +491,7 @@ export function HomeDesktop() {
               <div className="hd-ai-headline">
                 {best
                   ? `오늘 이 장소에서는 ${activities[best.activity]}이(가) 가장 잘 맞습니다`
-                  : "오늘 점수를 낼 수 있는 활동이 없습니다"}
+                  : missingChoiceHeadline(recommendation.error, true).join(" ")}
               </div>
               {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면
                   점수를 깎은 항목으로 물러섭니다 -- 둘 다 없으면 이 칩이 근거

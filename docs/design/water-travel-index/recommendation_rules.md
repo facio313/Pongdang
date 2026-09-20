@@ -87,6 +87,27 @@
 명소 대안을 함께 싣는다(`recommendationText.activityHeadline`). 「물가에 앉아 있기」가
 답이 되지 않도록 **갈 곳**을 함께 말한다.
 
+## 한 번의 조회로 끝난다
+
+응답에는 판단에 쓴 **활동별 조건 응답(`conditions`)** 이 함께 실린다. 화면은 그것을
+그대로 쓰고 같은 자료를 다시 묻지 않는다 -- 예전에는 홈 한 번에 활동마다 한 번씩,
+관측이 비면 예보로 한 번 더, 모두 여섯 번을 왕복했고 그 응답들의 시각이 서로 달라
+히어로 점수와 아래 근거가 다른 순간을 가리킬 수 있었다.
+
+관측 점수가 없을 때 같은 시각의 예보로 물러서는 일도 서버가 한다
+(`recommendation_api.read_activity`). 규칙은 화면이 하던 것과 같다 -- 공식 제한 ·
+활동 미지원 · 계산 보류는 예보로 우회하지 않고, 빈 예보로 관측 근거를 덮지 않는다.
+
+만료는 그 응답이 싣고 온 근거의 유효기간으로 잰다(`conditionScoreExpiry`). 그 시각에
+다시 읽고, 그 전까지는 5 분마다 확인하며, 만료된 점수는 화면에 남기지 않고 «–» 로
+비운다.
+
+## 조회 실패와 「고를 것이 없음」은 다른 사실이다
+
+`choice: null` 은 고를 것이 없다는 뜻이고, 조회 실패는 아무것도 모른다는 뜻이다.
+화면은 둘을 다른 문장으로 말한다 -- 실패했을 때 「오늘은 할 게 없다」로 바꾸면
+없는 판단을 지어내는 셈이다(`recommendationText.missingChoiceHeadline`).
+
 ## 문장은 백엔드가 만들지 않는다
 
 응답에는 코드와 수치만 있다. 한국어 문구는 `frontend/src/recommendationText.ts`
@@ -96,6 +117,9 @@
 ## 검증
 
 - `backend/tests/test_recommendation.py` — 규칙표 한 줄당 한 케이스(DB 없이 순수 판단).
+- `backend/tests/test_recommendation_integration.py` — 규칙이 **실제 자료에 닿는 길**:
+  조석 선택과 위상, 계곡 · 온천 · 카페 대안 SQL 과 거리, 한랭 경로, 예보 물러서기.
+  일회용 `pongdang_test` 에서만 돈다.
 - `frontend/tests/recommendationText.test.mjs` — 코드→문장, 수치가 없을 때 문장을
   만들지 않는지, 물때 문장에 면책이 항상 붙는지.
 - `frontend/tests/browser/*.spec.ts` — 화면이 **다시 고르지 않고** 서버 응답을 그대로

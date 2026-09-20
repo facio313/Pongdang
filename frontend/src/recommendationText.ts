@@ -44,6 +44,17 @@ export interface ReasonLine {
   text: string;
 }
 
+/** 고른 활동이 없을 때 히어로가 할 말. **조회 실패와 「고를 것이 없음」은 다른
+ *  사실입니다** -- 서버에 닿지 못한 것을 「오늘은 할 게 없다」로 바꾸면 화면이
+ *  없는 판단을 지어내는 셈입니다. */
+export function missingChoiceHeadline(error?: string, polite = false) {
+  // 모바일은 해요체, 데스크탑은 합쇼체를 씁니다. 말투까지 한 곳에서 갈라
+  // 두어야 화면마다 같은 사실이 다른 문장으로 벌어지지 않습니다.
+  if (error)
+    return ["오늘의 활동을", polite ? "불러오지 못했습니다" : "불러오지 못했어요"];
+  return ["오늘 점수를 낼 수 있는", polite ? "활동이 없습니다" : "활동이 없어요"];
+}
+
 function find(rec: Recommendation | undefined, ...codes: string[]) {
   return (rec?.reasons ?? []).find((reason) => codes.includes(reason.code));
 }

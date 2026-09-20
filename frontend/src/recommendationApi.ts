@@ -1,4 +1,5 @@
 import type { Activity } from "./aiApi.ts";
+import type { Conditions } from "./productData.ts";
 
 /** `water-index/recommendation` 의 응답. 서버가 활동별 점수를 **비교해** 하나를
  *  고른 결과와, 그 판단에 쓴 코드·수치입니다.
@@ -21,6 +22,10 @@ export interface Recommendation {
   reasons: RecommendationReasonData[];
   tide: RecommendationTide | null;
   alternatives: RecommendationAlternative[];
+  /** 판단에 쓴 활동별 조건 응답 전부. 화면은 이것을 그대로 쓰고 같은 자료를
+   *  다시 조회하지 않습니다 -- 따로 조회하면 두 응답의 시각이 어긋나 히어로
+   *  점수와 그 아래 근거가 서로 다른 순간을 가리킵니다. */
+  conditions: Conditions[];
   rules: { code: string; text: string; basis: string }[];
   limitations: string[];
   reason_codes: string[];

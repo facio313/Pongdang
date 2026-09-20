@@ -25,11 +25,15 @@ import { spotLink } from "./spotsRoute";
  *  바로 아래 `EvidenceNote` 의 「근거 보기」 안에 그대로 남습니다. */
 export function RecommendationReason({
   data,
+  error,
   loading = false,
   glass = false,
   className,
 }: {
   data?: Recommendation;
+  /** 추천 조회 실패. 비워 두면 화면이 「오늘은 할 게 없다」로 읽히므로
+   *  실패는 실패라고 적습니다. */
+  error?: string;
   loading?: boolean;
   /** 코발트 히어로 위. 글자색이 어두운 배경용으로 바뀝니다. */
   glass?: boolean;
@@ -41,6 +45,14 @@ export function RecommendationReason({
   const groups = alternativeGroups(data);
   const root =
     "pd-why" + (glass ? " is-glass" : "") + (className ? ` ${className}` : "");
+  if (error)
+    return (
+      <div className={root}>
+        <p className="pd-why-line" role="alert">
+          추천 근거를 불러오지 못했어요. {error}
+        </p>
+      </div>
+    );
   if (loading)
     return (
       <div className={root}>

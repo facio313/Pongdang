@@ -16,7 +16,7 @@ import {
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
-import { activityHeadline } from "./recommendationText";
+import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
@@ -58,6 +58,7 @@ function Hero({
   best,
   recommendation,
   recommendationLoading = false,
+  recommendationError,
   loading = false,
   baselineLoading = false,
 }: {
@@ -65,6 +66,7 @@ function Hero({
   /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
   recommendation?: Recommendation;
   recommendationLoading?: boolean;
+  recommendationError?: string;
   conditions?: Conditions;
   /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답. 점수용 응답과 다릅니다 --
    *  서버는 그 활동이 보는 지표만 내려주기 때문입니다(useProductData 주석). */
@@ -171,10 +173,11 @@ function Hero({
                 <b>{activityHeadline(best.activity)}</b>
               </>
             ) : (
+              // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
               <>
-                오늘 점수를 낼 수 있는
+                {missingChoiceHeadline(recommendationError)[0]}
                 <br />
-                활동이 없어요
+                {missingChoiceHeadline(recommendationError)[1]}
               </>
             )}
           </h1>
@@ -208,6 +211,7 @@ function Hero({
             남아 있습니다. */}
         <RecommendationReason
           data={recommendation}
+          error={recommendationError}
           loading={recommendationLoading}
           glass
         />
@@ -542,6 +546,7 @@ function HomeScreen() {
             best={best}
             recommendation={recommendation.data}
             recommendationLoading={isInitialLoad(recommendation)}
+            recommendationError={recommendation.error}
             loading={isInitialLoad(conditions)}
             baselineLoading={isInitialLoad(baseline)}
           />
