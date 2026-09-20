@@ -793,19 +793,36 @@ main:has(.pd-app) {
 .pd-explainer-body ul {
   padding-left: 1.1em;
 }
+/* 전역 table 스킨(styles.css)이 이 표에도 줄무늬 · 격자선 · 회색 sticky th 를
+   입힙니다. 척도 표는 자료 표가 아니라 등급 다섯 줄이라 그 스킨이 오히려
+   읽기를 방해했습니다 -- 짝수 줄의 흰 띠 위에서 글자가 사라졌습니다.
+   styles.css 는 수정하지 않으므로 여기서만 걷어냅니다. */
 .pd-explainer-scale {
   border-collapse: collapse;
   width: 100%;
 }
+/* 줄무늬 규칙이 `tbody tr:nth-child(even) > td` 라 명시도가 높습니다. 같은
+   형태로 되받아야 지워집니다. */
+.pd-explainer-scale th,
+.pd-explainer-scale tbody tr:nth-child(n) > th,
+.pd-explainer-scale tbody tr:nth-child(n) > td {
+  background: none;
+  border: 0;
+  position: static;
+  padding: 2px 0;
+}
 .pd-explainer-scale th {
   text-align: left;
   font-weight: 400;
-  padding: 2px 0;
 }
 .pd-explainer-scale td {
   text-align: right;
   color: var(--pd-ink-mute);
   font-variant-numeric: tabular-nums;
+}
+/* 코발트 위에서는 점수 칸도 밝은 쪽으로 돌려놓습니다. */
+.pd-evidence.is-glass .pd-explainer-scale td {
+  color: var(--pd-on-cobalt-2);
 }
 
 @media (prefers-reduced-motion: reduce) {

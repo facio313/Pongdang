@@ -99,16 +99,19 @@ export function DesktopHero({
       style={style}
     >
       {nav}
-      {mascot && (
-        <img
-          className="pd-dk-hero-mascot"
-          src={mascotUrl(mascot)}
-          alt={MASCOT_ALT}
-          width={200}
-          height={200}
-        />
-      )}
-      <div className="pd-dk-hero-body">{children}</div>
+      <div className="pd-dk-hero-body">
+        {children}
+        {mascot && (
+          <img
+            className="pd-dk-hero-mascot"
+            src={mascotUrl(mascot)}
+            alt={MASCOT_ALT}
+            width={200}
+            height={200}
+          />
+        )}
+      </div>
+
       {wave === "animated" && (
         // 2겹입니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. 「동작 줄이기」를
         // 켜면 pongdangDesktop.css 가 멈춥니다.

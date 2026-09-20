@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   conditionScoreText,
   evidenceSummary,
@@ -23,9 +24,14 @@ export function EvidenceNote({
   className,
   glass = false,
   chip = true,
+  extra,
 }: {
   data?: Conditions;
   className?: string;
+  /** 「근거 보기」와 같은 줄에 세울 다른 손잡이(예: 「퐁당 점수란?」). 둘 다
+   *  접힌 자료로 가는 문이라 한 줄에 나란히 서는 편이 읽기 쉽습니다. 넘기지
+   *  않으면 구조는 예전 그대로입니다. */
+  extra?: ReactNode;
   /** 코발트 히어로 위. 요약 · summary · 본문 색이 어두운 배경용으로 바뀝니다. */
   glass?: boolean;
   /** 안전 상태 칩을 이 줄에 붙일지. 지도처럼 화면이 이미 같은 사실을 더 눈에
@@ -34,6 +40,16 @@ export function EvidenceNote({
 }) {
   const status = data?.safety_status ?? "unknown";
   const controlled = status === "restricted" || status === "caution";
+  const note = (
+    <details className="pd-explainer">
+      <summary className="pd-tap">근거 보기</summary>
+      <div className="pd-explainer-body">
+        <p>{conditionScoreText(data)}</p>
+        <p>{evidenceText(data)}</p>
+        {!controlled && <p>{safetyStatusText(data)}</p>}
+      </div>
+    </details>
+  );
   return (
     <div
       className={
@@ -59,14 +75,14 @@ export function EvidenceNote({
           합니다. 미판정(unknown)일 때만 아래 details 안으로 들어갑니다. */}
       {controlled && <p className="pd-evidence-control">{safetyStatusText(data)}</p>}
 
-      <details className="pd-explainer">
-        <summary className="pd-tap">근거 보기</summary>
-        <div className="pd-explainer-body">
-          <p>{conditionScoreText(data)}</p>
-          <p>{evidenceText(data)}</p>
-          {!controlled && <p>{safetyStatusText(data)}</p>}
+      {extra === undefined ? (
+        note
+      ) : (
+        <div className="pd-evidence-controls">
+          {note}
+          {extra}
         </div>
-      </details>
+      )}
     </div>
   );
 }

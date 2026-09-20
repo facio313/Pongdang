@@ -180,8 +180,11 @@ main:has(.pd-desktop) {
    코발트 면이 흰 본문으로 넘어가는 경계를 물결 SVG 가 만듭니다. 모바일처럼
    라운드 하단으로 끊지 않습니다. */
 
-/* 높이는 화면마다 다르게 두지 않습니다 -- 탭을 옮겨도 코발트 면이 같은
-   자리에서 끝나야 본문이 튀지 않습니다. 내용이 이보다 길면 늘어납니다. */
+/* 높이는 **여섯 화면이 전부 같습니다.** 탭을 옮길 때 코발트 면이 다른
+   자리에서 끝나면 그 아래 본문이 매번 다른 높이에서 시작해 화면이 튑니다.
+   그래서 최소값이자 사실상 고정값입니다 -- 어느 화면도 이 값을 넘지 않도록
+   내용을 맞춰 두었고(홈 히어로), 짧은 화면은 남는 만큼 코발트가 남습니다.
+   내용을 늘릴 때는 이 높이 안에 들어가는지부터 확인해야 합니다. */
 .pd-dk-hero {
   position: relative;
   display: flex;
@@ -189,36 +192,38 @@ main:has(.pd-desktop) {
   min-height: var(--dk-hero-min-h);
   background: var(--dk-cobalt);
   color: var(--dk-onc);
-  --dk-hero-min-h: 420px;
+  --dk-hero-min-h: 520px;
   --dk-hero-mascot-size: 200px;
-  --dk-hero-mascot-top: 84px;
 }
-/* 얇은 띠 히어로(지도 · 내 코스)는 낮게 서지만, 띠끼리는 또 같은 높이입니다. */
-.pd-dk-hero.is-band {
-  --dk-hero-min-h: 240px;
-  --dk-hero-mascot-size: 104px;
-  --dk-hero-mascot-top: 78px;
-}
+/* 높이가 여섯 화면 공통이라 내용이 짧은 화면(지도 · 내 코스)은 아래가 빕니다.
+   위로 붙이면 빈 코발트가 아래에 덩어리로 남아 「덜 그려진 화면」으로 읽히므로
+   내용을 본문 높이의 가운데에 둡니다 -- 마스코트와 같은 기준선입니다. */
 .pd-dk-hero-body {
   position: relative;
   z-index: 1;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding: 26px var(--dk-pad) 0;
 }
 /* 얇은 띠 히어로(지도 · 내 코스)는 본문 패딩을 줄여 씁니다. */
 .pd-dk-hero.is-band .pd-dk-hero-body {
   padding: 18px var(--dk-pad) 20px;
 }
-/* 마스코트는 어느 화면이든 네비 바로 아래 · 오른쪽 끝입니다. 흐름에서 빼
-   두어야 히어로마다 다른 본문 배치(점수 · 관측값 · 검색)에 밀리지 않습니다.
-   본문과 겹치지 않도록 히어로 본문은 오른쪽 여백을 비워 둡니다. */
+/* 마스코트는 히어로 본문의 마지막 자식이지만 흐름에서는 빠집니다 -- 흐름에
+   두면 화면마다 다른 본문 배치(점수 · 관측값 · 검색) 뒤로 밀려 어느 화면에서도
+   같은 자리에 서지 못합니다. 기준은 본문 상자라 좌우 여백을 본문과 같이 씁니다.
+   세로는 본문 높이의 가운데입니다. 본문과 겹치지 않도록 본문은 마스코트 폭만큼
+   오른쪽을 비웁니다. */
 .pd-dk-hero.has-mascot .pd-dk-hero-body {
   padding-right: calc(var(--dk-pad) + var(--dk-hero-mascot-size) + 28px);
 }
 .pd-dk-hero-mascot {
   position: absolute;
-  top: var(--dk-hero-mascot-top);
+  top: 50%;
   right: var(--dk-pad);
+  transform: translateY(-50%);
   z-index: 2;
   display: block;
   width: var(--dk-hero-mascot-size);
@@ -571,12 +576,7 @@ main:has(.pd-desktop) {
    같이 씁니다(토큰 하나만 바꿉니다). */
 @media (max-width: 1240px) {
   .pd-dk-hero {
-    --dk-hero-min-h: 380px;
     --dk-hero-mascot-size: 156px;
-  }
-  .pd-dk-hero.is-band {
-    --dk-hero-min-h: 230px;
-    --dk-hero-mascot-size: 92px;
   }
 }
 
