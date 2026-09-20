@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conditionScore, conditionScoreText, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
+import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
 
 const index = {
   label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
@@ -45,6 +45,26 @@ test('partial score includes actual coverage, missing fields and its non-safety 
   assert.match(components, /수온 21.3°C → 62점/);
   assert.match(components, /풍속 – → – · 아직 수집된 측정값 없음/);
   assert.match(conditionScoreText({ condition_score: { ...index, status: 'blocked', score: null } }), /공식 제한 또는 활동 미지원으로 계산 보류/);
+});
+
+test('the score-adjacent coverage label exposes partial evidence without changing the score', () => {
+  const data = { condition_score: { ...index, available_components: 2, coverage: 0.5 } };
+  assert.equal(scoreCoverageText(data), '부분 점수 · 근거 2/4 (50%)');
+  assert.equal(conditionScore(data), 76.3);
+  assert.equal(scoreCoverageText({ condition_score: {
+    ...index, status: 'evaluated', available_components: 4, coverage: 1,
+  } }), '근거 4/4 (100%)');
+  assert.equal(scoreCoverageText(undefined), '근거 정보 없음');
+  assert.equal(scoreCoverageText({ condition_score: { ...index, available_components: undefined } }), '부분 점수 · 근거 정보 없음');
+});
+
+test('tide times retain their actual KST date across midnight and year boundaries', () => {
+  assert.equal(tideTimeLabel('2026-09-20T14:30:00Z'), '9/20 23:30 KST');
+  assert.equal(tideTimeLabel('2026-09-20T16:30:00Z'), '9/21 01:30 KST');
+  assert.equal(tideTimeLabel('2026-09-21T00:00:00+09:00'), '9/21 00:00 KST');
+  assert.equal(tideTimeLabel('2026-12-31T15:00:00Z'), '1/1 00:00 KST');
+  for (const value of [undefined, null, '', 'invalid-date'])
+    assert.equal(tideTimeLabel(value), '–');
 });
 
 test('the collapsed evidence line keeps coverage and never turns a missing score into a number', () => {

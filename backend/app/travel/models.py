@@ -18,6 +18,7 @@ Tags = Annotated[list[Tag], Field(max_length=30)]
 Locale = Literal["ko", "en", "ja", "zh-CN", "zh-TW"]
 Intensity = Literal["low", "moderate", "high"]
 Mode = Literal["driving", "transit", "walking", "cycling"]
+SignalKind = Literal["card", "favorite", "visit", "review"]
 DataStatus = Literal[
     "available", "no_data", "stale", "partial", "unknown", "query_failed"
 ]
@@ -48,7 +49,7 @@ class PreferenceUpdate(Record):
 
 
 class SignalInput(Record):
-    kind: Literal["card", "favorite", "visit", "review"]
+    kind: SignalKind
     action: Literal[
         "like", "dislike", "skip", "confirm", "positive", "negative", "neutral"
     ]

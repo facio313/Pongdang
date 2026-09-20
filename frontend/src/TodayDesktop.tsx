@@ -27,11 +27,13 @@ import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import {
   conditionScore,
+  conditionModeLabel,
   dataStatusText,
   dateLabel,
   metricText,
   periodPath,
-  timeLabel,
+  scoreCoverageText,
+  tideTimeLabel,
   waterQualityLabel,
   type Conditions,
   type Place,
@@ -76,6 +78,9 @@ const TIDE_ACTIVITIES = [
 function TodayHero({
   placeName,
   conditions,
+  baseline,
+  baselineLoading = false,
+  baselineError,
   best,
   recommendation,
   recommendationLoading = false,
@@ -86,6 +91,9 @@ function TodayHero({
 }: {
   placeName: string;
   conditions?: Conditions;
+  baseline?: Conditions;
+  baselineLoading?: boolean;
+  baselineError?: string;
   /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
   recommendation?: Recommendation;
   recommendationLoading?: boolean;
@@ -153,6 +161,9 @@ function TodayHero({
             <GradeIcon gradeKey={grade.key} size={14} />
             {grade.label}
           </div>
+          {score !== null && scoreCoverageText(conditions) && (
+            <div className="td-tile-name td-score-coverage">{scoreCoverageText(conditions)}</div>
+          )}
           <ScoreGauge score={score} loading={loading} glass compact />
         </div>
         <div className="td-hero-tiles">
@@ -160,21 +171,24 @@ function TodayHero({
           <div className="td-tile">
             <Icon name="wave" size={18} />
             <div className="pd-dk-num td-tile-value">
-              {metricText(conditions, "wave_height")}
+              {baselineLoading ? <Skeleton width="2.6em" glass label="장소 파고 조회 중" />
+                : baselineError ? "조회 실패" : metricText(baseline, "wave_height")}
             </div>
             <div className="td-tile-name">파고</div>
           </div>
           <div className="td-tile">
             <Icon name="thermometer" size={18} />
             <div className="pd-dk-num td-tile-value">
-              {metricText(conditions, "water_temperature")}
+              {baselineLoading ? <Skeleton width="2.6em" glass label="장소 수온 조회 중" />
+                : baselineError ? "조회 실패" : metricText(baseline, "water_temperature")}
             </div>
             <div className="td-tile-name">수온</div>
           </div>
           <div className="td-tile">
             <Icon name="sun" size={18} />
             <div className="pd-dk-num td-tile-value">
-              {metricText(conditions, "air_temperature")}
+              {baselineLoading ? <Skeleton width="2.6em" glass label="장소 기온 조회 중" />
+                : baselineError ? "조회 실패" : metricText(baseline, "air_temperature")}
             </div>
             <div className="td-tile-name">기온</div>
           </div>
@@ -189,6 +203,12 @@ function TodayHero({
           </div>
         </div>
       </div>
+      <p className="td-tile-name" role={baselineError ? "alert" : "status"}>
+        장소 {conditionModeLabel(baseline)} · 활동 점수 입력과 별도. {baselineError
+          ? baselineError
+          : baselineLoading ? "장소 자료를 조회하고 있습니다."
+          : baseline ? "–는 해당 자료가 없다는 뜻입니다." : "장소 자료 없음."}
+      </p>
       {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳.
           점수 산출 근거와 출처 · 면책은 아래 「근거 보기」에 그대로 남습니다. */}
       <RecommendationReason
@@ -234,6 +254,7 @@ function SpotRow({
       <span className="td-spot-body">
         <span className="td-spot-name">{place.name}</span>
         <span className="td-spot-address">{place.address ?? "주소 없음"}</span>
+        {score !== null && <small className="td-score-coverage">{scoreCoverageText(conditions.data)}</small>}
       </span>
       <span className="td-spot-bar">
         {/* 값이 없으면 막대를 그리지 않습니다 -- 폭 0 인 막대는 「0 점」과
@@ -314,10 +335,13 @@ function ActivityCell({
           (score ?? "–")
         )}
       </div>
+      {score !== null && scoreCoverageText(state?.data) && (
+        <div className="td-score-coverage"><small>{scoreCoverageText(state?.data)}</small></div>
+      )}
       <div className="td-activity-name">{activities[activity]}</div>
       <div className="td-activity-grade">
         <GradeIcon gradeKey={grade.key} size={11} />
-        {grade.label}
+        {state?.eligibility ?? grade.label}
       </div>
     </div>
   );
@@ -393,6 +417,9 @@ function WeekForecast({
               <div className="pd-dk-num td-day-score">
                 {day.loading ? <Skeleton width="1.6em" label="예보 조회 중" /> : (day.score ?? "–")}
               </div>
+              {day.score !== null && scoreCoverageText(day.data) && (
+                <div className="td-score-coverage"><small>{scoreCoverageText(day.data)}</small></div>
+              )}
               <div className="td-day-track">
                 {/* 값이 없는 날은 막대를 그리지 않고 회색 기준선만 둡니다.
                     0 높이 막대로 그리면 「0점」으로 읽히기 때문입니다. */}
@@ -455,7 +482,7 @@ function OperatingRow({
         {windows.error
           ? "조회 실패"
           : active
-            ? `${timeLabel(active.start_at)}–${timeLabel(active.end_at)}`
+            ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
             : "운영정보 없음"}
       </span>
       <span className="td-tide-fit">{active ? "공식 운영" : "확인 필요"}</span>
@@ -465,7 +492,7 @@ function OperatingRow({
 
 export function TodayDesktop() {
   const {
-    now, place, places, conditions, activities: activityStates, best,
+    now, place, places, conditions, baseline, activities: activityStates, best,
     recommendation, displayName, selectionMessage, placeSettled,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
@@ -479,6 +506,9 @@ export function TodayDesktop() {
       <TodayHero
         placeName={displayName}
         conditions={conditions.data}
+        baseline={baseline.data}
+        baselineLoading={isInitialLoad(baseline)}
+        baselineError={baseline.error}
         best={best}
         recommendation={recommendation.data}
         recommendationLoading={isInitialLoad(recommendation)}
@@ -529,9 +559,9 @@ export function TodayDesktop() {
         kick="물때"
         title={
           <>
-            간조 {timeLabel(tides.data?.next_low?.event_at)}
+            간조 {tideTimeLabel(tides.data?.next_low?.event_at)}
             <br />
-            만조 {timeLabel(tides.data?.next_high?.event_at)}
+            만조 {tideTimeLabel(tides.data?.next_high?.event_at)}
           </>
         }
         chip={<StateChip kind={tides.data?.rows.length ? "live" : "no_data"} />}
@@ -539,11 +569,11 @@ export function TodayDesktop() {
       >
         <div className="td-tide-state">
           <span className="td-tide-chip is-now">
-            간조 {timeLabel(tides.data?.next_low?.event_at)}
+            간조 {tideTimeLabel(tides.data?.next_low?.event_at)}
           </span>
           <span className="td-tide-arrow">→</span>
           <span className="td-tide-chip">
-            만조 {timeLabel(tides.data?.next_high?.event_at)}
+            만조 {tideTimeLabel(tides.data?.next_high?.event_at)}
           </span>
           <span className="pd-dk-num td-tide-level">
             {tides.data?.next_high?.height ?? "–"}
@@ -614,7 +644,7 @@ export function TodayDesktop() {
           같은 이유로 이미 구독 상태만 보여 주고 있었습니다. 데스크탑에서는
           그 자리를 없애고 알림 화면으로 보냅니다. */}
       <FootNote
-        missing="조위 시계열 · 첫 입수 알림 트리거 · 명소 대표 이미지"
+        missing="조위 시계열 · 첫 입수 알림 트리거"
         note="점수는 물놀이 조건 참고값이며 안전 판정이 아닙니다. 값이 없으면 «–» 로 두며 0 점 · 정상 · 안전으로 치환하지 않습니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다."
       />
     </DesktopShell>

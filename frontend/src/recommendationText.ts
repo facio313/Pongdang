@@ -9,12 +9,45 @@
 // 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는
 // 번들러 없이 node 가 이 .ts 를 그대로 읽습니다(scoreMeaning.ts 와 같은 이유).
 import { activities, type Activity } from "./aiApi.ts";
-import { formatValue } from "./productData.ts";
+import { conditionScore, formatValue, type Conditions } from "./productData.ts";
 import type {
+  RankedActivity,
   Recommendation,
   RecommendationAlternative,
   RecommendationReasonData,
 } from "./recommendationApi.ts";
+
+/** 원점수는 보존하되, 서버가 제외한 활동을 숫자 추천으로 다시 보이지 않게 합니다.
+ * 물때로 순위만 미룬 활동(demoted)은 제외가 아니므로 그 점수를 유지합니다. */
+export function activityRecommendationDisplay(
+  conditions?: Conditions,
+  ranked?: RankedActivity,
+): { score: number | null; eligibility?: string } {
+  if (conditions?.support_status === "unsupported")
+    return { score: null, eligibility: "활동 미지원" };
+  if (ranked?.dropped) {
+    const rules = ranked.rules_applied;
+    const eligibility = rules.includes("essential_measurement_missing")
+      ? "추천 제외 · 필수 근거 부족"
+      : rules.includes("water_too_cold_for_immersion")
+        ? "추천 제외 · 수온 기준 미충족"
+        : conditions?.condition_score?.status === "blocked"
+          ? "산정 보류 · 공식 제한 또는 활동 미지원"
+          : rules.includes("activity_blocked")
+            ? "산정 불가 · 근거 부족"
+            : "추천 제외";
+    return { score: null, eligibility };
+  }
+  const score = conditionScore(conditions);
+  if (score === null && conditions)
+    return {
+      score,
+      eligibility: conditions.condition_score?.status === "blocked"
+        ? "산정 보류 · 공식 제한 또는 활동 미지원"
+        : "산정 불가 · 근거 부족",
+    };
+  return { score };
+}
 
 /** 물때 규칙은 검증된 기준이 아닙니다. 이 문장은 물때를 말하는 모든 줄에
  *  붙습니다 -- 조석 예측을 활동 가능 시간으로 읽게 두지 않기 위해서입니다. */

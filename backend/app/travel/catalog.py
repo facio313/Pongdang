@@ -83,6 +83,8 @@ def place_view(row, now):
         issued_at=None,
         source_created_at=row.get("source_created_at"),
         source_modified_at=row.get("source_modified_at"),
+        valid_from=row.get("source_valid_from"),
+        valid_until=row.get("source_valid_until"),
         status="available"
         if row.get("fetched_at") and row["fetched_at"] <= now
         else "unknown",
@@ -255,6 +257,28 @@ class Catalog:
                     [ids],
                 )
             ).fetchall()
+            # Explicit selections can come from a real water-place station (for
+            # example KHOA beaches) without a tourism catalogue record. Keep that
+            # source identity and its missing metadata; never create a catalogue
+            # row or admit measurement-only stations such as buoys/grid cells.
+            missing = sorted(set(ids) - {r["spot_id"] for r in rows})
+            if missing:
+                rows.extend(
+                    await (
+                        await c.execute(
+                            "SELECT DISTINCT ON(s.id) s.id AS spot_id,s.name,"
+                            "s.region,s.type,s.lat,s.lng,s.address,"
+                            "s.catalog_verified_at,p.provider,p.source_id,"
+                            "p.fetched_at,p.source_valid_from,p.source_valid_until "
+                            "FROM pongdang_data.spots_waterspot s "
+                            "JOIN pongdang_data.collection_station p ON p.spot_id=s.id "
+                            "WHERE s.id=ANY(%s) AND p.kind=ANY(%s) "
+                            "ORDER BY s.id,p.fetched_at DESC,p.provider,p.source_id "
+                            "LIMIT 100",
+                            [missing, VISIT_KINDS],
+                        )
+                    ).fetchall()
+                )
         if set(ids) != {r["spot_id"] for r in rows}:
             raise HTTPException(404, "travel_place_not_found")
         return {r["spot_id"]: place_view(r, self.now) for r in rows}

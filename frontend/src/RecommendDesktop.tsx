@@ -59,6 +59,9 @@ const FOLLOWUPS = [
 
 export function RecommendDesktop() {
   const action = useAction();
+  const candidateAction = useAction({ replace: true });
+  const saveAction = useAction();
+  const [savedPlanId, setSavedPlanId] = useState<string | null>(null);
   const keywords = useResource<KeywordCatalogue>("travel/keywords");
   const [picked, setPicked] = useState<Record<string, string[]>>({});
   const categories = (keywords.data?.categories ?? []).filter((category) =>
@@ -79,7 +82,7 @@ export function RecommendDesktop() {
       .map(([category, values]) => ({ category, values })),
   });
 
-  const { session, bubbles, asked, draft, setDraft, publish, send, requestRoute, lastTrace } =
+  const { session, bubbles, asked, draft, setDraft, publish, send: sendChat, requestRoute, lastTrace } =
     useTravelConcierge({ opener: OPENER, baseRequest, action });
   const [traceOpen, setTraceOpen] = useState(false);
   const recommendation = session.recommendation;
@@ -90,8 +93,25 @@ export function RecommendDesktop() {
   // recommendation 하나만 보고 그려서, 저장한 코스를 열면 빈 화면이었습니다.
   const savedStops = recommendation ? [] : planItems(session.plan);
 
-  const requestList = () =>
-    void action.run(async (signal) => {
+  const clearSavedNotice = () => {
+    saveAction.cancel();
+    setSavedPlanId(null);
+    // A saved URL belongs to the previous selection. Do not reload it when a
+    // new empty/failed candidate request changes the session.
+    if (window.location.hash.includes("plan_id="))
+      window.history.replaceState(null, "", "#recommend");
+  };
+  const send = (text: string) => {
+    if (!text.trim()) return;
+    candidateAction.cancel();
+    clearSavedNotice();
+    sendChat(text);
+  };
+  const requestList = () => {
+    action.cancel();
+    clearSavedNotice();
+    setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
+    void candidateAction.run(async (signal) => {
       const result = await travelJson<RecommendationResult>(
         import.meta.env.BASE_URL,
         "travel/recommendations",
@@ -101,6 +121,7 @@ export function RecommendDesktop() {
       );
       if (!signal.aborted) publish(result);
     });
+  };
 
   // 코스 저장. 예전에는 이 화면에 저장 경로가 없어서, 데스크탑 사용자는 코스를
   // 만들 수는 있어도 내 코스에 남길 수 없었습니다 -- 그러면서 데스크탑 내
@@ -108,7 +129,8 @@ export function RecommendDesktop() {
   // 모바일 추천과 같은 계약(POST travel/plans)이며, 저장 뒤 해시에 plan_id 를
   // 남겨 새로고침·공유에도 같은 코스가 열립니다.
   const save = () =>
-    void action.run(async (signal) => {
+    void saveAction.run(async (signal) => {
+      setSavedPlanId(null);
       if (!session.planInput) throw new Error("저장할 코스가 없습니다.");
       const plan = await travelJson<TripPlan>(
         import.meta.env.BASE_URL,
@@ -120,6 +142,7 @@ export function RecommendDesktop() {
       if (!signal.aborted) {
         window.history.replaceState(null, "", `#recommend?plan_id=${plan.plan_id}`);
         setTravelSession({ plan });
+        setSavedPlanId(plan.plan_id);
       }
     });
 
@@ -201,9 +224,11 @@ export function RecommendDesktop() {
     : null;
 
   const context = `강릉 · ${dateLabel()} · 취향 ${selectionCount}개 선택`;
-  const listHeadline = recommendation?.recommendations.length
-    ? `후보 ${recommendation.recommendations.length}곳`
-    : "후보 조회 전";
+  const listHeadline = candidateAction.busy ? "후보 조회 중"
+    : candidateAction.error ? "후보 조회 실패"
+    : recommendation ? `후보 ${recommendation.recommendations.length}곳` : "후보 조회 전";
+  const error = candidateAction.error || action.error || saveAction.error || requestedPlan.error;
+  const mutationBusy = action.busy || candidateAction.busy || saveAction.busy;
 
   return (
     <DesktopShell>
@@ -310,11 +335,14 @@ export function RecommendDesktop() {
           <button
             type="button"
             className="pd-dk-button rd-remake"
-            disabled={action.busy}
             onClick={requestList}
           >
             이 조건으로 후보 찾기
           </button>
+          {candidateAction.busy && <>
+            <span role="status">후보를 조회하고 있습니다…</span>
+            <button type="button" className="pd-dk-button is-quiet" onClick={candidateAction.cancel}>후보 조회 취소</button>
+          </>}
         </div>
       </LabelRow>
 
@@ -432,7 +460,7 @@ export function RecommendDesktop() {
             }
           />
         }
-        desc="활동 조건 점수는 저장된 3종(수영 · 래프팅 · 휴식) 기준이며, 서핑 · 온천 점수는 수집 항목이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다."
+        desc="활동 조건 점수는 장소별 근거와 활동 지원 여부에 따라 달라지며 안전 판정이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다."
       >
         {recommendation?.recommendations.length || savedStops.length ? (
           <>
@@ -513,17 +541,17 @@ export function RecommendDesktop() {
                 // 저장된 코스를 연 경우에는 그 코스의 날짜를 씁니다.
                 (recommendation ?? session.plan)?.request.dates[0]
               }
-              disabled={action.busy}
+              disabled={mutationBusy}
               submitLabel={
                 calculated ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
               }
-              onSubmit={requestRoute}
+              onSubmit={(value) => { clearSavedNotice(); requestRoute(value); }}
             />
             <div className="rd-row-foot">
               <button
                 type="button"
                 className="pd-dk-button"
-                disabled={action.busy || !session.planInput}
+                disabled={mutationBusy || !session.planInput}
                 onClick={save}
               >
                 {session.plan ? "이 코스 다시 저장" : "내 코스에 저장"}
@@ -553,20 +581,18 @@ export function RecommendDesktop() {
 
                 useAction 의 error 는 없을 때 빈 문자열입니다. ?? 로 이으면
                 빈 줄이 그려지므로 || 로 잇습니다. */}
-            {(action.error || requestedPlan.error || session.plan) && (
-              <p className="rd-note" role={action.error ? "alert" : "status"}>
-                {action.error ||
-                  requestedPlan.error ||
-                  // 저장한 것과 저장돼 있던 것을 열어 본 것은 다른 사실입니다.
-                  (requestedPlan.data === session.plan
-                    ? "저장된 코스를 불러왔습니다. 조건을 바꾸면 다시 저장할 수 있습니다."
-                    : "내 코스에 저장했습니다. 이 주소(plan_id)로 다시 열 수 있습니다.")}
+            {(error || (savedPlanId && session.plan?.plan_id === savedPlanId) || requestedPlan.data === session.plan) && (
+              <p className="rd-note" role={error ? "alert" : "status"}>
+                {error || (savedPlanId && session.plan?.plan_id === savedPlanId
+                  ? "내 코스에 저장했습니다. 이 주소(plan_id)로 다시 열 수 있습니다."
+                  : "저장된 코스를 불러왔습니다. 조건을 바꾸면 다시 저장할 수 있습니다.")}
               </p>
             )}
           </>
         ) : (
-          <p className="rd-note">
-            {action.error ||
+          <p className="rd-note" role={error ? "alert" : "status"}>
+            {error ||
+              (candidateAction.busy ? "후보를 조회하고 있습니다…" : "") ||
               recommendation?.clarification ||
               "아직 후보가 없습니다. 조건을 고르고 「이 조건으로 후보 찾기」를 누르거나 대화로 알려 주세요."}
           </p>
@@ -627,7 +653,7 @@ export function RecommendDesktop() {
       </LabelRow>
 
       <FootNote
-        missing="서핑 · 온천 활동 점수 · 편의시설 · 대중교통 경로 · 코스 공유"
+        missing="편의시설 · 대중교통 경로 · 코스 공유"
         note="후보 순서는 취향 일치 기준이고, 경로 시각은 출발 기준 교통 자료의 예상값입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다. 값이 없으면 «–» 로 두며 0 이나 안전으로 치환하지 않습니다."
       />
     </DesktopShell>

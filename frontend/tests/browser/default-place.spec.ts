@@ -31,6 +31,6 @@ test("default beach errors are visible and never leave the placeholder checking 
   await page.route("**/api/data/water-index/default-place", route => route.fulfill({ status: 503, json: { detail: "unavailable" } }));
   await page.goto("");
   await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
-  await expect(page.locator(".home-page")).toContainText("서버에 연결하지 못했거나");
+  await expect(page.locator(".home-page")).toContainText("요청을 처리하지 못했습니다");
   await expect(page.locator(".home-page")).not.toContainText("장소 확인 중");
 });

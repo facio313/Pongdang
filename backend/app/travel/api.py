@@ -27,6 +27,7 @@ from app.travel.models import (
     SessionSettings,
     SessionStart,
     SignalInput,
+    SignalKind,
     TravelRequest,
     TripPlan,
     TripSession,
@@ -198,10 +199,17 @@ def create_router(settings):
         actor: Actor,
         limit: int = Query(100, ge=1, le=100),
         offset: int = Query(0, ge=0, le=10000),
+        spot_id: int | None = Query(None, gt=0, le=2**53 - 1),
+        kind: SignalKind | None = None,
     ):
         return {
             "rows": storage.signals(
-                settings, actor.subject, limit=limit, offset=offset
+                settings,
+                actor.subject,
+                limit=limit,
+                offset=offset,
+                spot_id=spot_id,
+                kind=kind,
             ),
             "limit": limit,
             "offset": offset,

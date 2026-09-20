@@ -245,3 +245,18 @@ test('Korean conversation UTF-8 length stays under the server body limit', async
   });
   await new ConversationRequest().send('/', '가'.repeat(2000), Array.from({length: 8}, () => ({ role: 'user', content: '나'.repeat(2000) })), {});
 });
+
+
+test('feature reads and AI share precise SSO rejection messages and reject HTML login success', async (t) => {
+  for (const path of ['ai/chat', 'notifications/subscriptions', 'travel/signals']) {
+    t.mock.method(globalThis, 'fetch', async () => Response.json({ detail: 'ORIGIN_NOT_ALLOWED' }, { status: 403 }));
+    await assert.rejects(requestJson('/pongdang/', path, new AbortController().signal), error => {
+      assert.equal(error.code, 'forbidden');
+      assert.match(error.message, /허용 출처\(Origin\)/);
+      assert.match(error.message, /공개 자료가 보여도/);
+      return true;
+    });
+  }
+  t.mock.method(globalThis, 'fetch', async () => new Response('<html>login</html>', { headers: { 'Content-Type': 'text/html' } }));
+  await assert.rejects(requestJson('/pongdang/', 'travel/signals', new AbortController().signal), { code: 'unauthenticated' });
+});

@@ -396,8 +396,8 @@ export type StateChipKind =
 const STATE_CHIP_LABEL: Record<StateChipKind, string> = {
   example: "예시 데이터",
   uncollected: "수집 미구현",
-  no_data: "no_data",
-  partial: "partial",
+  no_data: "자료 없음",
+  partial: "일부 자료",
   live: "수집 DB",
 };
 

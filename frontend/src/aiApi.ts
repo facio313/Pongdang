@@ -1,3 +1,4 @@
+import { forbiddenMessage } from "./authMessages.ts";
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅" } as const;
 export type Activity = keyof typeof activities;
 /** 추천 후보로 제시하는 활동. 강릉을 포함한 동해안은 서해안·남해안 같은 갯벌
@@ -95,24 +96,27 @@ export async function requestJson<T>(base: string, path: string, signal: AbortSi
     method: body === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store", signal,
     ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
   });
+  if (response.redirected || (response.ok && response.headers.get("content-type")?.includes("text/html"))) {
+    throw new AiRequestError("unauthenticated", "SSO 로그인 화면으로 이동했습니다. 기존 로그인을 확인한 뒤 다시 시도해 주세요.");
+  }
   if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    const detail = payload !== null && typeof payload === "object" && !Array.isArray(payload) && "detail" in payload ? payload.detail : undefined;
     if (response.status === 503 || response.status === 401) {
       // Only these server-defined configuration codes may select a specific
       // message. Never reflect arbitrary response details or upstream errors.
-      const payload: unknown = await response.json().catch(() => null);
-      const detail = payload !== null && typeof payload === "object" && !Array.isArray(payload) && "detail" in payload ? payload.detail : undefined;
       if (response.status === 401 && detail === "LOCAL_OPERATOR_SESSION_REQUIRED") {
         throw new AiRequestError("local_session_required", "로컬 테스트 세션이 없거나 만료됐습니다. 로컬 실행 명령으로 세션을 다시 열어 주세요.");
       }
       if (response.status === 503 && detail === "AUTH_NOT_CONFIGURED") {
-        throw new AiRequestError("auth_not_configured", "Pongdang의 SSO 로그인 연동이 설정되지 않아 AI 대화를 사용할 수 없습니다. 운영자의 로그인 연동 설정이 필요합니다. 기존 데이터 조회 화면은 계속 이용할 수 있습니다.");
+        throw new AiRequestError("auth_not_configured", "Pongdang의 SSO 로그인 연동이 설정되지 않아 개인 요청을 처리할 수 없습니다. 운영자의 로그인 연동 설정이 필요합니다. 기존 데이터 조회 화면은 계속 이용할 수 있습니다.");
       }
       if (response.status === 503 && detail === "SSO_ORIGINS_NOT_CONFIGURED") {
-        throw new AiRequestError("sso_origins_not_configured", "Pongdang의 SSO 로그인 연동에서 허용할 요청 출처가 설정되지 않아 AI 질문을 전송할 수 없습니다. 운영자의 로그인 연동 설정이 필요합니다. 기존 데이터 조회 화면은 계속 이용할 수 있습니다.");
+        throw new AiRequestError("sso_origins_not_configured", "Pongdang의 SSO 로그인 연동에서 허용할 요청 출처가 설정되지 않아 개인 요청을 전송할 수 없습니다. 운영자의 로그인 연동 설정이 필요합니다. 기존 데이터 조회 화면은 계속 이용할 수 있습니다.");
       }
     }
     const [code, message] = response.status === 401 ? ["unauthenticated", "로그인이 필요합니다. 기존 SSO 로그인을 확인한 뒤 다시 시도해 주세요."]
-      : response.status === 403 ? ["forbidden", "Pongdang 접근 권한 또는 요청 출처를 확인해 주세요."]
+      : response.status === 403 ? ["forbidden", forbiddenMessage(detail)]
       : response.status === 429 ? ["rate_limited", "요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."]
       : response.status === 422 ? ["invalid_request", "질문과 장소·시간 조건을 확인해 주세요."]
       : ["unavailable", "요청을 완료하지 못했습니다. 기존 자료 조회를 이용하거나 다시 시도해 주세요."];

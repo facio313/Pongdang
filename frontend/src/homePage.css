@@ -84,10 +84,22 @@
 }
 .home-page .hm-hero-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   margin-top: 10px;
+}
+.home-page .hm-hero-actions > .pd-inline {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.home-page .hm-hero-actions > .pd-explainer {
+  min-width: 0;
+}
+/* 열린 설명은 별도 행에서 읽으며 옆 링크의 폭을 줄이지 않습니다. */
+.home-page .hm-hero-actions > .pd-explainer[open] {
+  flex-basis: 100%;
 }
 .home-page .hm-hero-actions .pd-inline,
 .home-page .hm-hero-actions .pd-explainer > summary {

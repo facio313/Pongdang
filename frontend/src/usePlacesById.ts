@@ -53,5 +53,5 @@ export function usePlacesById(ids: number[]) {
   );
   const current = result?.key === key ? result : pending;
   const photos = usePlacePhotos(current.rows);
-  return { ...current, rows: photos.rows ?? current.rows };
+  return { ...current, rows: photos.rows ?? current.rows, loading: key !== "[]" && result?.key !== key };
 }

@@ -7,8 +7,6 @@ import {
   periodPath,
   productPlaces,
   type ClassifiedWaterPlace,
-  type RowPage,
-  type Forecast,
   type TideResult,
   type WaterQualityGrade,
 } from "./productData";
@@ -108,15 +106,11 @@ export function useTodayData(
    *  이 화면들이 스켈레톤에 머뭅니다(settledWithoutPlace 주석 참고). */
   placeSettled = false,
 ) {
-  const forecasts = useResource<RowPage<Forecast>>(
-    periodPath("water-forecast/forecasts", id, now),
-  );
   const tides = useResource<TideResult>(periodPath("tides/events", id, now, 2));
   const quality = useResource<WaterQualityGrade>(
     id ? `quality/grade?spot_id=${id}` : undefined,
   );
   return {
-    forecasts: settledWithoutPlace(forecasts, placeSettled),
     tides: settledWithoutPlace(tides, placeSettled),
     quality: settledWithoutPlace(quality, placeSettled),
   };

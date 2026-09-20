@@ -180,7 +180,7 @@ test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 �
   // 이 화면에는 카카오 지도 키 안내도 alert 로 떠 있으므로, 저장 결과 줄을
   // 지목해 봅니다.
   const saveNote = page.locator(".rd-note[role]");
-  await expect(saveNote).toContainText("서버에 연결하지 못했거나");
+  await expect(saveNote).toContainText("요청을 처리하지 못했습니다");
   await expect(saveNote).toHaveAttribute("role", "alert");
   await page.unroute("**/api/data/travel/plans");
 

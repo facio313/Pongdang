@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { AppHeader, AppShell } from "./AppShell";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
@@ -11,6 +10,7 @@ import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { useWaterPlaces } from "./useWaterPlaces";
+import { useSpotActions } from "./useSpotActions";
 import { isInitialLoad } from "./useResource";
 import "./spotsPage.css";
 
@@ -41,7 +41,6 @@ function InfoRow({ name, value }: { name: string; value: string | null }) {
 const KIND_LABEL: Record<string, string> = { beach: "해변", valley: "계곡" };
 
 export function SpotDetailPage({ spotId }: { spotId: number }) {
-  const [saved, setSaved] = useState(false);
   // 분류(해변 · 계곡)는 분류된 목록에만 있습니다. datasets/spots 의 type 은
   // 수집 종류(beach_search_result · tourism)라 분류로 쓸 수 없습니다.
   // 그래서 분류 목록에서 먼저 찾고, 거기 없으면(100건 밖) id 조회로 갑니다.
@@ -53,13 +52,14 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
     : lookup.rows[0];
   // 홈 히어로와 같은 규칙으로 오늘 가장 좋은 활동을 고릅니다. 장소마다 조건이
   // 다르므로 「이 명소에서 무엇을 하기 좋은가」가 상세의 답입니다.
-  const { best, loading, recommendation } = useBestActivity(place?.id);
+  const { best, loading, recommendation } = useBestActivity(place?.id, Boolean(place) || lookup.loading);
   const score = best?.score ?? null;
   const grade = gradeOf(score);
   const verdict =
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 「없음」과 구분해 그립니다.
-  const placeLoading = !place && !lookup.error && (catalog.loading || !lookup.rows.length);
+  const placeLoading = !place && lookup.loading;
+  const { action, favorites, saved, message, showDraftLink, add, toggleFavorite } = useSpotActions(place);
 
   return (
     <article className="spots-page spot-detail">
@@ -161,9 +161,9 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
         <div className="pd-card">
           <div className="sd-location-head">
             <span className="pd-card-title sd-section-title">위치</span>
-            <a className="sd-location-link pd-inline" href="#spots?view=map">
+            {place && <a className="sd-location-link pd-inline" href={`#map?spot_id=${place.id}`}>
               지도에서 보기 →
-            </a>
+            </a>}
           </div>
           <div className="sd-info">
             <InfoRow name="주소" value={place?.address ?? null} />
@@ -185,20 +185,23 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             )}
         </div>
 
-        <div className="sd-actions">
-          <a className="pd-primary sd-add" href="#my-courses">
-            내 코스에 추가
-          </a>
-          <button
-            type="button"
-            className="pd-secondary sd-save"
-            aria-pressed={saved}
-            aria-label={saved ? "저장 해제" : "저장"}
-            onClick={() => setSaved((value) => !value)}
-          >
-            <Icon name="save" size={19} />
-          </button>
-        </div>
+        {place && <>
+          <div className="sd-actions">
+            <button type="button" className="pd-primary sd-add" disabled={action.busy} onClick={add}>
+              내 코스에 추가
+            </button>
+            <button type="button" className="pd-secondary sd-save"
+              disabled={action.busy || favorites.loading || !favorites.data}
+              aria-pressed={Boolean(saved)} aria-label={saved ? "저장 해제" : "저장"}
+              onClick={toggleFavorite}>
+              <Icon name="save" size={19} />
+            </button>
+          </div>
+          {favorites.loading && <p role="status">즐겨찾기 조회 중…</p>}
+          {favorites.error && <p role="alert">즐겨찾기 조회 실패: {favorites.error}</p>}
+          {action.error && <p role="alert">{action.error}</p>}
+          {message && <p role="status">{message} {showDraftLink && <a href="#map?view=course">코스 초안 보기</a>}</p>}
+        </>}
       </AppShell>
     </article>
   );

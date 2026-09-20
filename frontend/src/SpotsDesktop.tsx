@@ -27,6 +27,7 @@ import { activityHeadline } from "./recommendationText";
 import { dateLabel, type Place } from "./productData";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
+import { useSpotActions } from "./useSpotActions";
 import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
 import { sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsDesktop.css";
@@ -215,7 +216,8 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   const place: Place | undefined = useMemo(() => classified
     ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
     : lookup.rows[0], [classified, lookup.rows]);
-  const { best, loading, recommendation } = useBestActivity(place?.id);
+  const { best, loading, recommendation } = useBestActivity(place?.id, Boolean(place) || lookup.loading);
+  const { action, message, showDraftLink, add } = useSpotActions(place, { queryFavorites: false });
   const score = best?.score ?? null;
   const grade = gradeOf(score);
   const verdict =
@@ -223,8 +225,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 모바일 상세와 같은 규칙으로
   // 「없음」과 구분해 그립니다 -- 조회 중에 「장소를 찾지 못했습니다」라고
   // 적으면 곧 올 값을 없다고 단정하는 셈입니다.
-  const placeLoading =
-    !place && !lookup.error && (catalog.loading || !lookup.rows.length);
+  const placeLoading = !place && lookup.loading;
   const pinned = useMemo(() => mappablePlaces(place ? [place] : []), [place]);
   const markers = useMemo(
     () =>
@@ -344,14 +345,18 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             아닙니다.
           </p>
 
-          <div className="sk-detail-actions">
-            <a className="pd-dk-button" href="#my-courses">
-              내 코스에 추가
-            </a>
-            <a className="sk-detail-map-link" href="#map">
-              지도 탭에서 보기 →
-            </a>
-          </div>
+          {place && <>
+            <div className="sk-detail-actions">
+              <button type="button" className="pd-dk-button" disabled={action.busy} onClick={add}>
+                내 코스에 추가
+              </button>
+              <a className="sk-detail-map-link" href={`#map?spot_id=${place.id}`}>
+                지도 탭에서 보기 →
+              </a>
+            </div>
+            {action.error && <p className="sk-note" role="alert">{action.error}</p>}
+            {message && <p className="sk-note" role="status">{message} {showDraftLink && <a href="#map?view=course">코스 초안 보기</a>}</p>}
+          </>}
         </div>
       </div>
 

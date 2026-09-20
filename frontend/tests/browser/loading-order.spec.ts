@@ -105,7 +105,7 @@ test("장소 조회가 실패하면 그때는 조회 중에 머물지 않는다"
     route.fulfill({ status: 503, json: { detail: "unavailable" } }),
   );
   await page.goto("");
-  await expect(page.locator(".home-page")).toContainText("서버에 연결하지 못했거나");
+  await expect(page.locator(".home-page")).toContainText("요청을 처리하지 못했습니다");
   await expect(
     page.locator('.hm-hero-sentence [aria-label="오늘의 활동 조회 중"]'),
   ).toHaveCount(0);

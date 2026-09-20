@@ -132,6 +132,11 @@ export function CoursesDesktop() {
   );
   const firstScore = conditionScore(firstConditions.data);
   const firstGrade = gradeOf(firstScore);
+  const countLabel = plans.error ? "개수 미확인"
+    : plans.loading ? "조회 중" : `${courses.length}개`;
+  const readState = plans.data ? <StateChip kind="live" /> : (
+    <span className="pd-state-chip">{plans.error ? "조회 실패" : "조회 중"}</span>
+  );
 
   return (
     <DesktopShell>
@@ -139,7 +144,7 @@ export function CoursesDesktop() {
         nav={
           <DesktopNav
             active="my-courses"
-            context={`저장한 코스 ${courses.length}개 · ${dateLabel()}`}
+            context={`저장한 코스 ${countLabel} · ${dateLabel()}`}
           />
         }
         band
@@ -149,7 +154,10 @@ export function CoursesDesktop() {
           <div className="cd-hero-lead">
             <div className="pd-dk-kick cd-hero-kick">내 코스</div>
             <h1 className="cd-hero-title">
-              {selected ? selected.name : "저장한 코스가 없습니다"}
+              {selected ? selected.name
+                : plans.error ? "저장 코스를 확인하지 못했습니다"
+                : plans.loading ? "저장 코스를 불러오는 중입니다"
+                : "저장한 코스가 없습니다"}
             </h1>
           </div>
           <img
@@ -212,7 +220,7 @@ export function CoursesDesktop() {
             <span className="pd-dk-kick">
               {selected ? selected.name : "일정"}
             </span>
-            <StateChip kind={plans.data ? "live" : "no_data"} />
+            {readState}
           </div>
           {stops.map((stop, index) => {
             // 점수는 첫 정차지만 조회합니다. 정차지마다 부르면 요청이 코스
@@ -303,8 +311,8 @@ export function CoursesDesktop() {
 
       <LabelRow
         kick="저장한 코스"
-        title={`${courses.length}개`}
-        chip={<StateChip kind={plans.data ? "live" : "no_data"} />}
+        title={countLabel}
+        chip={readState}
         desc="추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다."
       >
         {courses.map((course) => (

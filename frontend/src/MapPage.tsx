@@ -472,11 +472,10 @@ function MapScreen() {
       ]),
     ).values(),
   ];
-  const selected =
-    raw.find((item) => item.id === selectedSpotId) ??
-    raw.find((item) => item.id === places.defaultPlaceId) ??
-    raw.find((item) => item.type === "beach") ??
-    raw[0];
+  const selected = selectedSpotId !== null
+    ? raw.find((item) => item.id === selectedSpotId)
+    : raw.find((item) => item.id === places.defaultPlaceId) ??
+      raw.find((item) => item.type === "beach") ?? raw[0];
   const conditions = useConditions(selected?.id);
   const spots = raw.map((item) => ({
     ...item,
@@ -683,7 +682,11 @@ function MapScreen() {
                 />
               ) : (
                 <div className="pd-card">
-                  {places.loading ? "장소 조회 중" : "검색 결과 없음"}
+                  {selectedSpotId !== null
+                    ? coursePlaces.error ?? (coursePlaces.loading
+                        ? "선택한 장소를 조회하고 있습니다."
+                        : "선택한 장소를 찾을 수 없습니다.")
+                    : places.loading ? "장소 조회 중" : "검색 결과 없음"}
                 </div>
               )
             ) : (
@@ -743,8 +746,9 @@ function MapScreen() {
 }
 
 export function MapPage() {
-  // 같은 라우트(#map)에서 폭으로 레이아웃을 갈아 끼웁니다. 데스크탑은 지도가
-  // 지배 요소인 2열 구성이라 모바일 마크업을 넓혀 쓸 수 없습니다.
+  // 코스 URL은 폭과 관계없이 기존 저장 코스·초안·경로 흐름으로 엽니다.
+  // 데스크톱 지점 지도는 코스를 읽지 않으므로 지점 보기에서만 사용합니다.
   const isDesktop = useIsDesktop();
-  return isDesktop ? <MapDesktop /> : <MapScreen />;
+  const isCourse = new URLSearchParams(window.location.hash.split("?")[1]).get("view") === "course";
+  return isDesktop && !isCourse ? <MapDesktop /> : <MapScreen />;
 }

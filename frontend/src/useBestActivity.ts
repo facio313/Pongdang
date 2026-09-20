@@ -1,5 +1,6 @@
 import { recommendedActivities, type Activity } from "./aiApi";
-import { conditionScore, type Conditions } from "./productData";
+import type { Conditions } from "./productData";
+import { activityRecommendationDisplay } from "./recommendationText";
 import { useRecommendation } from "./useRecommendation";
 
 /** 화면이 활동을 늘어놓는 순서입니다. 동점 우선순위는 서버 규칙
@@ -19,6 +20,7 @@ void _sameAsRecommended;
 export interface ActivityCondition {
   activity: Activity;
   score: number | null;
+  eligibility?: string;
   data?: Conditions;
   error?: string;
   loading: boolean;
@@ -51,7 +53,10 @@ export function useBestActivity(id?: number, enabled = true) {
     return {
       activity,
       data: conditions,
-      score: conditionScore(conditions),
+      ...activityRecommendationDisplay(
+        conditions,
+        data?.ranked.find((item) => item.activity === activity),
+      ),
       previousData: find(previousData, activity),
       loading,
       error,

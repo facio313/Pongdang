@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from app.livecams.places import PLACE_SELECT
 from app.notifications.models import SubscriptionInput, SubscriptionView
 from app.notifications.provider import configuration_state
 from app.schema import connect
@@ -70,6 +71,14 @@ def save_subscription(settings, principal, body, *, identifier=None, expected=No
             "SELECT pg_advisory_xact_lock(hashtext(%s))",
             ["pongdang-notification-owner/" + principal.subject],
         )
+        place = c.execute(
+            f"SELECT id,place_kind FROM ({PLACE_SELECT}) p WHERE id=%s",
+            [body.spot_id],
+        ).fetchone()
+        if not place:
+            raise HTTPException(404, detail="PLACE_NOT_FOUND")
+        if place["place_kind"] not in {"beach", "valley"}:
+            raise HTTPException(422, detail="WATER_PLACE_REQUIRED")
         if identifier:
             lock_subscription(c, identifier)
             old = c.execute(
@@ -122,10 +131,6 @@ def save_subscription(settings, principal, body, *, identifier=None, expected=No
             ).fetchone()["n"]
             if count >= 100:
                 raise HTTPException(409, detail="SUBSCRIPTION_LIMIT_REACHED")
-        if not c.execute(
-            "SELECT id FROM pongdang_data.spots_waterspot WHERE id=%s", [body.spot_id]
-        ).fetchone():
-            raise HTTPException(404, detail="PLACE_NOT_FOUND")
         duplicate = c.execute(
             "SELECT id FROM pongdang_data.notification_subscription WHERE "
             "owner_subject=%s AND spot_id=%s AND season_year=%s AND id<>%s",

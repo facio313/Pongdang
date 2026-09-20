@@ -30,6 +30,7 @@ import {
 import { isInitialLoad } from "./useResource";
 import { useConditions } from "./useConditions";
 import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
+import { usePlacesById } from "./usePlacesById";
 import { spotLink } from "./spotsRoute";
 import "./mapDesktop.css";
 
@@ -93,9 +94,21 @@ export function MapDesktop() {
   // 지도 조작 API 는 지도가 준비된 뒤 effect 에서 넘어옵니다.
   const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const value = Number(
+      new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
+    );
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  });
   const places = useWaterPlaces(search);
-  const pinned = useMemo(() => mappablePlaces(places.rows ?? []), [places.rows]);
+  const selectedPlace = usePlacesById(selectedId === null ? [] : [selectedId]);
+  const allRows = useMemo(
+    () => [...new Map(
+      [...(places.rows ?? []), ...selectedPlace.rows].map((place) => [place.id, place]),
+    ).values()],
+    [places.rows, selectedPlace.rows],
+  );
+  const pinned = useMemo(() => mappablePlaces(allRows), [allRows]);
   const markers = useMemo(
     () =>
       pinned.map(({ place, latitude, longitude }) => ({
@@ -106,15 +119,14 @@ export function MapDesktop() {
     [pinned],
   );
   const rows = pinned.map(({ place }) => place);
-  const selected =
-    rows.find((place) => place.id === selectedId) ??
-    rows.find((place) => place.id === places.defaultPlaceId) ??
-    rows[0];
+  const selected = selectedId !== null
+    ? allRows.find((place) => place.id === selectedId)
+    : rows.find((place) => place.id === places.defaultPlaceId) ?? rows[0];
   // 오른쪽 패널과 아래 근거는 고른 지점 하나만 조회합니다.
-  const conditions = useConditions(selected?.id, ACTIVITY);
+  const conditions = useConditions(selected?.id, ACTIVITY, undefined, !!selected);
   const selectedScore = conditionScore(conditions.data);
   const selectedGrade = gradeOf(selectedScore);
-  const unmapped = (places.rows?.length ?? 0) - pinned.length;
+  const unmapped = allRows.length - pinned.length;
 
   return (
     <DesktopShell>
@@ -148,7 +160,10 @@ export function MapDesktop() {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setSelectedId(null);
+              }}
               maxLength={100}
               placeholder="장소명 · 지역 검색"
               aria-label="장소명·지역 검색"
@@ -162,6 +177,13 @@ export function MapDesktop() {
           <div className="pd-dk-kick mk-side-kick">
             지점 {pinned.length}곳 · {activities[ACTIVITY]} 점수
           </div>
+          {selectedId !== null && !selected && (
+            <p className="mk-note" role={selectedPlace.error ? "alert" : "status"}>
+              {selectedPlace.error ?? (selectedPlace.loading
+                ? "선택한 장소를 조회하고 있습니다."
+                : "선택한 장소를 찾을 수 없습니다.")}
+            </p>
+          )}
           {rows.map((place) => (
             <SpotRow
               key={place.id}
@@ -329,20 +351,22 @@ export function MapDesktop() {
             : "지점을 고르면 그 지점의 점수 근거를 조회합니다."
         }
       >
-        <ComponentBars
-          bars={componentBars(conditions.data)}
-          loading={isInitialLoad(conditions)}
-        />
-        <ScoreReason
-          text={scoreReason(conditions.data).text}
-          loading={isInitialLoad(conditions)}
-        />
-        <EvidenceNote data={conditions.data} className="mk-note" chip={false} />
-        <ScoreExplainer data={conditions.data} />
         {selected && (
-          <a className="mk-detail-link" href={spotLink(selected)}>
-            {selected.name} 상세 →
-          </a>
+          <>
+            <ComponentBars
+              bars={componentBars(conditions.data)}
+              loading={isInitialLoad(conditions)}
+            />
+            <ScoreReason
+              text={scoreReason(conditions.data).text}
+              loading={isInitialLoad(conditions)}
+            />
+            <EvidenceNote data={conditions.data} className="mk-note" chip={false} />
+            <ScoreExplainer data={conditions.data} />
+            <a className="mk-detail-link" href={spotLink(selected)}>
+              {selected.name} 상세 →
+            </a>
+          </>
         )}
       </LabelRow>
 

@@ -4,12 +4,54 @@ import {
   ALTERNATIVE_LABEL,
   TIDE_DISCLAIMER,
   activityHeadline,
+  activityRecommendationDisplay,
   alternativeGroups,
   alternativeText,
   choiceReason,
   rejectionReason,
   tideLine,
 } from '../src/recommendationText.ts';
+
+test('excluded activities never reappear as numeric recommendations while their source score stays intact', () => {
+  const conditions = {
+    support_status: 'supported',
+    condition_score: { status: 'partial', score: 98.5 },
+  };
+  const ranked = { dropped: true, rules_applied: ['essential_measurement_missing'] };
+  assert.deepEqual(activityRecommendationDisplay(conditions, ranked), {
+    score: null, eligibility: '추천 제외 · 필수 근거 부족',
+  });
+  assert.equal(conditions.condition_score.score, 98.5);
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
+    ...ranked, rules_applied: ['water_too_cold_for_immersion'],
+  }), { score: null, eligibility: '추천 제외 · 수온 기준 미충족' });
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
+    ...ranked, rules_applied: ['new_server_rule'],
+  }), { score: null, eligibility: '추천 제외' });
+});
+
+test('unsupported and unavailable activities show their evidence state without inventing safety judgments', () => {
+  const conditions = { support_status: 'unsupported', condition_score: { status: 'partial', score: 97 } };
+  assert.deepEqual(activityRecommendationDisplay(conditions), { score: null, eligibility: '활동 미지원' });
+  assert.equal(conditions.condition_score.score, 97);
+  assert.deepEqual(activityRecommendationDisplay({ condition_score: { status: 'unavailable', score: null } }), {
+    score: null, eligibility: '산정 불가 · 근거 부족',
+  });
+  assert.deepEqual(activityRecommendationDisplay({ condition_score: { status: 'blocked', score: null } }, {
+    dropped: true, rules_applied: ['activity_blocked'],
+  }), { score: null, eligibility: '산정 보류 · 공식 제한 또는 활동 미지원' });
+  assert.deepEqual(activityRecommendationDisplay(undefined), { score: null });
+});
+
+test('tide demotion and partial coverage do not change an eligible activity score', () => {
+  const conditions = { condition_score: { status: 'partial', score: 76.3 } };
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
+    dropped: false, demoted: true, rules_applied: ['tide_phase_product_rule'],
+  }), { score: 76.3 });
+  assert.deepEqual(activityRecommendationDisplay({ condition_score: { status: 'evaluated', score: 0 } }, {
+    dropped: false, rules_applied: [],
+  }), { score: 0 });
+});
 
 const reason = (code, extra = {}) => ({
   code, activity: null, rival: null, metric: null, label: null, value: null,

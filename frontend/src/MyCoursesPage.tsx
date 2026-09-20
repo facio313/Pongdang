@@ -86,7 +86,11 @@ function MyCoursesScreen() {
         <header className="pd-hero mc-hero">
           <AppHeader title="강릉" time={timeLabel(new Date().toISOString())} onCobalt />
           <div className="mc-hero-inner">
-            <p className="pd-lbl">저장 {courses.length}개</p>
+            <p className="pd-lbl">
+              {plans.error ? "저장 코스 개수 미확인"
+                : plans.loading ? "저장 코스 조회 중"
+                : `저장 ${courses.length}개`}
+            </p>
             <h1 className="mc-hero-title">내 코스</h1>
             <p className="mc-hero-sub">내가 저장한 여행 일정을 확인하세요</p>
             <p className="mc-hero-note">
@@ -101,7 +105,11 @@ function MyCoursesScreen() {
             className="pd-note mc-lead"
             role={plans.error ?? sessions.error ?? share.error ? "alert" : "status"}
           >
-            <StateChip kind={plans.data ? "live" : "no_data"} />{" "}
+            {plans.data ? <StateChip kind="live" /> : (
+              <span className="pd-state-chip">
+                {plans.error ? "조회 실패" : "조회 중"}
+              </span>
+            )}{" "}
             {plans.error ??
               (plans.loading
                 ? "저장 코스를 불러오는 중입니다."

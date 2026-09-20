@@ -327,7 +327,7 @@ test("preference → recommendation → persisted plan → selected plan detail"
     .getByRole("button", { name: "내 코스에 저장", exact: true })
     .click();
   await expect(page.getByRole("alert").last()).toContainText(
-    "서버에 연결하지 못했거나",
+    "요청을 처리하지 못했습니다",
   );
   await expect(
     page.getByRole("button", { name: "저장됨", exact: true }),

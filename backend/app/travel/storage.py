@@ -9,6 +9,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from app.schema import connect
+from app.travel.catalog import VISIT_KINDS
 from app.travel.models import TravelPreference, TripPlan
 
 
@@ -51,14 +52,23 @@ def save_profile(settings, owner, update):
     return {"revision": revision, "preference": preference}
 
 
-def signals(settings, owner, *, limit=100, offset=0):
+def signals(settings, owner, *, limit=100, offset=0, spot_id=None, kind=None):
+    filters = ["owner_subject=%s"]
+    params = [owner]
+    if spot_id is not None:
+        filters.append("payload->>'spot_id'=%s")
+        params.append(str(spot_id))
+    if kind is not None:
+        filters.append("payload->>'kind'=%s")
+        params.append(kind)
     with connect(settings) as c:
         c.execute("SET TRANSACTION READ ONLY")
         c.row_factory = dict_row
         rows = c.execute(
             "SELECT id,payload,created_at FROM pongdang_data.travel_signal "
-            "WHERE owner_subject=%s ORDER BY created_at DESC,id LIMIT %s OFFSET %s",
-            [owner, limit, offset],
+            f"WHERE {' AND '.join(filters)} "
+            "ORDER BY created_at DESC,id LIMIT %s OFFSET %s",
+            [*params, limit, offset],
         ).fetchall()
     return rows
 
@@ -88,8 +98,10 @@ def save_signal(settings, owner, signal):
         if (
             signal.spot_id is not None
             and not c.execute(
-                "SELECT 1 FROM pongdang_data.collection_place WHERE spot_id=%s LIMIT 1",
-                [signal.spot_id],
+                "SELECT 1 WHERE EXISTS (SELECT 1 FROM pongdang_data.collection_place "
+                "WHERE spot_id=%s) OR EXISTS (SELECT 1 FROM "
+                "pongdang_data.collection_station WHERE spot_id=%s AND kind=ANY(%s))",
+                [signal.spot_id, signal.spot_id, VISIT_KINDS],
             ).fetchone()
         ):
             raise HTTPException(404, "travel_place_not_found")

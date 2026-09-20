@@ -1,3 +1,4 @@
+import { forbiddenMessage } from "./authMessages.ts";
 import type { Activity } from "./aiApi";
 import type { ModelTraceTurn } from "./aiApi";
 
@@ -314,9 +315,12 @@ export async function travelJson<T>(
     if (response.status === 503 && typeof detail === "string" && Object.hasOwn(configurationMessages, detail)) {
       throw new TravelRequestError(response.status, configurationMessages[detail]);
     }
+    if (response.status === 422 && detail === "WATER_PLACE_REQUIRED") {
+      throw new TravelRequestError(response.status, "첫 입수 알림은 분류가 확인된 해변·계곡에서만 저장할 수 있습니다.");
+    }
     const messages: Record<number, string> = {
       401: "기존 SSO 로그인이 필요합니다.",
-      403: "Pongdang 접근 권한이나 요청 출처를 확인해 주세요.",
+      403: forbiddenMessage(detail),
       404: "이 항목을 찾을 수 없습니다. 목록을 새로 확인해 주세요.",
       409: "다른 화면에서 변경됐습니다. 최신 내용을 다시 불러와 주세요.",
       410: "추천이 만료됐습니다. 다시 추천받아 주세요.",
@@ -326,7 +330,7 @@ export async function travelJson<T>(
     throw new TravelRequestError(
       response.status,
       messages[response.status] ??
-        "서버에 연결하지 못했거나 기능 설정이 준비되지 않았습니다. 다시 시도해 주세요.",
+        "요청을 처리하지 못했습니다. 서버 응답이 일시적으로 없거나 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     );
   }
   if (response.status === 204) return undefined as T;

@@ -62,6 +62,24 @@ def test_app():
             ],
         ),
     )
+    # Regression for real KHOA beach records: no collection_place row and no
+    # region text, but still a real selectable water place in spots_waterspot.
+    store_batch(
+        settings,
+        SourceBatch(
+            provider="khoa_beach",
+            fetched_at=now,
+            stations=[
+                Station(
+                    source_id="browser-station-beach",
+                    name="강릉 OFFLINE TEST 관측 해수욕장",
+                    kind="beach",
+                    latitude=37.85,
+                    longitude=128.95,
+                )
+            ],
+        ),
+    )
     batch = source(
         values=[
             Value(name="air_temperature", numeric_value=24.7, unit="degC"),

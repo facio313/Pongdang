@@ -1,33 +1,40 @@
 import { useState } from "react";
 import { useAction } from "./useAction";
 import { useResource } from "./useResource";
-import { kstDate, type Place, type RowPage } from "./productData";
+import { kstDate, type ClassifiedWaterPlace } from "./productData";
 import { travelJson } from "./travelApi";
 
 // Reuse the existing data screen toolbar; in-app delivery requires an explicit save.
 export function NotificationSettings({ onSaved }: { onSaved: () => void }) {
   const [search, setSearch] = useState("강릉");
-  const places = useResource<RowPage<Place>>(
-    "datasets/spots?page_size=100&q=" + encodeURIComponent(search),
+  const places = useResource<ClassifiedWaterPlace[]>(
+    "livecams/preview/places?q=" + encodeURIComponent(search),
   );
+  const rows = places.data?.filter((place) =>
+    place.place_kind === "beach" || place.place_kind === "valley",
+  ) ?? [];
   const [spotId, setSpotId] = useState("");
   const [temperature, setTemperature] = useState("");
   const [year, setYear] = useState(kstDate().slice(0, 4));
   const [message, setMessage] = useState("");
   const action = useAction();
+  const selectedPlace = rows.find((place) => String(place.id) === spotId);
   return (
     <>
       <form
         className="toolbar"
         onSubmit={(event) => {
           event.preventDefault();
+          setMessage("");
           void action.run(async (signal) => {
+            if (places.loading || places.error || !selectedPlace)
+              throw new Error("분류가 확인된 해변·계곡을 목록에서 선택해 주세요.");
             const result = await travelJson<{ id: string }>(
               import.meta.env.BASE_URL,
               "notifications/subscriptions",
               "POST",
               {
-                spot_id: Number(spotId),
+                spot_id: selectedPlace.id,
                 year: Number(year),
                 minimum_temperature_c: Number(temperature),
                 timezone: "Asia/Seoul",
@@ -50,7 +57,11 @@ export function NotificationSettings({ onSaved }: { onSaved: () => void }) {
           <input
             type="search"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setSpotId("");
+              setMessage("");
+            }}
             maxLength={100}
           />
         </label>
@@ -58,11 +69,15 @@ export function NotificationSettings({ onSaved }: { onSaved: () => void }) {
           알림 장소
           <select
             value={spotId}
-            onChange={(event) => setSpotId(event.target.value)}
+            onChange={(event) => {
+              setSpotId(event.target.value);
+              setMessage("");
+            }}
+            disabled={places.loading || Boolean(places.error)}
             required
           >
             <option value="">선택</option>
-            {places.data?.rows.map((place) => (
+            {rows.map((place) => (
               <option key={place.id} value={place.id}>
                 {place.name}
               </option>
@@ -92,11 +107,14 @@ export function NotificationSettings({ onSaved }: { onSaved: () => void }) {
             required
           />
         </label>
-        <button disabled={action.busy} type="submit">
+        <button disabled={action.busy || places.loading || Boolean(places.error) || !selectedPlace} type="submit">
           앱 내 알림 구독 저장
         </button>
       </form>
-      <p role={action.error ? "alert" : "status"}>
+      <p className="table-note">해변·계곡으로 분류된 물놀이 장소만 표시합니다. 검색 결과는 최대 100곳이며, 장소 분류가 입수 안전을 뜻하지 않습니다.</p>
+      {places.loading && <p role="status">알림을 설정할 물놀이 장소를 조회하고 있습니다.</p>}
+      {!places.loading && !places.error && rows.length === 0 && <p role="status">검색 조건에 해당하는 물놀이 장소가 없습니다.</p>}
+      <p role={action.error || places.error ? "alert" : "status"}>
         {action.error || places.error || (action.busy ? "저장 중…" : message)}
       </p>
     </>

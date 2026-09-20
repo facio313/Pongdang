@@ -94,6 +94,21 @@ export function conditionScore(data?: Conditions): number | null {
     index.score >= 0 && index.score <= 100 ? index.score : null;
 }
 
+/** 숫자 바로 옆에 놓는 근거 요약. 부분 점수의 원값과 서버의 확보율을 유지합니다. */
+export function scoreCoverageText(data?: Conditions): string {
+  const index = data?.condition_score;
+  if (!index) return "근거 정보 없음";
+  const prefix = index.status === "partial" ? "부분 점수 · " : "";
+  const available = index.available_components;
+  const total = index.total_components;
+  if (!Number.isInteger(available) || available < 0 ||
+      !Number.isInteger(total) || total < 0 || available > total)
+    return `${prefix}근거 정보 없음`;
+  const percentage = Number.isFinite(index.coverage)
+    ? ` (${Math.round(index.coverage * 100)}%)` : "";
+  return `${prefix}근거 ${available}/${total}${percentage}`;
+}
+
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
  *  같은 코드가 화면마다 다른 말로 보이지 않게 하려는 것이므로, 새 사전을
  *  만들지 말고 여기에 추가하세요. */
@@ -295,6 +310,21 @@ export const timeLabel = (value?: string | null) =>
         hour12: false,
       }).format(new Date(value))
     : "–";
+/** 물때는 자정을 넘길 수 있으므로 시각과 함께 실제 KST 날짜를 표시합니다. */
+export function tideTimeLabel(value?: string | null): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return "–";
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Seoul",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value;
+  return `${Number(part("month"))}/${Number(part("day"))} ${part("hour")}:${part("minute")} KST`;
+}
 export const formatValue = (value?: number | null, unit = "") =>
   typeof value === "number" && Number.isFinite(value) ? `${value}${unit}` : "–";
 export function conditionPath(

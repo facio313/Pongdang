@@ -19,7 +19,7 @@ import {
   Skeleton,
   StateChip,
 } from "./pongdangUi";
-import { activities, type Activity } from "./aiApi";
+import { activities, recommendedActivities, type Activity } from "./aiApi";
 import { gradeOf } from "./groupAGrade";
 import {
   componentBars,
@@ -177,7 +177,7 @@ function HomeHero({
           />
           <div className="hd-hero-buttons">
             <a className="pd-dk-button is-on-cobalt" href="#today">
-              활동 여섯 가지 모두 보기 →
+              오늘 후보 활동 {recommendedActivities.length}가지 보기 →
             </a>
             <a className="pd-dk-button is-glass" href="#recommend">
               코스 만들기
@@ -715,7 +715,7 @@ export function HomeDesktop() {
       {/* 시간대별 예보와 코스는 이제 연동됐으므로 목록에서 뺐습니다. 남은
           것만 적습니다 -- 다 고친 뒤에도 미연동이라고 적어 두면 그것도
           거짓말입니다. */}
-      <FootNote missing="명소 대표 이미지 · 운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거" />
+      <FootNote missing="운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거" />
     </DesktopShell>
   );
 }

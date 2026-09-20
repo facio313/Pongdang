@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-export function useAction() {
+export function useAction({ replace = false }: { replace?: boolean } = {}) {
   const current = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -10,8 +10,15 @@ export function useAction() {
     },
     [],
   );
+  function cancel() {
+    current.current?.abort();
+    current.current = null;
+    setBusy(false);
+    setError("");
+  }
   async function run(action: (signal: AbortSignal) => Promise<void>) {
-    if (current.current) return;
+    if (current.current && !replace) return;
+    current.current?.abort();
     const controller = new AbortController();
     current.current = controller;
     setBusy(true);
@@ -32,5 +39,5 @@ export function useAction() {
       }
     }
   }
-  return { busy, error, run };
+  return { busy, error, run, cancel };
 }

@@ -5,7 +5,7 @@ import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
-import { useConditionDays } from "./useConditionDays";
+import { TodayForecast } from "./TodayForecast";
 import { useConditions } from "./useConditions";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
@@ -23,13 +23,13 @@ import {
   periodPath,
   dateLabel,
   timeLabel,
-  forecastInputText,
+  scoreCoverageText,
+  tideTimeLabel,
   metricText,
   evidenceText,
   waterQualityLabel,
   type Place,
   type Conditions,
-  type Forecast,
   type TideResult,
   type WaterQualityGrade,
 } from "./productData";
@@ -86,6 +86,9 @@ function Hero({
   place,
   displayName,
   conditions,
+  baseline,
+  baselineLoading = false,
+  baselineError,
   best,
   recommendation,
   recommendationLoading = false,
@@ -97,6 +100,9 @@ function Hero({
   place?: Place;
   displayName: string;
   conditions?: Conditions;
+  baseline?: Conditions;
+  baselineLoading?: boolean;
+  baselineError?: string;
   /** 서버가 고른 오늘의 활동. 없으면 「고를 것이 없다」이거나 조회 실패입니다. */
   best?: ActivityCondition | null;
   recommendation?: Recommendation;
@@ -107,7 +113,7 @@ function Hero({
   quality: string;
   qualityLoading?: boolean;
 }) {
-  const heroScore = best?.score ?? conditionScore(conditions);
+  const heroScore = best?.score ?? null;
   return (
     <header className="pd-hero td-hero">
       <AppHeader
@@ -150,6 +156,7 @@ function Hero({
                 (heroScore ?? "–")
               )}
             </div>
+            {heroScore !== null && <div className="td-score-coverage">{scoreCoverageText(best?.data)}</div>}
             <GradeChip
               score={heroScore}
               prefix={best ? scoreTitle(best.activity) : undefined}
@@ -159,14 +166,16 @@ function Hero({
             />
           </div>
         </div>
+        <p className="pd-note">장소 {conditionModeLabel(baseline)} · 활동 점수 입력과 별도</p>
+        {baselineError && <p role="alert">장소 자료 조회 실패: {baselineError}</p>}
         <div className="td-hero-tiles">
           <div className="td-tile">
             <Icon name="sun" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
               <MetricValue
-                conditions={conditions}
+                conditions={baseline}
                 name="air_temperature"
-                loading={loading}
+                loading={baselineLoading}
                 glass
                 width="2.6em"
               />
@@ -177,9 +186,9 @@ function Hero({
             <Icon name="wave" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
               <MetricValue
-                conditions={conditions}
+                conditions={baseline}
                 name="wave_height"
-                loading={loading}
+                loading={baselineLoading}
                 glass
                 width="2.6em"
               />
@@ -190,9 +199,9 @@ function Hero({
             <Icon name="thermometer" size={17} className="td-tile-icon" />
             <div className="pd-num td-tile-value">
               <MetricValue
-                conditions={conditions}
+                conditions={baseline}
                 name="water_temperature"
-                loading={loading}
+                loading={baselineLoading}
                 glass
                 width="2.6em"
               />
@@ -358,6 +367,7 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
       score: state?.score ?? null,
       data: state?.data,
       error: state?.error,
+      eligibility: state?.eligibility,
     };
   });
   const [basisId, setBasisId] = useState<string>(ACTIVITY_ROWS[0].id);
@@ -383,9 +393,9 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
                   <GradeIcon gradeKey={grade.key} size={12} />
                   {activity.score === null ? "–" : activity.score}
                 </div>
-                <div className="td-act-label">{grade.label}</div>
+                <div className="td-act-label">{activity.eligibility ?? grade.label}</div>
                 <div className="td-act-label">
-                  {activity.data?.condition_score ? `${Math.round(activity.data.condition_score.coverage * 100)}% 근거` : "근거 미확인"}
+                  {activity.score !== null ? scoreCoverageText(activity.data) : "숫자 추천 보류"}
                 </div>
                 <div className="td-act-label">
                   {activity.data?.support_status === "supported" ? "활동 지원 확인" : activity.data?.support_status === "unsupported" ? "활동 미지원" : "지원 미확인"}
@@ -427,101 +437,6 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
   );
 }
 
-function ForecastSection({
-  id,
-  rows,
-  now,
-  activity,
-  status,
-}: {
-  id?: number;
-  rows: Forecast[];
-  now: string;
-  activity: Activity;
-  status: string;
-}) {
-  const days = useConditionDays(id, now, activity);
-  const [forecastDayId, setForecastDayId] = useState(days[0].id);
-  const selected = days.find((day) => day.id === forecastDayId) ?? days[0];
-  const maxScore = Math.max(...days.map((day) => day.score ?? 0), 1);
-
-  return (
-    <section>
-      <SectionHead label={`7일 예보 · ${activities[activity]}`} suffix="A2" />
-      <div className="pd-card">
-        <div className="td-bars" role="group" aria-label="날짜 선택">
-          {days.map((day) => {
-            const grade = gradeOf(day.score);
-            return (
-              <button
-                type="button"
-                key={day.id}
-                className={
-                  "td-bar" + (day.id === forecastDayId ? " is-selected" : "")
-                }
-                data-grade={grade.key}
-                aria-pressed={day.id === forecastDayId}
-                aria-label={`${day.weekday} ${day.dateLabel} · ${
-                  day.loading ? "조회 중" : day.error ? "조회 실패" : day.score === null
-                    ? "평가값 없음"
-                    : `${day.score}점 ${grade.label}`
-                }`}
-                onClick={() => setForecastDayId(day.id)}
-              >
-                <span className="td-bar-score">
-                  {day.loading ? "조회 중" : day.error ? "조회 실패" : day.score === null ? "–" : day.score}
-                </span>
-                <span
-                  className="td-bar-fill"
-                  style={{
-                    height:
-                      day.score === null
-                        ? "4px"
-                        : `${Math.max(8, (day.score / maxScore) * 46)}px`,
-                    background: grade.color,
-                  }}
-                />
-                <span className="td-bar-day">{day.weekday}</span>
-              </button>
-            );
-          })}
-        </div>
-        <ConditionScoreDetails data={selected.data} className="pd-note" />
-        {selected.error && <p className="pd-note" role="alert">{selected.error}</p>}
-
-        <div className="td-bar-detail">
-          <span>
-            {selected.weekday} · {selected.dateLabel}
-          </span>
-          <GradeChip score={selected.score} />
-          {selected.score === null && <StateChip kind="no_data" />}
-        </div>
-
-        <p className="pd-note">
-          {selected.score !== null
-            ? "점수는 위 상세의 관측소·격자 예보 근거로 계산했습니다."
-            : dataStatusText(status)}{" "}
-          {rows
-            .filter(
-              (row) =>
-                row.target_start_at.slice(0, 10) === selected.id ||
-                new Date(row.target_start_at).toLocaleDateString("sv-SE", {
-                  timeZone: "Asia/Seoul",
-                }) === selected.id,
-            )
-            .map(
-              (row) =>
-                `${row.station_name} · ${row.provider} · ${timeLabel(row.target_start_at)} · ${row.state} · ${row.inputs.map((input) => `${input.name}: ${forecastInputText(input, row.state)}`).join(" / ")}`,
-            )
-            .join(" / ") || "예보 목록(첫 100건)에는 선택 날짜의 자료가 없습니다."}{" "}
-          관측소·해당 기상 격자의 목록은 첫 100건입니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한
-          수집 예보로 계산합니다. 해당 시각의 근거가 없으면 –입니다.
-        </p>
-      </div>
-    </section>
-  );
-}
-
 function OperatingRow({
   activity,
   id,
@@ -554,7 +469,7 @@ function OperatingRow({
         {windows.error
           ? "조회 실패"
           : active
-            ? `${timeLabel(active.start_at)}–${timeLabel(active.end_at)}`
+            ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
             : "운영정보 없음"}
       </span>
     </div>
@@ -628,13 +543,13 @@ function TideSection({
       <div className="pd-card">
         <div className="td-tide-now">
           <span className="td-tide-pill is-now">
-            간조 {timeLabel(tides?.next_low?.event_at)}
+            간조 {tideTimeLabel(tides?.next_low?.event_at)}
           </span>
           <span className="td-tide-arrow" aria-hidden="true">
             →
           </span>
           <span className="td-tide-pill">
-            만조 {timeLabel(tides?.next_high?.event_at)}
+            만조 {tideTimeLabel(tides?.next_high?.event_at)}
           </span>
           <span className="td-tide-level">
             다음 만조 높이{" "}
@@ -763,10 +678,10 @@ function TodayScreen() {
   // 고정돼 있어서, 같은 장소 같은 시각을 두고 홈은 「온천」을 권하는데 이
   // 화면은 수영 조건만 늘어놓았습니다.
   const {
-    now, place, places, conditions, activities: activityStates, best,
+    now, place, places, conditions, baseline, activities: activityStates, best,
     recommendation, displayName, selectionMessage, placeSettled,
   } = useProductData("best");
-  const { forecasts, tides, quality } = useTodayData(place?.id, now, placeSettled);
+  const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
   // 물러서되(화면에 그렇게 적습니다) 히어로 점수를 그것으로 채우지 않습니다.
   const activity: Activity = best?.activity ?? "swim";
@@ -781,6 +696,9 @@ function TodayScreen() {
             place={place}
             displayName={displayName}
             conditions={conditions.data}
+            baseline={baseline.data}
+            baselineLoading={isInitialLoad(baseline)}
+            baselineError={baseline.error}
             best={best}
             recommendation={recommendation.data}
             recommendationLoading={isInitialLoad(recommendation)}
@@ -800,18 +718,7 @@ function TodayScreen() {
             }
           />
           <ActivitySection states={activityStates} />
-          <ForecastSection
-            id={place?.id}
-            rows={forecasts.data?.rows ?? []}
-            now={now}
-            activity={activity}
-            status={
-              forecasts.error ??
-              (forecasts.loading
-                ? "예보 조회 중"
-                : (forecasts.data?.status ?? "장소 선택 필요"))
-            }
-          />
+          <TodayForecast id={place?.id} now={now} activity={activity} placeSettled={placeSettled} />
           <TideSection
             id={place?.id}
             now={now}

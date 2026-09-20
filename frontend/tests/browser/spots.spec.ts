@@ -70,3 +70,87 @@ test("the spots map pins only verified coordinates and scores only the chosen pi
   await expect(page.locator(".sp-filters")).toContainText("해변");
   await expect(page.locator(".sp-filters")).not.toContainText("카페");
 });
+
+test("missing detail finishes lookup without actions", async ({ page }) => {
+  await page.goto("#spots?spot_id=99999999");
+  await expect(page.locator(".sd-hero-name")).toHaveText("장소를 찾지 못했습니다");
+  await expect(page.getByRole("button", { name: "내 코스에 추가", exact: true })).toHaveCount(0);
+  await expect(page.locator(".sd-save")).toHaveCount(0);
+  await expect(page.locator(".spot-detail .pd-skeleton")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "지도에서 보기 →" })).toHaveCount(0);
+});
+
+test("detail uses server favorites across reentry and adds the selected place once", async ({ page }) => {
+  const places = await (await page.request.get("api/data/livecams/preview/places?q=")).json();
+  const place = places[0];
+  await page.goto(`#spots?spot_id=${place.id}`);
+  const save = page.locator(".sd-save");
+  await expect(save).toBeEnabled();
+  if (await save.getAttribute("aria-pressed") === "true") await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "false");
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: "코스 초안 보기" })).toHaveCount(0);
+  await page.getByRole("link", { name: "← 명소 목록" }).click();
+  await page.goto(`#spots?spot_id=${place.id}`);
+  await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "true");
+  await page.route("**/api/data/travel/signals/*", route => route.fulfill({ status: 503, json: { detail: "unavailable" } }));
+  await page.locator(".sd-save").click();
+  await expect(page.locator(".spot-detail [role=alert]")).toBeVisible();
+  await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "true");
+  let drafts = 0;
+  page.on("request", request => {
+    if (request.url().endsWith("travel/plans/draft")) {
+      drafts += 1;
+      expect(request.postDataJSON().stops.map((stop: { spot_id: number }) => stop.spot_id)).toEqual([place.id]);
+    }
+  });
+  await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
+  await expect(page.locator("p[role=status]")).toContainText("코스 초안에 추가했습니다");
+  await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
+  await expect(page.locator("p[role=status]")).toContainText("이미 코스 초안에 추가된 장소");
+  expect(drafts).toBe(1);
+  await expect(page.getByRole("link", { name: "지도에서 보기 →" })).toHaveAttribute("href", `#map?spot_id=${place.id}`);
+  await page.getByRole("link", { name: "지도에서 보기 →" }).click();
+  await expect(page.locator(".mp-spot-name")).toHaveText(place.name);
+});
+
+test("failed favorite write never turns the detail icon on", async ({ page }) => {
+  const places = await (await page.request.get("api/data/livecams/preview/places?q=")).json();
+  await page.route("**/api/data/travel/signals?**", route => route.fulfill({ json: { rows: [] } }));
+  await page.route("**/api/data/travel/signals", route => route.fulfill({ status: 403, json: { detail: "origin_not_allowed" } }));
+  await page.goto(`#spots?spot_id=${places[0].id}`);
+  await page.locator(".sd-save").click();
+  await expect(page.locator(".spot-detail [role=alert]")).toBeVisible();
+  await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "false");
+});
+
+test("a beach station with empty region can be saved and added without a tourism record", async ({ page }) => {
+  const places = await (await page.request.get("api/data/livecams/preview/places?q=관측")).json();
+  const place = places.find((item: { name: string }) => item.name === "강릉 OFFLINE TEST 관측 해수욕장");
+  expect(place).toBeTruthy();
+  await page.goto(`#spots?spot_id=${place.id}`);
+  await expect(page.locator(".sd-hero-name")).toHaveText(place.name);
+  const save = page.locator(".sd-save");
+  await expect(save).toBeEnabled();
+  if (await save.getAttribute("aria-pressed") === "true") await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "false");
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: "코스 초안 보기" })).toHaveCount(0);
+  await page.reload();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  const draftResponse = page.waitForResponse(response => response.url().endsWith("travel/plans/draft"));
+  await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
+  const response = await draftResponse;
+  expect(response.status()).toBe(200);
+  expect(response.request().postDataJSON().request.region).toBeUndefined();
+  expect((await response.json()).input_stops.map((stop: { spot_id: number }) => stop.spot_id)).toEqual([place.id]);
+  await expect(page.locator("p[role=status]")).toContainText("코스 초안에 추가했습니다");
+  await page.getByRole("link", { name: "코스 초안 보기" }).click();
+  await expect(page.locator(".mp-stop-name")).toHaveText(place.name);
+});

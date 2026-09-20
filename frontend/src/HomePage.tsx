@@ -13,7 +13,7 @@ import {
   Skeleton,
   StateChip,
 } from "./pongdangUi";
-import { activities, type Activity } from "./aiApi";
+import { activities, recommendedActivities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
@@ -225,7 +225,7 @@ function Hero({
 
         <div className="hm-hero-actions">
           <a className="pd-inline pd-tap" href="#today">
-            활동 여섯 가지 모두 보기 →
+            오늘 후보 활동 {recommendedActivities.length}가지 보기 →
           </a>
           <ScoreExplainer data={conditions} />
         </div>

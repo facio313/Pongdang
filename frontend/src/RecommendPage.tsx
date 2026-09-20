@@ -145,7 +145,7 @@ function EntryStep({
         <div className="pd-card">
           <div className="rc-card-top">
             <div className="pd-card-title">내 취향</div>
-            <StateChip kind="uncollected" />
+            <span className="pd-state-chip">선택 후 저장</span>
           </div>
           <div className="rc-tags">
             {shortcuts.map((option) => (
@@ -182,8 +182,8 @@ function EntryStep({
             </div>
           </div>
           <p className="pd-note">
-            선택한 태그는 이번 추천에 반영합니다. 취향 확정 버튼으로 저장하며,
-            동행과 이동은 대화 답변으로 변경할 수 있습니다.
+            선택한 태그는 이번 추천에 반영합니다. 「취향 저장하고 코스 보기」를
+            누르면 저장합니다. 동행과 이동은 대화 답변으로 변경할 수 있습니다.
           </p>
         </div>
 

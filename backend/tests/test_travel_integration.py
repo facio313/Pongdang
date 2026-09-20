@@ -1,9 +1,11 @@
 """Group B against an explicitly disposable PostgreSQL 18 pongdang_test."""
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg.types.json import Jsonb
 from pydantic import SecretStr
 
 from app.config import Settings
@@ -116,6 +118,97 @@ def trip_request():
     }
 
 
+@pytest.mark.parametrize("kind", ["beach", "valley"])
+def test_explicit_water_station_selection_preserves_source_without_catalogue(
+    travel_db, kind
+):
+    import asyncio
+
+    from app.travel.catalog import Catalog
+
+    settings, client, _, buoy = travel_db
+    now = datetime.now(UTC) - timedelta(minutes=1)
+    valid_until = now + timedelta(days=1)
+    store_batch(
+        settings,
+        SourceBatch(
+            provider="khoa_beach",
+            fetched_at=now,
+            stations=[
+                Station(
+                    source_id="isolated-water-place",
+                    name="격리 관측 물놀이 장소",
+                    kind=kind,
+                    latitude=37.8,
+                    longitude=128.9,
+                    source_valid_from=now,
+                    source_valid_until=valid_until,
+                )
+            ],
+        ),
+    )
+    with connect(settings) as c:
+        spot_id = c.execute(
+            "SELECT spot_id FROM pongdang_data.collection_station "
+            "WHERE provider='khoa_beach' AND source_id='isolated-water-place'"
+        ).fetchone()[0]
+        catalogue_count = c.execute(
+            "SELECT count(*) FROM pongdang_data.collection_place"
+        ).fetchone()[0]
+    selected = asyncio.run(Catalog(settings, now).places([spot_id]))[spot_id]
+    assert selected["region"] == ""
+    assert selected["kind"] == kind
+    assert selected["catalog_role"] == "visit"
+    assert selected["evidence"].provider == "khoa_beach"
+    assert selected["evidence"].source_record_id == "isolated-water-place"
+    assert selected["evidence"].fetched_at == now
+    assert selected["evidence"].valid_from == now
+    assert selected["evidence"].valid_until == valid_until
+    assert selected["evidence"].source_url is None
+    assert selected["evidence"].issued_at is None
+    request = trip_request() | {"region": None}
+    for candidate_id, expected in ((spot_id, 200), (buoy, 404), (999999999, 404)):
+        draft = client.post(
+            BASE + "/plans/draft",
+            json={
+                "request": request,
+                "stops": [
+                    {
+                        "item_id": "selected",
+                        "spot_id": candidate_id,
+                        "day": request["dates"][0],
+                    }
+                ],
+            },
+        )
+        assert draft.status_code == expected, draft.text
+        if expected == 200:
+            assert draft.json()["input_stops"][0]["spot_id"] == spot_id
+        signal = client.post(
+            BASE + "/signals",
+            json={"kind": "favorite", "action": "like", "spot_id": candidate_id},
+        )
+        assert signal.status_code == (201 if expected == 200 else expected), signal.text
+    favorites = client.get(BASE + f"/signals?spot_id={spot_id}&kind=favorite").json()[
+        "rows"
+    ]
+    assert len(favorites) == 1
+    assert favorites[0]["payload"]["spot_id"] == spot_id
+    with connect(settings) as c:
+        assert (
+            c.execute("SELECT count(*) FROM pongdang_data.collection_place").fetchone()[
+                0
+            ]
+            == catalogue_count
+        )
+        assert (
+            c.execute(
+                "SELECT count(*) FROM pongdang_data.conditions_conditionscore"
+            ).fetchone()[0]
+            == 0
+        )
+
+
 def test_first_visit_preference_reordering_and_strict_unknown_conditions(travel_db):
     _, client, places, station = travel_db
     initial = client.get(BASE + "/preferences")
@@ -191,6 +284,63 @@ def test_personal_profile_signals_revision_reset_and_ownership(travel_db):
     assert profile["preference"]["tags"] == []
     assert profile["revision"] == 2
     assert client.get(BASE + "/signals").json()["rows"] == []
+
+
+def test_signal_filters_find_favorite_beyond_latest_page_and_keep_owner_scope(
+    travel_db,
+):
+    settings, client, places, _ = travel_db
+    beach = places["isolated-beach"]
+    favorite = {"kind": "favorite", "action": "like", "spot_id": beach}
+    created = client.post(BASE + "/signals", json=favorite)
+    assert created.status_code == 201, created.text
+    favorite_id = created.json()["id"]
+    onsen = client.post(
+        BASE + "/signals",
+        json=favorite | {"spot_id": places["isolated-onsen"]},
+    )
+    assert onsen.status_code == 201, onsen.text
+    other = HEADERS | {"x-pongdang-sso-subject": "traveller-b"}
+    other_favorite = client.post(BASE + "/signals", json=favorite, headers=other)
+    assert other_favorite.status_code == 201, other_favorite.text
+
+    # More recent signals for the same place must not hide its saved state.
+    card = {"kind": "card", "action": "like", "spot_id": beach, "tags": ["해변"]}
+    with connect(settings) as c:
+        with c.cursor() as cursor:
+            cursor.executemany(
+                "INSERT INTO pongdang_data.travel_signal(id,owner_subject,payload) "
+                "VALUES(%s,%s,%s)",
+                [(uuid4().hex, "traveller-a", Jsonb(card)) for _ in range(101)],
+            )
+
+    all_signals = client.get(BASE + "/signals")
+    assert all_signals.status_code == 200
+    assert all_signals.json()["limit"] == 100
+    assert all_signals.json()["offset"] == 0
+    assert len(all_signals.json()["rows"]) == 100
+    assert all(row["payload"]["kind"] == "card" for row in all_signals.json()["rows"])
+
+    query = {"spot_id": beach, "kind": "favorite"}
+    filtered = client.get(BASE + "/signals", params=query)
+    assert filtered.status_code == 200
+    assert [row["id"] for row in filtered.json()["rows"]] == [favorite_id]
+    other_filtered = client.get(BASE + "/signals", params=query, headers=other)
+    assert [row["id"] for row in other_filtered.json()["rows"]] == [
+        other_favorite.json()["id"]
+    ]
+    empty = client.get(BASE + "/signals", params=query | {"spot_id": 2**53 - 1})
+    assert empty.status_code == 200
+    assert empty.json()["rows"] == []
+    page = client.get(
+        BASE + "/signals", params={"spot_id": beach, "limit": 1, "offset": 100}
+    )
+    assert page.status_code == 200
+    assert len(page.json()["rows"]) == 1
+    assert page.json()["rows"][0]["payload"]["kind"] == "card"
+    assert client.get(BASE + "/signals", params={"limit": 101}).status_code == 422
+    assert client.get(BASE + "/signals", params={"spot_id": 0}).status_code == 422
+    assert client.get(BASE + "/signals", params={"kind": "unknown"}).status_code == 422
 
 
 def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):

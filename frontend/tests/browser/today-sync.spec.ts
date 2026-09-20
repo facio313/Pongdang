@@ -95,8 +95,11 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
   await page.route("**/api/data/water-index/recommendation?**", async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    for (const item of body.conditions ?? [])
-      scores[item.activity] = item.condition_score?.score ?? null;
+    for (const item of body.conditions ?? []) {
+      const excluded = body.ranked.some((rank: { activity: string; dropped: boolean }) => rank.activity === item.activity && rank.dropped);
+      scores[item.activity] = excluded || item.support_status === "unsupported"
+        ? null : item.condition_score?.score ?? null;
+    }
     return route.fulfill({ response, json: body });
   });
   await page.goto("#today");
@@ -119,7 +122,7 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
     const activity = byName[pair.name];
     expect(activity, `알 수 없는 활동 타일: ${pair.name}`).toBeTruthy();
     const expected = scores[activity];
-    // 점수가 오지 않은 활동은 «–» 이며 0 이 아닙니다.
+    // 서버가 추천에서 제외한 활동과 점수가 오지 않은 활동은 «–» 이며 0이 아닙니다.
     expect(pair.score.replace(/\s+/g, "")).toContain(
       expected === null || expected === undefined ? "–" : String(expected),
     );

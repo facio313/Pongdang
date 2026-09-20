@@ -9,7 +9,7 @@ from pydantic import SecretStr
 
 from app.auth import Principal
 from app.config import Settings
-from app.ingestion.models import Reading, SourceBatch, Station, Value
+from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.notifications.api import create_router
 from app.notifications.delivery import deliver_due
@@ -22,6 +22,7 @@ from app.notifications.service import (
     save_subscription,
 )
 from app.schema import connect, initialize
+from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
 
 OWNER = Principal(
     "sso-test-owner", frozenset({"access-pongdang"}), "owner@example.test"
@@ -77,10 +78,52 @@ def batch(temperature=21, *, source_id="test-reading", observed_at=None):
 
 def subscription(db, channel="in_app"):
     store_batch(db, batch())
+    now = datetime.now(UTC)
+    store_batch(
+        db,
+        SourceBatch(
+            provider="TEST_OFFICIAL",
+            fetched_at=now,
+            places=[
+                Place(
+                    source_id="test-beach",
+                    name="OFFLINE TEST beach",
+                    kind="beach",
+                    latitude=37.8,
+                    longitude=128.9,
+                )
+            ],
+        ),
+    )
     with connect(db) as c:
         spot = c.execute(
-            "SELECT spot_id FROM pongdang_data.collection_station"
+            "SELECT spot_id FROM pongdang_data.collection_place "
+            "WHERE source_id='test-beach'"
         ).fetchone()[0]
+        station = c.execute(
+            "SELECT id FROM pongdang_data.collection_station"
+        ).fetchone()[0]
+    register_evidence(
+        db,
+        EvidenceBundle(
+            mappings=[
+                StationMapping(
+                    mapping_id="notification-test-beach-buoy",
+                    spot_id=spot,
+                    station_id=station,
+                    spatial_scope="OFFLINE TEST FIXTURE ONLY",
+                    mapping_version="fixture.v1",
+                    evidence_ref="offline-test-mapping",
+                    source_url="https://www.weather.go.kr/fixture",
+                    authority="offline test",
+                    reviewed_by="offline test",
+                    activities=("swim",),
+                    valid_from=now - timedelta(days=2),
+                    valid_until=now + timedelta(days=5),
+                )
+            ]
+        ),
+    )
     body = SubscriptionInput(
         spot_id=spot,
         year=datetime.now(UTC).year,
@@ -126,7 +169,9 @@ def test_normalized_observation_persisted_event_owner_api_and_readonly_get(db):
         event = page.json()["rows"][0]
         assert event["evidence"]["observation"]["numeric_value"] == 21
         assert event["evidence"]["observation"]["revision"]
-        assert event["evidence"]["station_relationship"]["relation"] == "station_itself"
+        relationship = event["evidence"]["station_relationship"]
+        assert relationship["relation"] == "representative_station"
+        assert relationship["mapping_id"] == "notification-test-beach-buoy"
         assert event["evidence"]["first_in_year"] is None
         assert event["evidence"]["safety_status"] == "unknown"
         assert event["delivery_state"] == "available_in_app"
@@ -164,6 +209,81 @@ def test_normalized_observation_persisted_event_owner_api_and_readonly_get(db):
                 ).fetchone()[0]
                 == 1
             )
+
+
+def test_only_classified_water_places_can_create_or_replace_subscriptions(db):
+    sub, body = subscription(db)
+    store_batch(
+        db,
+        SourceBatch(
+            provider="KAKAO_LOCAL",
+            fetched_at=datetime.now(UTC),
+            places=[
+                Place(
+                    source_id=source_id,
+                    name=name,
+                    kind="beach_search_result",
+                    category=category,
+                    latitude=37.8,
+                    longitude=128.9,
+                )
+                for source_id, name, category in [
+                    ("water-beach", "TEST 해수욕장", "여행 > 관광,명소 > 해수욕장"),
+                    ("water-valley", "TEST 계곡", "여행 > 관광,명소 > 계곡"),
+                    ("restaurant", "TEST 해변 식당", "음식점 > 한식"),
+                    ("unclassified", "TEST 해변", ""),
+                ]
+            ],
+        ),
+    )
+    with connect(db) as c:
+        spots = dict(
+            c.execute(
+                "SELECT source_id,spot_id FROM pongdang_data.collection_place "
+                "WHERE provider='KAKAO_LOCAL'"
+            ).fetchall()
+        )
+        buoy_spot = c.execute(
+            "SELECT spot_id FROM pongdang_data.collection_station"
+        ).fetchone()[0]
+    with client(db) as api:
+        for spot in [spots["restaurant"], spots["unclassified"], buoy_spot]:
+            request = body.model_dump() | {"spot_id": spot}
+            response = api.post(
+                "/api/data/notifications/subscriptions",
+                json=request,
+                headers=auth_headers(),
+            )
+            assert response.status_code == 422
+            assert response.json()["detail"] == "WATER_PLACE_REQUIRED"
+            response = api.put(
+                f"/api/data/notifications/subscriptions/{sub.id}?expected_revision=1",
+                json=request,
+                headers=auth_headers(),
+            )
+            assert response.status_code == 422
+            assert response.json()["detail"] == "WATER_PLACE_REQUIRED"
+        response = api.post(
+            "/api/data/notifications/subscriptions",
+            json=body.model_dump() | {"spot_id": 999999999},
+            headers=auth_headers(),
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "PLACE_NOT_FOUND"
+        unchanged = api.get(
+            "/api/data/notifications/subscriptions", headers=auth_headers()
+        ).json()["rows"]
+        assert len(unchanged) == 1
+        assert unchanged[0]["spot_id"] == body.spot_id
+        assert unchanged[0]["revision"] == 1
+        for source_id in ["water-beach", "water-valley"]:
+            response = api.post(
+                "/api/data/notifications/subscriptions",
+                json=body.model_dump() | {"spot_id": spots[source_id]},
+                headers=auth_headers(),
+            )
+            assert response.status_code == 201, response.text
+            assert response.json()["spot_id"] == spots[source_id]
 
 
 class FakeProvider:
