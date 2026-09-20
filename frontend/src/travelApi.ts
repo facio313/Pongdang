@@ -415,22 +415,28 @@ export function kakaoRouteLink(
   return `${KAKAO_ROUTE_SCHEME}?${query}`;
 }
 
-export function selectedActivities(tags: string[]) {
-  const ids: Record<string, Activity> = {
-    수영: "swim",
-    서핑: "surf",
-    "서핑 강습": "surf",
-    온천: "onsen",
-    "온천 마무리": "onsen",
-    "갯벌 체험": "mudflat",
-    래프팅: "rafting",
-    휴식: "relax",
-    "물 보며 쉬기": "relax",
-  };
-  const activities = [...new Set(tags.map((tag) => ids[tag]).filter(Boolean))];
-  if (activities.length > 3)
-    throw new Error(
-      "활동은 최대 3개까지 선택할 수 있습니다. 태그나 좋아요를 다시 골라 주세요.",
-    );
-  return activities;
+/** 고른 키워드 id 를 카테고리별로 묶어 `keyword_selection` 으로 만듭니다.
+ *
+ *  예전에는 selectedActivities 가 「서핑 강습」·「SUP 체험」 같은 화면 라벨을
+ *  활동 id 로 되돌렸습니다. 그 라벨들은 프런트가 만든 이름이라 서버 카탈로그에
+ *  없었고, 되돌릴 수 없는 것은 조용히 사라졌습니다. 이제 화면이 서버 id 를
+ *  그대로 들고 다니므로 묶기만 하면 됩니다.
+ *
+ *  상한을 넘으면 던집니다 -- 넘친 선택을 말없이 버리면 사용자가 고른 것과
+ *  서버가 받은 것이 달라집니다. 상한 값은 서버 카탈로그의 max_selections 이며
+ *  여기서 만들지 않습니다. */
+export function keywordSelection(
+  chosenIds: string[],
+  categoryOf: (id: string) => string | undefined,
+  categories: readonly { id: string; max_selections: number }[],
+) {
+  return categories.flatMap((category) => {
+    const values = chosenIds.filter((id) => categoryOf(id) === category.id);
+    if (!values.length) return [];
+    if (values.length > category.max_selections)
+      throw new Error(
+        `${category.id} 선택은 최대 ${category.max_selections}개까지 가능합니다. 선택을 다시 골라 주세요.`,
+      );
+    return [{ category: category.id, values }];
+  });
 }

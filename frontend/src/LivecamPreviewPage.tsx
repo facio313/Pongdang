@@ -12,6 +12,8 @@ export function LivecamPreviewPage() {
   const { result, error, loading, expired, now } = useWebcamCatalog(page, category, shuffleSeed);
   const pages = result ? Math.min(5, Math.max(1, Math.ceil(result.total / result.page_size))) : 1;
   return <article className="livecam-hub">
+    {/* 셸 밖 화면이라 탭바가 없습니다. 돌아가는 길을 둡니다. */}
+    <a className="feature-back" href="#home">← 퐁당 앱으로</a>
     <h1>물 풍경 웹캠</h1>
     <p>전국의 해변·바다·항구·호수·강 풍경을 무작위로 만나보세요. 위치와 거리 제한 없이 물이 있는 곳의 카메라를 모았습니다.</p>
     <p className="lc-attribution">Webcams provided by <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer">windy.com</a> · <a href="https://www.windy.com/webcams/add" target="_blank" rel="noopener noreferrer">add new webcam</a></p>

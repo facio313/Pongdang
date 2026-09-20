@@ -367,3 +367,13 @@ tbody tr:hover > td {
     width: calc(100vw - 50px);
   }
 }
+
+/* 셸(AppShell · DesktopShell) 밖 화면의 복귀 링크. 자료 조회 · 라이브캠
+   화면들은 탭바도 네비도 없어서, 사이드 메뉴로 들어오면 제품 화면으로 돌아갈
+   길이 하나도 없었습니다. 히트박스는 44px 로 둡니다. */
+.feature-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+}

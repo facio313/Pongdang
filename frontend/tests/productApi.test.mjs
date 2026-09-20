@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calendarDays, conditionPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription } from '../src/productData.ts';
-import { travelJson, recommendationPlan, selectedActivities, directionLink } from '../src/travelApi.ts';
+import { travelJson, recommendationPlan, keywordSelection, directionLink } from '../src/travelApi.ts';
 
 test('product dates use KST, including midnight and year boundaries', () => {
   assert.equal(kstDate('2026-12-31T16:00:00Z'), '2027-01-01');
@@ -21,10 +21,22 @@ test('missing, conflicting, and stale observations never become zero or another 
   assert.equal(qualityGrade([]), '–');
   assert.equal(qualityValues([])[0].confidence, null);
 });
-test('activity labels map to backend IDs and over-limit selections cannot be silently dropped', () => {
-  assert.deepEqual(selectedActivities(['서핑', '온천', '카페']), ['surf', 'onsen']);
-  assert.deepEqual(selectedActivities(['서핑 강습', '온천 마무리', 'SUP 체험']), ['surf', 'onsen']);
-  assert.throws(() => selectedActivities(['서핑', '수영', '래프팅', '온천']), /최대 3개/);
+test('고른 키워드는 서버 카테고리로 묶이고, 상한을 넘으면 말없이 버리지 않는다', () => {
+  // 화면은 서버가 발행한 id 를 그대로 들고 다닙니다. 예전에는 「서핑 강습」
+  // 같은 프런트가 만든 라벨을 활동 id 로 되돌렸고, 되돌릴 수 없는 이름
+  // (「카페」·「SUP 체험」)은 조용히 사라졌습니다.
+  const categories = [
+    { id: 'place_type', max_selections: 4 },
+    { id: 'activity', max_selections: 3 },
+  ];
+  const categoryOf = id => ({ beach: 'place_type', surf: 'activity', onsen: 'activity', swim: 'activity', rafting: 'activity' })[id];
+  assert.deepEqual(keywordSelection(['beach', 'surf', 'onsen'], categoryOf, categories), [
+    { category: 'place_type', values: ['beach'] },
+    { category: 'activity', values: ['surf', 'onsen'] },
+  ]);
+  // 서버가 모르는 id 는 어느 카테고리에도 담기지 않습니다.
+  assert.deepEqual(keywordSelection(['unknown'], categoryOf, categories), []);
+  assert.throws(() => keywordSelection(['surf', 'swim', 'rafting', 'onsen'], categoryOf, categories), /최대 3개/);
 });
 test('plan saves preserve real IDs, signed selections, and selected date', () => {
   const result = { request: { dates: ['2026-09-16'] }, recommendations: [{ spot_id: 417, rank: 2 }], selection_token: 'fixture-token' };

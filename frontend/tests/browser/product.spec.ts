@@ -433,19 +433,32 @@ test("chat answers reach the travel contract and the actual response is displaye
   });
   await page.goto("#recommend");
   await page.getByRole("button", { name: "대화로 추천받기" }).click();
-  await page.getByRole("button", { name: "구경만 할래요" }).click();
-  await page.getByRole("button", { name: "혼자 반나절" }).click();
+  // 예전에는 화면이 고정 3턴 대본을 들고 있어서, 칩을 세 번 누르면 대화가
+  // 끝났습니다. 서버가 무엇을 되묻든 다음 질문이 정해져 있었던 것이라 대화가
+  // 아니라 설문이었습니다. 이제 사람이 실제로 적어 보냅니다.
+  const composer = page.getByLabel("컨시어지에게 보낼 내용");
+  const send = page.getByRole("button", { name: "보내기" });
+  await composer.fill("혼자 반나절 구경만 할래요");
+  const first = page.waitForResponse((response) =>
+    response.url().endsWith("/ai/chat"),
+  );
+  await send.click();
+  await first;
+  await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
+
+  await composer.fill("대중교통");
   const response = page.waitForResponse((response) =>
     response.url().endsWith("/ai/chat"),
   );
-  await page.getByRole("button", { name: "대중교통", exact: true }).click();
+  await send.click();
   const result = await (await response).json();
   await expect(page.locator(".recommend-page")).toHaveAttribute("aria-busy", "false");
   expect(body?.travel?.action).toBe("conversation");
   expect(body?.message).toBe("대중교통");
-  expect(body?.history?.some((turn) => turn.content === "혼자 반나절")).toBe(
-    true,
-  );
+  // 앞 턴이 히스토리로 함께 갑니다 -- 대화가 한 번씩 끊기지 않습니다.
+  expect(
+    body?.history?.some((turn) => turn.content === "혼자 반나절 구경만 할래요"),
+  ).toBe(true);
   await expect(page.locator(".pd-ai-basis")).toContainText(/후보 \d+곳/);
   await expect(page.locator(".rc-chat")).toContainText(result.answer);
   await expect(page.locator(".rc-chat")).toContainText("OFFLINE TEST");
@@ -549,4 +562,39 @@ test("a proposed alternative changes a saved plan only after explicit apply", as
   ).json();
   expect(after.plan_id).toBe(before.plan_id);
   expect(after.revision).toBe(before.revision + 1);
+});
+
+test("추천 취향 항목은 서버 카탈로그에서 오고, 없는 이름을 만들지 않는다", async ({
+  page,
+}) => {
+  // 태그 열두 개가 파일 안 상수였습니다 -- 「SUP」 · 「갯벌 체험」 · 「바다 뷰
+  // 카페」 · 「주차 편한 곳」 · 「샤워장」 · 「반려동물」. 서버 카탈로그에 없는
+  // 이름이라 골라도 서버가 할 수 있는 일이 없었고, 같은 함수가 바로 옆에서
+  // travel/keywords 를 이미 조회하고 있었습니다.
+  const catalogue = await (await page.request.get("api/data/travel/keywords")).json();
+  const pickable = ["place_type", "activity", "companion", "atmosphere"];
+  const served: string[] = catalogue.categories
+    .filter((category: { id: string }) => pickable.includes(category.id))
+    .flatMap((category: { options: { label: string }[] }) =>
+      category.options.map((option) => option.label),
+    );
+
+  await page.goto("#recommend");
+  await page.getByRole("button", { name: "태그로 바로 받기", exact: true }).click();
+  const buttons = page.locator(".rc-tags .rc-tag");
+  const labels = await buttons.allInnerTexts();
+  expect(labels.length).toBeGreaterThan(0);
+  for (const label of labels)
+    expect(served, `서버에 없는 선택 항목: ${label}`).toContain(label.trim());
+  // 카테고리 라벨도 서버가 준 것이며, 상한도 서버 값을 그대로 적습니다.
+  await expect(page.locator(".recommend-page")).toContainText("장소 유형 · 최대 4개");
+
+  // 활동 카드도 서버가 발행한 활동입니다.
+  const activityLabels: string[] = catalogue.categories
+    .find((category: { id: string }) => category.id === "activity")
+    .options.map((option: { label: string }) => option.label);
+  await page.getByRole("button", { name: "다음 · 카드로 확정하기" }).click();
+  const counter = page.getByText(/\d+ \/ \d+\s*번째 카드입니다/);
+  await expect(counter).toContainText(`/ ${activityLabels.length}`);
+  await expect(page.locator(".rc-swipe-name")).toHaveText(activityLabels[0]);
 });

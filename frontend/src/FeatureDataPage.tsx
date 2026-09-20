@@ -66,6 +66,11 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
   const markers = rows.filter((row) => typeof row.spot_id === "number" && typeof row.name === "string" && typeof row.lat === "number" && typeof row.lng === "number")
     .map((row) => ({ id: String(row.spot_id), name: row.name as string, latitude: row.lat as number, longitude: row.lng as number }));
   return <article className="feature-page">
+    {/* 이 화면은 셸(AppShell · DesktopShell) 밖이라 탭바도 네비도 없습니다.
+        사이드 메뉴의 「지점 즐겨찾기」·「알림 설정」·「데이터 출처」가 전부
+        여기로 오는데, 예전에는 제품 화면으로 돌아갈 길이 하나도 없었습니다.
+        전면 개편 전까지 최소한 돌아가는 길은 둡니다. */}
+    <a className="feature-back" href="#home">← 퐁당 앱으로</a>
     <div className="ai-heading"><h1>{featurePages[page]} · 실제 자료 조회</h1><a href={contextLink({ spot_id: spotId, activity }, ["water-index", "water-forecast", "tide"].includes(page) && periodValid ? { from: isoInput(from), until: isoInput(until) } : undefined)}>이 조건으로 AI에게 물어보기</a></div>
     <p>{personal ? "기존 SSO 계정에 속한 개인 자료입니다." : "실제 Pongdang 읽기 서비스의 공개 자료입니다."} 관측·예보·관측소 자료의 시각과 공간 범위를 구분해 확인하세요. NULL·unknown은 안전함을 뜻하지 않습니다.</p>
     {personal ? <p className="ai-notice">본인의 SSO 세션에 저장된 자료입니다. 수온 기준 통과와 방문 기록은 입수 안전 판정이 아닙니다.</p> : <>

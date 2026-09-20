@@ -97,17 +97,9 @@ export function useTravelConcierge({
         : null,
     });
 
-  /** Record a prepared answer on the device. The next scripted question is
-   *  shown locally; nothing is sent until `send` runs. */
-  const keepTurn = (text: string, nextQuestion: string) => {
-    const message = text.trim();
-    if (!message) return;
-    setBubbles((current) => [
-      ...current,
-      { role: "user", content: message },
-      { role: "assistant", content: nextQuestion },
-    ]);
-  };
+  // keepTurn 이 여기 있었습니다. 화면이 들고 있던 고정 대본의 다음 질문을
+  // 로컬에 미리 띄우는 함수였는데, 그 대본이 사라져 띄울 다음 질문이
+  // 없습니다. 이제 되묻는 것은 서버뿐입니다(RecommendPage 의 OPENER).
 
   const send = (text: string) => {
     const message = text.trim();
@@ -261,7 +253,6 @@ export function useTravelConcierge({
     chatRequest,
     publish,
     send,
-    keepTurn,
     requestRoute,
     reset,
   };

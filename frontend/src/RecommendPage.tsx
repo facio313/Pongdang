@@ -34,9 +34,9 @@ import {
   planItems,
   placeRoleLabel,
   unknownConditionsText,
+  keywordSelection,
   recommendationPlan,
   routeReasonsText,
-  selectedActivities,
   travelJson,
   type PlanInput,
   type Preference,
@@ -62,71 +62,28 @@ interface KeywordCatalogue {
   categories: {
     id: string;
     label: string;
+    max_selections: number;
     options: { id: string; label: string }[];
   }[];
 }
-const TAG_GROUPS = [
-  { label: "물놀이", tags: ["서핑", "수영", "SUP", "갯벌 체험", "래프팅"] },
-  { label: "쉬기 · 구경", tags: ["온천", "카페", "일몰 보기", "캠핑"] },
-  {
-    label: "조건",
-    tags: ["파도 적은 곳", "주차 편한 곳", "샤워장", "반려동물"],
-  },
-];
-const SWIPE_CARDS: {
-  id: string;
-  name: string;
-  icon: IconName;
-  score: number | null;
-  place: string;
-}[] = [
-  {
-    id: "surf",
-    name: "서핑 강습",
-    icon: "surf",
-    score: null,
-    place: "활동 취향 선택",
-  },
-  {
-    id: "sup",
-    name: "SUP 체험",
-    icon: "sup",
-    score: null,
-    place: "활동 취향 선택",
-  },
-  {
-    id: "hotspring",
-    name: "온천 마무리",
-    icon: "hotspring",
-    score: null,
-    place: "활동 취향 선택",
-  },
-  {
-    id: "cafe",
-    name: "바다 뷰 카페",
-    icon: "cafe",
-    score: null,
-    place: "활동 취향 선택",
-  },
-  {
-    id: "sunset",
-    name: "일몰 보기",
-    icon: "sunset",
-    score: null,
-    place: "활동 취향 선택",
-  },
-];
-const CHAT_TURNS: { question: string; replies: string[] }[] = [
-  {
-    question: "오늘 강릉에서 뭘 하고 싶으세요?",
-    replies: ["물에 들어가고 싶어요", "구경만 할래요"],
-  },
-  {
-    question: "누구와 얼마나 머무세요?",
-    replies: ["친구랑 하루", "혼자 반나절"],
-  },
-  { question: "이동은 어떻게 하세요?", replies: ["차량", "대중교통"] },
-];
+/** 이 화면이 고르게 하는 서버 카테고리. 데스크탑 추천과 같은 목록입니다.
+ *
+ *  예전에는 태그 열두 개가 파일 안 상수였습니다 -- 「SUP」 · 「갯벌 체험」 ·
+ *  「바다 뷰 카페」 · 「주차 편한 곳」 · 「샤워장」 · 「반려동물」. 서버 카탈로그에
+ *  없는 이름이라 고르면 서버가 할 수 있는 일이 없었고, 같은 함수가 바로 옆에서
+ *  travel/keywords 를 이미 조회하고 있었습니다. 프런트가 키워드를 만들지
+ *  않습니다. */
+const PICKABLE = ["place_type", "activity", "companion", "atmosphere"];
+
+/** 카드로 확정하는 단계가 쓰는 카테고리. 활동은 서버가 발행한 다섯 가지입니다 --
+ *  예전에는 이 카드 다섯 장도 파일 안 상수였습니다. */
+const CARD_CATEGORY = "activity";
+
+/** 대화를 여는 한 줄. 예전에는 고정 3턴 대본의 첫 질문이었고, 서버가 무엇을
+ *  되묻든 화면이 다음 질문을 미리 정해 두고 그 순서대로 진행했습니다 -- 대화가
+ *  아니라 설문이었습니다. 데스크탑 추천과 같은 한 줄만 둡니다. */
+const OPENER = "어떤 물놀이를 찾으세요? 조건을 말로 적어도 됩니다.";
+
 // Real sentences the server can act on: a changed wish, or the separate route
 // request that the contract requires the user to ask for.
 const FOLLOWUPS = [
@@ -148,13 +105,17 @@ function ExampleNote({ children }: { children: React.ReactNode }) {
 // ── 1. 진입 ────────────────────────────────────────────────
 
 function EntryStep({
-  tags,
-  toggleTag,
+  shortcuts,
+  picked,
+  togglePick,
   onChat,
   onTags,
 }: {
-  tags: string[];
-  toggleTag: (tag: string) => void;
+  /** 서버 활동 카테고리의 앞 세 가지. 예전에는 「서핑 · 온천 · 카페」가 파일
+   *  안에 박혀 있었고, 그 중 「카페」는 서버에 없는 이름이었습니다. */
+  shortcuts: { id: string; label: string }[];
+  picked: string[];
+  togglePick: (id: string) => void;
   onChat: () => void;
   onTags: () => void;
 }) {
@@ -185,16 +146,19 @@ function EntryStep({
             <StateChip kind="uncollected" />
           </div>
           <div className="rc-tags">
-            {["서핑", "온천", "카페"].map((tag) => (
+            {shortcuts.map((option) => (
               <button
                 type="button"
-                key={tag}
-                className={"rc-tag pd-pressable" + (tags.includes(tag) ? " is-on" : "")}
-                aria-pressed={tags.includes(tag)}
-                onClick={() => toggleTag(tag)}
+                key={option.id}
+                className={
+                  "rc-tag pd-pressable" +
+                  (picked.includes(option.id) ? " is-on" : "")
+                }
+                aria-pressed={picked.includes(option.id)}
+                onClick={() => togglePick(option.id)}
               >
-                {tag}
-                {tags.includes(tag) && <Icon name="check" size={11} />}
+                {option.label}
+                {picked.includes(option.id) && <Icon name="check" size={11} />}
               </button>
             ))}
             <button type="button" className="rc-tag" onClick={onTags}>
@@ -253,8 +217,12 @@ function EntryStep({
 function TasteStep({
   tasteStep,
   setTasteStep,
-  tags,
-  toggleTag,
+  catalogue,
+  groups,
+  cards,
+  picked,
+  labelOf,
+  togglePick,
   cardIndex,
   liked,
   onLike,
@@ -264,8 +232,13 @@ function TasteStep({
 }: {
   tasteStep: 1 | 2 | 3;
   setTasteStep: (step: 1 | 2 | 3) => void;
-  tags: string[];
-  toggleTag: (tag: string) => void;
+  catalogue: { loading: boolean; error?: string };
+  /** 서버가 발행한 선택 항목. 프런트가 만든 목록이 아닙니다. */
+  groups: KeywordCatalogue["categories"];
+  cards: { id: string; label: string }[];
+  picked: string[];
+  labelOf: (id: string) => string;
+  togglePick: (id: string) => void;
   cardIndex: number;
   liked: string[];
   onLike: () => void;
@@ -273,12 +246,10 @@ function TasteStep({
   onDone: () => void;
   onBack: () => void;
 }) {
-  const catalogue = useResource<KeywordCatalogue>("travel/keywords");
-  const waveLabel = catalogue.data?.categories
-    .find((category) => category.id === "weather")
-    ?.options.find((option) => option.id === "small_waves")?.label;
-  const card = SWIPE_CARDS[Math.min(cardIndex, SWIPE_CARDS.length - 1)];
-  const grade = gradeOf(card.score);
+  const card = cards[Math.min(cardIndex, Math.max(cards.length - 1, 0))];
+  // 활동 카드에는 점수가 없습니다. 장소와 날짜를 고르기 전이라 조건을 조회할
+  // 대상이 없고, 0 이나 「보통」으로 채우지 않습니다.
+  const grade = gradeOf(null);
 
   return (
     <AppShell
@@ -317,34 +288,43 @@ function TasteStep({
         {tasteStep === 1 && (
           <>
             <div className="pd-card">
-              {TAG_GROUPS.map((group) => (
-                <div key={group.label}>
+              {groups.map((group) => (
+                <div key={group.id}>
                   <p className="pd-lbl rc-group-lbl">
-                    {group.label}
+                    {group.label} · 최대 {group.max_selections}개
                   </p>
                   <div className="rc-tags">
-                    {group.tags.map((tag) => (
+                    {group.options.map((option) => (
                       <button
                         type="button"
-                        key={tag}
+                        key={option.id}
                         className={
-                          "rc-tag" + (tags.includes(tag) ? " is-on" : "")
+                          "rc-tag" + (picked.includes(option.id) ? " is-on" : "")
                         }
-                        aria-pressed={tags.includes(tag)}
-                        onClick={() => toggleTag(tag)}
+                        aria-pressed={picked.includes(option.id)}
+                        onClick={() => togglePick(option.id)}
                       >
-                        {tag}
-                        {tags.includes(tag) && <Icon name="check" size={11} />}
+                        {option.label}
+                        {picked.includes(option.id) && (
+                          <Icon name="check" size={11} />
+                        )}
                       </button>
                     ))}
                   </div>
                 </div>
               ))}
+              {!groups.length && (
+                <p className="pd-note" role={catalogue.error ? "alert" : "status"}>
+                  {catalogue.error ??
+                    (catalogue.loading
+                      ? "선택 항목을 조회하고 있습니다."
+                      : "서버가 발행한 선택 항목이 없습니다.")}
+                </p>
+              )}
               <ExampleNote>
-                {catalogue.error ??
-                  "태그는 여행 취향입니다. SUP·편의시설 등의 실제 지원은 별도 확인이 필요합니다."}{" "}
-                파도 적은 곳: {waveLabel ?? "범위 조회 중"}. 이 범위는 안전
-                기준이 아닙니다.
+                선택 항목은 서버 키워드 카탈로그(travel-keywords.v1)에서
+                읽습니다. 고른 것은 여행 취향이며, 편의시설의 실제 지원과 안전
+                판정은 별도로 확인해야 합니다.
               </ExampleNote>
             </div>
             <button
@@ -360,35 +340,51 @@ function TasteStep({
         {tasteStep === 2 && (
           <>
             <div className="pd-card">
-              <div className="pd-slot rc-photo-slot">
-                활동 사진 영역
-                <br />
-                (에셋 미확보 · 별도 작업)
-              </div>
-              <div className="rc-swipe-head">
-                <div className="rc-swipe-name">{card.name}</div>
-                <GradeChip score={card.score} />
-              </div>
-              <div className="rc-stop-place">{card.place}</div>
-              <p className="pd-note">
-                장소 선택 전 점수 {card.score === null ? "–" : card.score} ·{" "}
-                {grade.label}
-                {card.score === null &&
-                  " — 실제 장소와 날짜를 고르면 조건 점수를 조회합니다."}
-              </p>
-              <div className="rc-swipe-actions">
-                <button type="button" className="pd-secondary" onClick={onPass}>
-                  패스
-                </button>
-                <button type="button" className="pd-primary" onClick={onLike}>
-                  좋아요
-                </button>
-              </div>
-              <p className="pd-note">
-                {Math.min(cardIndex + 1, SWIPE_CARDS.length)} /{" "}
-                {SWIPE_CARDS.length}
-                번째 카드입니다. <StateChip kind="partial" />
-              </p>
+              {card ? (
+                <>
+                  <div className="pd-slot rc-photo-slot">
+                    활동 사진 영역
+                    <br />
+                    (에셋 미확보 · 별도 작업)
+                  </div>
+                  <div className="rc-swipe-head">
+                    <div className="rc-swipe-name">{card.label}</div>
+                    <GradeChip score={null} />
+                  </div>
+                  <div className="rc-stop-place">활동 취향 선택</div>
+                  <p className="pd-note">
+                    장소 선택 전 점수 – · {grade.label} — 실제 장소와 날짜를
+                    고르면 조건 점수를 조회합니다.
+                  </p>
+                  <div className="rc-swipe-actions">
+                    <button
+                      type="button"
+                      className="pd-secondary"
+                      onClick={onPass}
+                    >
+                      패스
+                    </button>
+                    <button
+                      type="button"
+                      className="pd-primary"
+                      onClick={onLike}
+                    >
+                      좋아요
+                    </button>
+                  </div>
+                  <p className="pd-note">
+                    {Math.min(cardIndex + 1, cards.length)} / {cards.length}
+                    번째 카드입니다. <StateChip kind="partial" />
+                  </p>
+                </>
+              ) : (
+                <p className="pd-note" role={catalogue.error ? "alert" : "status"}>
+                  {catalogue.error ??
+                    (catalogue.loading
+                      ? "활동 목록을 조회하고 있습니다."
+                      : "서버가 발행한 활동 목록이 없습니다.")}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -411,32 +407,29 @@ function TasteStep({
                     있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.
                   </p>
                 ) : (
-                  liked.map((name) => (
-                    <span className="rc-basis-chip" key={name}>
-                      {name}
+                  liked.map((id) => (
+                    <span className="rc-basis-chip" key={id}>
+                      {labelOf(id)}
                     </span>
                   ))
                 )}
               </div>
-              <div className="pd-card-title rc-group-title">
-                고른 태그
-              </div>
+              <div className="pd-card-title rc-group-title">고른 항목</div>
               <div className="rc-liked-list">
-                {tags.length === 0 ? (
-                  <p className="pd-note rc-note-flush">
-                    고른 태그가 없습니다.
-                  </p>
+                {picked.length === 0 ? (
+                  <p className="pd-note rc-note-flush">고른 항목이 없습니다.</p>
                 ) : (
-                  tags.map((tag) => (
-                    <span className="rc-basis-chip" key={tag}>
-                      {tag}
+                  picked.map((id) => (
+                    <span className="rc-basis-chip" key={id}>
+                      {labelOf(id)}
                     </span>
                   ))
                 )}
               </div>
               <ExampleNote>
-                선택한 태그와 좋아요를 합쳐 취향에 저장하고 실제 장소를
-                추천받습니다. 파도 적은 곳: {waveLabel ?? "범위 조회 중"}.
+                고른 항목과 좋아요를 합쳐 취향에 저장하고 실제 장소를
+                추천받습니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가
+                조건을 만들어 붙이지 않습니다.
               </ExampleNote>
             </div>
             <div className="rc-stack">
@@ -465,7 +458,6 @@ function ChatStep({
   setDraft,
   busy,
   onSend,
-  onKeepTurn,
   onRoute,
   onReset,
   onBack,
@@ -475,27 +467,18 @@ function ChatStep({
   setDraft: (value: string) => void;
   busy: boolean;
   onSend: (text: string) => void;
-  onKeepTurn: (text: string, nextQuestion: string) => void;
   onRoute: (value: RouteRequestValue) => void;
   onReset: () => void;
   onBack: () => void;
 }) {
   const asked = bubbles.filter((bubble) => bubble.role === "user").length;
-  // Scripted answers stay on the device until the last prepared question is
-  // filled in. After that the chips only load the composer; 보내기 sends.
-  const prepared = asked < CHAT_TURNS.length;
-  const quick = prepared ? CHAT_TURNS[asked].replies : FOLLOWUPS;
-  const pickReply = (reply: string) => {
-    if (asked < CHAT_TURNS.length - 1) {
-      onKeepTurn(reply, CHAT_TURNS[asked + 1].question);
-      return;
-    }
-    if (asked === CHAT_TURNS.length - 1) {
-      onSend(reply);
-      return;
-    }
-    setDraft(reply);
-  };
+  // 예전에는 여기에 고정 3턴 대본(질문과 답 후보)이 있었습니다. 서버가 무엇을
+  // 되묻든 화면이 다음 질문을 미리 정해 두고 그 순서대로 진행한 것이라, 대화가
+  // 아니라 설문이었습니다. 이제 여는 말 한 줄만 두고 나머지는 서버에 맡깁니다
+  // (데스크탑 추천과 같은 방식). 빠른 답 칩은 실제로 서버가 실행할 수 있는
+  // 문장들입니다.
+  const quick = FOLLOWUPS;
+  const pickReply = (reply: string) => setDraft(reply);
   const session = useTravelSession();
   const { candidates, originOptions } = useRouteFormSources();
   const conditions = useResource<Conditions>(
@@ -572,12 +555,10 @@ function ChatStep({
           {quick.map((reply) => (
             <button
               type="button"
-              className={
-                "rc-reply" + (!prepared && draft === reply ? " is-on" : "")
-              }
+              className={"rc-reply" + (draft === reply ? " is-on" : "")}
               key={reply}
               disabled={busy}
-              aria-pressed={!prepared && draft === reply}
+              aria-pressed={draft === reply}
               onClick={() => pickReply(reply)}
             >
               {reply}
@@ -1205,8 +1186,36 @@ function RecommendScreen() {
   const profile = useResource<{ preference: Preference; revision: number }>(
     "travel/preferences",
   );
-  const selectedTags = tags ?? profile.data?.preference.tags ?? [];
   const keywordOptions = useResource<KeywordCatalogue>("travel/keywords");
+  // 고를 수 있는 것은 서버가 정합니다. 프런트는 그 id 를 그대로 들고 다니고,
+  // 라벨은 표시할 때만 씁니다 -- 예전에는 라벨이 곧 값이라, 서버에 없는
+  // 이름(「SUP」·「바다 뷰 카페」)을 골라도 서버가 할 수 있는 일이 없었습니다.
+  const groups = (keywordOptions.data?.categories ?? []).filter((category) =>
+    PICKABLE.includes(category.id),
+  );
+  const optionIndex = new Map(
+    groups.flatMap((category) =>
+      category.options.map(
+        (option) => [option.id, { category: category.id, label: option.label }] as const,
+      ),
+    ),
+  );
+  const labelOf = (id: string) => optionIndex.get(id)?.label ?? id;
+  const cards = groups.find((group) => group.id === CARD_CATEGORY)?.options ?? [];
+  // 저장된 취향은 라벨로 쌓여 있습니다. 같은 이름의 서버 항목이 있으면 그
+  // id 로 되읽고, 없는 이름은 버립니다 -- 서버가 모르는 값을 다시 보내지
+  // 않습니다.
+  const storedPicks = (profile.data?.preference.tags ?? []).flatMap((tag) => {
+    const match = [...optionIndex].find(([, option]) => option.label === tag);
+    return match ? [match[0]] : [];
+  });
+  const picked = tags ?? storedPicks;
+  const togglePick = (id: string) =>
+    setTags(
+      picked.includes(id)
+        ? picked.filter((value) => value !== id)
+        : [...picked, id],
+    );
   const [tasteStep, setTasteStep] = useState<1 | 2 | 3>(1);
   const [cardIndex, setCardIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
@@ -1239,39 +1248,38 @@ function RecommendScreen() {
   // activity, dates) are extracted from the actual message by the server, not
   // guessed here from a fixed button label.
   const requestFor = (index = dayIndex): TravelRequest => {
-    const preferred_tags = [...new Set([...selectedTags, ...liked])];
-    if (
-      preferred_tags.includes("파도 적은 곳") &&
-      !keywordOptions.data?.categories
-        .find((category) => category.id === "weather")
-        ?.options.some((option) => option.id === "small_waves")
-    )
-      throw new Error("파고 선호 범위를 읽지 못했습니다. 다시 시도해 주세요.");
-    const chosen = selectedActivities(preferred_tags);
-    const anyRole = preferred_tags.some((tag) =>
-      ["카페", "바다 뷰 카페", "캠핑"].includes(tag),
+    // 고른 것은 서버가 발행한 키워드 id 입니다. 카테고리별로 묶어 그대로
+    // 보냅니다 -- 프런트가 라벨을 조건으로 번역하지 않습니다. 예전에는 「파도
+    // 적은 곳」이라는 라벨을 보고 화면이 weather/small_waves 를 끼워 넣고,
+    // 「카페」·「캠핑」이라는 라벨을 보고 place_role 을 바꿨습니다. 그 라벨들은
+    // 서버 카탈로그에 없는 이름이었습니다.
+    const chosenIds = [...new Set([...picked, ...liked])];
+    // 상한도 서버 카탈로그의 max_selections 입니다. 숫자를 여기서 만들지
+    // 않고, 넘치면 말없이 버리지 않고 던집니다(travelApi.keywordSelection).
+    const keyword_selection = keywordSelection(
+      chosenIds,
+      (id) => optionIndex.get(id)?.category,
+      groups,
     );
+    const chosen = keyword_selection.find(
+      (selection) => selection.category === CARD_CATEGORY,
+    )?.values as Activity[] | undefined;
     return {
       dates: [days[index].id],
       region: "강릉",
-      place_role: anyRole ? "any" : "visit",
-      preferred_tags,
-      activity: chosen[0] ?? "relax",
-      keyword_selection: [
-        ...(chosen.length && !anyRole
-          ? [{ category: "activity", values: chosen }]
-          : []),
-        ...(preferred_tags.includes("파도 적은 곳")
-          ? [{ category: "weather", values: ["small_waves"] }]
-          : []),
-      ],
+      place_role: "visit",
+      // 저장된 취향과 화면 표기가 같은 이름을 쓰도록 라벨로 싣습니다. 조건은
+      // keyword_selection 이 전합니다(서버가 옵션의 tag 를 스스로 붙입니다).
+      preferred_tags: chosenIds.map(labelOf),
+      activity: chosen?.[0] ?? "relax",
+      keyword_selection,
       transport: "driving",
       day_trip: true,
     };
   };
-  const { bubbles, draft, setDraft, publish, send, keepTurn, requestRoute, reset } =
+  const { bubbles, draft, setDraft, publish, send, requestRoute, reset } =
     useTravelConcierge({
-      opener: CHAT_TURNS[0].question,
+      opener: OPENER,
       baseRequest: () => requestFor(dayIndex),
       action,
     });
@@ -1328,17 +1336,18 @@ function RecommendScreen() {
     });
   const advanceCard = (like: boolean) =>
     void action.run(async (signal) => {
-      const card = SWIPE_CARDS[cardIndex];
+      const card = cards[cardIndex];
+      if (!card) return;
       await travelJson(
         import.meta.env.BASE_URL,
         "travel/signals",
         "POST",
-        { kind: "card", action: like ? "like" : "skip", tags: [card.name] },
+        { kind: "card", action: like ? "like" : "skip", tags: [card.label] },
         signal,
       );
       if (signal.aborted) return;
-      if (like) setLiked((current) => [...current, card.name]);
-      if (cardIndex + 1 >= SWIPE_CARDS.length) setTasteStep(3);
+      if (like) setLiked((current) => [...current, card.id]);
+      if (cardIndex + 1 >= cards.length) setTasteStep(3);
       else setCardIndex(cardIndex + 1);
     });
   const save = () =>
@@ -1428,14 +1437,9 @@ function RecommendScreen() {
       <fieldset className="rc-fieldset" disabled={action.busy}>
           {step === "entry" && (
             <EntryStep
-              tags={selectedTags}
-              toggleTag={(tag) =>
-                setTags(
-                  selectedTags.includes(tag)
-                    ? selectedTags.filter((value) => value !== tag)
-                    : [...selectedTags, tag],
-                )
-              }
+              shortcuts={cards.slice(0, 3)}
+              picked={picked}
+              togglePick={togglePick}
               onChat={() => setStep("chat")}
               onTags={() => {
                 setTasteStep(1);
@@ -1447,14 +1451,12 @@ function RecommendScreen() {
             <TasteStep
               tasteStep={tasteStep}
               setTasteStep={setTasteStep}
-              tags={selectedTags}
-              toggleTag={(tag) =>
-                setTags(
-                  selectedTags.includes(tag)
-                    ? selectedTags.filter((value) => value !== tag)
-                    : [...selectedTags, tag],
-                )
-              }
+              catalogue={keywordOptions}
+              groups={groups}
+              cards={cards}
+              picked={picked}
+              labelOf={labelOf}
+              togglePick={togglePick}
               cardIndex={cardIndex}
               liked={liked}
               onLike={() => advanceCard(true)}
@@ -1470,7 +1472,6 @@ function RecommendScreen() {
               setDraft={setDraft}
               busy={action.busy}
               onSend={send}
-              onKeepTurn={keepTurn}
               onRoute={requestRoute}
               onReset={reset}
               onBack={goEntry}
