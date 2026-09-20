@@ -98,7 +98,9 @@ test('a missing measurement reads as unjudged, never as bad conditions', () => {
 });
 
 test('every tide sentence carries the disclaimer, in both directions', () => {
+  const rest = { activity: 'relax', score: 71, status: 'evaluated' };
   const ahead = tideLine(recommendation({
+    choice: rest,
     tide: tide(),
     reasons: [reason('tide_phase_product_rule', { activity: 'swim', minutes: 40, threshold: 60 })],
   }));
@@ -106,11 +108,24 @@ test('every tide sentence carries the disclaimer, in both directions', () => {
   assert.ok(ahead.text.endsWith(TIDE_DISCLAIMER));
 
   const passed = tideLine(recommendation({
+    choice: rest,
     tide: tide({ phase: 'near_low', minutes_since_low: 20 }),
     reasons: [reason('tide_phase_product_rule', { activity: 'swim', minutes: -20, threshold: 60 })],
   }));
   assert.match(passed.text, /^지금은 간조 지난 지 20분 — /);
   assert.ok(passed.text.endsWith(TIDE_DISCLAIMER));
+
+  // 물때로 미뤘는데도 바다가 그대로 뽑히면(대신 올릴 활동이 없는 날) 「바다
+  // 대신」이라고 말하지 않습니다. 바로 위에서 수영을 권해 놓고 아래에서
+  // 말리는 문장이 되기 때문입니다.
+  const stillSea = tideLine(recommendation({
+    choice: { activity: 'swim', score: 93.8, status: 'evaluated' },
+    tide: tide(),
+    reasons: [reason('tide_phase_product_rule', { activity: 'swim', minutes: 40, threshold: 60 })],
+  }));
+  assert.match(stillSea.text, /^지금은 만조 40분 전이에요\. 물때를 보고 시간을 고르세요\./);
+  assert.ok(!stillSea.text.includes('바다 대신'));
+  assert.ok(stillSea.text.endsWith(TIDE_DISCLAIMER));
 
   const rising = tideLine(recommendation({ tide: tide({ phase: 'rising' }) }));
   assert.match(rising.text, /^물이 드는 중이에요\. /);

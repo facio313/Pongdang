@@ -143,9 +143,14 @@ const METRIC_NAMES: Record<string, string> = {
   wind_speed: "풍속",
 };
 
+/** 바다에 들어가는 활동. 물때 문장이 「바다 대신」이라고 말해도 되는지를
+ *  가릅니다(백엔드 recommendation.SEA_ACTIVITIES 와 같은 둘). */
+const SEA: Activity[] = ["swim", "surf"];
+
 /** 지금 물때. 극값 전후면 그 사실과 대안을, 아니면 오르내림만 말합니다. */
 export function tideLine(rec?: Recommendation): ReasonLine | null {
   const tide = rec?.tide;
+  const choice = rec?.choice;
   if (!tide || tide.status !== "available") return null;
   const applied = find(rec, "tide_phase_product_rule");
   if (applied && applied.minutes !== null) {
@@ -157,9 +162,17 @@ export function tideLine(rec?: Recommendation): ReasonLine | null {
       applied.minutes >= 0
         ? `${applied.minutes}분 전`
         : `지난 지 ${-applied.minutes}분`;
+    // 물때로 바다를 미뤘어도 대신 올릴 활동이 없으면 서버는 그대로 바다를
+    // 고릅니다(강등은 제외가 아닙니다). 그때 「바다 대신」이라고 쓰면 바로
+    // 위에서 수영을 권해 놓고 아래에서 말리는 꼴이 됩니다. 고른 것이 무엇인지
+    // 보고 문장을 가릅니다.
+    const stillSea =
+      choice !== null && choice !== undefined && SEA.includes(choice.activity);
     return {
       code: applied.code,
-      text: `지금은 ${kind} ${when} — 바다 대신 가까운 곳을 권해요. ${TIDE_DISCLAIMER}`,
+      text: stillSea
+        ? `지금은 ${kind} ${when}이에요. 물때를 보고 시간을 고르세요. ${TIDE_DISCLAIMER}`
+        : `지금은 ${kind} ${when} — 바다 대신 가까운 곳을 권해요. ${TIDE_DISCLAIMER}`,
     };
   }
   if (tide.phase === "rising" || tide.phase === "falling")
