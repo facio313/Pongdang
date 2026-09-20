@@ -32,13 +32,45 @@
   font-size: 30px;
   color: var(--dk-onc-2);
 }
+/* ── 19a 검색 줄 ───────────────────────────────────────── */
+
+/* 히어로(코발트) 안에 있던 검색을 흰 면으로 내렸습니다. 목록을 거르는
+   컨트롤이므로 목록 바로 위에 섭니다. */
+.pd-desktop .sk-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px var(--dk-pad);
+  border-bottom: 1px solid var(--dk-rule);
+}
+.pd-desktop .sk-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+  font-size: 12.5px;
+  color: var(--dk-ink-2);
+}
+.pd-desktop .sk-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--dk-ink);
+  font: inherit;
+}
 /* 정렬 버튼 자리였습니다. 고를 것이 하나뿐이라 순서를 말로 적습니다. */
-.pd-desktop .sk-hero-order {
-  display: block;
-  margin-top: 18px;
+.pd-desktop .sk-search-order {
+  flex: none;
   font-weight: 700;
   font-size: 12.5px;
-  color: var(--dk-onc-2);
+  color: var(--dk-ink-2);
 }
 
 /* ── 19a 카테고리 카운트 ───────────────────────────────── */

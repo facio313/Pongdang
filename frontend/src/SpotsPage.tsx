@@ -56,13 +56,9 @@ function SourceChips({ live }: { live: boolean }) {
 function ListHero({
   total,
   loading,
-  search,
-  onSearch,
 }: {
   total: number;
   loading: boolean;
-  search: string;
-  onSearch: (value: string) => void;
 }) {
   return (
     <header className="pd-hero">
@@ -99,23 +95,37 @@ function ListHero({
             height={66}
           />
         </div>
-        <label className="sp-hero-search">
-          <Icon name="search" size={15} />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            maxLength={100}
-            placeholder="장소명 · 지역 검색"
-            aria-label="장소명·지역 검색"
-          />
-        </label>
-        {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는 채
-            비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는 고를
-            것이 없습니다. 순서를 말로 적습니다(spotsRoute.sortPlaces). */}
-        <span className="sp-hero-order">이름순</span>
       </div>
     </header>
+  );
+}
+
+/** 검색은 히어로(코발트 면)가 아니라 그 아래, 걸러낼 목록 바로 위에 둡니다. */
+function ListSearch({
+  search,
+  onSearch,
+}: {
+  search: string;
+  onSearch: (value: string) => void;
+}) {
+  return (
+    <div className="sp-searchbar">
+      <label className="sp-search">
+        <Icon name="search" size={15} />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+          maxLength={100}
+          placeholder="장소명 · 지역 검색"
+          aria-label="장소명·지역 검색"
+        />
+      </label>
+      {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는 채
+          비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는 고를
+          것이 없습니다. 순서를 말로 적습니다(spotsRoute.sortPlaces). */}
+      <span className="sp-search-order">이름순</span>
+    </div>
   );
 }
 
@@ -149,15 +159,9 @@ function SpotsList() {
     <article className="spots-page">
       <AppShell
         tab="spots"
-        hero={
-          <ListHero
-            total={places.total}
-            loading={places.loading}
-            search={search}
-            onSearch={setSearch}
-          />
-        }
+        hero={<ListHero total={places.total} loading={places.loading} />}
       >
+        <ListSearch search={search} onSearch={setSearch} />
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
           {rows.map((place) => (

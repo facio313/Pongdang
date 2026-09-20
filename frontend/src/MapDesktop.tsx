@@ -134,10 +134,16 @@ export function MapDesktop() {
             <div className="pd-dk-kick mk-hero-kick">지도</div>
             <h1 className="mk-hero-title">어디로 갈지 지도에서 고르기</h1>
           </div>
-          {/* 예전에는 여기 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가 있었고
-              눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은 두지
-              않습니다. 대신 실제로 목록을 바꾸는 검색을 둡니다. */}
-          <label className="mk-search mk-hero-search">
+        </div>
+      </DesktopHero>
+
+      <div className="mk-stage">
+        <div className="mk-side">
+          {/* 예전에는 히어로에 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가
+              있었고 눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은
+              두지 않습니다. 대신 실제로 목록을 바꾸는 검색을, 히어로가 아니라
+              그 아래 -- 걸러낼 지점 목록 바로 위에 둡니다. */}
+          <label className="mk-search">
             <Icon name="search" size={17} />
             <input
               type="search"
@@ -148,11 +154,6 @@ export function MapDesktop() {
               aria-label="장소명·지역 검색"
             />
           </label>
-        </div>
-      </DesktopHero>
-
-      <div className="mk-stage">
-        <div className="mk-side">
           <div className="pd-dk-kick mk-side-kick">
             지점 {pinned.length}곳 · {activities[ACTIVITY]} 점수
           </div>
