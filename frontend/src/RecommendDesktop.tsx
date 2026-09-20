@@ -298,9 +298,12 @@ export function RecommendDesktop() {
           ))
         )}
         <div className="rd-row-foot">
+          {/* 이 화면이 아직 하지 못하는 일은 적어 둡니다. 없는 기능을 말없이
+              비워 두면 「골랐는데 반영되지 않았다」로 읽힙니다. */}
           <span className="rd-note">
             고른 조건은 이번 요청에만 적용합니다. 취향 저장은 모바일 추천 화면의
-            취향 확정에서 합니다.
+            취향 확정에서 합니다. 날짜는 오늘로 고정이며, 다른 날짜와 저장한
+            코스의 재알림도 모바일 추천 화면에 있습니다.
           </span>
           <button
             type="button"
