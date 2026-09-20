@@ -53,3 +53,20 @@ test("셸 밖 화면에도 제품 화면으로 돌아갈 길이 있다", async (
     ).toBeVisible();
   }
 });
+
+test("「동작 줄이기」를 켜면 홈 히어로의 물결이 멈춘다", async ({ page }) => {
+  // 새 모션(물결 2겹 · 배경 숨쉬기)은 pongdang.css 의 prefers-reduced-motion
+  // 규칙에 걸려야 합니다. 그 규칙은 .pd-app 안쪽만 덮으므로, 밖에 붙이면
+  // 조용히 빠져나갑니다.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto("#home");
+  const stopped = (selector: string, pseudo?: string) =>
+    page.locator(selector).evaluate(
+      (node, arg) => getComputedStyle(node, arg).animationName,
+      pseudo ?? null,
+    );
+  expect(await stopped(".hm-hero-anim .hm-wave-back")).toBe("none");
+  expect(await stopped(".hm-hero-anim .hm-wave-front")).toBe("none");
+  expect(await stopped(".home-page .pd-hero", "::before")).toBe("none");
+});

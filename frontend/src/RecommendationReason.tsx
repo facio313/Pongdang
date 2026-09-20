@@ -22,13 +22,20 @@ import { spotLink } from "./spotsRoute";
  *
  *  서버가 사유를 말해 주지 않은 줄은 비워 둡니다. 문장을 지어내면 근거가
  *  아니라 넘겨짚기가 됩니다. 점수 산출 근거와 출처 · 면책 전문은 없어지지 않고
- *  바로 아래 `EvidenceNote` 의 「근거 보기」 안에 그대로 남습니다. */
+ *  바로 아래 `EvidenceNote` 의 「근거 보기」 안에 그대로 남습니다.
+ *
+ *  **`variant` 는 네 줄을 줄이는 손잡이가 아니라 자리를 나누는 손잡이입니다.**
+ *  홈 히어로는 결론(무엇을 · 몇 점)을 크게 말하는 면이라 `"lead"` 로 1번 한
+ *  줄만 얹고, 2 · 3 · 4 번은 히어로 **바로 아래** 「오늘 이 활동인 이유」에서
+ *  `"full"` 로 한 글자도 빠짐없이 이어집니다. 한 곳에서 사라지는 문장은
+ *  없습니다. */
 export function RecommendationReason({
   data,
   error,
   loading = false,
   glass = false,
   className,
+  variant = "full",
 }: {
   data?: Recommendation;
   /** 추천 조회 실패. 비워 두면 화면이 「오늘은 할 게 없다」로 읽히므로
@@ -38,13 +45,26 @@ export function RecommendationReason({
   /** 코발트 히어로 위. 글자색이 어두운 배경용으로 바뀝니다. */
   glass?: boolean;
   className?: string;
+  /** `"lead"` 는 1번(왜 이 활동인가) 한 줄만, `"detail"` 은 그 뒤 2 · 3 · 4 번만,
+   *  `"full"` 은 넷 전부입니다. 홈은 lead + detail 로 층을 나눠 같은 줄이 두 번
+   *  나오지 않게 하고, 다른 화면은 기본값 full 그대로입니다. */
+  variant?: "lead" | "detail" | "full";
 }) {
-  const choice = choiceReason(data);
-  const rejection = rejectionReason(data);
-  const tide = tideLine(data);
-  const groups = alternativeGroups(data);
+  const lead = variant === "lead";
+  const detail = variant === "detail";
+  const choice = detail ? undefined : choiceReason(data);
+  const rejection = lead ? undefined : rejectionReason(data);
+  const tide = lead ? undefined : tideLine(data);
+  const groups = lead ? [] : alternativeGroups(data);
   const root =
-    "pd-why" + (glass ? " is-glass" : "") + (className ? ` ${className}` : "");
+    "pd-why" +
+    (glass ? " is-glass" : "") +
+    (lead ? " is-lead" : "") +
+    (className ? ` ${className}` : "");
+  // 실패와 조회 중은 결론이 있는 자리(lead · full)에서 한 번만 말합니다.
+  // detail 은 그 아래 이어지는 층이라, 같은 문장을 두 번 적으면 두 번 실패한
+  // 것처럼 읽힙니다.
+  if (detail && (error || loading)) return null;
   if (error)
     return (
       <div className={root}>

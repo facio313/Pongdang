@@ -37,9 +37,13 @@ test("desktop home renders the same server-chosen activity and score as mobile",
   await expect(page.locator(".hd-hero-score .pd-grade-chip")).toContainText(`${bestLabel} 적합도`);
   // 척도 위 상대 위치. 색만으로 전하지 않으므로 점수와 등급이 이름에 함께 있습니다.
   await expect(page.locator(".hd-hero-lead .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
-  if (recommendation.reasons.length)
-    await expect(page.locator(".hd-hero-lead .pd-why-line").first()).toBeVisible();
-  await expect(page.locator(".hd-hero-note")).toContainText("근거 확보");
+  if (recommendation.reasons.length) {
+    // 히어로에는 「왜 이 활동인가」 한 줄만. 나머지 근거는 바로 아래
+    // 「오늘 이 활동인 이유」 행으로 내려갔습니다(모바일 홈과 같은 층 나눔).
+    await expect(page.locator(".hd-hero-lead .pd-why-line")).toHaveCount(1);
+    await expect(page.locator(".hd-hero-lead .pd-why-line.is-choice")).toBeVisible();
+  }
+  await expect(page.locator(".hd-why-note")).toContainText("근거 확보");
 
   // 히어로 관측 칸은 활동과 무관한 「지금 날씨와 바다」이므로 수영 응답을
   // 기준으로 씁니다. 갯벌이 뽑힌 날에도 수온이 «–» 가 되면 안 됩니다.

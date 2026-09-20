@@ -36,7 +36,10 @@
 
   /* 코발트 레이어(히어로). 모바일 --pd-cobalt 와 각도 · 정지점이 다릅니다.
      디자인 원본이 다른 값이므로 통합하지 않습니다. */
-  --dk-cobalt: linear-gradient(170deg, #1b5fc0 0%, #2a86d6 62%, #5eb1e8 100%);
+  --dk-cobalt:
+    radial-gradient(90% 120% at 12% 0%, rgba(150, 220, 255, 0.55) 0%, rgba(150, 220, 255, 0) 60%),
+    radial-gradient(80% 110% at 100% 100%, rgba(12, 44, 110, 0.5) 0%, rgba(12, 44, 110, 0) 64%),
+    linear-gradient(170deg, #1b5fc0 0%, #2a86d6 62%, #5eb1e8 100%);
   --dk-glass: rgba(255, 255, 255, 0.14);
   --dk-glass-line: rgba(255, 255, 255, 0.4);
   --dk-onc: #eef5ff;

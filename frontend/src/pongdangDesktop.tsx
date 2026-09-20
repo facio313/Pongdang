@@ -3,6 +3,8 @@ import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon } from "./pongdangUi";
+// 물결 굴곡은 모바일 홈 히어로와 공유합니다(waveShape.ts 주석).
+import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
 
 // 데스크탑(≥1080px) 화면 7개가 공유하는 레이아웃 프리미티브입니다. 핸드오프
@@ -18,16 +20,6 @@ import "./pongdangDesktop.css";
 // 값을 모바일 레이아웃과 나눠 쓰기 위해서입니다.
 //
 // 카드 · 그림자 · 흰 테두리는 쓰지 않습니다. 구분은 괘선과 여백으로만 만듭니다.
-
-/** 물결 경계. 코발트 히어로가 흰 본문으로 넘어가는 자리에 깔립니다. */
-const WAVE_PATH =
-  "M0 34 C 160 8, 320 8, 480 30 S 800 62, 960 34 S 1280 6, 1440 26 L1440 58 L0 58Z";
-
-/** 애니메이션 파도용. 위 경계와 같은 굴곡을 2880 폭으로 이어 붙여, 가로로
- *  흘렸을 때 이음매가 보이지 않게 합니다. */
-const WAVE_LOOP_PATH =
-  "M0 54 C 160 28, 320 28, 480 50 S 800 82, 960 54 S 1280 26, 1440 46 " +
-  "S 1760 28, 1920 50 S 2240 82, 2400 54 S 2720 26, 2880 46 L2880 96 L0 96Z";
 
 export function DesktopNav({
   active,

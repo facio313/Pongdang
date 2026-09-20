@@ -51,7 +51,7 @@ test('the collapsed evidence line keeps coverage and never turns a missing score
   const data = { mode: 'observation', at: '2026-09-19T13:57:00Z', condition_score: index };
   const line = evidenceSummary(data);
   assert.match(line, /참고 점수 76.3/);
-  // 브라우저 테스트가 .hm-hero-note 안에서 이 문자열을 찾습니다.
+  // 브라우저 테스트가 .hm-why-note 안에서 이 문자열을 찾습니다.
   assert.match(line, /근거 확보 3\/4/);
   assert.match(line, /관측 22:57 KST/);
   // 접힌 줄이 짧아졌다고 없는 값이 0 이나 판정으로 바뀌지 않습니다.

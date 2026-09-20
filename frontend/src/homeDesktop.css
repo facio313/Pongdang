@@ -47,49 +47,26 @@
   font-weight: 700;
   color: var(--dk-onc);
 }
-.pd-desktop .hd-hero-note {
+/* ── 오늘 이 활동인 이유 (히어로에서 내려온 근거 행) ──────
+   코발트 위가 아니라 흰 본문 위입니다. 글래스 색 대신 본문 색을 쓰고,
+   구조(줄바꿈·간격)는 공용 .pd-evidence · .pd-explainer 것을 그대로 씁니다. */
+.pd-desktop .hd-why {
   max-width: 980px;
-  margin: 0 0 22px;
 }
-/* 데스크탑은 --dk-* 팔레트를 쓰므로 pongdang.css 의 is-glass 색을 여기서
-   덮습니다. 구조(줄바꿈·간격)는 공용 .pd-evidence 것을 그대로 씁니다. */
-.pd-desktop .hd-hero-note .pd-evidence-line,
-.pd-desktop .hd-hero-note .pd-explainer-body {
+.pd-desktop .hd-why-note {
+  margin: 14px 0 0;
+}
+.pd-desktop .hd-why-note .pd-evidence-line,
+.pd-desktop .hd-why-note .pd-explainer-body,
+.pd-desktop .hd-why-quality {
   font-size: var(--dk-fs-cap);
-  color: var(--dk-onc-2);
+  color: var(--dk-ink-2);
 }
-.pd-desktop .hd-hero-note .pd-evidence-control {
-  color: var(--dk-onc);
+.pd-desktop .hd-why-quality {
+  margin: 14px 0 0;
 }
-.pd-desktop .hd-hero-note .pd-explainer > summary {
-  font-size: var(--dk-fs-cap);
-  color: var(--dk-sky);
-}
-/* 수질 등급의 근거와 한계. 코발트 히어로 위이므로 근거 줄과 같은 색을 씁니다.
-   모바일 홈의 같은 블록(WaterQualityDetails)과 한 컴포넌트입니다. */
-.pd-desktop .hd-hero-quality {
-  max-width: 980px;
-  margin: 0 0 22px;
-  font-size: var(--dk-fs-cap);
-  color: var(--dk-onc-2);
-}
-.pd-desktop .hd-hero-quality > summary,
-.pd-desktop .hd-hero-quality details > summary {
-  color: var(--dk-sky);
-}
-.pd-desktop .hd-hero-quality a {
-  color: var(--dk-sky);
-}
-.pd-desktop .hd-hero-actions {
-  padding-bottom: 26px;
-}
-.pd-desktop .hd-hero-actions .pd-explainer > summary {
-  color: var(--dk-sky);
-}
-.pd-desktop .hd-hero-actions .pd-explainer-body,
-.pd-desktop .hd-hero-actions .pd-explainer-scale td {
-  color: var(--dk-onc-2);
-  max-width: 980px;
+.pd-desktop .hd-why-actions {
+  margin-top: 14px;
 }
 .pd-desktop .hd-hero-buttons {
   display: flex;
@@ -492,6 +469,15 @@
   position: relative;
   aspect-ratio: 16 / 9;
   border-radius: 0;
+  /* 마스코트와 카메라 이름을 세로로 쌓습니다(.pd-dk-slot 의 place-items 는
+     그대로 쓰고 간격만 더합니다). */
+  align-content: center;
+  gap: 6px;
+}
+/* 영상 썸네일 대신 놓인 표지입니다. 실제 화면이 아니라는 것이 읽히도록
+   가라앉혀 둡니다. */
+.pd-desktop .hd-cam-mascot {
+  opacity: 0.72;
 }
 .pd-desktop .hd-cam-live {
   position: absolute;

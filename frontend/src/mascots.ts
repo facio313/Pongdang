@@ -20,6 +20,7 @@ export type MascotRole =
   | "firstSwim"
   | "map"
   | "course"
+  | "livecam"
   | "empty";
 
 const MASCOT_FILE: Record<MascotRole, string> = {
@@ -37,6 +38,9 @@ const MASCOT_FILE: Record<MascotRole, string> = {
   firstSwim: "lifevest.png",
   map: "camera.png",
   course: "towel.png",
+  // 라이브캠 「물멍」. 지도의 camera.png 를 빌려 쓰지 않습니다 -- 한 포즈가 두
+  // 개념의 표지가 되면 규칙이 무너집니다.
+  livecam: "floatback.png",
   empty: "lying.png",
 };
 

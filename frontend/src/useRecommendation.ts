@@ -25,7 +25,11 @@ export function shownConditions(data?: Recommendation) {
  *  조회 중과 「고를 것이 없음」은 다른 사실입니다. `data` 가 와도 `choice` 는
  *  null 일 수 있고, 그때 화면은 «–» 로 두어야 합니다. */
 export function useRecommendation(id?: number, at?: string, enabled = true) {
-  const [revision, setRevision] = useState(() => Date.now());
+  // 0 으로 시작합니다. 마운트 시각을 넣으면 그것이 조회 키가 되어, 폭이 바뀌어
+  // 레이아웃이 갈릴 때마다 같은 추천을 처음부터 다시 물었습니다(useResource 의
+  // 조회 기억 주석). 아래 만료 비교는 「마지막 재조회보다 먼저 만료됐는가」라
+  // 0 에서는 자연히 거짓이고, 타이머가 넣는 Date.now() 의 뜻도 그대로입니다.
+  const [revision, setRevision] = useState(0);
   // enabled: false 는 「이 조회를 하지 않는다」입니다. 장소 미정(id 없음)과
   // 달라 「조회 중」으로 읽히지 않습니다(useResource 의 ResourcePath 주석).
   const state = useResource<Recommendation>(

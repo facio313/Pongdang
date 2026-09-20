@@ -24,7 +24,14 @@
   --pd-alert-ink: #8d1616;
 
   /* 글래스 레이어 (히어로) */
-  --pd-cobalt: linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
+  /* 히어로 한 면에만 깔리는 다층 그라디언트입니다. 바닥의 linear 는 예전
+     값 그대로이고(심해 → 코발트 → 해수면), 그 위에 좌상단 햇빛과 우하단
+     깊은 물 두 겹을 얹어 면이 평평하게 읽히지 않게 합니다. 글자는 모두
+     --pd-on-cobalt 계열이라 가장 밝은 지점에서도 대비가 유지됩니다. */
+  --pd-cobalt:
+    radial-gradient(120% 90% at 8% 0%, rgba(126, 206, 255, 0.5) 0%, rgba(126, 206, 255, 0) 58%),
+    radial-gradient(100% 80% at 100% 100%, rgba(8, 26, 72, 0.55) 0%, rgba(8, 26, 72, 0) 62%),
+    linear-gradient(160deg, #0f2f7a 0%, #1b5fc0 58%, #2a86d6 100%);
   --pd-glass: rgba(255, 255, 255, 0.14);
   --pd-glass-line: rgba(255, 255, 255, 0.4);
   --pd-on-cobalt: #eef5ff;
@@ -717,7 +724,7 @@ main:has(.pd-app) {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  /* 바깥 여백은 이 줄을 놓는 화면(.hm-hero-note 등)이 정합니다. */
+  /* 바깥 여백은 이 줄을 놓는 화면(.hm-why-note 등)이 정합니다. */
   margin: 0;
   font-size: var(--pd-fs-cap);
   line-height: 1.6;

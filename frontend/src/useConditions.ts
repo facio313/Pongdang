@@ -14,7 +14,10 @@ export function useConditions(
   at?: string,
   enabled = true,
 ) {
-  const [revision, setRevision] = useState(() => Date.now());
+  // 0 으로 시작합니다 -- 마운트 시각을 넣으면 그것이 조회 키가 되어, 폭이
+  // 바뀌어 레이아웃이 갈릴 때마다 같은 조건을 다시 물었습니다(useRecommendation
+  // 과 같은 이유). 아래 만료 비교의 뜻은 그대로입니다.
+  const [revision, setRevision] = useState(0);
   const primary = useResource<Conditions>(
     enabled ? conditionPath(id, activity, at) : null,
     revision,

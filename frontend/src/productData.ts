@@ -273,6 +273,21 @@ export function waterQualityDescription(data?: WaterQualityGrade) {
   return `${location} · ${kstDate(data.observed_at)} 검사${data.status === "historical" ? ` · ${data.age_days}일 전 과거 자료` : ""}. ${data.grade != null ? `${data.grade}등급 ${data.label ?? ""}` : "등급을 확인할 수 없습니다"}${data.wqi != null ? ` · WQI ${data.wqi}` : ""}. 해역의 생태 수질 등급이며 오늘 해변의 수질·입수 안전 판정은 아닙니다.`;
 }
 export type RowPage<T> = { rows: T[]; total: number; status?: string };
+
+/** 조회 경로에 들어가는 「지금」. **10분 단위로 끊습니다.**
+ *
+ *  이 값은 periodPath 의 from · reference_at 이 되어 **조회 경로의 일부**가
+ *  됩니다. 컴포넌트마다 `new Date()` 를 잡으면 같은 화면의 두 레이아웃이 서로
+ *  다른 경로를 물어, 창 폭을 넘나들었다는 이유만으로 같은 자료를 다시
+ *  받았습니다(useResource 의 조회 기억 주석). 끊어 두면 두 레이아웃이 같은
+ *  경로를 말하고, 10분마다 자연히 갱신됩니다.
+ *
+ *  화면에 적는 시각에는 쓰지 않습니다 -- 「지금 06:07」을 06:00 으로 적으면
+ *  실제와 다른 사실이 됩니다. 그 자리는 그대로 `timeLabel(new Date())` 입니다. */
+export const SESSION_NOW_STEP = 600000;
+export const sessionNow = () =>
+  new Date(Math.floor(Date.now() / SESSION_NOW_STEP) * SESSION_NOW_STEP).toISOString();
+
 export const kstDate = (value: Date | string = new Date()) =>
   new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
