@@ -37,24 +37,13 @@
   flex: none;
   margin-bottom: -4px;
 }
-.spots-page .sp-sorts {
-  display: flex;
-  gap: 6px;
+/* 정렬 버튼 자리였습니다. 고를 것이 하나뿐이라 순서를 말로 적습니다. */
+.spots-page .sp-hero-order {
+  display: block;
   margin-top: 12px;
-}
-.spots-page .sp-sort {
   font-size: var(--pd-fs-cap);
   font-weight: 700;
-  color: var(--pd-on-cobalt);
-  background: var(--pd-glass);
-  border: 1px solid var(--pd-glass-line);
-  padding: 7px 13px;
-  border-radius: var(--pd-r-pill);
-}
-.spots-page .sp-sort.is-on {
-  color: #0f2f7a;
-  background: var(--pd-on-cobalt);
-  border-color: transparent;
+  color: var(--pd-on-cobalt-2);
 }
 
 .spots-page .sp-source {

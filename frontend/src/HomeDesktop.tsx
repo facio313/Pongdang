@@ -236,10 +236,15 @@ function HourBars({
 }: {
   id?: number;
   now: string;
-  activity: Activity;
+  /** 고른 활동. 없으면 시간대 막대를 그리지 않습니다 -- 무엇의 점수인지
+   *  말할 수 없는 숫자이기 때문입니다. */
+  activity?: Activity;
   conditions?: Conditions;
   loading?: boolean;
 }) {
+  // 활동이 없으면 조회하지 않습니다. 예전에는 수영으로 물러섰는데, 추천이
+  // 실패했거나 고를 것이 없는 날에도 수영 점수가 남아 「오늘 한눈에」가
+  // 무엇의 몇 점인지 말하지 않은 채 숫자를 보여 줬습니다.
   const hours = useHourlyScores(id, now, activity);
   const scored = hours.filter((hour) => hour.score !== null);
   // 막대 높이는 그날 안에서의 상대 위치입니다. 점수 기여도가 아닙니다.
@@ -394,7 +399,7 @@ export function HomeDesktop() {
         <HourBars
           id={place?.id}
           now={now}
-          activity={best?.activity ?? "swim"}
+          activity={best?.activity}
           conditions={conditions.data}
           loading={isInitialLoad(conditions)}
         />
@@ -503,11 +508,22 @@ export function HomeDesktop() {
               </div>
               {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면
                   점수를 깎은 항목으로 물러섭니다 -- 둘 다 없으면 이 칩이 근거
-                  없이 서 있게 되므로 마지막 문장은 남겨 둡니다. */}
-              <p className="hd-ai-basis">
+                  없이 서 있게 되므로 마지막 문장은 남겨 둡니다.
+
+                  조회 실패는 그 물러서기를 타지 않습니다. best 가 없어 곧장
+                  scoreReason(undefined) 로 떨어지면 「근거가 부족해 점수를
+                  내지 못했어요」가 되는데, 그건 응답을 보고 할 수 있는 말이지
+                  서버에 닿지 못한 날 할 말이 아닙니다. 히어로가 이미 갈라
+                  놓은 「실패 ≠ 고를 것 없음」을 여기서도 지킵니다. */}
+              <p
+                className="hd-ai-basis"
+                role={recommendation.error ? "alert" : undefined}
+              >
                 근거 —{" "}
-                {choiceReason(recommendation.data)?.text ??
-                  scoreReason(best?.data).text}
+                {recommendation.error
+                  ? `추천 근거를 불러오지 못했어요. ${recommendation.error}`
+                  : (choiceReason(recommendation.data)?.text ??
+                    scoreReason(best?.data).text)}
               </p>
             </div>
           </div>

@@ -27,7 +27,7 @@ import { dateLabel, type Place } from "./productData";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
-import { SPOT_SORTS, sortPlaces, spotLink, type SpotSort } from "./spotsRoute";
+import { sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsDesktop.css";
 
 // 데스크탑 명소(핸드오프 19a 목록 · 19b 상세)입니다. 모바일과 같은 라우트를
@@ -85,13 +85,9 @@ function ListRow({ place }: { place: Place }) {
 }
 
 function SpotsListDesktop() {
-  const [sort, setSort] = useState<SpotSort>("name");
   const [search, setSearch] = useState("");
   const places = useWaterPlaces(search);
-  const rows = useMemo(
-    () => sortPlaces(places.rows ?? [], sort),
-    [places.rows, sort],
-  );
+  const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
   const kinds = useMemo(() => {
     const counts = new Map<string, number>();
     for (const place of places.rows ?? [])
@@ -132,19 +128,10 @@ function SpotsListDesktop() {
                 aria-label="장소명·지역 검색"
               />
             </label>
-            <div className="sk-sorts" role="group" aria-label="정렬">
-              {SPOT_SORTS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={"sk-sort" + (item.key === sort ? " is-on" : "")}
-                  aria-pressed={item.key === sort}
-                  onClick={() => setSort(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는
+                채 비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는
+                고를 것이 없습니다(spotsRoute.sortPlaces). */}
+            <span className="sk-hero-order">이름순</span>
           </div>
           <img
             className="sk-hero-mascot"
@@ -246,7 +233,6 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
     (catalog.rows ?? []).filter(
       (item) => item.id !== spotId && item.type === place?.type,
     ),
-    "name",
   ).slice(0, 5);
 
   return (

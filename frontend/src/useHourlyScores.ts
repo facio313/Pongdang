@@ -28,15 +28,20 @@ export interface HourlyScore {
 export function useHourlyScores(
   id: number | undefined,
   now: string,
-  activity: Activity = "swim",
+  /** 없으면 **조회하지 않습니다.** 활동을 고르지 못한 날 수영으로 물러서면
+   *  무엇의 몇 점인지 말하지 않은 채 숫자가 남습니다. 장소를 아직 모르는
+   *  것과 달라서 「조회 중」이 아니라 「해당 없음」입니다
+   *  (useResource 의 ResourcePath 주석 참고). */
+  activity?: Activity,
 ): HourlyScore[] {
   const day = kstDate(now);
-  const at = (hour: string) => `${day}T${hour}:00:00+09:00`;
+  const path = (hour: string) =>
+    activity ? conditionPath(id, activity, `${day}T${hour}:00:00+09:00`) : null;
   const results = [
-    useResource<Conditions>(conditionPath(id, activity, at(HOURS[0]))),
-    useResource<Conditions>(conditionPath(id, activity, at(HOURS[1]))),
-    useResource<Conditions>(conditionPath(id, activity, at(HOURS[2]))),
-    useResource<Conditions>(conditionPath(id, activity, at(HOURS[3]))),
+    useResource<Conditions>(path(HOURS[0])),
+    useResource<Conditions>(path(HOURS[1])),
+    useResource<Conditions>(path(HOURS[2])),
+    useResource<Conditions>(path(HOURS[3])),
   ];
   return HOURS.map((hour, index) => ({
     hour,

@@ -82,3 +82,35 @@ test("desktop home says a score is missing rather than showing zero", async ({ p
   // 막대 없이 «–» 네 칸. 높이 0 인 막대로 그리지 않습니다.
   await expect(page.locator(".hd-hour-bar")).toHaveCount(0);
 });
+
+test("추천 조회가 실패하면 데스크탑 홈은 실패라고 적고 수영 점수를 남기지 않는다", async ({
+  page,
+}) => {
+  // 「고를 것이 없다」와 「조회하지 못했다」는 다른 사실입니다. 히어로는 이미
+  // 둘을 갈라 놓았는데 그 아래 두 자리가 비켜 가 있었습니다 -- AI 칩은 실패를
+  // 「근거가 부족해 점수를 내지 못했어요」로 바꿔 적었고, 시간대 막대는 고른
+  // 활동이 없는데도 수영으로 물러서서 무엇의 몇 점인지 말하지 않은 채 숫자를
+  // 보여 줬습니다.
+  await page.route("**/api/data/water-index/recommendation?**", (route) =>
+    route.fulfill({ status: 503, json: { detail: "unavailable" } }),
+  );
+  const hourly: string[] = [];
+  await page.route("**/api/data/water-index/conditions?**", (route) => {
+    hourly.push(route.request().url());
+    return route.continue();
+  });
+  await page.goto("");
+
+  await expect(page.locator(".hd-hero-title")).toContainText("불러오지 못했습니다");
+  await expect(page.locator(".hd-hero-score-num")).toHaveText("–");
+  // 근거 줄은 실패를 실패라고 적고, 읽어 주는 순서에서도 알림으로 올라옵니다.
+  const basis = page.locator(".hd-ai-basis");
+  await expect(basis).toContainText("추천 근거를 불러오지 못했어요");
+  await expect(basis).not.toContainText("근거가 부족해");
+  await expect(basis).toHaveAttribute("role", "alert");
+  // 시간대 칸은 남되 막대는 없습니다. 조회 자체가 나가지 않습니다.
+  await expect(page.locator(".hd-hour")).toHaveCount(4);
+  await expect(page.locator(".hd-hour-bar")).toHaveCount(0);
+  await expect(page.locator(".hd-hour-score").first()).toHaveText("–");
+  expect(hourly.filter((url) => url.includes("mode=forecast"))).toEqual([]);
+});

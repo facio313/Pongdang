@@ -5,35 +5,21 @@ import type { Place } from "./productData";
 // 운영시간을 들고 있어 통째로 걷어냈습니다. 라우팅은 데이터와 무관하므로
 // 여기 남깁니다.
 
-export type SpotSort = "name" | "score";
-
-/** 「거리순」은 없습니다. 현재 위치에서 장소까지의 거리를 주는 API 가 없고,
- *  프론트에 좌표 거리 계산도 없습니다. 예전에는 예시 상수의 distanceKm 로
- *  정렬하는 시늉을 했습니다 -- 동작하지 않는 컨트롤은 두지 않습니다. */
-export const SPOT_SORTS: { key: SpotSort; label: string }[] = [
-  { key: "name", label: "이름순" },
-  { key: "score", label: "퐁당 점수순" },
-];
-
-/** 점수순에서 «–» 는 0 으로 취급하지 않고 뒤로 보냅니다 -- 값이 없는 것과
- *  낮은 것은 다릅니다. 점수는 고른 장소만 조회하므로, 목록 대부분은 점수가
- *  없어 이름순이 사실상 기본입니다. */
-export function sortPlaces(
-  rows: Place[],
-  sort: SpotSort,
-  scoreOf: (place: Place) => number | null = () => null,
-): Place[] {
-  const sorted = [...rows];
-  if (sort === "score")
-    return sorted.sort((a, b) => {
-      const left = scoreOf(a);
-      const right = scoreOf(b);
-      if (left === null && right === null) return 0;
-      if (left === null) return 1;
-      if (right === null) return -1;
-      return right - left;
-    });
-  return sorted.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+/** 목록은 이름순 하나입니다.
+ *
+ *  「거리순」은 현재 위치에서 장소까지의 거리를 주는 API 가 없고 프론트에 좌표
+ *  거리 계산도 없어 두지 않습니다. 예전에는 예시 상수의 distanceKm 로 정렬하는
+ *  시늉을 했습니다.
+ *
+ *  「퐁당 점수순」도 같은 이유로 걷어냈습니다. 점수는 고른 장소 하나만
+ *  조회하므로 목록의 점수를 모르고, 그래서 두 화면 모두 비교 함수에 언제나
+ *  null 을 주는 기본값을 넘기고 있었습니다 -- 눌러도 순서가 바뀌지 않는
+ *  버튼이었습니다. 목록 전체의 점수를 얻으려면 장소 수만큼 조회해야 하는데,
+ *  그건 이 목록이 할 일이 아닙니다.
+ *
+ *  동작하지 않는 컨트롤은 두지 않습니다. */
+export function sortPlaces(rows: Place[]): Place[] {
+  return [...rows].sort((a, b) => a.name.localeCompare(b.name, "ko"));
 }
 
 /** `#spots` 해시의 뷰와 선택 장소 id 를 읽습니다. featureRoutes.ts 의 readRoute

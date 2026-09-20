@@ -10,13 +10,7 @@ import { Icon, Skeleton, StateChip } from "./pongdangUi";
 import { conditionScore, timeLabel, type Place } from "./productData";
 import { useConditions } from "./useConditions";
 import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
-import {
-  SPOT_SORTS,
-  readSpotsRoute,
-  sortPlaces,
-  spotLink,
-  type SpotSort,
-} from "./spotsRoute";
+import { readSpotsRoute, sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsPage.css";
 
 // 명소 탭입니다. 핸드오프 모바일 20a(목록) · 20c(지도)를 그립니다. 상세(20b)는
@@ -59,15 +53,11 @@ function SourceChips({ live }: { live: boolean }) {
 }
 
 function ListHero({
-  sort,
-  onSort,
   total,
   loading,
   search,
   onSearch,
 }: {
-  sort: SpotSort;
-  onSort: (sort: SpotSort) => void;
   total: number;
   loading: boolean;
   search: string;
@@ -119,21 +109,10 @@ function ListHero({
             aria-label="장소명·지역 검색"
           />
         </label>
-        <div className="sp-sorts" role="group" aria-label="정렬">
-          {SPOT_SORTS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={
-                "sp-sort pd-tap" + (item.key === sort ? " is-on" : "")
-              }
-              aria-pressed={item.key === sort}
-              onClick={() => onSort(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는 채
+            비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는 고를
+            것이 없습니다. 순서를 말로 적습니다(spotsRoute.sortPlaces). */}
+        <span className="sp-hero-order">이름순</span>
       </div>
     </header>
   );
@@ -163,21 +142,15 @@ function SpotRow({ place }: { place: Place }) {
 }
 
 function SpotsList() {
-  const [sort, setSort] = useState<SpotSort>("name");
   const [search, setSearch] = useState("");
   const places = useWaterPlaces(search);
-  const rows = useMemo(
-    () => sortPlaces(places.rows ?? [], sort),
-    [places.rows, sort],
-  );
+  const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
   return (
     <article className="spots-page">
       <AppShell
         tab="spots"
         hero={
           <ListHero
-            sort={sort}
-            onSort={setSort}
             total={places.total}
             loading={places.loading}
             search={search}
@@ -305,10 +278,7 @@ function SpotsMap() {
               <span className="sp-sheet-sort">이름순</span>
             </div>
             <div className="sp-sheet-list">
-              {sortPlaces(
-                pinned.map(({ place }) => place),
-                "name",
-              ).map((place) => {
+              {sortPlaces(pinned.map(({ place }) => place)).map((place) => {
                 const score = place.id === selectedId ? selectedScore : null;
                 const grade = gradeOf(score);
                 return (
