@@ -53,6 +53,8 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     baseline,
     best: activities.best,
     activities: activities.all,
+    /** 서버가 고른 활동과 그 근거. `mode: "best"` 가 아니면 undefined 입니다. */
+    recommendation: activities.recommendation,
     displayName,
     selectionMessage,
   };

@@ -22,6 +22,9 @@ import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { RecommendationReason } from "./RecommendationReason";
+import { activityHeadline } from "./recommendationText";
+import type { Recommendation } from "./recommendationApi";
 import {
   conditionScore,
   dataStatusText,
@@ -74,12 +77,17 @@ function TodayHero({
   placeName,
   conditions,
   best,
+  recommendation,
+  recommendationLoading = false,
   quality,
   qualityLoading = false,
   loading = false,
 }: {
   placeName: string;
   conditions?: Conditions;
+  /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
+  recommendation?: Recommendation;
+  recommendationLoading?: boolean;
   best: ActivityCondition | null;
   quality: string;
   qualityLoading?: boolean;
@@ -118,7 +126,7 @@ function TodayHero({
               <>
                 오늘 가장 좋은 활동
                 <br />
-                {activities[best.activity]}
+                {activityHeadline(best.activity)}
               </>
             ) : (
               <>
@@ -178,6 +186,14 @@ function TodayHero({
           </div>
         </div>
       </div>
+      {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳.
+          점수 산출 근거와 출처 · 면책은 아래 「근거 보기」에 그대로 남습니다. */}
+      <RecommendationReason
+        data={recommendation}
+        loading={recommendationLoading}
+        glass
+        className="td-hero-why"
+      />
       <EvidenceNote data={conditions} className="td-hero-note" glass />
       <ScoreExplainer data={conditions} />
     </DesktopHero>
@@ -415,7 +431,7 @@ function OperatingRow({
 }
 
 export function TodayDesktop() {
-  const { now, place, places, conditions, best, displayName, selectionMessage } =
+  const { now, place, places, conditions, best, recommendation, displayName, selectionMessage } =
     useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
@@ -429,6 +445,8 @@ export function TodayDesktop() {
         placeName={displayName}
         conditions={conditions.data}
         best={best}
+        recommendation={recommendation.data}
+        recommendationLoading={isInitialLoad(recommendation)}
         quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
@@ -455,7 +473,7 @@ export function TodayDesktop() {
           loading={isInitialLoad(conditions)}
         />
         <ScoreReason
-          text={scoreReason(best?.data).text}
+          text={scoreReason(conditions.data).text}
           loading={isInitialLoad(conditions)}
         />
       </LabelRow>

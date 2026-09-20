@@ -5,10 +5,12 @@ import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } fr
 import { EvidenceNote } from "./EvidenceNote";
 import { timeLabel, type Place } from "./productData";
 import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { RecommendationReason } from "./RecommendationReason";
+import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { useWaterPlaces } from "./useWaterPlaces";
-import { activities } from "./aiApi";
+import { isInitialLoad } from "./useResource";
 import "./spotsPage.css";
 
 // 명소 상세(핸드오프 모바일 20b)입니다. `#spots?spot_id=…` 로 들어오며
@@ -48,7 +50,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   const place: Place | undefined = classified ?? lookup.rows[0];
   // 홈 히어로와 같은 규칙으로 오늘 가장 좋은 활동을 고릅니다. 장소마다 조건이
   // 다르므로 「이 명소에서 무엇을 하기 좋은가」가 상세의 답입니다.
-  const { best, loading } = useBestActivity(place?.id);
+  const { best, loading, recommendation } = useBestActivity(place?.id);
   const score = best?.score ?? null;
   const grade = gradeOf(score);
   const verdict =
@@ -122,7 +124,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           <div className="sd-score-body">
             <div className="sd-score-title">
               {best
-                ? `오늘 여기서 가장 좋은 활동 · ${activities[best.activity]}`
+                ? `오늘 여기서 가장 좋은 활동 · ${activityHeadline(best.activity)}`
                 : "오늘 이 장소의 물놀이 조건"}
             </div>
             {best && (
@@ -130,6 +132,11 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             )}
             <ScoreGauge score={score} loading={loading} />
             {verdict && <p className="sd-score-verdict">{verdict}</p>}
+            {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. */}
+            <RecommendationReason
+              data={recommendation.data}
+              loading={isInitialLoad(recommendation)}
+            />
             <ScoreReason text={scoreReason(best?.data).text} loading={loading} />
             <EvidenceNote data={best?.data} className="pd-note" />
             <ScoreExplainer data={best?.data} />

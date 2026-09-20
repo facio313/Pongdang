@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { serverRecommendation } from "./recommendation";
 
 // 데스크탑 오늘 · 지도 · 내 코스는 훅이 하나도 없는 통짜 더미 화면이었습니다.
 // 점수 82 · 수온 22.1°C · 「3곳 · 12.0km · 4h 30m」 같은 값이 파일 안 상수로
@@ -34,28 +35,20 @@ test("desktop today reads the same server values as mobile", async ({ page }) =>
   const places = await placeResponse.json();
   const place = places.rows.find((item: { name: string }) => item.name.includes("경포"));
 
-  const activities = ["swim", "surf", "relax", "onsen", "rafting"];
-  const scored = await Promise.all(
-    activities.map(async (activity) => {
-      const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);
-      const body = await each.json();
-      const index = body.condition_score;
-      const score = index && ["evaluated", "partial"].includes(index.status) && typeof index.score === "number" ? index.score : null;
-      return { score, support: body.support_status };
-    }),
+  // 활동은 서버가 고릅니다(water-index/recommendation). 화면이 다시 고르지
+  // 않는다는 것이 요지이므로 기대값을 재계산하지 않고 응답을 읽습니다.
+  const recommendation = await serverRecommendation(page, place.id);
+  await expect(page.locator(".td-hero-score-num")).toHaveText(
+    recommendation.choice ? String(recommendation.choice.score) : "–",
   );
-  const usable = scored.filter((item) => item.score !== null && item.support !== "unsupported");
-  const expected = usable.length
-    ? String(usable.reduce((high, item) => (item.score! > high.score! ? item : high)).score)
-    : "–";
-  await expect(page.locator(".td-hero-score-num")).toHaveText(expected);
 
   // 히어로 타일은 실제 관측값입니다. 예전에는 「맑음 · 0.6m · 22.1°C · –」 였습니다.
   await expect(page.locator(".td-hero-tiles")).toContainText("수질 · 점수 미반영");
   // 주간 예보는 일곱 칸이며 값이 없는 날은 –입니다.
   await expect(page.locator(".td-day")).toHaveCount(7);
-  // 활동은 여섯 가지 전부입니다. 예전에는 수영 · 래프팅 · 휴식 셋뿐이었습니다.
-  await expect(page.locator(".td-activity")).toHaveCount(6);
+  // 추천 후보 다섯 가지입니다. 갯벌은 동해안에 없어 후보에서 빠졌습니다
+  // (models.RECOMMENDED_ACTIVITIES).
+  await expect(page.locator(".td-activity")).toHaveCount(5);
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);

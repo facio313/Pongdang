@@ -15,6 +15,9 @@ import {
 } from "./pongdangUi";
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { RecommendationReason } from "./RecommendationReason";
+import { activityHeadline } from "./recommendationText";
+import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
 import { EvidenceNote } from "./EvidenceNote";
@@ -53,10 +56,15 @@ function Hero({
   conditions,
   baseline,
   best,
+  recommendation,
+  recommendationLoading = false,
   loading = false,
   baselineLoading = false,
 }: {
   placeName: string;
+  /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
+  recommendation?: Recommendation;
+  recommendationLoading?: boolean;
   conditions?: Conditions;
   /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답. 점수용 응답과 다릅니다 --
    *  서버는 그 활동이 보는 지표만 내려주기 때문입니다(useProductData 주석). */
@@ -160,7 +168,7 @@ function Hero({
               <>
                 오늘 가장 좋은 활동
                 <br />
-                <b>{activities[best.activity]}</b>
+                <b>{activityHeadline(best.activity)}</b>
               </>
             ) : (
               <>
@@ -193,9 +201,14 @@ function Hero({
             뭘 해도 되는지를 한 줄로 붙입니다. 값이 없으면 문장을 지어내지 않고
             비워 둡니다 -- 모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */}
         {verdict && <p className="hm-hero-verdict">{verdict}</p>}
-        <ScoreReason
-          text={scoreReason(best?.data).text}
-          loading={loading}
+        {/* 예전에는 이 자리가 「수온 13°C — 이 조건이 점수를 가장 많이 낮췄어요」
+            한 줄이었습니다. 그건 점수를 어떻게 깎았는지이지 오늘 왜 이걸 하라는
+            건지가 아닙니다. 이제 서버가 고른 이유 · 뺀 이유 · 물때 · 대신 갈 곳이
+            옵니다. 항목별 점수 근거는 아래 「점수를 이루는 항목」 카드에 그대로
+            남아 있습니다. */}
+        <RecommendationReason
+          data={recommendation}
+          loading={recommendationLoading}
           glass
         />
 
@@ -262,6 +275,10 @@ function GlanceCard({
           점수를 이루는 항목을 읽지 못했습니다. 아래 상태 문장을 확인하세요.
         </p>
       )}
+      {/* 점수를 가장 많이 깎은 항목. 히어로에서 이 자리로 내려왔습니다 --
+          히어로는 「왜 이 활동인가」를, 이 카드는 「그 점수가 왜 그 점수인가」를
+          말합니다. 둘 다 사실이지만 같은 질문의 답이 아닙니다. */}
+      <ScoreReason text={scoreReason(conditions).text} loading={loading} />
 
       {/* 수질은 점수에 들어가지 않습니다(백엔드 activity_score 의 입력에
           없습니다). 위 항목들과 같은 줄에 두면 점수 근거로 오인되므로 자리를
@@ -507,7 +524,7 @@ function LivecamModule() {
 function HomeScreen() {
   // 홈은 여섯 활동을 모두 보고 오늘 가장 좋은 하나를 고릅니다. 다른 화면은
   // 예전처럼 수영 한 번만 조회합니다(useProductData 의 mode 주석 참고).
-  const { now, place, places, conditions, baseline, best, displayName, selectionMessage } =
+  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage } =
     useProductData("best");
   const quality = useResource<WaterQualityGrade>(
     place ? `quality/grade?spot_id=${place.id}` : null,
@@ -523,6 +540,8 @@ function HomeScreen() {
             conditions={conditions.data}
             baseline={baseline.data}
             best={best}
+            recommendation={recommendation.data}
+            recommendationLoading={isInitialLoad(recommendation)}
             loading={isInitialLoad(conditions)}
             baselineLoading={isInitialLoad(baseline)}
           />

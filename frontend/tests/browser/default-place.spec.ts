@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { routeRecommendation } from "./recommendation";
 
 test("home uses the selected fallback beach ID, name and conditions consistently", async ({ page }) => {
   const beach = { id: 987, name: "해운대해수욕장", place_kind: "beach", region: "부산", address: null, lat: 35.16, lng: 129.16 };
@@ -14,6 +15,7 @@ test("home uses the selected fallback beach ID, name and conditions consistently
       condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1", methodology: "fixture", score: 73, status: "partial", coverage: 0.5, available_components: 2, total_components: 4, components: [], sources: [], reason_codes: [] },
     } });
   });
+  await routeRecommendation(page, { activity: "swim", score: 73 });
   await page.goto("");
   await expect(page.locator(".hm-hero-place")).toContainText(beach.name);
   await expect(page.locator(".hm-hero-score-num")).toHaveText("73");

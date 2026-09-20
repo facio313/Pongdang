@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { serverRecommendation } from "./recommendation";
 
 // 명소 탭에는 브라우저 검사가 없었습니다. 예시 목록(spotsCatalog)을 걷어내고
 // 실제 장소를 읽도록 바꾸면서, 지어낸 값이 되돌아오지 않는지를 여기서 지킵니다.
@@ -39,23 +40,11 @@ test("a spot's score is fetched on the detail page and is – rather than 0 when
   await page.goto(`#spots?spot_id=${place.id}`);
   await expect(page.locator(".sd-hero-name")).toContainText(place.name);
 
-  // 점수는 여섯 활동 중 오늘 가장 좋은 하나입니다(useBestActivity).
-  const activities = ["swim", "surf", "relax", "onsen", "rafting"];
-  const scored = await Promise.all(
-    activities.map(async (activity) => {
-      const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);
-      const body = await each.json();
-      const index = body.condition_score;
-      return index && ["evaluated", "partial"].includes(index.status) && typeof index.score === "number"
-        ? { score: index.score, body } : null;
-    }),
+  // 점수는 서버가 고른 활동의 것입니다(water-index/recommendation).
+  const recommendation = await serverRecommendation(page, place.id);
+  await expect(page.locator(".sd-score-num")).toHaveText(
+    recommendation.choice ? String(recommendation.choice.score) : "–",
   );
-  const usable = scored.filter((item): item is { score: number; body: { support_status?: string } } =>
-    item !== null && item.body.support_status !== "unsupported");
-  const expected = usable.length
-    ? String(usable.reduce((high, item) => (item.score > high.score ? item : high)).score)
-    : "–";
-  await expect(page.locator(".sd-score-num")).toHaveText(expected);
 
   // 서버에 컬럼이 없는 항목은 지어내지 않고 «–» 로 둡니다.
   const info = page.locator(".sd-info").first();

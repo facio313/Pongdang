@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { ACTIVITY_LABEL, headlineOf, routeRecommendation, serverRecommendation } from "./recommendation";
 
 test("home and today render calculated server condition scores and their evidence", async ({
   page,
@@ -15,40 +16,33 @@ test("home and today render calculated server condition scores and their evidenc
   expect(conditions.environment_score).toBeNull();
   expect(conditions.condition_score.score).toEqual(expect.any(Number));
 
-  // 홈 히어로는 더 이상 수영 한 종목이 아니라 여섯 활동 중 오늘 가장 좋은
-  // 하나를 올립니다. 기대값도 같은 규칙으로 뽑습니다 -- 동점이면 이 순서가
-  // 우선순위입니다(useBestActivity 의 ACTIVITY_ORDER 와 같은 순서).
-  const ACTIVITY_LABEL = {
-    swim: "수영", surf: "서핑", relax: "휴식",
-    mudflat: "갯벌", onsen: "온천", rafting: "래프팅",
-  };
-  const activities = await Promise.all(
-    Object.keys(ACTIVITY_LABEL).map(async (activity) => {
-      const each = await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${activity}&mode=observation`);
-      const body = await each.json();
-      const index = body.condition_score;
-      const score = index && ["evaluated", "partial"].includes(index.status) && typeof index.score === "number" ? index.score : null;
-      return { activity, body, score };
-    }),
-  );
-  const best = activities
-    .filter((item) => item.score !== null && item.body.support_status !== "unsupported")
-    .reduce((high, item) => (item.score > high.score ? item : high));
-  const bestLabel = ACTIVITY_LABEL[best.activity as keyof typeof ACTIVITY_LABEL];
+  // 홈 히어로는 수영 한 종목도, 화면이 고른 최고점도 아닙니다. **서버가**
+  // 규칙으로 고른 활동입니다(water-index/recommendation). 화면이 따로 고르지
+  // 않는다는 것이 이 검사의 요지이므로, 기대값을 다시 계산하지 않고 그 응답을
+  // 그대로 읽습니다.
+  const recommendation = await serverRecommendation(page, place.id);
+  const best = recommendation.choice!;
+  const bestLabel = ACTIVITY_LABEL[best.activity];
+  // 고른 활동의 조건 응답. 아래 항목 막대가 이 구성을 따릅니다.
+  const bestConditions = await (
+    await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${best.activity}&mode=observation`)
+  ).json();
 
   await expect(page.locator(".hm-hero-score-num")).toHaveText(String(best.score));
   // 무엇의 점수인지를 화면이 말해야 합니다. 예전에는 「퐁당 72」뿐이었습니다.
-  await expect(page.locator(".hm-hero-sentence")).toContainText(bestLabel);
+  await expect(page.locator(".hm-hero-sentence")).toContainText(headlineOf(best.activity));
   await expect(page.locator(".hm-hero-score .pd-grade-chip")).toContainText(`${bestLabel} 적합도`);
   // 척도 위 상대 위치. 색만으로 전하지 않으므로 aria-label 에 점수와 등급이 함께 있습니다.
   await expect(page.locator(".pd-hero .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
-  // 점수를 깎은(또는 가장 좋은) 조건 한 줄.
-  await expect(page.locator(".pd-hero .pd-score-reason")).toContainText("—");
+  // 왜 이 활동인가. 서버가 사유 코드를 준 경우에만 줄이 섭니다 -- 없으면 화면이
+  // 문장을 지어내지 않는다는 뜻이므로 그쪽도 사실입니다.
+  if (recommendation.reasons.length)
+    await expect(page.locator(".pd-hero .pd-why-line").first()).toBeVisible();
   await expect(page.locator(".hm-hero-note")).toContainText("근거 확보");
 
   // 「오늘 한눈에」는 이제 그 점수를 이루는 항목들입니다. 항목 구성은 활동마다
   // 다르므로 고정 네 칸이 아니라 서버가 준 components 를 그대로 따릅니다.
-  const components = best.body.condition_score.components;
+  const components = bestConditions.condition_score.components;
   await expect(page.locator(".pd-cbar")).toHaveCount(components.length);
   const bar = (label: string) =>
     page.locator(".pd-cbar").filter({ has: page.getByText(label, { exact: true }) });
@@ -71,7 +65,7 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".td-tile-value").nth(2)).toHaveText("21.3°C");
   await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
   await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
-  await expect(page.locator(".td-act")).toHaveCount(6);
+  await expect(page.locator(".td-act")).toHaveCount(5);
   // 근거는 활동 6개의 <details> 6줄이 아니라 하나로 합치고 활동을 셀렉트로
   // 고릅니다. 기본값이 수영이므로 그대로 펴서 확인합니다.
   await page.getByText("분야별 근거 확인", { exact: true }).click();
@@ -113,6 +107,7 @@ test("home and map use actual category-classified beaches when only the address 
       condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1", methodology: "fixture", status: "partial", score: 67.1, coverage: 0.75, available_components: 3, total_components: 4, components: [], sources: [], reason_codes: [] },
     } });
   });
+  await routeRecommendation(page, { activity: "swim", score: 67.1 });
   await page.goto("");
   await expect(page.locator(".hm-hero-place")).toContainText("경포");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("67.1");
@@ -145,6 +140,11 @@ test("missing observations use an explicitly labelled forecast and never bypass 
       },
     } });
   });
+  // 공식 제한이 걸리면 추천도 고를 것이 없습니다. 조건 응답과 같은 상태를
+  // 따라가야 화면이 한쪽만 바뀐 것처럼 보이지 않습니다.
+  await routeRecommendation(page, () =>
+    blocked ? null : { activity: "swim", score: 81 },
+  );
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
   await expect(page.locator(".hm-hero-note")).toContainText("예보 기준");
@@ -228,8 +228,22 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   let release!: () => void;
   const refresh = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/api/data/water-index/conditions?**", async (route) => {
-    if (new URL(route.request().url()).searchParams.get("mode") === "forecast") {
+    const query = new URL(route.request().url()).searchParams;
+    if (query.get("mode") === "forecast") {
       await route.continue();
+      return;
+    }
+    // 만료를 세는 것은 히어로가 그리는 활동(수영) 하나입니다. 나머지 활동은
+    // 타일용 조회이므로 값 없이 바로 돌려줍니다 -- 그쪽을 붙잡아 두면 이
+    // 검사가 만료가 아니라 응답 지연을 보게 됩니다.
+    if (query.get("activity") !== "swim") {
+      await route.fulfill({ json: {
+        spot_id: 1, activity: query.get("activity"), mode: "observation", at: now.toISOString(),
+        safety_status: "unknown", environment_score: null, reason_codes: [], metrics: [],
+        condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1",
+          methodology: "fixture", status: "unavailable", score: null, coverage: 0,
+          available_components: 0, total_components: 4, components: [], sources: [], reason_codes: [] },
+      } });
       return;
     }
     const number = ++requests;
@@ -249,6 +263,8 @@ test("a current score clears at its source expiry while refreshed evidence is lo
       },
     } });
   });
+  // 만료 판정은 조건 응답이 합니다. 추천은 활동만 고르므로 여기서는 고정입니다.
+  await routeRecommendation(page, { activity: "swim", score: 75 });
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.clock.fastForward(10001);

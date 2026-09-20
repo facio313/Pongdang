@@ -21,6 +21,7 @@ from app.twin.api import create_twin_router
 from app.water_index.api import create_water_index_router
 from app.water_index.condition_api import create_condition_router
 from app.water_index.default_place import create_default_place_router
+from app.water_index.recommendation_api import create_recommendation_router
 
 
 def create_app(
@@ -65,6 +66,7 @@ def create_app(
     app.include_router(create_water_index_router(settings))
     app.include_router(create_condition_router(settings))
     app.include_router(create_default_place_router(settings))
+    app.include_router(create_recommendation_router(settings))
     app.include_router(create_forecast_router(settings))
     app.include_router(create_twin_router(settings))
     app.include_router(create_livecam_router(settings))

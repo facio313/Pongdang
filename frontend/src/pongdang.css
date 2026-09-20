@@ -648,6 +648,68 @@ main:has(.pd-app) {
   color: var(--pd-ink-mute);
 }
 
+/* ── 추천 근거 (RecommendationReason) ───────────────────
+   「왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳」 네 줄.
+   점수 산출 근거(.pd-evidence)보다 위에 놓이고 접히지 않습니다 -- 사용자가
+   가장 먼저 읽어야 하는 것은 감사 기록이 아니라 선택의 이유입니다. */
+.pd-why {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+.pd-why-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--pd-fs-sm);
+  line-height: 1.6;
+  color: var(--pd-ink-2);
+}
+/* 고른 이유가 이 덩어리의 제목 줄입니다. */
+.pd-why-line.is-choice {
+  font-weight: 700;
+  color: var(--pd-ink);
+}
+/* 물때 줄은 면책이 함께 붙어 길어집니다. 작은 글씨로 한 단 내립니다. */
+.pd-why-line.is-tide {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-mute);
+}
+.pd-why-alts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: var(--pd-fs-cap);
+}
+.pd-why-alts-label {
+  font-weight: 700;
+  color: var(--pd-ink-2);
+}
+.pd-why-alt {
+  padding: 3px 9px;
+  border-radius: var(--pd-r-pill);
+  background: #e7ecf2;
+  color: var(--pd-blue-deep);
+  text-decoration: none;
+}
+.pd-why.is-glass .pd-why-line {
+  color: var(--pd-on-cobalt-2);
+}
+.pd-why.is-glass .pd-why-line.is-choice {
+  color: var(--pd-on-cobalt);
+}
+.pd-why.is-glass .pd-why-alts-label {
+  color: var(--pd-on-cobalt-2);
+}
+.pd-why.is-glass .pd-why-alt {
+  background: rgb(255 255 255 / 0.16);
+  color: var(--pd-on-cobalt);
+}
+
 /* ── 근거 줄 (EvidenceNote) ─────────────────────────────
    접힌 줄은 한 줄로 흐르고, 칩은 줄바꿈되더라도 쪼개지지 않습니다. */
 .pd-evidence-line {

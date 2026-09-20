@@ -19,8 +19,10 @@ import {
   StateChip,
 } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
-import { activities } from "./aiApi";
+import { isInitialLoad } from "./useResource";
 import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { RecommendationReason } from "./RecommendationReason";
+import { activityHeadline } from "./recommendationText";
 import { dateLabel, type Place } from "./productData";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
@@ -223,7 +225,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   const lookup = usePlacesById([spotId]);
   const place: Place | undefined =
     catalog.rows?.find((item) => item.id === spotId) ?? lookup.rows[0];
-  const { best, loading } = useBestActivity(place?.id);
+  const { best, loading, recommendation } = useBestActivity(place?.id);
   const score = best?.score ?? null;
   const grade = gradeOf(score);
   const verdict =
@@ -292,7 +294,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             <div>
               <div className="pd-dk-kick">
                 {best
-                  ? `오늘 여기서 가장 좋은 활동 · ${activities[best.activity]}`
+                  ? `오늘 여기서 가장 좋은 활동 · ${activityHeadline(best.activity)}`
                   : "오늘 이 장소의 물놀이 조건"}
               </div>
               <DesktopScore
@@ -305,6 +307,11 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             <div className="sk-detail-confidence">
               <ScoreGauge score={score} loading={loading} />
               {verdict && <p className="sk-detail-verdict">{verdict}</p>}
+              {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. */}
+              <RecommendationReason
+                data={recommendation.data}
+                loading={isInitialLoad(recommendation)}
+              />
               <ScoreReason
                 text={scoreReason(best?.data).text}
                 loading={loading}

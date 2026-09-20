@@ -27,6 +27,9 @@ import {
   scoreTitle,
   verdictOf,
 } from "./scoreMeaning";
+import { RecommendationReason } from "./RecommendationReason";
+import { activityHeadline, choiceReason } from "./recommendationText";
+import type { Recommendation } from "./recommendationApi";
 import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionModeLabel,
@@ -77,6 +80,8 @@ function HomeHero({
   conditions,
   baseline,
   best,
+  recommendation,
+  recommendationLoading = false,
   quality,
   qualityLoading = false,
   loading = false,
@@ -84,6 +89,9 @@ function HomeHero({
 }: {
   placeName: string;
   conditions?: Conditions;
+  /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
+  recommendation?: Recommendation;
+  recommendationLoading?: boolean;
   /** 활동과 무관한 「지금 날씨와 바다」의 기준 응답(useProductData 주석). */
   baseline?: Conditions;
   best: ActivityCondition | null;
@@ -117,7 +125,7 @@ function HomeHero({
               <>
                 오늘 가장 좋은 활동
                 <br />
-                {activities[best.activity]}
+                {activityHeadline(best.activity)}
               </>
             ) : (
               <>
@@ -147,9 +155,12 @@ function HomeHero({
           {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 값이 없으면
               문장을 지어내지 않고 비워 둡니다. */}
           {verdict && <p className="hd-hero-verdict">{verdict}</p>}
-          <ScoreReason
-            text={scoreReason(best?.data).text}
-            loading={loading}
+          {/* 모바일 홈과 같은 근거 줄입니다 -- 왜 이 활동인가 · 왜 저것이
+              아닌가 · 지금 물때 · 대신 갈 곳. 점수 항목별 근거는 아래
+              「점수 근거」 줄에 그대로 남습니다. */}
+          <RecommendationReason
+            data={recommendation}
+            loading={recommendationLoading}
             glass
           />
           <div className="hd-hero-buttons">
@@ -276,6 +287,10 @@ function HourBars({
       <div className="hd-parts">
         <div className="hd-parts-head">지금 점수를 이루는 것들</div>
         <ComponentBars bars={componentBars(conditions)} loading={loading} />
+        {/* 점수를 가장 많이 깎은 항목. 히어로에서 이 자리로 내려왔습니다 --
+            히어로는 「왜 이 활동인가」를, 여기는 「그 점수가 왜 그 점수인가」를
+            말합니다. */}
+        <ScoreReason text={scoreReason(conditions).text} loading={loading} />
       </div>
 
       <div className="hd-hour-summary">
@@ -309,7 +324,7 @@ function BeachCard({ place }: { place: Place }) {
 }
 
 export function HomeDesktop() {
-  const { now, place, conditions, baseline, best, displayName, selectionMessage } =
+  const { now, place, conditions, baseline, best, recommendation, displayName, selectionMessage } =
     useProductData("best");
   const quality = useResource<WaterQualityGrade>(
     place ? `quality/grade?spot_id=${place.id}` : null,
@@ -349,6 +364,8 @@ export function HomeDesktop() {
         conditions={conditions.data}
         baseline={baseline.data}
         best={best}
+        recommendation={recommendation.data}
+        recommendationLoading={isInitialLoad(recommendation)}
         quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
@@ -471,8 +488,13 @@ export function HomeDesktop() {
                   ? `오늘 이 장소에서는 ${activities[best.activity]}이(가) 가장 잘 맞습니다`
                   : "오늘 점수를 낼 수 있는 활동이 없습니다"}
               </div>
+              {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면
+                  점수를 깎은 항목으로 물러섭니다 -- 둘 다 없으면 이 칩이 근거
+                  없이 서 있게 되므로 마지막 문장은 남겨 둡니다. */}
               <p className="hd-ai-basis">
-                근거 — {scoreReason(best?.data).text}
+                근거 —{" "}
+                {choiceReason(recommendation.data)?.text ??
+                  scoreReason(best?.data).text}
               </p>
             </div>
           </div>
