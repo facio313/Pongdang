@@ -1,23 +1,62 @@
-import { conditionPath, kstDate, metricText, type Conditions } from "./productData";
-import { useResource } from "./useResource";
+import type { Activity } from "./aiApi";
+import { metricText } from "./productData";
+import { useHourlyScores } from "./useHourlyScores";
 
-function ForecastHour({ id, day, hour }: { id?: number; day: string; hour: string }) {
-  const result = useResource<Conditions>(conditionPath(id, "swim", `${day}T${hour}:00:00+09:00`));
-  return <tr>
-    <th scope="row">{hour}시</th>
-    {(["water_temperature", "wave_height", "precipitation"] as const).map(name => <td key={name} title={result.error}>
-      {result.loading ? "조회 중" : result.error ? "조회 실패" : metricText(result.data, name)}
-    </td>)}
-  </tr>;
-}
-
-export function HourlyConditions({ id, now }: { id?: number; now: string }) {
-  return <div className="pd-slot">
-    <table aria-label="오늘 시간대별 수집 예보">
-      <caption>오늘 시간대별 예보 (09–18시)</caption>
-      <thead><tr><th scope="col">시각</th><th scope="col">수온</th><th scope="col">파고</th><th scope="col">강수량</th></tr></thead>
-      <tbody>{["09", "12", "15", "18"].map(hour => <ForecastHour key={hour} id={id} day={kstDate(now)} hour={hour} />)}</tbody>
-    </table>
-    <span>관측소·격자 예보입니다. ‘최대’는 구간 최대값, ‘강수없음’·범위는 제공기관 표현입니다. 발표시각 미제공 예보가 포함될 수 있습니다.</span>
-  </div>;
+/** 오늘 시간대별 예보 표.
+ *
+ *  네 시각(09 · 12 · 15 · 18)은 데스크탑 홈의 막대와 같습니다. 같은 날 같은
+ *  장소를 두 화면이 서로 다른 시각으로 보여 주면 값이 어긋난 것처럼 읽히므로,
+ *  조회도 그쪽과 **같은 훅**을 씁니다 -- 예전에는 이 파일이 자체 useResource
+ *  네 개를 돌려 시각 목록이 두 곳에 따로 적혀 있었습니다.
+ *
+ *  활동도 부르는 쪽이 정합니다. 여기만 수영으로 고정돼 있어서, 온천이 뽑힌 날
+ *  위 카드 제목은 「온천 점수를 이루는 것들」인데 이 표는 수영 예보였습니다. */
+export function HourlyConditions({
+  id,
+  now,
+  activity,
+}: {
+  id?: number;
+  now: string;
+  /** 고른 활동. 없으면 조회하지 않습니다(useHourlyScores 주석). */
+  activity?: Activity;
+}) {
+  const hours = useHourlyScores(id, now, activity);
+  return (
+    <div className="pd-slot">
+      <table aria-label="오늘 시간대별 수집 예보">
+        <caption>오늘 시간대별 예보 (09–18시)</caption>
+        <thead>
+          <tr>
+            <th scope="col">시각</th>
+            <th scope="col">수온</th>
+            <th scope="col">파고</th>
+            <th scope="col">강수량</th>
+          </tr>
+        </thead>
+        <tbody>
+          {hours.map((hour) => (
+            <tr key={hour.hour}>
+              <th scope="row">{hour.hour}시</th>
+              {(["water_temperature", "wave_height", "precipitation"] as const).map(
+                (name) => (
+                  <td key={name} title={hour.error}>
+                    {hour.loading
+                      ? "조회 중"
+                      : hour.error
+                        ? "조회 실패"
+                        : metricText(hour.data, name)}
+                  </td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <span>
+        관측소·격자 예보입니다. ‘최대’는 구간 최대값, ‘강수없음’·범위는 제공기관
+        표현입니다. 발표시각 미제공 예보가 포함될 수 있습니다.
+      </span>
+    </div>
+  );
 }

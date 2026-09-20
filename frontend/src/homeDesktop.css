@@ -65,6 +65,21 @@
   font-size: var(--dk-fs-cap);
   color: var(--dk-sky);
 }
+/* 수질 등급의 근거와 한계. 코발트 히어로 위이므로 근거 줄과 같은 색을 씁니다.
+   모바일 홈의 같은 블록(WaterQualityDetails)과 한 컴포넌트입니다. */
+.pd-desktop .hd-hero-quality {
+  max-width: 980px;
+  margin: 0 0 22px;
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-onc-2);
+}
+.pd-desktop .hd-hero-quality > summary,
+.pd-desktop .hd-hero-quality details > summary {
+  color: var(--dk-sky);
+}
+.pd-desktop .hd-hero-quality a {
+  color: var(--dk-sky);
+}
 .pd-desktop .hd-hero-actions {
   padding-bottom: 26px;
 }
@@ -463,6 +478,11 @@
 
 /* ── 라이브캠 3칸 ──────────────────────────────────────── */
 
+/* 재추첨. 모바일 홈과 같은 동작이며, 목록 위 오른쪽에 둡니다. */
+.pd-desktop .hd-cams-reshuffle {
+  display: block;
+  margin: 0 0 14px auto;
+}
 .pd-desktop .hd-cams {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

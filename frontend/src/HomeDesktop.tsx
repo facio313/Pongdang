@@ -31,6 +31,7 @@ import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import { EvidenceNote } from "./EvidenceNote";
+import { WaterQualityDetails } from "./WaterQualityDetails";
 import {
   conditionModeLabel,
   dateLabel,
@@ -85,6 +86,8 @@ function HomeHero({
   recommendationError,
   quality,
   qualityLoading = false,
+  qualityData,
+  qualityError,
   loading = false,
   baselineLoading = false,
 }: {
@@ -99,6 +102,9 @@ function HomeHero({
   best: ActivityCondition | null;
   quality: string;
   qualityLoading?: boolean;
+  /** 등급을 낸 검사값. 히어로 아래 「수질 기준과 검사값」이 이것을 폅니다. */
+  qualityData?: WaterQualityGrade;
+  qualityError?: string;
   loading?: boolean;
   baselineLoading?: boolean;
 }) {
@@ -217,6 +223,15 @@ function HomeHero({
         </div>
       </div>
       <EvidenceNote data={conditions} className="hd-hero-note" glass />
+      {/* 수질 등급의 근거와 한계. 모바일 홈은 같은 자리에서 이것을 펼치는데
+          이 화면은 값과 「조회 실패」 한 낱말뿐이었습니다 -- 등급만 보여 주고
+          무엇을 잰 등급인지 말하지 않으면 입수 통제까지 포함한 판정으로
+          읽힙니다. */}
+      <WaterQualityDetails
+        data={qualityData}
+        error={qualityError}
+        className="hd-hero-quality"
+      />
       <div className="hd-hero-actions">
         <ScoreExplainer data={conditions} />
       </div>
@@ -357,7 +372,7 @@ export function HomeDesktop() {
     ),
   ];
   const course = session.route?.route ?? null;
-  const [shuffleSeed] = useState(newWebcamShuffleSeed);
+  const [shuffleSeed, setShuffleSeed] = useState(newWebcamShuffleSeed);
   const webcams = useWebcamCatalog(1, "", shuffleSeed);
   const cameras = (webcams.result?.rows ?? [])
     .flatMap((camera) => {
@@ -381,6 +396,8 @@ export function HomeDesktop() {
         recommendationError={recommendation.error}
         quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
+        qualityData={quality.data}
+        qualityError={quality.error}
         loading={isInitialLoad(conditions)}
         baselineLoading={isInitialLoad(baseline)}
       />
@@ -629,6 +646,16 @@ export function HomeDesktop() {
         desc="붐빔 정도 · 파도 모양 · 하늘은 수치로 저장하지 않습니다. 눈으로 확인하는 구간입니다."
         link={{ href: "#livecam", label: "전체 화면으로" }}
       >
+        {/* 모바일 홈에는 재추첨이 있는데 이 화면에는 없었습니다. 목록 유효기간이
+            지나면 원본 페이지로 물러서는데, 그때 할 수 있는 일이 이것뿐입니다. */}
+        <button
+          type="button"
+          className="pd-dk-button is-pill hd-cams-reshuffle"
+          disabled={webcams.loading}
+          onClick={() => setShuffleSeed(newWebcamShuffleSeed())}
+        >
+          다른 풍경 보기
+        </button>
         <div className="hd-cams">
           {cameras.map(({ camera, href, label }) => (
             <a
@@ -669,9 +696,14 @@ export function HomeDesktop() {
             </div>
           )}
         </div>
-        <p className="hd-row-note">
-          위치와 관계없이 고른 랜덤 물 풍경입니다. 배경은 영상 썸네일이
-          아닙니다. Webcams provided by windy.com
+        <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
+          {webcams.error ??
+            "위치와 관계없이 고른 랜덤 물 풍경입니다. 배경은 영상 썸네일이 아닙니다."}{" "}
+          {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
+              적는데 이 화면은 말없이 링크만 바꿨습니다. */}
+          {webcams.expired &&
+            "목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
+          Webcams provided by windy.com
         </p>
       </LabelRow>
 

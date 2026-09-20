@@ -296,7 +296,7 @@ function GlanceCard({
       </div>
 
       <WaterQualityDetails data={qualityData} error={qualityError} className="pd-note" />
-      <HourlyConditions id={spotId} now={now} />
+      <HourlyConditions id={spotId} now={now} activity={activity} />
       <p className="pd-note" role={statusIsError ? "alert" : "status"}>
         <StateChip kind={conditions ? "live" : "no_data"} /> {conditionModeLabel(conditions)} 기준이며
         강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. 항목 점수는

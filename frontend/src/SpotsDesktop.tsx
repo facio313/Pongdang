@@ -217,6 +217,11 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   const grade = gradeOf(score);
   const verdict =
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+  // 아직 어느 쪽에서도 장소를 받지 못한 상태. 모바일 상세와 같은 규칙으로
+  // 「없음」과 구분해 그립니다 -- 조회 중에 「장소를 찾지 못했습니다」라고
+  // 적으면 곧 올 값을 없다고 단정하는 셈입니다.
+  const placeLoading =
+    !place && !lookup.error && (catalog.loading || !lookup.rows.length);
   const pinned = useMemo(() => mappablePlaces(place ? [place] : []), [place]);
   const markers = useMemo(
     () =>
@@ -249,7 +254,8 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             </a>{" "}
             <span className="sk-crumb-sep">›</span>{" "}
             {place ? kindLabel(place) : "분류 미확인"}{" "}
-            <span className="sk-crumb-sep">›</span> {place?.name ?? "조회 중"}
+            <span className="sk-crumb-sep">›</span>{" "}
+            {place?.name ?? (placeLoading ? "조회 중" : "장소 없음")}
           </>
         }
       />
@@ -266,7 +272,11 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
               </span>
             </div>
             <h1 className="sk-detail-name">
-              {place?.name ?? "장소를 찾지 못했습니다"}
+              {placeLoading ? (
+                <Skeleton width="6em" glass label="장소 조회 중" />
+              ) : (
+                (place?.name ?? "장소를 찾지 못했습니다")
+              )}
             </h1>
             <div className="sk-detail-address">
               {place?.address ?? "주소 없음"} ·{" "}
@@ -276,6 +286,13 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
         </div>
 
         <div className="sk-detail-body">
+          {/* 장소 조회 실패. 모바일 상세는 알리는데 이 화면은 lookup 을 받아
+              rows 만 쓰고 오류를 한 번도 읽지 않았습니다. */}
+          {lookup.error && (
+            <p className="sk-note" role="alert">
+              {lookup.error}
+            </p>
+          )}
           <div className="sk-detail-score-row">
             <div>
               <div className="pd-dk-kick">
