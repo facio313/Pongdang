@@ -459,6 +459,12 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 56px var(--dk-pad) 52px;
   border-bottom: 1px solid var(--dk-rule);
 }
+/* 푸터 바로 위의 괘선은 지웁니다. 예전에는 푸터가 스스로 border-top 을 그어
+   두 선이 맞닿아 한 줄로 보였지만, 이제 경계는 물결이라 이 선만 물 위에 뜬
+   회색 줄로 남습니다. */
+.pd-dk-row:has(+ .pd-dk-foot) {
+  border-bottom: 0;
+}
 .pd-dk-row-label {
   min-width: 0;
 }
