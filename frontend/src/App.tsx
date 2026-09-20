@@ -13,6 +13,7 @@ import { RecommendPage } from "./RecommendPage";
 import { MapPage } from "./MapPage";
 import { MyCoursesPage } from "./MyCoursesPage";
 import { SpotsPage } from "./SpotsPage";
+import { useI18n } from "./i18n";
 
 // 확정된 제품 화면 6개. 하단 공용 탭바(appTabBar.tsx)·데스크탑 상단 네비와 같은
 // 키를 씁니다(appNav.ts).
@@ -51,6 +52,10 @@ function screenFromHash(hash: string): Screen {
 }
 
 export default function App() {
+  const { locale, t } = useI18n();
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   const [screen, setScreen] = useState(() =>
     screenFromHash(window.location.hash),
   );
@@ -86,7 +91,7 @@ export default function App() {
           document.getElementById("main-content")?.focus();
         }}
       >
-        본문으로 이동
+        {t("본문으로 이동")}
       </a>
       <main id="main-content" tabIndex={-1}>
         {screen.kind === "product" ? (

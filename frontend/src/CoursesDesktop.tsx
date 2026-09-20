@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { setTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -60,8 +61,8 @@ export function CoursesDesktop() {
   const courses = (plans.data?.rows ?? []).map((plan) => ({
     id: plan.plan_id!,
     name: plan.request.dates[0]
-      ? `${plan.request.dates[0]} 물 코스`
-      : "저장 코스",
+      ? t("{date} 물 코스", { date: plan.request.dates[0] })
+      : t("저장 코스"),
     date: plan.request.dates.join(" · ") || null,
     items: planItems(plan),
     alarm:
@@ -140,10 +141,10 @@ export function CoursesDesktop() {
   );
   const firstScore = conditionScore(firstConditions.data);
   const firstGrade = gradeOf(firstScore);
-  const countLabel = plans.error ? "개수 미확인"
-    : plans.loading ? "조회 중" : `${courses.length}개`;
+  const countLabel = plans.error ? t("개수 미확인")
+    : plans.loading ? t("조회 중") : t("{count}개", { count: courses.length });
   const readState = plans.data ? <StateChip kind="live" /> : (
-    <span className="pd-state-chip">{plans.error ? "조회 실패" : "조회 중"}</span>
+    <span className="pd-state-chip">{plans.error ? t("조회 실패") : t("조회 중")}</span>
   );
 
   return (
@@ -152,7 +153,7 @@ export function CoursesDesktop() {
         nav={
           <DesktopNav
             active="my-courses"
-            context={`저장한 코스 ${countLabel} · ${dateLabel()}`}
+            context={t("저장한 코스 {count} · {date}", { count: countLabel, date: dateLabel() })}
             onMap
           />
         }
@@ -182,17 +183,13 @@ export function CoursesDesktop() {
       >
         {/* 왼쪽 패널: 저장한 코스 목록. 예전에는 지도 아래 괘선 행에 있어서
             고르는 동안 그 코스의 핀이 보이지 않았습니다. */}
-        <aside className="pd-dk-mappanel is-start" aria-label="저장한 코스">
-          <div className="pd-dk-mappanel-badge">
-            저장된 코스 장소 · 경로선은 지도 탭에서 계산합니다
-          </div>
+        <aside className="pd-dk-mappanel is-start" aria-label={t("저장한 코스")}>
+          <div className="pd-dk-mappanel-badge">{t("저장된 코스 장소 · 경로선은 지도 탭에서 계산합니다")}</div>
           <div className="cd-panel-head">
-            <span className="pd-dk-kick">저장한 코스 {countLabel}</span>
+            <span className="pd-dk-kick">{t("저장한 코스")} {countLabel}</span>
             {readState}
           </div>
-          <p className="cd-note">
-            추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다.
-          </p>
+          <p className="cd-note">{t("추천 탭에서 저장한 코스가 그대로 쌓입니다. 최대 100개까지 조회합니다.")}</p>
           {courses.map((course) => (
             <button
               type="button"
@@ -212,20 +209,20 @@ export function CoursesDesktop() {
               <div className="cd-saved-body">
                 <div className="cd-saved-name">{course.name}</div>
                 <div className="cd-saved-meta">
-                  {course.date ?? "날짜 미정"} · {course.items.length}곳 ·{" "}
+                  {course.date ?? t("날짜 미정")} · {t("{count}곳", { count: course.items.length })} ·{" "}
                   {course.items.map((item) => item.name).join(" · ") ||
-                    "장소 없음"}
+                    t("장소 없음")}
                 </div>
                 <div className="cd-saved-alarm">
                   {/* 조회 중과 「꺼짐」은 다릅니다. 모르는 것을 꺼짐으로 바꾸지
                       않습니다. */}
                   {sessions.error
-                    ? "동행 알림 조회 실패"
+                    ? t("동행 알림 조회 실패")
                     : sessions.loading
-                      ? "동행 알림 조회 중"
+                      ? t("동행 알림 조회 중")
                       : course.alarm
-                        ? "동행 알림 켬"
-                        : "동행 알림 꺼짐"}
+                        ? t("동행 알림 켬")
+                        : t("동행 알림 꺼짐")}
                 </div>
               </div>
               {/* 이동 거리 · 소요 시간은 코스 목록 API 에 없습니다. «–» 이며
@@ -237,15 +234,15 @@ export function CoursesDesktop() {
             <p className="cd-note" role={plans.error ? "alert" : "status"}>
               {plans.error ??
                 (plans.loading
-                  ? "저장 코스를 불러오는 중입니다."
-                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}
+                  ? t("저장 코스를 불러오는 중입니다.")
+                  : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}
             </p>
           )}
         </aside>
 
         {/* 오른쪽 패널: 고른 코스의 요약과 시간축 일정. 요약 3칸은 예전에
             히어로에 있던 것으로, 히어로가 없어졌을 뿐 값은 그대로입니다. */}
-        <aside className="pd-dk-mappanel is-end" aria-label="코스 일정">
+        <aside className="pd-dk-mappanel is-end" aria-label={t("코스 일정")}>
           <div className="cd-panel-head">
             {/* 조회 중 · 조회 실패 · 저장 없음은 서로 다른 사실입니다.
                 히어로가 말하던 구분을 이 패널 머리가 그대로 이어받습니다. */}
@@ -253,10 +250,10 @@ export function CoursesDesktop() {
               {selected
                 ? selected.name
                 : plans.error
-                  ? "저장 코스를 확인하지 못했습니다"
+                  ? t("저장 코스를 확인하지 못했습니다")
                   : plans.loading
-                    ? "저장 코스를 불러오는 중입니다"
-                    : "저장한 코스가 없습니다"}
+                    ? t("저장 코스를 불러오는 중입니다")
+                    : t("저장한 코스가 없습니다")}
             </span>
             {readState}
           </div>
@@ -265,19 +262,19 @@ export function CoursesDesktop() {
               없는 값은 «–» 로 둡니다. */}
           <div className="cd-summary">
             <div>
-              <div className="cd-summary-name">장소</div>
+              <div className="cd-summary-name">{t("장소")}</div>
               <div className="pd-dk-num cd-summary-value">
-                {selected ? `${stops.length}곳` : "–"}
+                {selected ? t("{count}곳", { count: stops.length }) : "–"}
               </div>
             </div>
             <div>
-              <div className="cd-summary-name">날짜</div>
+              <div className="cd-summary-name">{t("날짜")}</div>
               <div className="pd-dk-num cd-summary-value">
                 {selected?.date ?? "–"}
               </div>
             </div>
             <div>
-              <div className="cd-summary-name">이동 · 소요</div>
+              <div className="cd-summary-name">{t("이동 · 소요")}</div>
               <div className="pd-dk-num cd-summary-value is-empty">–</div>
             </div>
           </div>
@@ -294,20 +291,20 @@ export function CoursesDesktop() {
                     {stop.arrival_at ? timeLabel(stop.arrival_at) : "–"}
                   </div>
                   <div className="cd-item-duration">
-                    {stop.arrival_at ? "도착" : "시각 미정"}
+                    {stop.arrival_at ? t("도착") : t("시각 미정")}
                   </div>
                 </div>
                 <div className="cd-item-body">
                   <div className="cd-item-name">{stop.name}</div>
                   <div className="cd-item-detail">
-                    {place?.address ?? "주소 조회 중"}
+                    {place?.address ?? t("주소 조회 중")}
                   </div>
                   <div className="cd-item-score" data-grade={grade.key}>
                     <GradeIcon gradeKey={grade.key} size={12} />
                     {index === 0 && isInitialLoad(firstConditions) ? (
-                      <Skeleton width="3em" label="점수 조회 중" />
+                      <Skeleton width="3em" label={t("점수 조회 중")} />
                     ) : (
-                      `점수 ${score ?? "–"} · ${grade.label}`
+                      t("점수 {score} · {grade}", { score: score ?? "–", grade: t(grade.label) })
                     )}
                   </div>
                 </div>
@@ -318,8 +315,8 @@ export function CoursesDesktop() {
             <p className="cd-note" role={plans.error ? "alert" : "status"}>
               {plans.error ??
                 (plans.loading
-                  ? "저장 코스를 불러오는 중입니다."
-                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}
+                  ? t("저장 코스를 불러오는 중입니다.")
+                  : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}
             </p>
           )}
           <div className="cd-actions">
@@ -343,35 +340,26 @@ export function CoursesDesktop() {
                     route: null,
                   })
                 }
-              >
-                이 코스 열기 →
-              </a>
+              >{t("이 코스 열기 →")}</a>
             )}
             <a
               className={"pd-dk-button" + (selected ? " is-quiet" : "")}
               href="#recommend"
-            >
-              추천에서 코스 만들기 →
-            </a>
-            <a className="pd-dk-button is-quiet" href="#map?view=course">
-              지도에서 경로 계산 →
-            </a>
+            >{t("추천에서 코스 만들기 →")}</a>
+            <a className="pd-dk-button is-quiet" href="#map?view=course">{t("지도에서 경로 계산 →")}</a>
           </div>
           <p className="cd-note">
             {places.error ??
-              "정차지 좌표는 저장된 장소를 조회해 찍습니다. 좌표가 없는 장소는 지도에 나타나지 않습니다."}{" "}
+              t("정차지 좌표는 저장된 장소를 조회해 찍습니다. 좌표가 없는 장소는 지도에 나타나지 않습니다.")}{" "}
             {/* 나머지 정차지의 «–» 는 조건이 나쁜 것이 아니라 묻지 않은
-                것입니다. 그 사실을 적지 않으면 자료 없음으로 읽힙니다. */}
-            점수는 첫 정차지만 조회합니다 -- 나머지 –는 조회하지 않았다는 뜻이며
-            자료 없음이 아닙니다.
-          </p>
+                것입니다. 그 사실을 적지 않으면 자료 없음으로 읽힙니다. */}{t("점수는 첫 정차지만 조회합니다 -- 나머지 –는 조회하지 않았다는 뜻이며 자료 없음이 아닙니다.")}</p>
 
           {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
               자리가 없어 이 패널의 마지막에 들어옵니다 -- 자리를 옮겼을 뿐
               생략하지 않습니다. */}
           <FootNote
-            missing="이동 거리 · 소요 시간 · 코스 공유 · 순서 변경"
-        note="날짜 · 소요 시간이 없는 코스는 «–» 로 둡니다 — 0 이 아닙니다. 점수는 첫 정차지 기준이며, 정차지마다 조회하지 않습니다."
+            missing={t("이동 거리 · 소요 시간 · 코스 공유 · 순서 변경")}
+        note={t("날짜 · 소요 시간이 없는 코스는 «–» 로 둡니다 — 0 이 아닙니다. 점수는 첫 정차지 기준이며, 정차지마다 조회하지 않습니다.")}
           />
         </aside>
       </DesktopMapShell>

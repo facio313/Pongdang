@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useEffect, useRef } from "react";
 import type { ModelTraceTurn } from "./aiApi";
 import "./modelTrace.css";
@@ -11,9 +12,7 @@ export function ModelTraceButton({
 }) {
   if (!trace) return null;
   return (
-    <button type="button" className="pd-trace-open" onClick={onOpen}>
-      주고받은 기록
-    </button>
+    <button type="button" className="pd-trace-open" onClick={onOpen}>{t("주고받은 기록")}</button>
   );
 }
 
@@ -67,7 +66,7 @@ export function ModelTraceDialog({
         type="button"
         className="pd-trace-backdrop"
         onClick={onClose}
-        aria-label="주고받은 기록 닫기"
+        aria-label={t("주고받은 기록 닫기")}
         tabIndex={-1}
       />
       <div
@@ -78,28 +77,26 @@ export function ModelTraceDialog({
         ref={panel}
       >
         <div className="pd-trace-head">
-          <h2 id="pd-trace-title">주고받은 기록</h2>
+          <h2 id="pd-trace-title">{t("주고받은 기록")}</h2>
           <button
             type="button"
             className="pd-trace-close"
             onClick={onClose}
             ref={closeButton}
-          >
-            닫기
-          </button>
+          >{t("닫기")}</button>
         </div>
         {trace.length === 0 ? (
-          <p className="pd-trace-empty">루나 호출 없음</p>
+          <p className="pd-trace-empty">{t("루나 호출 없음")}</p>
         ) : (
           <ol className="pd-trace-turns">
             {trace.map((turn, index) => (
               <li key={`${turn.kind}:${index}`}>
                 <strong>
                   {turn.kind === "tool"
-                    ? turn.name ?? "도구"
+                    ? turn.name ?? t("도구")
                     : turn.error
-                      ? `계획 · ${turn.error}`
-                      : "계획"}
+                      ? `${t("계획")} · ${turn.error}`
+                      : t("계획")}
                 </strong>
                 <pre>
                   <code>

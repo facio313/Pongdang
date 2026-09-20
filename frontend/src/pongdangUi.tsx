@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { gradeOf, grades } from "./groupAGrade";
 import { metricText, type Conditions } from "./productData";
 import type { ComponentBar } from "./scoreMeaning";
@@ -307,7 +308,7 @@ export function Skeleton({
       className={"pd-skeleton" + (glass ? " is-on-cobalt" : "")}
       style={{ "--pd-skeleton-w": width } as React.CSSProperties}
       role="status"
-      aria-label={label}
+      aria-label={t(label)}
     />
   );
 }
@@ -366,7 +367,7 @@ export function GradeChip({
         }
         data-grade="unscored"
       >
-        <Skeleton width="5.2em" glass={glass} label="점수 조회 중" />
+        <Skeleton width="5.2em" glass={glass} label={t("점수 조회 중")} />
       </span>
     );
   return (
@@ -378,10 +379,10 @@ export function GradeChip({
     >
       <GradeIcon gradeKey={grade.key} />
       <span className="pd-grade-chip-num">
-        {prefix ? prefix + " " : ""}
+        {prefix ? t(prefix) + " " : ""}
         {score === null ? "–" : score}
       </span>
-      <span>{label ?? grade.label}</span>
+      <span>{t(label ?? grade.label)}</span>
     </span>
   );
 }
@@ -405,7 +406,7 @@ export function StateChip({ kind }: { kind: StateChipKind }) {
   const modifier =
     kind === "live" ? " is-live" : kind === "no_data" ? " is-alert" : "";
   return (
-    <span className={"pd-state-chip" + modifier}>{STATE_CHIP_LABEL[kind]}</span>
+    <span className={"pd-state-chip" + modifier}>{t(STATE_CHIP_LABEL[kind])}</span>
   );
 }
 
@@ -435,7 +436,7 @@ export function ScoreGauge({
   if (loading)
     return (
       <div className="pd-gauge">
-        <Skeleton width="100%" glass={glass} label="점수 조회 중" />
+        <Skeleton width="100%" glass={glass} label={t("점수 조회 중")} />
       </div>
     );
   return (
@@ -448,8 +449,8 @@ export function ScoreGauge({
       role="img"
       aria-label={
         score === null
-          ? "평가값 없음 · 100점 만점"
-          : `${score}점 ${grade.label} · 100점 만점`
+          ? t("평가값 없음 · 100점 만점")
+          : t("{score}점 {grade} · 100점 만점", { score, grade: t(grade.label) })
       }
     >
       <div className="pd-gauge-track">
@@ -473,7 +474,7 @@ export function ScoreGauge({
       {!compact && (
         <div className="pd-gauge-ticks" aria-hidden="true">
           {bands.map((band) => (
-            <span key={band.key}>{band.label}</span>
+            <span key={band.key}>{t(band.label)}</span>
           ))}
         </div>
       )}
@@ -497,7 +498,7 @@ export function ScoreReason({
   if (loading)
     return (
       <p className={className}>
-        <Skeleton width="14em" glass={glass} label="점수 근거 조회 중" />
+        <Skeleton width="14em" glass={glass} label={t("점수 근거 조회 중")} />
       </p>
     );
   return (
@@ -524,7 +525,7 @@ export function ComponentBars({
       <ul className="pd-cbars">
         {[0, 1, 2, 3].map((index) => (
           <li className="pd-cbar pd-cbar-loading" key={index}>
-            <Skeleton width="100%" label="분야별 점수 조회 중" />
+            <Skeleton width="100%" label={t("분야별 점수 조회 중")} />
           </li>
         ))}
       </ul>
@@ -573,13 +574,9 @@ export function ScoreExplainer({ data }: { data?: Conditions }) {
   const index = data?.condition_score;
   return (
     <details className="pd-explainer">
-      <summary className="pd-tap">퐁당 점수란?</summary>
+      <summary className="pd-tap">{t("퐁당 점수란?")}</summary>
       <div className="pd-explainer-body">
-        <p>
-          고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100 으로 나타낸
-          <b> 참고 점수</b>입니다. 안전 판정이 아니며, 현장 상황과 공식 운영
-          여부는 따로 확인해야 합니다.
-        </p>
+        <p>{t("고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100으로 나타낸 참고 점수입니다. 안전 판정이 아니며, 현장 상황과 공식 운영 여부는 따로 확인해야 합니다.")}</p>
         <table className="pd-explainer-scale">
           <tbody>
             {grades.map((grade) => (
@@ -587,7 +584,7 @@ export function ScoreExplainer({ data }: { data?: Conditions }) {
                 <th scope="row">
                   <span className="pd-grade-chip" data-grade={grade.key}>
                     <GradeIcon gradeKey={grade.key} />
-                    {grade.label}
+                    {t(grade.label)}
                   </span>
                 </th>
                 <td className="pd-num">
@@ -598,23 +595,14 @@ export function ScoreExplainer({ data }: { data?: Conditions }) {
             ))}
           </tbody>
         </table>
+        <p>{t("활동마다 보는 조건이 다릅니다. 수영은 수온 · 기온 · 바람 · 파고를, 갯벌은 기온 · 바람 · 강수를 봅니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.")}</p>
         <p>
-          활동마다 보는 조건이 다릅니다. 수영은 수온 · 기온 · 바람 · 파고를,
-          갯벌은 기온 · 바람 · 강수를 봅니다. 각 조건의 점수를 <b>같은 비중으로
-          평균</b>낸 값이 총점입니다.
-        </p>
-        <p>
-          <b>근거 확보율</b>은 그 활동이 보는 조건 중 실제 측정값이 들어온
-          비율입니다. 확보율이 낮으면 총점도 조건 전체를 대표하지 못합니다.
-        </p>
-        <p>
-          자료가 없으면 <b>–</b> 로 둡니다. <b>0 점이 아니며</b>, 정상이나
-          안전으로 바꾸어 표시하지 않습니다.
-        </p>
+          {t("근거 확보율은 그 활동이 보는 조건 중 실제 측정값이 들어온 비율입니다. 확보율이 낮으면 총점도 조건 전체를 대표하지 못합니다.")}</p>
+        <p>{t("자료가 없으면 –로 둡니다. 0점이 아니며, 정상이나 안전으로 바꾸어 표시하지 않습니다.")}</p>
         {index && (
           <>
             <p>
-              {index.methodology} · 방법론 {index.model_id} {index.model_version}
+              {t(index.methodology)} · {t("방법론")} {index.model_id} {index.model_version}
             </p>
             <ul>
               {index.sources.map((source) => (
@@ -624,9 +612,9 @@ export function ScoreExplainer({ data }: { data?: Conditions }) {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {source.title}
+                    {t(source.title)}
                   </a>{" "}
-                  · {source.usage}
+                  · {t(source.usage)}
                 </li>
               ))}
             </ul>
@@ -650,12 +638,10 @@ export function AiSuggestion({
     <>
       <div className="pd-ai-row">
         <span className="pd-ai-chip">
-          <Icon name="sparkle" size={12} />
-          AI 제안
-        </span>
+          <Icon name="sparkle" size={12} />{t("AI 제안")}</span>
         <span className="pd-ai-headline">{headline}</span>
       </div>
-      <p className="pd-ai-basis">근거 · {basis}</p>
+      <p className="pd-ai-basis">{t("근거")} · {basis}</p>
     </>
   );
 }

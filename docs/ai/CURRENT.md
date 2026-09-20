@@ -1,4 +1,12 @@
-# 현재 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
+# 현재 작업 · 화면 언어 전환 및 main 통합 · 2026-09-21
+
+- 사용자 승인: 최신 main 반영 후 언어 토글·기능 커밋, main push 및 운영 배포. 기존 dev CI → 동일 커밋 main CI·자동 배포 절차를 따른다.
+- 최신 main `a047dce`의 지도·내 코스 전체 화면 구성, 로고·파비콘·하단 물결과 언어 변경을 통합했다. 메뉴·상세 설명·폼·상태·오류·날짜가 즉시 전환되고 새 추천·대화에 선택 locale이 전달된다.
+- 로컬 frontend lint/111 tests/build, backend Ruff/1,170 tests 및 전체 browser 검사를 통과했다. 별도 `pongdang_test`만 사용했으며 Docker 관련 로컬 skip 2개는 CI smoke 검사 대상이다.
+- 강원도 수집 확장·지역 필터·마이그레이션은 이번 언어 변경에서 제외하고 원래 작업 폴더에 보존했다. 백엔드 실행 코드·환경·SSO·스키마 변경 없음.
+- 구현·검증 상세: [UI-LANGUAGE.md](UI-LANGUAGE.md). 운영 반영은 이 커밋의 GitHub Actions 배포 결과로 확인한다.
+
+# 이전 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
 
 - 사용자 승인: 수정 커밋, 도구 브랜치 통합·삭제, main 머지·push·운영 배포. 유지할 이름: main, dev, feature/connect, feature/today-page, feature/api. .env·SSO·키·DB 스키마 변경 없음.
 - 수정 커밋 68648ca와 main 9e6055f를 dev에 통합한 뒤 새 main 3e5bf9e도 충돌 없이 받았다. 최신 카테고리별 UI/공용 조회/지도 배치 API와 R37/R22/R60 등 검증된 수정 모두 유지한다. report.md 완료 23개는 백업과 바이트 동일하다.

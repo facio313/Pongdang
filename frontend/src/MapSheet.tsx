@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import type { ReactNode } from "react";
 import "./mapSheet.css";
 
@@ -52,7 +53,7 @@ export function MapSheet({
       >
         <span className="pd-sheet-title">{title}</span>
         <span className="pd-sheet-toggle-label">
-          {expanded ? "접기" : "자세히"}
+          {expanded ? t("접기") : t("자세히")}
           {/* 방향은 색이 아니라 형태로 말합니다. */}
           <svg
             width="16"

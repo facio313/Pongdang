@@ -9,7 +9,7 @@ test("navigation and data source identify the independent project", () => {
     "utf8",
   );
   assert.match(workspace, /데이터 정보/);
-  assert.match(workspace, /value="data">Pongdang 수집 데이터/);
+  assert.match(workspace, /value="data">\{t\("Pongdang 수집 데이터"\)\}/);
   assert.doesNotMatch(app, /Multtara|cksDB|value="collector"/);
   assert.doesNotMatch(workspace, /Multtara|cksDB|value="collector"/);
   const info = readFileSync(new URL("../src/DataInfoPage.tsx", import.meta.url), "utf8");

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "./i18n";
 import { Icon } from "./pongdangUi";
 import { placePhotoLicense, placePhotoSource, placePhotoUrl, type PlacePhoto as Photo } from "./placePhotos";
 import "./placePhoto.css";
@@ -15,10 +16,10 @@ export function PlacePhoto({ photo, name, className = "", eager = false }: {
   return (
     <span className={`place-photo ${className}`}>
       {visible ? (
-        <img src={url} alt={`${name} 대표 사진`} loading={eager ? "eager" : "lazy"}
+        <img src={url} alt={t("{name} 대표 사진", { name })} loading={eager ? "eager" : "lazy"}
           decoding="async" onError={() => setFailedUrl(url)} />
       ) : (
-        <span className="place-photo-fallback" role="img" aria-label={`${name} 대표 사진 없음`}>
+        <span className="place-photo-fallback" role="img" aria-label={t("{name} 대표 사진 없음", { name })}>
           <Icon name="pin" size={20} />
         </span>
       )}

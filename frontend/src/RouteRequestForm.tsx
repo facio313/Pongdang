@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useState } from "react";
 import { AppActions } from "./AppShell";
 import { kstDate, timeLabel } from "./productData";
@@ -151,42 +152,39 @@ export function RouteRequestForm({
 
   return (
     <div className="pd-card rt-form">
-      <div className="pd-card-title">경로 계산 조건</div>
+      <div className="pd-card-title">{t("경로 계산 조건")}</div>
       <p className="pd-note rt-note-flush">
-        출발지와 출발 시각이 있어야 방문 순서와 이동 시간을 계산합니다. 자동차
-        이동만 계산하며, 이 결과는 예상값이고 안전 판정이 아닙니다.
-      </p>
+        {t("출발지와 출발 시각이 있어야 방문 순서와 이동 시간을 계산합니다. 자동차 이동만 계산하며, 이 결과는 예상값이고 안전 판정이 아닙니다.")}</p>
 
       <fieldset className="rt-field" disabled={disabled}>
-        <legend className="rt-legend">출발지</legend>
-        <div className="rt-modes" role="group" aria-label="출발지 방식">
+        <legend className="rt-legend">{t("출발지")}</legend>
+        <div className="rt-modes" role="group" aria-label={t("출발지 방식")}>
           <button
             type="button"
             className={"rt-mode" + (mode === "place" ? " is-on" : "")}
             aria-pressed={mode === "place"}
             onClick={() => setMode("place")}
           >
-            등록 장소
-          </button>
+            {t("등록 장소")}</button>
           <button
             type="button"
             className={"rt-mode" + (mode === "current" ? " is-on" : "")}
             aria-pressed={mode === "current"}
             onClick={locate}
           >
-            {locating ? "위치 확인 중…" : "현재 위치"}
+            {locating ? t("위치 확인 중…") : t("현재 위치")}
           </button>
         </div>
         {mode === "place" ? (
           <label className="rt-row">
-            <span className="rt-row-name">장소</span>
+            <span className="rt-row-name">{t("장소")}</span>
             <select
               className="rt-input"
-              aria-label="출발 장소"
+              aria-label={t("출발 장소")}
               value={placeId}
               onChange={(event) => setPlaceId(event.target.value)}
             >
-              <option value="">등록 장소 선택</option>
+              <option value="">{t("등록 장소 선택")}</option>
               {mappable.map((place) => (
                 <option key={place.id} value={place.id}>
                   {place.name}
@@ -197,42 +195,41 @@ export function RouteRequestForm({
         ) : (
           <p className="pd-note rt-note-flush">
             {current
-              ? `현재 위치를 출발지로 사용합니다 · ${current.lat.toFixed(5)}, ${current.lng.toFixed(5)}`
-              : "위치 권한을 허용하면 현재 위치를 출발지로 사용합니다."}
+              ? t("현재 위치를 출발지로 사용합니다 · {latitude}, {longitude}", { latitude: current.lat.toFixed(5), longitude: current.lng.toFixed(5) })
+              : t("위치 권한을 허용하면 현재 위치를 출발지로 사용합니다.")}
           </p>
         )}
         {mode === "place" && places.length > mappable.length && (
           <p className="pd-note rt-note-flush">
-            좌표가 등록되지 않은 장소 {places.length - mappable.length}곳은
-            출발지로 사용할 수 없어 목록에 없습니다.
+            {t("좌표가 등록되지 않은 장소 {count}곳은 출발지로 사용할 수 없어 목록에 없습니다.", { count: places.length - mappable.length })}
           </p>
         )}
       </fieldset>
 
       <fieldset className="rt-field" disabled={disabled}>
-        <legend className="rt-legend">출발 시각 · KST</legend>
+        <legend className="rt-legend">{t("출발 시각 · KST")}</legend>
         <label className="rt-row">
-          <span className="rt-row-name">출발</span>
+          <span className="rt-row-name">{t("출발")}</span>
           <input
             className="rt-input"
             type="datetime-local"
-            aria-label="출발 날짜와 시각"
+            aria-label={t("출발 날짜와 시각")}
             value={departure}
             onChange={(event) => setDeparture(event.target.value)}
             required
           />
         </label>
         <label className="rt-row">
-          <span className="rt-row-name">체류</span>
+          <span className="rt-row-name">{t("체류")}</span>
           <select
             className="rt-input"
-            aria-label="장소별 체류 시간"
+            aria-label={t("장소별 체류 시간")}
             value={stay}
             onChange={(event) => setStay(Number(event.target.value))}
           >
             {STAY_CHOICES.map((minutes) => (
               <option key={minutes} value={minutes}>
-                {minutes}분
+                {t("{count}분", { count: minutes })}
               </option>
             ))}
           </select>
@@ -242,7 +239,7 @@ export function RouteRequestForm({
       {candidates.length > 0 && (
         <fieldset className="rt-field" disabled={disabled}>
           <legend className="rt-legend">
-            방문할 후보 · {selectedRanks.length}곳
+            {t("방문할 후보 · {count}곳", { count: selectedRanks.length })}
           </legend>
           <div className="rt-candidates">
             {candidates.map((candidate) => {
@@ -270,25 +267,22 @@ export function RouteRequestForm({
             })}
           </div>
           <label className="rt-row">
-            <span className="rt-row-name">방문</span>
+            <span className="rt-row-name">{t("방문")}</span>
             <select
               className="rt-input"
-              aria-label="방문할 장소 수"
+              aria-label={t("방문할 장소 수")}
               value={stopCount}
               onChange={(event) => setStops(Number(event.target.value))}
             >
               {stopChoices.map((count) => (
                 <option key={count} value={count}>
-                  {count}곳
+                  {t("{count}곳", { count })}
                 </option>
               ))}
             </select>
           </label>
           <p className="pd-note rt-note-flush">
-            후보는 최대 5곳까지 비교합니다. 고른 후보보다 방문 수를 적게 두면
-            그 안에서 순서를 비교합니다. 선택한 방문 수를 채울 수 없으면 서버가
-            부족 상태를 알려 주며 임의로 줄이지 않습니다.
-          </p>
+            {t("후보는 최대 5곳까지 비교합니다. 고른 후보보다 방문 수를 적게 두면 그 안에서 순서를 비교합니다. 선택한 방문 수를 채울 수 없으면 서버가 부족 상태를 알려 주며 임의로 줄이지 않습니다.")}</p>
         </fieldset>
       )}
 
@@ -299,12 +293,12 @@ export function RouteRequestForm({
           disabled={disabled}
           onClick={submit}
         >
-          {submitLabel}
+          {t(submitLabel)}
         </button>
       </AppActions>
       {problem && (
         <p className="pd-note rt-problem" role="alert">
-          {problem}
+          {t(problem)}
         </p>
       )}
     </div>

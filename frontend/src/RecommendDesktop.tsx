@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useEffect, useMemo, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import {
@@ -19,6 +20,7 @@ import {
   planItems,
   routeReasonsText,
   travelJson,
+  travelActivityLabel,
   type RecommendationResult,
   type TravelRequest,
   type TripPlan,
@@ -28,6 +30,8 @@ import { RouteRequestForm } from "./RouteRequestForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import { useTastePreference } from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
+import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
+import { TravelLanguageNote } from "./TravelLanguageSelector";
 import "./recommendDesktop.css";
 
 // 데스크탑 추천입니다. 모바일과 같은 단계(취향 → 대화 → 코스)를 씁니다.
@@ -53,6 +57,7 @@ const FOLLOWUPS = [
 ];
 
 export function RecommendDesktop() {
+  const { locale } = useTravelLanguage();
   const action = useAction();
   const candidateAction = useAction({ replace: true });
   const saveAction = useAction();
@@ -99,7 +104,7 @@ export function RecommendDesktop() {
   const savedLabels = justSaved ?? savedIds.map(labelOf);
   const tasteKnown = savedLabels.length > 0 || hasTaste;
 
-  const baseRequest = (): TravelRequest => ({
+  const baseRequest = (): TravelRequest => requestInLanguage({
     dates: [kstDate()],
     region: "강릉",
     place_role: "visit",
@@ -112,7 +117,7 @@ export function RecommendDesktop() {
     keyword_selection: Object.entries(chosen)
       .filter(([, values]) => values.length)
       .map(([category, values]) => ({ category, values })),
-  });
+  }, locale);
 
   const { session, bubbles, asked, draft, setDraft, publish, send: sendChat, requestRoute, lastTrace } =
     useTravelConcierge({ opener: OPENER, baseRequest, action });
@@ -301,10 +306,10 @@ export function RecommendDesktop() {
     ? kakaoRouteLink(calculated.origin, calculated.items)
     : null;
 
-  const context = `강릉 · ${dateLabel()} · 취향 ${selectionCount || savedLabels.length}개 선택`;
-  const listHeadline = candidateAction.busy ? "후보 조회 중"
-    : candidateAction.error ? "후보 조회 실패"
-    : recommendation ? `후보 ${recommendation.recommendations.length}곳` : "후보 조회 전";
+  const context = t("강릉 · {date} · 취향 {count}개 선택", { date: dateLabel(), count: selectionCount || savedLabels.length });
+  const listHeadline = candidateAction.busy ? t("후보 조회 중")
+    : candidateAction.error ? t("후보 조회 실패")
+    : recommendation ? t("후보 {count}곳", { count: recommendation.recommendations.length }) : t("후보 조회 전");
   const error = candidateAction.error || action.error || saveAction.error || requestedPlan.error;
   const mutationBusy = action.busy || candidateAction.busy || saveAction.busy;
 
@@ -333,17 +338,15 @@ export function RecommendDesktop() {
             {showSavedTaste ? (
               <>
                 <div className="pd-dk-kick rd-hero-kick">
-                  내 취향 · {savedLabels.length}개
+                  {t("내 취향 · {count}개", { count: savedLabels.length })}
                 </div>
                 <h1 className="rd-hero-title">
-                  저장한 취향으로
-                  <br />
-                  바로 찾아 드립니다
-                </h1>
+                  {t("저장한 취향으로")}<br />
+                  {t("바로 찾아 드립니다")}</h1>
                 <div className="rd-hero-tastes">
                   {savedLabels.map((label) => (
                     <span className="rd-hero-taste" key={label}>
-                      {label}
+                      {t(label)}
                     </span>
                   ))}
                 </div>
@@ -354,53 +357,46 @@ export function RecommendDesktop() {
                       className="pd-dk-button rd-hero-ai"
                       onClick={() => setStep("chat")}
                     >
-                      AI에게 이어서 물어보기 →
-                    </button>
+                      {t("AI에게 이어서 물어보기 →")}</button>
                   )}
                   <button
                     type="button"
                     className="pd-dk-button is-quiet rd-hero-edit"
                     onClick={startOver}
                   >
-                    취향 바꾸기
-                  </button>
+                    {t("취향 바꾸기")}</button>
                 </div>
               </>
             ) : (
               <>
                 <div className="pd-dk-kick rd-hero-kick">
                   {step === "taste"
-                    ? `취향 고르기 · ${Math.min(tasteIndex + 1, tasteTotal)} / ${tasteTotal}`
-                    : "취향 기반 추천"}
+                    ? t("취향 고르기 · {current} / {total}", { current: Math.min(tasteIndex + 1, tasteTotal), total: tasteTotal })
+                    : t("취향 기반 추천")}
                 </div>
                 <h1 className="rd-hero-title">
-                  고른 조건으로
-                  <br />
-                  실제 장소를 찾습니다
-                </h1>
+                  {t("고른 조건으로")}<br />
+                  {t("실제 장소를 찾습니다")}</h1>
                 <p className="rd-hero-note">
-                  서버가 등록 장소 카탈로그를 조회해 취향 일치 순서로 후보를
-                  만듭니다. 경로는 출발지와 출발 시각을 넣어 따로 요청합니다.
-                  순서와 시각은 예상값이며 안전 판정이 아닙니다.
-                </p>
+                  {t("서버가 등록 장소 카탈로그를 조회해 취향 일치 순서로 후보를 만듭니다. 경로는 출발지와 출발 시각을 넣어 따로 요청합니다. 순서와 시각은 예상값이며 안전 판정이 아닙니다.")}</p>
               </>
             )}
           </div>
           <div className="rd-hero-metrics">
             <div>
-              <div className="rd-metric-name">후보</div>
+              <div className="rd-metric-name">{t("후보")}</div>
               <div className="pd-dk-num rd-metric-value">
                 {recommendation?.recommendations.length ?? "–"}
               </div>
             </div>
             <div>
-              <div className="rd-metric-name">이동 합</div>
+              <div className="rd-metric-name">{t("이동 합")}</div>
               <div className="pd-dk-num rd-metric-value">
-                {calculated ? `${calculated.travel_minutes}분` : "–"}
+                {calculated ? t("{minutes}분", { minutes: calculated.travel_minutes }) : "–"}
               </div>
             </div>
             <div>
-              <div className="rd-metric-name">예상 귀가</div>
+              <div className="rd-metric-name">{t("예상 귀가")}</div>
               <div className="pd-dk-num rd-metric-value">
                 {calculated ? timeLabel(calculated.return_at) : "–"}
               </div>
@@ -408,62 +404,57 @@ export function RecommendDesktop() {
           </div>
         </div>
       </DesktopHero>
+      <TravelLanguageNote />
 
       {candidateAction.busy && (
         <div className="rd-row-foot">
-          <span role="status">후보를 조회하고 있습니다…</span>
-          <button type="button" className="pd-dk-button is-quiet" onClick={candidateAction.cancel}>후보 조회 취소</button>
+          <span role="status">{t("후보를 조회하고 있습니다…")}</span>
+          <button type="button" className="pd-dk-button is-quiet" onClick={candidateAction.cancel}>{t("후보 조회 취소")}</button>
         </div>
       )}
 
       {step === null && (
-        <LabelRow kick="추천" title="조회 중">
+        <LabelRow kick={t("추천")} title={t("조회 중")}>
           <p className="rd-note" role="status">
-            {profileError ?? "저장된 취향을 조회하고 있습니다."}
+            {profileError ?? t("저장된 취향을 조회하고 있습니다.")}
           </p>
         </LabelRow>
       )}
 
       {step === "entry" && (
         <LabelRow
-          kick="시작"
+          kick={t("시작")}
           title={
             <>
-              저장한 취향으로
-              <br />
-              시작합니다
-            </>
+              {t("저장한 취향으로")}<br />
+              {t("시작합니다")}</>
           }
-          desc="취향은 서버에 저장돼 있습니다(travel/preferences). 이 조건으로 바로 후보를 찾거나, 대화로 조건을 덧붙이거나, 취향을 다시 고를 수 있습니다."
+          desc={t("취향은 서버에 저장돼 있습니다(travel/preferences). 이 조건으로 바로 후보를 찾거나, 대화로 조건을 덧붙이거나, 취향을 다시 고를 수 있습니다.")}
         >
           <div className="rd-tastes">
             {savedLabels.map((label) => (
               <span className="rd-taste is-on" key={label}>
-                {label}
+                {t(label)}
                 <Icon name="check" size={14} />
               </span>
             ))}
           </div>
           <div className="rd-row-foot">
             <span className="rd-note">
-              날짜는 오늘로 고정입니다. 다른 날짜와 저장한 코스의 재알림은
-              모바일 추천 화면에 있습니다.
-            </span>
+              {t("날짜는 오늘로 고정입니다. 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
             <button
               type="button"
               className="pd-dk-button is-quiet"
               onClick={() => setStep("chat")}
             >
-              대화로 좁히기 →
-            </button>
+              {t("대화로 좁히기 →")}</button>
             <button
               type="button"
               className="pd-dk-button rd-remake"
               disabled={action.busy}
               onClick={requestList}
             >
-              이 조건으로 후보 찾기
-            </button>
+              {t("이 조건으로 후보 찾기")}</button>
           </div>
           {error && (
             <p className="rd-note" role="alert">
@@ -475,22 +466,20 @@ export function RecommendDesktop() {
 
       {step === "taste" && (
         <LabelRow
-          kick={`취향 ${Math.min(tasteIndex + 1, tasteTotal)} / ${tasteTotal}`}
+          kick={t("취향 {current} / {total}", { current: Math.min(tasteIndex + 1, tasteTotal), total: tasteTotal })}
           title={
             tasteGroup ? (
-              tasteGroup.label
+              t(tasteGroup.label)
             ) : (
               <>
-                이렇게
-                <br />
-                정리했어요
-              </>
+                {t("이렇게")}<br />
+                {t("정리했어요")}</>
             )
           }
           desc={
             tasteGroup
-              ? `최대 ${tasteGroup.max_selections}개까지 고를 수 있습니다. 선택 항목과 상한은 서버 키워드 카탈로그(travel-keywords.v1)에서 읽습니다. 선택은 색과 ✓ 두 겹으로 표시합니다.`
-              : "고른 항목을 취향으로 저장하고 실제 장소를 조회합니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다."
+              ? t("최대 {count}개까지 고를 수 있습니다. 선택 항목과 상한은 서버 키워드 카탈로그(travel-keywords.v1)에서 읽습니다. 선택은 색과 ✓ 두 겹으로 표시합니다.", { count: tasteGroup.max_selections })
+              : t("고른 항목을 취향으로 저장하고 실제 장소를 조회합니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다.")
           }
         >
           {/* 진행 점. 몇 개 중 몇 번째인지 화면마다 같은 자리에서 말합니다. */}
@@ -507,13 +496,13 @@ export function RecommendDesktop() {
             >
               {catalogue.error ??
                 (catalogue.loading
-                  ? "선택 항목을 불러오는 중입니다."
-                  : "서버가 발행한 선택 항목이 없습니다.")}
+                  ? t("선택 항목을 불러오는 중입니다.")
+                  : t("서버가 발행한 선택 항목이 없습니다."))}
             </p>
           ) : tasteGroup ? (
             <div className="rd-taste-group">
               <div className="pd-dk-kick">
-                {tasteGroup.label} · 최대 {tasteGroup.max_selections}개
+                {t("{label} · 최대 {count}개", { label: t(tasteGroup.label), count: tasteGroup.max_selections })}
               </div>
               <div className="rd-tastes">
                 {tasteGroup.options.map((option) => {
@@ -540,7 +529,7 @@ export function RecommendDesktop() {
                         })
                       }
                     >
-                      {option.label}
+                      {t(option.label)}
                       {on && <Icon name="check" size={14} />}
                     </button>
                   );
@@ -549,17 +538,15 @@ export function RecommendDesktop() {
             </div>
           ) : (
             <div className="rd-taste-group">
-              <div className="pd-dk-kick">고른 항목 · {selectionCount}개</div>
+              <div className="pd-dk-kick">{t("고른 항목 · {count}개", { count: selectionCount })}</div>
               <div className="rd-tastes">
                 {selectionCount === 0 ? (
                   <p className="rd-note">
-                    고른 항목이 없습니다. 선택 없이도 후보를 찾을 수 있지만,
-                    취향 근거 없이는 추천 이유를 적을 수 없습니다.
-                  </p>
+                    {t("고른 항목이 없습니다. 선택 없이도 후보를 찾을 수 있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.")}</p>
                 ) : (
                   chosenIds.map((id) => (
                     <span className="rd-taste is-on" key={id}>
-                      {labelOf(id)}
+                      {t(labelOf(id))}
                       <Icon name="check" size={14} />
                     </span>
                   ))
@@ -570,17 +557,14 @@ export function RecommendDesktop() {
 
           <div className="rd-row-foot">
             <span className="rd-note">
-              날짜는 오늘로 고정이며, 다른 날짜와 저장한 코스의 재알림은 모바일
-              추천 화면에 있습니다.
-            </span>
+              {t("날짜는 오늘로 고정이며, 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
             {tasteIndex > 0 && (
               <button
                 type="button"
                 className="pd-dk-button is-quiet"
                 onClick={() => setTasteIndex(tasteIndex - 1)}
               >
-                이전
-              </button>
+                {t("이전")}</button>
             )}
             {tasteGroup ? (
               <button
@@ -588,7 +572,7 @@ export function RecommendDesktop() {
                 className="pd-dk-button rd-remake"
                 onClick={() => setTasteIndex(tasteIndex + 1)}
               >
-                {tasteIndex + 1 === groups.length ? "다음 · 고른 항목 확인" : "다음"}
+                {tasteIndex + 1 === groups.length ? t("다음 · 고른 항목 확인") : t("다음")}
               </button>
             ) : (
               <button
@@ -597,8 +581,7 @@ export function RecommendDesktop() {
                 disabled={action.busy}
                 onClick={saveAndFind}
               >
-                취향 저장하고 후보 찾기
-              </button>
+                {t("취향 저장하고 후보 찾기")}</button>
             )}
           </div>
           {error && (
@@ -611,15 +594,13 @@ export function RecommendDesktop() {
 
       {step === "chat" && (
         <LabelRow
-          kick="대화로 좁히기"
+          kick={t("대화로 좁히기")}
           title={
             <>
-              조건을 말로
-              <br />
-              덧붙일 수 있습니다
-            </>
+              {t("조건을 말로")}<br />
+              {t("덧붙일 수 있습니다")}</>
           }
-          desc="보낸 문장은 서버가 여행 조건 변경으로 해석합니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다."
+          desc={t("보낸 문장은 서버가 여행 조건 변경으로 해석합니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.")}
         >
           <SplitBody columns="1fr 1.1fr">
             <div className="rd-ask">
@@ -635,8 +616,8 @@ export function RecommendDesktop() {
                   type="text"
                   value={draft}
                   maxLength={2000}
-                  aria-label="컨시어지에게 보낼 내용"
-                  placeholder="오후엔 몸 녹일 곳까지 넣어 주세요"
+                  aria-label={t("컨시어지에게 보낼 내용")}
+                  placeholder={t("오후엔 몸 녹일 곳까지 넣어 주세요")}
                   onChange={(event) => setDraft(event.target.value)}
                 />
                 <button
@@ -644,11 +625,10 @@ export function RecommendDesktop() {
                   className="pd-dk-button rd-send"
                   disabled={action.busy || !draft.trim()}
                 >
-                  보내기
-                </button>
+                  {t("보내기")}</button>
               </form>
               <div className="rd-prompts">
-                {(asked ? FOLLOWUPS : ["물 보면서 쉬고 싶어요", ...FOLLOWUPS]).map(
+                {(asked ? FOLLOWUPS : [t("물 보면서 쉬고 싶어요"), ...FOLLOWUPS]).map((prompt) => t(prompt)).map(
                   (prompt) => (
                     <button
                       type="button"
@@ -668,11 +648,11 @@ export function RecommendDesktop() {
             </div>
             <div className="rd-answer">
               <AiSuggestion
-                headline={`대화 ${asked}턴 · ${listHeadline}`}
+                headline={t("대화 {count}턴 · {headline}", { count: asked, headline: listHeadline })}
                 basis={
                   recommendation
-                    ? `조회 ${timeLabel(recommendation.queried_at)} KST · 상태 ${dataStatusText(recommendation.status)} · ${recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`
-                    : "아직 서버 조회 결과가 없습니다. 조건을 보내면 실제 장소를 조회합니다."
+                    ? t("조회 {time} KST · 상태 {status} · {preferences}", { time: timeLabel(recommendation.queried_at), status: dataStatusText(recommendation.status), preferences: recommendation.request.preferred_tags.map((tag) => t(tag)).join(" · ") || t("선택 취향 없음") })
+                    : t("아직 서버 조회 결과가 없습니다. 조건을 보내면 실제 장소를 조회합니다.")
                 }
               />
               <div className="rd-bubbles">
@@ -687,7 +667,7 @@ export function RecommendDesktop() {
                   </div>
                 ))}
                 {action.busy && (
-                  <div className="rd-bubble">답변을 조회하고 있습니다…</div>
+                  <div className="rd-bubble">{t("답변을 조회하고 있습니다…")}</div>
                 )}
               </div>
               <ModelTraceButton
@@ -701,26 +681,22 @@ export function RecommendDesktop() {
                 />
               )}
               <p className="rd-note">
-                AI 문장은 서버가 조회한 근거로만 만들어집니다. 안전 판단에는 쓸 수
-                없습니다.
-              </p>
+                {t("AI 문장은 서버가 조회한 근거로만 만들어집니다. 안전 판단에는 쓸 수 없습니다.")}</p>
             </div>
           </SplitBody>
           <div className="rd-row-foot">
             <span className="rd-note">
               {recommendation?.clarification ??
-                "대화는 이 화면 안에서 같은 취향 조건을 그대로 이어 갑니다."}
+                t("대화는 이 화면 안에서 같은 취향 조건을 그대로 이어 갑니다.")}
             </span>
             <button
               type="button"
               className="pd-dk-button is-quiet"
               onClick={startOver}
             >
-              ← 취향 다시 고르기
-            </button>
+              {t("← 취향 다시 고르기")}</button>
             <button type="button" className="pd-dk-button rd-remake" onClick={requestList}>
-              이 조건으로 후보 찾기
-            </button>
+              {t("이 조건으로 후보 찾기")}</button>
             {Boolean(
               recommendation?.recommendations.length || savedStops.length,
             ) && (
@@ -729,8 +705,7 @@ export function RecommendDesktop() {
                 className="pd-dk-button rd-remake"
                 onClick={() => setStep("course")}
               >
-                후보와 경로 보기 →
-              </button>
+                {t("후보와 경로 보기 →")}</button>
             )}
           </div>
         </LabelRow>
@@ -739,10 +714,10 @@ export function RecommendDesktop() {
       {step === "course" && (
         <>
           <LabelRow
-            kick="후보와 경로"
+            kick={t("후보와 경로")}
             title={
               calculated
-                ? `방문 ${items.length}곳 · ${calculated.travel_minutes}분 이동`
+                ? t("방문 {count}곳 · {minutes}분 이동", { count: items.length, minutes: calculated.travel_minutes })
                 : listHeadline
             }
             chip={
@@ -754,7 +729,7 @@ export function RecommendDesktop() {
                 }
               />
             }
-            desc="활동 조건 점수는 장소별 근거와 활동 지원 여부에 따라 달라지며 안전 판정이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다."
+            desc={t("활동 조건 점수는 장소별 근거와 활동 지원 여부에 따라 달라지며 안전 판정이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다.")}
           >
             {recommendation?.recommendations.length || savedStops.length ? (
               <>
@@ -764,7 +739,7 @@ export function RecommendDesktop() {
                         key: `${item.spot_id}:${index}`,
                         no: index + 1,
                         name: item.name,
-                        when: `${timeLabel(item.arrival_at)} 도착 · ${timeLabel(item.departure_at)} 출발 · ${calculated.legs[index] ? `${calculated.legs[index].duration_minutes}분 이동` : "이동시간 –"}`,
+                        when: t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at), minutes: calculated.legs[index] ? t("{minutes}분 이동", { minutes: calculated.legs[index].duration_minutes }) : t("이동시간 –") }),
                         link: kakaoRouteLink(
                           index === 0 ? calculated.origin : items[index - 1],
                           [item],
@@ -775,7 +750,7 @@ export function RecommendDesktop() {
                         key: String(item.spot_id),
                         no: item.rank,
                         name: item.name,
-                        when: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
+                        when: t("{region} · {activities}", { region: (item?.region ?? t("지역 미확인")), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
                         link: null,
                       }))
                     : // 저장된 코스의 정차지. 시각이 있으면 함께 적습니다.
@@ -784,8 +759,8 @@ export function RecommendDesktop() {
                         no: index + 1,
                         name: stop.name,
                         when: stop.arrival_at
-                          ? `${timeLabel(stop.arrival_at)} 도착`
-                          : "시각 미정",
+                          ? t("{arrival} 도착", { arrival: timeLabel(stop.arrival_at) })
+                          : t("시각 미정"),
                         link: null,
                       }))
                   ).map((step) => (
@@ -802,11 +777,10 @@ export function RecommendDesktop() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          이 구간 길찾기
-                        </a>
+                          {t("이 구간 길찾기")}</a>
                       ) : (
                         <span className="rd-step-link is-empty">
-                          {calculated ? "좌표 –" : "경로 계산 전"}
+                          {calculated ? t("좌표 –") : t("경로 계산 전")}
                         </span>
                       )}
                     </div>
@@ -814,17 +788,17 @@ export function RecommendDesktop() {
                 </div>
                 {session.route && !session.route.route_calculated && (
                   <p className="rd-note">
-                    경로 미계산:{" "}
+                    {t("경로 미계산:")}{" "}
                     {routeReasonsText(session.route.reason_codes) ||
-                      "경로 계산 조건을 확인해 주세요."}
+                      t("경로 계산 조건을 확인해 주세요.")}
                   </p>
                 )}
                 {calculated && (
                   <p className="rd-note">
                     {session.route?.optimality ===
                     "provisional_missing_comparison_evidence"
-                      ? "일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다."
-                      : "선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다."}{" "}
+                      ? t("일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다.")
+                      : t("선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다.")}{" "}
                     {routeReasonsText(session.route?.reason_codes ?? [])}
                   </p>
                 )}
@@ -837,7 +811,7 @@ export function RecommendDesktop() {
                   }
                   disabled={mutationBusy}
                   submitLabel={
-                    calculated ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
+                    calculated ? t("조건을 바꿔 다시 계산") : t("이 후보로 경로 계산")
                   }
                   onSubmit={(value) => { clearSavedNotice(); requestRoute(value); }}
                 />
@@ -847,27 +821,23 @@ export function RecommendDesktop() {
                     className="pd-dk-button is-quiet"
                     onClick={() => setStep("chat")}
                   >
-                    ← 대화로 좁히기
-                  </button>
+                    {t("← 대화로 좁히기")}</button>
                   <button
                     type="button"
                     className="pd-dk-button"
                     disabled={mutationBusy || !session.planInput}
                     onClick={save}
                   >
-                    {session.plan ? "이 코스 다시 저장" : "내 코스에 저장"}
+                    {session.plan ? t("이 코스 다시 저장") : t("내 코스에 저장")}
                   </button>
                   <button type="button" className="pd-dk-button rd-remake" onClick={requestList}>
-              이 조건으로 후보 찾기
-            </button>
+              {t("이 조건으로 후보 찾기")}</button>
                   {session.plan && (
                     <a className="pd-dk-button is-quiet" href="#my-courses">
-                      저장한 코스 보기 →
-                    </a>
+                      {t("저장한 코스 보기 →")}</a>
                   )}
                   <a className="pd-dk-button is-quiet" href="#map?view=course">
-                    지도 탭에서 보기 →
-                  </a>
+                    {t("지도 탭에서 보기 →")}</a>
                   {wholeTrip && (
                     <a
                       className="pd-dk-button"
@@ -875,8 +845,7 @@ export function RecommendDesktop() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      카카오맵에서 순서대로 길찾기 →
-                    </a>
+                      {t("카카오맵에서 순서대로 길찾기 →")}</a>
                   )}
                 </div>
                 {/* 저장 결과. 후보가 있는 동안에는 아래 빈 상태 문단이 그려지지
@@ -888,8 +857,8 @@ export function RecommendDesktop() {
                 {(error || (savedPlanId && session.plan?.plan_id === savedPlanId) || (requestedPlan.data && requestedPlan.data === session.plan)) && (
                   <p className="rd-note" role={error ? "alert" : "status"}>
                     {error || (savedPlanId && session.plan?.plan_id === savedPlanId
-                      ? "내 코스에 저장했습니다. 이 주소(plan_id)로 다시 열 수 있습니다."
-                      : "저장된 코스를 불러왔습니다. 조건을 바꾸면 다시 저장할 수 있습니다.")}
+                      ? t("내 코스에 저장했습니다. 이 주소(plan_id)로 다시 열 수 있습니다.")
+                      : t("저장된 코스를 불러왔습니다. 조건을 바꾸면 다시 저장할 수 있습니다."))}
                   </p>
                 )}
               </>
@@ -897,9 +866,9 @@ export function RecommendDesktop() {
               <>
                 <p className="rd-note" role={error ? "alert" : "status"}>
                   {error ||
-                    (candidateAction.busy ? "후보를 조회하고 있습니다…" : "") ||
+                    (candidateAction.busy ? t("후보를 조회하고 있습니다…") : "") ||
                     recommendation?.clarification ||
-                    "아직 후보가 없습니다. 취향을 고르거나 대화로 알려 주세요."}
+                    t("아직 후보가 없습니다. 취향을 고르거나 대화로 알려 주세요.")}
                 </p>
                 <div className="rd-row-foot">
                   <span className="rd-note" />
@@ -908,27 +877,25 @@ export function RecommendDesktop() {
                     className="pd-dk-button is-quiet"
                     onClick={startOver}
                   >
-                    ← 취향 다시 고르기
-                  </button>
+                    {t("← 취향 다시 고르기")}</button>
                   <button
                     type="button"
                     className="pd-dk-button rd-remake"
                     disabled={action.busy}
                     onClick={requestList}
                   >
-                    이 조건으로 후보 찾기
-                  </button>
+                    {t("이 조건으로 후보 찾기")}</button>
                 </div>
               </>
             )}
           </LabelRow>
 
           <LabelRow
-            kick="지도"
+            kick={t("지도")}
             title={
-              calculated ? `경로 ${paths.length}구간` : `후보 ${markers.length}곳`
+              calculated ? t("경로 {count}구간", { count: paths.length }) : t("후보 {count}곳", { count: markers.length })
             }
-            desc="좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다."
+            desc={t("좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다.")}
           >
             <div className="rd-map">
               {markers.length ? (
@@ -938,7 +905,7 @@ export function RecommendDesktop() {
                   selectedId={null}
                   renderMarker={(id) => {
                     if (id === "origin")
-                      return <span className="rd-pin is-origin">출발</span>;
+                      return <span className="rd-pin is-origin">{t("출발")}</span>;
                     const index = ordered.findIndex(
                       (place) => place.id === Number(id),
                     );
@@ -949,9 +916,7 @@ export function RecommendDesktop() {
                 />
               ) : (
                 <p className="rd-note">
-                  지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해
-                  주세요.
-                </p>
+                  {t("지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해 주세요.")}</p>
               )}
             </div>
             <div className="rd-legend">
@@ -963,13 +928,12 @@ export function RecommendDesktop() {
               ))}
               {unmappable > 0 && (
                 <span className="rd-note rd-legend-note">
-                  좌표가 없는 {unmappable}곳은 지도에 찍지 않습니다.
+                  {t("좌표가 없는 {count}곳은 지도에 찍지 않습니다.", { count: unmappable })}
                 </span>
               )}
               {calculated && paths.length < calculated.legs.length && (
                 <span className="rd-note rd-legend-note">
-                  도로 선을 받은 구간 {paths.length}/{calculated.legs.length}개만
-                  그립니다.
+                  {t("도로 선을 받은 구간 {count}/{total}개만 그립니다.", { count: paths.length, total: calculated.legs.length })}
                 </span>
               )}
             </div>
@@ -978,8 +942,8 @@ export function RecommendDesktop() {
       )}
 
       <FootNote
-        missing="편의시설 · 대중교통 경로 · 코스 공유"
-        note="후보 순서는 취향 일치 기준이고, 경로 시각은 출발 기준 교통 자료의 예상값입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다. 값이 없으면 «–» 로 두며 0 이나 안전으로 치환하지 않습니다."
+        missing={t("편의시설 · 대중교통 경로 · 코스 공유")}
+        note={t("후보 순서는 취향 일치 기준이고, 경로 시각은 출발 기준 교통 자료의 예상값입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다. 값이 없으면 «–» 로 두며 0 이나 안전으로 치환하지 않습니다.")}
       />
     </DesktopShell>
   );

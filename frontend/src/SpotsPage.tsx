@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { AppHeader, AppShell } from "./AppShell";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -32,10 +33,10 @@ import "./spotsPage.css";
 /** 서버가 유도하는 분류는 beach · valley 둘뿐입니다(place_kind). 예전의 다섯
  *  갈래(해변 · 온천 · 카페 · 문화 · 서핑)는 서버에 대응하는 값이 없어, 고르면
  *  아무 일도 일어나지 않는 칩이었습니다. */
-const MAP_FILTERS: { key: string; label: string }[] = [
+const MAP_FILTERS = [
   { key: "beach", label: "해변" },
   { key: "valley", label: "계곡" },
-];
+] as const;
 
 const KIND_LABEL: Record<string, string> = {
   beach: "해변",
@@ -48,7 +49,7 @@ function SourceChips({ live }: { live: boolean }) {
   return (
     <div className="sp-source">
       <StateChip kind={live ? "live" : "no_data"} />
-      <span className="sp-source-note">리뷰 평점은 쓰지 않습니다</span>
+      <span className="sp-source-note">{t("리뷰 평점은 쓰지 않습니다")}</span>
     </div>
   );
 }
@@ -63,34 +64,30 @@ function ListHero({
   return (
     <header className="pd-hero">
       <AppHeader
-        title="명소"
+        title={t("명소")}
         time={timeLabel(new Date().toISOString())}
         onCobalt
       />
       <div className="sp-hero-inner">
         <div className="pd-lbl sp-hero-kick">
-          <Icon name="pin" size={12} />
-          강릉 · 수집된 물놀이 장소
-        </div>
+          <Icon name="pin" size={12} />{t("강릉 · 수집된 물놀이 장소")}</div>
         <div className="sp-hero-row">
           <div>
-            <h1 className="sp-hero-title">강릉 명소</h1>
+            <h1 className="sp-hero-title">{t("강릉 명소")}</h1>
             <div className="sp-hero-sub">
               {/* 예전에는 여기가 «128곳» 이었습니다. 실제 목록은 5건이었고
                   128 은 근거 없는 숫자였습니다. */}
-              목록{" "}
               {loading ? (
-                <Skeleton width="2em" glass label="장소 조회 중" />
+                <Skeleton width="2em" glass label={t("장소 조회 중")} />
               ) : (
-                <b className="pd-num">{total}</b>
+                <b className="pd-num">{t("목록 {count}곳", { count: total })}</b>
               )}
-              곳
             </div>
           </div>
           <img
             className="pd-hero-mascot"
             src={mascotUrl("spot")}
-            alt={MASCOT_ALT}
+            alt={t(MASCOT_ALT)}
             width={66}
             height={66}
           />
@@ -117,14 +114,14 @@ function ListSearch({
           value={search}
           onChange={(event) => onSearch(event.target.value)}
           maxLength={100}
-          placeholder="장소명 · 지역 검색"
-          aria-label="장소명·지역 검색"
+          placeholder={t("장소명 · 지역 검색")}
+          aria-label={t("장소명·지역 검색")}
         />
       </label>
       {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는 채
           비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는 고를
           것이 없습니다. 순서를 말로 적습니다(spotsRoute.sortPlaces). */}
-      <span className="sp-search-order">이름순</span>
+      <span className="sp-search-order">{t("이름순")}</span>
     </div>
   );
 }
@@ -132,19 +129,19 @@ function ListSearch({
 function SpotRow({ place }: { place: Place }) {
   return (
     <div className="sp-row">
-      <a className="place-photo-link" href={spotLink(place)} aria-label={`${place.name} 상세`}>
+      <a className="place-photo-link" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })}>
         <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} />
       </a>
       <span className="sp-row-body">
         <span className="sp-row-head">
           <a className="sp-row-name place-photo-link" href={spotLink(place)}>{place.name}</a>
-          <span className="sp-row-category">{kindLabel(place)}</span>
+          <span className="sp-row-category">{t(kindLabel(place))}</span>
         </span>
         {/* 점수는 고른 장소만 조회합니다. 목록 전체에 붙이려면 장소마다 한
             번씩, 100건이면 100번을 부르게 됩니다. 그래서 여기서는 점수를
             약속하지 않고 무엇을 눌러야 보이는지만 밝힙니다. */}
-        <span className="sp-row-where">{place.region ?? "지역 미확인"}</span>
-        <span className="sp-row-address">{place.address ?? "주소 없음"}</span>
+        <span className="sp-row-where">{(place?.region ?? t("지역 미확인"))}</span>
+        <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
         <PlacePhotoCredit photo={place.photo} />
       </span>
     </div>
@@ -162,6 +159,7 @@ function SpotsList() {
         hero={<ListHero total={places.total} loading={places.loading} />}
       >
         <ListSearch search={search} onSearch={setSearch} />
+
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
           {rows.map((place) => (
@@ -170,30 +168,17 @@ function SpotsList() {
           {!rows.length && (
             <p className="pd-note" role={places.error ? "alert" : "status"}>
               {places.error ??
-                (places.loading ? "장소를 조회하고 있습니다." : "검색 결과 없음")}
+                (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
             </p>
           )}
-          {/* 예전에는 「아래로 계속 불러옵니다 · 20개 단위」라고 적혀 있었지만
-              무한 스크롤은 구현돼 있지 않습니다. 없는 동작을 있다고 적지
-              않습니다. 서버가 100건에서 자르는 것은 사실이므로 밝힙니다. */}
-          {rows.length > 0 && (
-            <p className="pd-note sp-list-more">
-              목록 {rows.length}곳 전체입니다 · 서버가 한 번에 최대 100곳까지
-              내려줍니다
-            </p>
-          )}
+          {rows.length > 0 && <p className="pd-note sp-list-more">{t("목록 {count}곳 전체입니다 · 서버가 한 번에 최대 100곳까지 내려줍니다", { count: rows.length })}</p>}
         </div>
         <a className="pd-secondary sp-map-link" href="#spots?view=map">
-          <Icon name="pin" size={15} />
-          지도에서 보기 →
-        </a>
+          <Icon name="pin" size={15} />{t("지도에서 보기 →")}</a>
         {/* 「값이 없으면 –…」 같은 전역 규칙은 화면 바닥의 AppFootNote 가 한 번
             말합니다. 여기는 이 목록에만 해당하는 것을 남깁니다. */}
         <p className="pd-note">
-          장소를 고르면 그곳의 <b>퐁당 점수</b>를 조회합니다. 목록에 점수를 함께
-          싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영
-          시간 · 소개는 아직 내려주는 API 가 없어 비워 둡니다. 대표 사진은
-          수집된 사진이 있는 장소에 표시합니다.
+          {t("장소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 함께 싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영 시간 · 소개는 아직 내려주는 API 가 없어 비워 둡니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.")}
         </p>
       </AppShell>
     </article>
@@ -202,13 +187,9 @@ function SpotsList() {
 
 function SpotsMap() {
   const [kind, setKind] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const places = useWaterPlaces("");
-  const visible = useMemo(
-    () =>
-      (places.rows ?? []).filter((place) => !kind || place.type === kind),
-    [places.rows, kind],
-  );
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const visible = useMemo(() => (places.rows ?? []).filter((place) => !kind || place.type === kind), [places.rows, kind]);
   const pinned = useMemo(() => mappablePlaces(visible), [visible]);
   const markers = useMemo(
     () =>
@@ -229,8 +210,8 @@ function SpotsMap() {
       {/* 헤더는 지도 위(.sp-stage)에 얹으므로 셸이 따로 그리지 않습니다. */}
       <AppShell tab="spots" bare hero={null}>
         <div className="sp-stage">
-          <AppHeader title="명소 지도" time={timeLabel(new Date().toISOString())} />
-          <div className="sp-filters" role="group" aria-label="분류 필터">
+          <AppHeader title={t("명소 지도")} time={timeLabel(new Date().toISOString())} />
+          <div className="sp-filters" role="group" aria-label={t("분류 필터")}>
             {MAP_FILTERS.map((item) => (
               <button
                 key={item.key}
@@ -239,14 +220,15 @@ function SpotsMap() {
                   "sp-filter pd-tap" + (item.key === kind ? " is-on" : "")
                 }
                 aria-pressed={item.key === kind}
-                onClick={() => setKind(kind === item.key ? null : item.key)}
+                onClick={() => {
+                  setKind(kind === item.key ? null : item.key);
+                  setSelectedId(null);
+                }}
               >
-                {item.label}
+                {t(item.label)}
               </button>
             ))}
-            <a className="sp-filter is-link pd-tap" href="#spots">
-              목록
-            </a>
+            <a className="sp-filter is-link pd-tap" href="#spots">{t("목록")}</a>
           </div>
           <KakaoMapCanvas
             markers={markers}
@@ -262,7 +244,7 @@ function SpotsMap() {
                   type="button"
                   className={"sp-pin" + (selected ? " is-selected" : "")}
                   aria-pressed={selected}
-                  aria-label={`${place.name} 퐁당 ${score ?? "–"} ${grade.label}`}
+                  aria-label={t("{name} 퐁당 {score} {grade}", { name: place.name, score: score ?? "–", grade: t(grade.label) })}
                   onClick={() => setSelectedId(place.id)}
                 >
                   <span className="sp-pin-core" data-grade={grade.key}>
@@ -275,12 +257,13 @@ function SpotsMap() {
           />
         </div>
         <div className="pd-body sp-sheet">
+
           <div className="pd-card">
             {/* 드래그 핸들 모양의 막대가 있었는데 시트는 드래그되지 않습니다.
                 할 수 없는 조작을 모양으로 약속하지 않습니다. */}
             <div className="sp-sheet-head">
-              <b>지도에 보이는 명소 {pinned.length}곳</b>
-              <span className="sp-sheet-sort">이름순</span>
+              <b>{t("지도에 보이는 명소 {count}곳", { count: pinned.length })}</b>
+              <span className="sp-sheet-sort">{t("이름순")}</span>
             </div>
             <div className="sp-sheet-list">
               {sortPlaces(pinned.map(({ place }) => place)).map((place) => {
@@ -301,21 +284,19 @@ function SpotsMap() {
                     <span className="sp-sheet-body">
                       <b>{place.name}</b>
                       <span className="sp-sheet-meta">
-                        {kindLabel(place)} · {place.region ?? "지역 미확인"}
+                        {t(kindLabel(place))} · {(place?.region ?? t("지역 미확인"))}
                       </span>
                     </span>
-                    <span className="sp-sheet-grade">{grade.label}</span>
+                    <span className="sp-sheet-grade">{t(grade.label)}</span>
                   </a>
                 );
               })}
             </div>
+            {visible.length > 0 && <p className="pd-note sp-list-more">{t("목록 {count}곳 전체입니다 · 서버가 한 번에 최대 100곳까지 내려줍니다", { count: visible.length })}</p>}
           </div>
           <p className="pd-note" role={places.error ? "alert" : "status"}>
-            <StateChip kind={places.rows ? "live" : "no_data"} /> 지도 탭과 같은
-            지도 컴포넌트를 쓰고 핀 소스만 명소 목록으로 바꿨습니다. 핀을 고르면
-            그 장소의 점수를 조회하며, 고르기 전에는 –입니다.
-            {unmapped > 0 &&
-              ` 좌표가 아직 확인되지 않은 ${unmapped}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.`}
+            <StateChip kind={places.rows ? "live" : "no_data"} /> {t("지도 탭과 같은 지도 컴포넌트를 쓰고 핀 소스만 명소 목록으로 바꿨습니다. 핀을 고르면 그 장소의 점수를 조회하며, 고르기 전에는 –입니다.")}{unmapped > 0 &&
+              t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
             {places.error && ` ${places.error}`}
           </p>
         </div>

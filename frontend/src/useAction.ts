@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "./i18n";
 export function useAction({ replace = false }: { replace?: boolean } = {}) {
+  const { t } = useI18n();
   const current = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -39,5 +41,5 @@ export function useAction({ replace = false }: { replace?: boolean } = {}) {
       }
     }
   }
-  return { busy, error, run, cancel };
+  return { busy, error: t(error), run, cancel };
 }

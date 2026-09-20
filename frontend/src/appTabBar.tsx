@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { Icon } from "./pongdangUi";
 import "./appTabBar.css";
@@ -19,7 +20,7 @@ export function AppTabBar({
 }) {
   return (
     <div className={"pd-tabbar-slot" + (floating ? " is-floating" : "")}>
-      <nav className="pd-tabbar" aria-label="주요 탭">
+      <nav className="pd-tabbar" aria-label={t("주요 탭")}>
         {NAV_ITEMS.map((tab) => (
           <a
             key={tab.key}
@@ -28,7 +29,7 @@ export function AppTabBar({
             aria-current={tab.key === active ? "page" : undefined}
           >
             <Icon name={tab.icon} size={18} />
-            <span className="pd-tab-label">{tab.label}</span>
+            <span className="pd-tab-label">{t(tab.label)}</span>
           </a>
         ))}
       </nav>

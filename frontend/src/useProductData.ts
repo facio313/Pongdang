@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
@@ -54,8 +55,8 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     : undefined;
   const displayName = catalog.data?.display_name ?? "강릉 경포대 해수욕장";
   const selectionMessage = catalog.error ?? (catalog.loading
-    ? "기본 해수욕장의 수집 자료를 확인하고 있습니다."
-    : catalog.data?.message ?? "기본 해수욕장을 조회하지 못했습니다.");
+    ? t("기본 해수욕장의 수집 자료를 확인하고 있습니다.")
+    : t(catalog.data?.message ?? "기본 해수욕장을 조회하지 못했습니다."));
   // 훅은 조건부로 부를 수 없으므로 두 쪽을 모두 부르되, 쓰지 않는 쪽은
   // enabled: false 로 끕니다. 호출 수는 그대로여도 조회 횟수는 고른 모드만큼
   // 입니다 -- 홈이 여섯 활동을 보느라 오늘 탭까지 더 조회하게 만들지 않으려는

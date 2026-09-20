@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { CoursesDesktop } from "./CoursesDesktop";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -9,7 +10,7 @@ import { gradeOf } from "./groupAGrade";
 import { GradeChip, GradeIcon, Icon, StateChip } from "./pongdangUi";
 import { AppFootNote, AppHeader, AppShell } from "./AppShell";
 import { useResource } from "./useResource";
-import { planItems, type TripPlan } from "./travelApi";
+import { planItems, unknownConditionsText, type TripPlan } from "./travelApi";
 import type { Activity } from "./aiApi";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { setTravelSession } from "./travelSession";
@@ -46,8 +47,8 @@ function PlanStopScore({ id, name, at, activity }: { id: number; name: string; a
   const conditions = useResource<Conditions>(valid ? conditionPath(id, activity, at) : null);
   return (
     <details className="pd-note">
-      <summary>{name} · 장소별 조건 {conditionScore(conditions.data) ?? "–"}점</summary>
-      <p>{at} · 저장 일정 시각의 예보입니다. {valid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
+      <summary>{t("{name} · 장소별 조건 {score}점", { name, score: conditionScore(conditions.data) ?? "–" })}</summary>
+      <p>{t("{at} · 저장 일정 시각의 예보입니다.", { at })} {valid ? conditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.")}</p>
       <ConditionScoreDetails data={conditions.data} />
     </details>
   );
@@ -69,8 +70,8 @@ function MyCoursesScreen() {
   const courses = (plans.data?.rows ?? []).map((plan) => ({
     id: plan.plan_id!,
     name: plan.request.dates[0]
-      ? `${plan.request.dates[0]} 물 코스`
-      : "저장 코스",
+      ? t("{date} 물 코스", { date: plan.request.dates[0] })
+      : t("저장 코스"),
     parts: planItems(plan)
       .map((item) => item.name)
       .join(" · "),
@@ -179,7 +180,7 @@ function MyCoursesScreen() {
                 공용 .pd-hero 규칙을 그대로 쓰고 자리만 지도 위로 옮깁니다. */}
             <header className="pd-hero mc-topbar">
               <AppHeader
-                title="내 코스"
+                title={t("내 코스")}
                 time={timeLabel(new Date().toISOString())}
                 onCobalt
               />
@@ -194,11 +195,11 @@ function MyCoursesScreen() {
                 role={places.error ? "alert" : "status"}
               >
                 {!selected
-                  ? "코스를 고르면 정차지를 지도에 찍습니다."
+                  ? t("코스를 고르면 정차지를 지도에 찍습니다.")
                   : (places.error ??
                     (places.loading
-                      ? "정차지 좌표를 조회하고 있습니다."
-                      : "이 코스의 정차지는 등록 좌표가 없어 지도에 찍지 않았습니다."))}
+                      ? t("정차지 좌표를 조회하고 있습니다.")
+                      : t("이 코스의 정차지는 등록 좌표가 없어 지도에 찍지 않았습니다.")))}
               </p>
             )}
           </div>
@@ -209,10 +210,10 @@ function MyCoursesScreen() {
             selected
               ? selected.name
               : plans.error
-                ? "저장 코스 개수 미확인"
+                ? t("저장 코스 개수 미확인")
                 : plans.loading
-                  ? "저장 코스 조회 중"
-                  : `저장 ${courses.length}개`
+                  ? t("저장 코스 조회 중")
+                  : t("저장 {count}개", { count: courses.length })
           }
           expanded={expanded}
           onToggle={() => setExpanded((value) => !value)}
@@ -224,15 +225,15 @@ function MyCoursesScreen() {
           >
             {plans.data ? <StateChip kind="live" /> : (
               <span className="pd-state-chip">
-                {plans.error ? "조회 실패" : "조회 중"}
+                {plans.error ? t("조회 실패") : t("조회 중")}
               </span>
             )}{" "}
             {plans.error ??
               (plans.loading
-                ? "저장 코스를 불러오는 중입니다."
+                ? t("저장 코스를 불러오는 중입니다.")
                 : courses.length
-                  ? `저장 코스 ${courses.length}개 · 최대 100개`
-                  : "아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.")}{" "}
+                  ? t("저장 코스 {count}개 · 최대 100개", { count: courses.length })
+                  : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}{" "}
             {sessions.error} {share.error}
           </p>
           {courses.map((course) => {
@@ -271,14 +272,14 @@ function MyCoursesScreen() {
                   <span className="mc-row-meta">
                     {isSelected && <GradeIcon gradeKey={grade.key} size={12} />}
                     <span>
-                      {isSelected ? `첫 장소 참고 · ${grade.label}` : "선택하면 점수 조회"} · {course.parts} · {course.date ?? "날짜 –"}
+                      {isSelected ? t("첫 장소 참고 · {grade}", { grade: t(grade.label) }) : t("선택하면 점수 조회")} · {course.parts} · {course.date ?? t("날짜 –")}
                     </span>
                   </span>
                 </span>
                 <span
                   className={"mc-alarm-chip" + (course.alarm ? "" : " is-off")}
                 >
-                  {course.alarm ? "동행 알림 켬" : "동행 알림 꺼짐"}
+                  {course.alarm ? t("동행 알림 켬") : t("동행 알림 꺼짐")}
                 </span>
               </button>
             );
@@ -288,30 +289,27 @@ function MyCoursesScreen() {
             <div className="pd-card">
               <div className="pd-card-title">{selected.name}</div>
               <dl className="mc-detail-list">
-                <dt>첫 장소 참고점수</dt>
+                <dt>{t("첫 장소 참고점수")}</dt>
                 <dd>
                   <GradeChip score={selectedScore} />
                 </dd>
-                <dt>구성</dt>
+                <dt>{t("구성")}</dt>
                 <dd>{selected.parts}</dd>
-                <dt>날짜</dt>
+                <dt>{t("날짜")}</dt>
                 <dd>{selected.date ?? "–"}</dd>
-                <dt>알림</dt>
+                <dt>{t("알림")}</dt>
                 <dd>
                   {selected.alarm
-                    ? "동행 세션에서 켜짐"
-                    : "시작된 동행 알림 없음"}
+                    ? t("동행 세션에서 켜짐")
+                    : t("시작된 동행 알림 없음")}
                 </dd>
               </dl>
               <p className="pd-note">
-                <StateChip kind="live" /> 상태: {selected.plan.status} · 경로:{" "}
-                {dataStatusText(selected.plan.route_status)}. 미확인 조건:{" "}
-                {selected.plan.unresolved.join(" · ") || "없음"}. 종합 안전
-                점수는 제공하지 않습니다.
+                <StateChip kind="live" /> {t("상태: {status} · 경로: {route}. 미확인 조건: {unresolved}. 종합 안전 점수는 제공하지 않습니다.", { status: dataStatusText(selected.plan.status), route: dataStatusText(selected.plan.route_status), unresolved: unknownConditionsText(selected.plan.unresolved) || t("없음") })}
               </p>
               <p className="pd-note">
-                {first?.name ?? "첫 장소 없음"} · {first?.at ?? "일정 시각 없음"}.{" "}
-                {firstTargetValid ? selectedConditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다."}
+                {first?.name ?? t("첫 장소 없음")} · {first?.at ?? t("일정 시각 없음")}.{" "}
+                {firstTargetValid ? selectedConditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.")}
               </p>
               {/* 정차지마다 점수를 묻지 않습니다. 아래 펼침은 눌렀을 때만
                   조회합니다. */}
@@ -327,14 +325,12 @@ function MyCoursesScreen() {
                   onClick={() =>
                     void share.run(async () => {
                       await navigator.clipboard.writeText(
-                        `${selected.name}\n${selected.parts}\n${selected.date ?? "날짜 없음"}`,
+                        `${selected.name}\n${selected.parts}\n${selected.date ?? t("날짜 없음")}`,
                       );
                     })
                   }
                 >
-                  <Icon name="share" size={16} />
-                  요약 복사
-                </button>
+                  <Icon name="share" size={16} />{t("요약 복사")}</button>
                 <a
                   className="pd-primary mc-action"
                   href={`#recommend?plan_id=${selected.id}`}
@@ -350,9 +346,7 @@ function MyCoursesScreen() {
                     })
                   }
                 >
-                  <Icon name="course" size={16} />
-                  코스 상세 열기
-                </a>
+                  <Icon name="course" size={16} />{t("코스 상세 열기")}</a>
               </div>
             </div>
           )}
@@ -360,14 +354,14 @@ function MyCoursesScreen() {
           {TODO_SCREENS.map((item) => (
             <div className="pd-slot mc-slot" key={item.title}>
               <div>
-                <b>{item.title}</b>
+                <b>{t(item.title)}</b>
                 <br />
-                {item.detail}
+                {t(item.detail)}
                 <br />
                 {"href" in item ? (
-                  <a href={item.href}>내 기록 열기 →</a>
+                  <a href={item.href}>{t("내 기록 열기 →")}</a>
                 ) : (
-                  "저장 코스의 요약 복사를 이용하세요"
+                  t("저장 코스의 요약 복사를 이용하세요")
                 )}
               </div>
             </div>

@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { Fragment, useContext, useState } from "react";
 import type { Cell, Column, Dataset, Row, RowsResult, Summary } from "./data";
 import { categories, text, number, date, labels } from "./data";
@@ -16,13 +17,13 @@ function CellValue({
 }) {
   if (value === null || value === undefined)
     return (
-      <span className="null-value" title="저장된 값 없음">
+      <span className="null-value" title={t("저장된 값 없음")}>
         NULL
       </span>
     );
   if (typeof value === "object")
     return <pre>{JSON.stringify(value, null, 2)}</pre>;
-  if (value === "") return <span className="null-value">빈 문자열 ("")</span>;
+  if (value === "") return <span className="null-value">{t("빈 문자열 (\"\")")}</span>;
   const label = codeName(datasetKey, column.key, String(value)) ?? ([
     "state",
     "status",
@@ -35,7 +36,7 @@ function CellValue({
   if (label)
     return (
       <>
-        <span className="status-value">{label}</span>
+        <span className="status-value">{t(label)}</span>
         <small><code>{String(value)}</code></small>
       </>
     );
@@ -45,23 +46,23 @@ function CellValue({
 function RowDetails({ dataset, row }: { dataset: Dataset; row: Row }) {
   return (
     <div className="row-detail-content">
-      <h3>ID {text(row.id)} · 전체 필드 상세</h3>
+      <h3>{t("ID {id} · 전체 필드 상세", { id: text(row.id) })}</h3>
       <table
         className="detail-table"
-        aria-label={dataset.title + " ID " + text(row.id) + " 상세"}
+        aria-label={t("{dataset} ID {id} 상세", { dataset: t(dataset.title), id: text(row.id) })}
       >
         <thead>
           <tr>
-            <th>필드 · 타입</th>
-            <th>표시값 / 설명</th>
-            <th>DB 원본값</th>
+            <th>{t("필드 · 타입")}</th>
+            <th>{t("표시값 / 설명")}</th>
+            <th>{t("DB 원본값")}</th>
           </tr>
         </thead>
         <tbody>
           {dataset.columns.map((column) => (
             <tr key={column.key}>
               <th scope="row">
-                {column.label}
+                {t(column.label)}
                 <br />
                 <code>{column.key}</code>
                 <br />
@@ -152,19 +153,18 @@ function DatasetTable({
     <section
       className="dataset-section"
       id={"dataset-" + dataset.key}
-      aria-label={dataset.title + " 데이터"}
+      aria-label={t("{dataset} 데이터", { dataset: t(dataset.title) })}
     >
       <div className="dataset-title">
-        <h2>{dataset.title}</h2>
+        <h2>{t(dataset.title)}</h2>
         <code>{dataset.table}</code>
-        <span>{categories[dataset.category]}</span>
+        <span>{t(categories[dataset.category] ?? dataset.category)}</span>
       </div>
-      <p>{dataset.description}</p>
+      <p>{t(dataset.description)}</p>
       <p className="table-note">
-        출처: {dataset.source} · NULL = 값 없음 · 상태와 유효 기간은 저장 당시
-        기준입니다.
+        {t("출처: {source} · NULL = 값 없음 · 상태와 유효 기간은 저장 당시 기준입니다.", { source: t(dataset.source) })}
         {dataset.columns.some((column) => isCodeField(dataset.key, column.key)) &&
-          " 코드 필드는 한글 코드명과 DB 원본 코드를 함께 표시합니다. 검색·필터는 원본 코드 기준이며, 미등록 코드는 뜻을 추정하지 않습니다."}
+          t(" 코드 필드는 코드명과 DB 원본 코드를 함께 표시합니다. 검색·필터는 원본 코드 기준이며, 미등록 코드는 뜻을 추정하지 않습니다.")}
       </p>
       <form
         className="toolbar"
@@ -177,71 +177,61 @@ function DatasetTable({
       >
         <input
           type="search"
-          aria-label="데이터 검색"
+          aria-label={t("데이터 검색")}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={
             dataset.search.length
-              ? "이름·출처·상태 검색"
-              : "열 필터를 사용하세요"
+              ? t("이름·출처·상태 검색")
+              : t("열 필터를 사용하세요")
           }
           disabled={!dataset.search.length}
           maxLength={100}
         />
         <select
-          aria-label="필터 열"
+          aria-label={t("필터 열")}
           value={filterColumn}
           onChange={(event) => setFilterColumn(event.target.value)}
         >
-          <option value="">열 필터 선택</option>
+          <option value="">{t("열 필터 선택")}</option>
           {dataset.columns
             .filter((column) => column.type !== "json")
             .map((column) => (
               <option key={column.key} value={column.key}>
-                {column.label} ({column.key})
+                {t(column.label)} ({column.key})
               </option>
             ))}
         </select>
         <input
-          aria-label="필터 값"
+          aria-label={t("필터 값")}
           value={filterInput}
           onChange={(event) => setFilterInput(event.target.value)}
           disabled={!filterColumn}
-          placeholder="정확히 일치하는 원본값"
+          placeholder={t("정확히 일치하는 원본값")}
           maxLength={100}
         />
-        <button type="submit">조회</button>
-        <button type="button" onClick={reset}>
-          초기화
-        </button>
+        <button type="submit">{t("조회")}</button>
+        <button type="button" onClick={reset}>{t("초기화")}</button>
         <button
           type="button"
           disabled={result.loading}
           onClick={() => setLocalRevision((value) => value + 1)}
-        >
-          새로고침
-        </button>
+        >{t("새로고침")}</button>
       </form>
       <div className="toolbar">
         <span role="status">
           {result.loading
-            ? "조회 중…"
+            ? t("조회 중…")
             : result.error
-              ? "조회 실패"
-              : "조회 결과 " +
-                number(total) +
-                "건 · 현재 " +
-                (rows.length
-                  ? number((page - 1) * size + 1) +
-                    "–" +
-                    number((page - 1) * size + rows.length)
-                  : "0") +
-                "행"}
+              ? t("조회 실패")
+              : t("조회 결과 {total}건 · 현재 {range}행", { total: number(total), range: rows.length
+                  ? number((page - 1) * size + 1) + "–" + number((page - 1) * size + rows.length)
+                  : "0" })}
         </span>
         <label>
-          페이지당{" "}
+          {t("페이지당 행 수")} {" "}
           <select
-            aria-label="페이지당 행 수"
+            aria-label={t("페이지당 행 수")}
             value={size}
             onChange={(event) => {
               setSize(Number(event.target.value));
@@ -252,16 +242,13 @@ function DatasetTable({
             <option>50</option>
             <option>100</option>
           </select>
-          건
         </label>
         <label>
           <input
             type="checkbox"
             checked={wrap}
             onChange={(event) => setWrap(event.target.checked)}
-          />
-          긴 값 줄바꿈
-        </label>
+          />{t("긴 값 줄바꿈")}</label>
         <button
           disabled={!rows.length || result.loading}
           onClick={() =>
@@ -272,30 +259,26 @@ function DatasetTable({
             )
           }
         >
-          {allExpanded ? "상세 모두 접기" : "현재 페이지 상세 모두 펼치기"}
+          {allExpanded ? t("상세 모두 접기") : t("현재 페이지 상세 모두 펼치기")}
         </button>
       </div>
       <details className="column-picker">
         <summary>
-          표시할 열 ({columns.length}/{dataset.columns.length}) · 기본 전체 표시
+          {t("표시할 열 ({count}/{total}) · 기본 전체 표시", { count: columns.length, total: dataset.columns.length })}
         </summary>
         <div className="toolbar">
           <button
             onClick={() =>
               setVisible(dataset.columns.map((column) => column.key))
             }
-          >
-            전체 열
-          </button>
+          >{t("전체 열")}</button>
           <button
             onClick={() =>
               setVisible(
                 dataset.columns.slice(0, 7).map((column) => column.key),
               )
             }
-          >
-            앞쪽 7개 열
-          </button>
+          >{t("앞쪽 7개 열")}</button>
         </div>
         <div className="column-options">
           {dataset.columns.map((column) => (
@@ -312,30 +295,28 @@ function DatasetTable({
                   )
                 }
               />
-              {column.label} <code>({column.key})</code>
+              {t(column.label)} <code>({column.key})</code>
             </label>
           ))}
         </div>
       </details>
       {result.error ? (
         <div role="alert">
-          <p>데이터를 불러오지 못했습니다. {result.error}</p>
-          <button onClick={() => setLocalRevision((value) => value + 1)}>
-            다시 시도
-          </button>
+          <p>{t("데이터를 불러오지 못했습니다. {error}", { error: result.error })}</p>
+          <button onClick={() => setLocalRevision((value) => value + 1)}>{t("다시 시도")}</button>
         </div>
       ) : (
         <div
           className={"table-scroll data-scroll" + (wrap ? "" : " no-wrap")}
           role="region"
-          aria-label={dataset.title + " 표 · 가로 세로 스크롤"}
+          aria-label={t("{dataset} 표 · 가로 세로 스크롤", { dataset: t(dataset.title) })}
           tabIndex={0}
           aria-busy={result.loading}
         >
           <table className="data-table">
             <thead>
               <tr>
-                <th>상세</th>
+                <th>{t("상세")}</th>
                 {columns.map((column) => (
                   <th
                     key={column.key}
@@ -359,14 +340,14 @@ function DatasetTable({
                         changePage(1);
                       }}
                     >
-                      {column.label}{" "}
+                      {t(column.label)}{" "}
                       {sort === column.key
                         ? direction === "desc"
                           ? "↓"
                           : "↑"
                         : "↕"}
                       <code>{column.key}</code>
-                      {isCodeField(dataset.key, column.key) && <small>코드명 / 원본 코드</small>}
+                      {isCodeField(dataset.key, column.key) && <small>{t("코드명 / 원본 코드")}</small>}
                     </button>
                   </th>
                 ))}
@@ -375,7 +356,7 @@ function DatasetTable({
             <tbody>
               {result.loading ? (
                 <tr>
-                  <td colSpan={columns.length + 1}>조회 중…</td>
+                  <td colSpan={columns.length + 1}>{t("조회 중…")}</td>
                 </tr>
               ) : (
                 rows.map((row) => (
@@ -383,7 +364,7 @@ function DatasetTable({
                     <tr className="record">
                       <td>
                         <button
-                          aria-label={"ID " + text(row.id) + " 행 상세"}
+                          aria-label={t("ID {id} 행 상세", { id: text(row.id) })}
                           aria-expanded={expanded.has(String(row.id))}
                           aria-controls={dataset.key + "-row-" + String(row.id)}
                           onClick={() =>
@@ -396,7 +377,7 @@ function DatasetTable({
                             })
                           }
                         >
-                          {expanded.has(String(row.id)) ? "접기" : "펼치기"}
+                          {expanded.has(String(row.id)) ? t("접기") : t("펼치기")}
                         </button>
                       </td>
                       {columns.map((column) => (
@@ -434,8 +415,8 @@ function DatasetTable({
           {!result.loading && rows.length === 0 && (
             <p className="empty-state">
               {query || filter.value
-                ? "조건에 맞는 데이터가 없습니다."
-                : "아직 저장된 데이터가 없습니다. 테이블은 존재하지만 현재 행은 0건입니다."}
+                ? t("조건에 맞는 데이터가 없습니다.")
+                : t("아직 저장된 데이터가 없습니다. 테이블은 존재하지만 현재 행은 0건입니다.")}
             </p>
           )}
         </div>
@@ -445,20 +426,15 @@ function DatasetTable({
           <button
             disabled={page <= 1 || result.loading}
             onClick={() => changePage(1)}
-          >
-            처음
-          </button>
+          >{t("처음")}</button>
           <button
             disabled={page <= 1 || result.loading}
             onClick={() => changePage(page - 1)}
-          >
-            이전
-          </button>
-          <label>
-            페이지{" "}
+          >{t("이전")}</button>
+          <label>{t("페이지")}{" "}
             <input
               key={page}
-              aria-label="페이지 번호"
+              aria-label={t("페이지 번호")}
               type="number"
               min={1}
               max={pages}
@@ -483,38 +459,31 @@ function DatasetTable({
           <button
             disabled={page >= pages || result.loading || !!result.error}
             onClick={() => changePage(page + 1)}
-          >
-            다음
-          </button>
+          >{t("다음")}</button>
           <button
             disabled={page >= pages || result.loading || !!result.error}
             onClick={() => changePage(pages)}
-          >
-            마지막
-          </button>
+          >{t("마지막")}</button>
         </div>
         <span className="table-note">
-          조회 시각: {date(result.data?.queried_at)} KST
+          {t("조회 시각: {time} KST", { time: date(result.data?.queried_at) })}
         </span>
       </div>
       {total !== undefined && total > size * 1000 && (
-        <p>
-          최대 1,000페이지까지 조회합니다. 더 오래된 기록은 검색·필터로 범위를
-          좁혀 주세요.
-        </p>
+        <p>{t("최대 1,000페이지까지 조회합니다. 더 오래된 기록은 검색·필터로 범위를 좁혀 주세요.")}</p>
       )}
       <details>
         <summary>
-          테이블 설명 · 전체 필드 구조 ({dataset.columns.length}개)
+          {t("테이블 설명 · 전체 필드 구조 ({count}개)", { count: dataset.columns.length })}
         </summary>
         <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>필드명</th>
-                <th>설명</th>
-                <th>조회 타입</th>
-                <th>텍스트 검색</th>
+                <th>{t("필드명")}</th>
+                <th>{t("설명")}</th>
+                <th>{t("조회 타입")}</th>
+                <th>{t("텍스트 검색")}</th>
               </tr>
             </thead>
             <tbody>
@@ -523,9 +492,9 @@ function DatasetTable({
                   <td>
                     <code>{column.key}</code>
                   </td>
-                  <td>{column.label}</td>
+                  <td>{t(column.label)}</td>
                   <td>{column.type}</td>
-                  <td>{dataset.search.includes(column.key) ? "가능" : "—"}</td>
+                  <td>{dataset.search.includes(column.key) ? t("가능") : "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -562,7 +531,7 @@ export function DataPage({
     (dataset) =>
       (category === "all" || dataset.category === category) &&
       (!populatedOnly || (counts.get(dataset.key)?.count ?? 0) > 0) &&
-      (dataset.title + " " + dataset.table + " " + dataset.source)
+      (t(dataset.title) + " " + dataset.title + " " + dataset.table + " " + t(dataset.source) + " " + dataset.source)
         .toLowerCase()
         .includes(tableSearch.toLowerCase()),
   );
@@ -581,33 +550,31 @@ export function DataPage({
     <>
       <h1>
         {summary?.is_demo
-          ? "더미 데이터 조회 (실제 관측 아님)"
-          : "Pongdang 수집 데이터 조회"}
+          ? t("더미 데이터 조회 (실제 관측 아님)")
+          : t("Pongdang 수집 데이터 조회")}
       </h1>
       {summary?.heartbeat?.effective_state === "stale" && (
         <p>
-          Collector 활동 신호가 오래되었습니다 (마지막:{" "}
-          {date(summary.heartbeat.last_seen_at)} KST). 저장 이력이며 현재 가동
-          여부를 뜻하지 않습니다.
+          {t("Collector 활동 신호가 오래되었습니다 (마지막: {time} KST). 저장 이력이며 현재 가동 여부를 뜻하지 않습니다.", { time: date(summary.heartbeat.last_seen_at) })}
         </p>
       )}
       <div className="toolbar">
         <input
           type="search"
-          aria-label="테이블 검색"
-          placeholder="테이블명·출처 검색"
+          aria-label={t("테이블 검색")}
+          placeholder={t("테이블명·출처 검색")}
           value={tableSearch}
           onChange={(event) => setTableSearch(event.target.value)}
         />
         <select
-          aria-label="데이터 분류"
+          aria-label={t("데이터 분류")}
           value={category}
           onChange={(event) => setCategory(event.target.value)}
         >
-          <option value="all">전체 분류</option>
+          <option value="all">{t("전체 분류")}</option>
           {Object.entries(categories).map(([key, value]) => (
             <option key={key} value={key}>
-              {value}
+              {t(value)}
             </option>
           ))}
         </select>
@@ -617,43 +584,38 @@ export function DataPage({
             disabled={!summary}
             checked={populatedOnly}
             onChange={(event) => setPopulatedOnly(event.target.checked)}
-          />
-          데이터 있는 테이블만
-        </label>
+          />{t("데이터 있는 테이블만")}</label>
         <label>
           <input
             type="checkbox"
             disabled={!summary}
             checked={showAll}
             onChange={(event) => setShowAll(event.target.checked)}
-          />
-          데이터 있는 표 모두 펼치기
-        </label>
+          />{t("데이터 있는 표 모두 펼치기")}</label>
       </div>
       <details
         open={overviewOpen}
         onToggle={(event) => setOverviewOpen(event.currentTarget.open)}
       >
         <summary>
-          전체 테이블 현황 · {filtered.length}/{catalog.length}개 · 테이블명을
-          누르면 해당 데이터 조회
+          {t("전체 테이블 현황 · {count}/{total}개 · 테이블명을 누르면 해당 데이터 조회", { count: filtered.length, total: catalog.length })}
         </summary>
         <div
           className="table-scroll"
           role="region"
-          aria-label="전체 테이블 현황"
+          aria-label={t("전체 테이블 현황")}
           tabIndex={0}
         >
           <table className="overview-table">
             <thead>
               <tr>
-                <th>데이터셋</th>
-                <th>DB 테이블</th>
-                <th>분류</th>
-                <th>저장 행</th>
-                <th>허용 열</th>
-                <th>최근 기록 · KST</th>
-                <th>출처</th>
+                <th>{t("데이터셋")}</th>
+                <th>{t("DB 테이블")}</th>
+                <th>{t("분류")}</th>
+                <th>{t("저장 행")}</th>
+                <th>{t("허용 열")}</th>
+                <th>{t("최근 기록 · KST")}</th>
+                <th>{t("출처")}</th>
               </tr>
             </thead>
             <tbody>
@@ -668,13 +630,13 @@ export function DataPage({
                 >
                   <td>
                     <button onClick={() => choose(dataset.key)}>
-                      {dataset.title}
+                      {t(dataset.title)}
                     </button>
                   </td>
                   <td>
                     <code>{dataset.table}</code>
                   </td>
-                  <td>{categories[dataset.category]}</td>
+                  <td>{t(categories[dataset.category] ?? dataset.category)}</td>
                   <td className="numeric">
                     {number(counts.get(dataset.key)?.count)}
                   </td>
@@ -682,28 +644,27 @@ export function DataPage({
                   <td>
                     {dataset.time
                       ? date(counts.get(dataset.key)?.latest_at)
-                      : "시간 필드 없음"}
+                      : t("시간 필드 없음")}
                   </td>
-                  <td>{dataset.source}</td>
+                  <td>{t(dataset.source)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {!filtered.length && <p>조건에 맞는 테이블이 없습니다.</p>}
+          {!filtered.length && <p>{t("조건에 맞는 테이블이 없습니다.")}</p>}
         </div>
       </details>
       <div className="toolbar">
         {!showAll && (
-          <label>
-            조회 테이블{" "}
+          <label>{t("조회 테이블")}{" "}
             <select
-              aria-label="조회 테이블"
+              aria-label={t("조회 테이블")}
               value={selected?.key ?? ""}
               onChange={(event) => choose(event.target.value)}
             >
               {catalog.map((dataset) => (
                 <option key={dataset.key} value={dataset.key}>
-                  {dataset.title} · {number(counts.get(dataset.key)?.count)}건
+                  {t("{dataset} · {count}건", { dataset: t(dataset.title), count: number(counts.get(dataset.key)?.count) })}
                 </option>
               ))}
             </select>
@@ -711,9 +672,8 @@ export function DataPage({
         )}
         <span>
           {showAll
-            ? shown.length +
-              "개 표를 함께 표시합니다. 각 표는 최대 100행씩 조회하며 검색·페이지를 따로 조작할 수 있습니다."
-            : "기본 100행·전체 열. 표 안에서 가로·세로 스크롤하고 여러 행의 상세를 함께 펼칠 수 있습니다."}
+            ? t("{count}개 표를 함께 표시합니다. 각 표는 최대 100행씩 조회하며 검색·페이지를 따로 조작할 수 있습니다.", { count: shown.length })
+            : t("기본 100행·전체 열. 표 안에서 가로·세로 스크롤하고 여러 행의 상세를 함께 펼칠 수 있습니다.")}
         </span>
       </div>
       {showAll && (
@@ -730,25 +690,20 @@ export function DataPage({
                     ?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                {dataset.title}
+                {t(dataset.title)}
               </a>
             </Fragment>
           ))}
         </p>
       )}
-      {!catalog.length && <p>데이터셋 목록을 불러오는 중입니다.</p>}
+      {!catalog.length && <p>{t("데이터셋 목록을 불러오는 중입니다.")}</p>}
       {showAll && !shown.length && (
-        <p>선택한 범위에 데이터가 있는 테이블이 없습니다.</p>
+        <p>{t("선택한 범위에 데이터가 있는 테이블이 없습니다.")}</p>
       )}
       {shown.map((dataset) => (
         <DatasetTable key={dataset.key} dataset={dataset} revision={revision} />
       ))}
-      <p className="table-note">
-        공개 카탈로그·수집 근거·평가·실행 이력의 허용 필드만 조회합니다. 회원
-        정보·인증 정보·원문 응답은 포함하지 않습니다. unknown은 판단 불가,
-        unavailable은 제공 불가이며 안전함이나 실시간 관측을 뜻하지 않습니다.
-        현황 건수는 최대 30초 캐시됩니다.
-      </p>
+      <p className="table-note">{t("공개 카탈로그·수집 근거·평가·실행 이력의 허용 필드만 조회합니다. 회원 정보·인증 정보·원문 응답은 포함하지 않습니다. unknown은 판단 불가, unavailable은 제공 불가이며 안전함이나 실시간 관측을 뜻하지 않습니다. 현황 건수는 최대 30초 캐시됩니다.")}</p>
     </>
   );
 }

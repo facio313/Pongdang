@@ -1,9 +1,11 @@
+import { useI18n } from "./i18n";
 import { useEffect, useState } from 'react';
-import { loadWebcamCatalog, type PreviewResult, type WebcamCategory } from './livecamPreviewApi';
+import { loadWebcamCatalog, WebcamPreviewError, type PreviewResult, type WebcamCategory } from './livecamPreviewApi';
 
 export function useWebcamCatalog(page: number, category: WebcamCategory | '', shuffleSeed: number) {
+  const { t } = useI18n();
   const key = `${page}:${category}:${shuffleSeed}`;
-  const [response, setResponse] = useState<{ key: string; data?: PreviewResult; error?: string }>();
+  const [response, setResponse] = useState<{ key: string; data?: PreviewResult; error?: string | WebcamPreviewError }>();
   const [now, setNow] = useState(Date.now);
   const current = response?.key === key ? response : undefined;
   useEffect(() => {
@@ -15,7 +17,7 @@ export function useWebcamCatalog(page: number, category: WebcamCategory | '', sh
           setResponse({ key, data });
         }
       },
-      error => { if (active) setResponse({ key, error: error instanceof Error ? error.message : '목록을 불러오지 못했습니다.' }); },
+      error => { if (active) setResponse({ key, error: error instanceof WebcamPreviewError ? error : error instanceof Error ? error.message : '목록을 불러오지 못했습니다.' }); },
     );
     return () => { active = false; };
   }, [key, page, category, shuffleSeed]);
@@ -28,7 +30,9 @@ export function useWebcamCatalog(page: number, category: WebcamCategory | '', sh
     return () => window.clearTimeout(timer);
   }, [validUntil]);
   return {
-    result: current?.data, error: current?.error, loading: !current, now,
+    result: current?.data,
+    error: current?.error instanceof WebcamPreviewError ? current.error.localizedMessage() : current?.error ? t(current.error) : undefined,
+    loading: !current, now,
     expired: validUntil ? Date.parse(validUntil) <= now : false,
   };
 }

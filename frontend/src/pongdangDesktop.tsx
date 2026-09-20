@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { CSSProperties, ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
@@ -49,7 +50,7 @@ export function DesktopNav({
         (onSurface ? " is-on-surface" : "") +
         (onMap ? " is-on-map" : "")
       }
-      aria-label="주요 탭"
+      aria-label={t("주요 탭")}
     >
       {/* 탭바가 담는 여행 흐름 밖의 항목(저장한 코스 · 즐겨찾기 · 알림 설정 ·
           데이터 출처 · 이용 안내)으로 들어가는 유일한 길입니다. 예전에는 이
@@ -57,7 +58,7 @@ export function DesktopNav({
           곳에 닿을 방법이 전혀 없었습니다. */}
       <SideMenuButton />
       <a className="pd-dk-nav-mark" href="#home">
-        <img src={logoUrl()} alt={LOGO_ALT} />
+        <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </a>
       <span className="pd-dk-nav-links">
         {NAV_ITEMS.map((item) => (
@@ -67,7 +68,7 @@ export function DesktopNav({
             href={"#" + item.key}
             aria-current={item.key === active ? "page" : undefined}
           >
-            {item.label}
+            {t(item.label)}
           </a>
         ))}
       </span>
@@ -112,7 +113,7 @@ export function DesktopHero({
           <img
             className="pd-dk-hero-mascot"
             src={mascotUrl(mascot)}
-            alt={MASCOT_ALT}
+            alt={t(MASCOT_ALT)}
             width={200}
             height={200}
           />
@@ -262,7 +263,7 @@ export function DesktopScore({
       <div className="pd-dk-num pd-dk-score-num">{score ?? "–"}</div>
       <div className="pd-dk-score-grade">
         <GradeIcon gradeKey={grade.key} size={13} />
-        {label}
+        {t(label)}
       </div>
     </div>
   );
@@ -344,10 +345,9 @@ export function FootNote({
         {/* 제품 이름은 바로 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
         <img className="pd-dk-foot-brand" src={logoUrl()} alt="" aria-hidden />
         <div className="pd-dk-foot-missing">
-          {alert && <Icon name="warning" size={14} />}
-          아직 실연동되지 않은 항목 — {missing}
+          {alert && <Icon name="warning" size={14} />}{t("아직 실연동되지 않은 항목 — {items}", { items: t(missing) })}
         </div>
-        <p className="pd-dk-foot-note">{note}</p>
+        <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>
       </div>
     </footer>
   );

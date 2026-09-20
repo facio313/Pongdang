@@ -1,9 +1,11 @@
+import { t } from "./i18n";
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { LOGO_ALT, logoUrl } from "./brand";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
+import { TravelLanguageNote } from "./TravelLanguageSelector";
 
 /** 본문 흐름을 유지하며 모바일 주요 버튼을 하단 탭 위에 두는 공용 슬롯. */
 export function AppActions({ children }: { children: ReactNode }) {
@@ -35,7 +37,7 @@ export function AppHeader({
         <span className="pd-header-time">{time}</span>
       </span>
       <span className="pd-header-mark">
-        <img src={logoUrl()} alt={LOGO_ALT} />
+        <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </span>
       <span>{title}</span>
     </div>
@@ -81,11 +83,7 @@ export function AppFootNote() {
 
       <div className="pd-foot-body">
         {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
-        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />
-        값이 없으면 <b>–</b>로 두며 0점 · 정상 · 안전으로 치환하지 않습니다.
-        점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전
-        상태는 서로 다른 값이라 하나로 요약하지 않습니다.
-      </div>
+        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />{t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</div>
     </footer>
   );
 }
@@ -131,6 +129,7 @@ export function AppShell({
       <div className={"pd-app" + (fullscreen ? " is-fullscreen" : "")}>
         <div className={"pd-frame" + (fullscreen ? " is-fullscreen" : "")}>
           {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
+          {tab === "recommend" && <TravelLanguageNote />}
           {bare ? (
             children
           ) : (

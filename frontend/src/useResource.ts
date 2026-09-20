@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { travelJson } from "./travelApi";
 import { queueResourceRead } from "./resourceQueue";
+import { useI18n } from "./i18n";
 
 /** 「아직 한 번도 보여준 적 없는 첫 조회」인지.
  *
@@ -103,6 +104,7 @@ function readResource(key: string, path: string) {
 }
 
 export function useResource<T>(path: ResourcePath, revision = 0) {
+  const { t } = useI18n();
   const origin = "data";
   const key = `${origin}:${path}:${revision}`;
   const [result, setResult] = useState<{
@@ -139,7 +141,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     : path === null
     ? { loading: false, data: undefined, previousData: undefined, error: undefined }
     : hit
-    ? { ...hit, previousData: hit.data, loading: false }
+    ? { ...hit, error: hit.error ? t(hit.error) : undefined, previousData: hit.data, loading: false }
     : {
         loading: true,
         data: undefined,

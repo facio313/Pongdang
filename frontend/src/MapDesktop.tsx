@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
@@ -93,13 +94,13 @@ function SpotRow({
       onClick={onSelect}
     >
       <span className="pd-dk-num mk-spot-score">
-        {loading ? <Skeleton width="1.6em" label="점수 조회 중" /> : (score ?? "–")}
+        {loading ? <Skeleton width="1.6em" label={t("점수 조회 중")} /> : (score ?? "–")}
       </span>
       <span className="mk-spot-body">
         <span className="mk-spot-name">{place.name}</span>
         <span className="mk-spot-grade">
           <GradeIcon gradeKey={grade.key} size={12} />
-          {grade.label}
+          {t(grade.label)}
         </span>
       </span>
       <span className="pd-dk-num mk-spot-temp">
@@ -113,13 +114,13 @@ export function MapDesktop() {
   // 지도 조작 API 는 지도가 준비된 뒤 effect 에서 넘어옵니다.
   const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
   const [search, setSearch] = useState("");
+  const places = useWaterPlaces(useDebounced(search));
   const [selectedId, setSelectedId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
     );
     return Number.isSafeInteger(value) && value > 0 ? value : null;
   });
-  const places = useWaterPlaces(useDebounced(search));
   const selectedPlace = usePlacesById(selectedId === null ? [] : [selectedId]);
   const allRows = useMemo(
     () => [...new Map(
@@ -159,7 +160,7 @@ export function MapDesktop() {
         nav={
           <DesktopNav
             active="map"
-            context={`강릉 · ${dateLabel()} · 지점 ${pinned.length}곳`}
+            context={t("강릉 · {date} · 지점 {count}곳", { date: dateLabel(), count: pinned.length })}
             onMap
           />
         }
@@ -189,7 +190,7 @@ export function MapDesktop() {
                   className={"mk-pin" + (isSelected ? " is-selected" : "")}
                   data-grade={grade.key}
                   aria-pressed={isSelected}
-                  aria-label={`${place.name} 퐁당 ${score ?? "–"} ${grade.label}`}
+                  aria-label={t("{name} 퐁당 {score} {grade}", { name: place.name, score: score ?? "–", grade: grade.label })}
                   onClick={() => setSelectedId(place.id)}
                 >
                   <span className="pd-dk-num mk-pin-core">{score ?? "–"}</span>
@@ -201,12 +202,10 @@ export function MapDesktop() {
           />
         }
       >
-        <aside className="pd-dk-mappanel is-start" aria-label="지점 목록">
+        <aside className="pd-dk-mappanel is-start" aria-label={t("지점 목록")}>
           {/* 예전에는 지도 면 왼쪽 위에 떠 있던 뱃지입니다. 풀스크린에서는
               지도 위에 설 자리가 패널과 겹치므로 패널의 첫 줄로 들어왔습니다. */}
-          <div className="pd-dk-mappanel-badge">
-            카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다
-          </div>
+          <div className="pd-dk-mappanel-badge">{t("카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다")}</div>
           {/* 예전에는 히어로에 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가
               있었고 눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은
               두지 않습니다. 대신 실제로 목록을 바꾸는 검색을, 걸러낼 지점 목록
@@ -221,18 +220,19 @@ export function MapDesktop() {
                 setSelectedId(null);
               }}
               maxLength={100}
-              placeholder="장소명 · 지역 검색"
-              aria-label="장소명·지역 검색"
+              placeholder={t("장소명 · 지역 검색")}
+              aria-label={t("장소명·지역 검색")}
             />
           </label>
+
           <div className="pd-dk-kick mk-side-kick">
-            지점 {pinned.length}곳 · {activities[ACTIVITY]} 점수
+            {t("지점 {count}곳 · {activity} 점수", { count: pinned.length, activity: t(activities[ACTIVITY]) })}
           </div>
           {selectedId !== null && !selected && (
             <p className="mk-note" role={selectedPlace.error ? "alert" : "status"}>
               {selectedPlace.error ?? (selectedPlace.loading
-                ? "선택한 장소를 조회하고 있습니다."
-                : "선택한 장소를 찾을 수 없습니다.")}
+                ? t("선택한 장소를 조회하고 있습니다.")
+                : t("선택한 장소를 찾을 수 없습니다."))}
             </p>
           )}
           {rows.map((place) => (
@@ -248,23 +248,19 @@ export function MapDesktop() {
           {!rows.length && (
             <p className="mk-note" role={places.error ? "alert" : "status"}>
               {places.error ??
-                (places.loading ? "장소를 조회하고 있습니다." : "검색 결과 없음")}
+                (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
             </p>
           )}
-          <p className="mk-note">
-            좌표가 있는 장소만 싣습니다 · 서버가 한 번에 최대 100곳까지
-            내려줍니다.
-            {unmapped > 0 &&
-              ` 좌표가 아직 확인되지 않은 ${unmapped}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.`}
+
+          <p className="mk-note">{t("좌표가 있는 장소만 싣습니다 · 서버가 한 번에 최대 100곳까지 내려줍니다.")}{unmapped > 0 &&
+              t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
           </p>
           <div className="mk-alert">
-            <Icon name="warning" size={15} />
-            값이 없는 상태가 안전을 뜻하지 않습니다
-          </div>
+            <Icon name="warning" size={15} />{t("값이 없는 상태가 안전을 뜻하지 않습니다")}</div>
         </aside>
 
         <div className="pd-dk-mapcontrols">
-          <button type="button" aria-label="확대" onClick={() => mapApi?.zoomIn()}>
+          <button type="button" aria-label={t("확대")} onClick={() => mapApi?.zoomIn()}>
             <svg
               width="19"
               height="19"
@@ -278,7 +274,7 @@ export function MapDesktop() {
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
-          <button type="button" aria-label="축소" onClick={() => mapApi?.zoomOut()}>
+          <button type="button" aria-label={t("축소")} onClick={() => mapApi?.zoomOut()}>
             <svg
               width="19"
               height="19"
@@ -295,7 +291,7 @@ export function MapDesktop() {
           <button
             type="button"
             className="is-accent"
-            aria-label="현재 위치로 이동"
+            aria-label={t("현재 위치로 이동")}
             onClick={() => void mapApi?.locate()}
           >
             <svg
@@ -323,8 +319,8 @@ export function MapDesktop() {
             편의 시설은 주차 · 샤워장이 늘 「있음」이었습니다. 이제 점수를 이루는
             실제 항목을 그립니다. 편의 시설을 내려주는 API 는 없으므로 그 칸은
             없앴습니다 -- 「정보 없음」 아이콘만 남기면 있는 기능처럼 보입니다. */}
-        <aside className="pd-dk-mappanel is-end" aria-label="선택 지점 근거">
-          <div className="pd-dk-kick mk-evidence-kick">선택 지점</div>
+        <aside className="pd-dk-mappanel is-end" aria-label={t("선택 지점 근거")}>
+          <div className="pd-dk-kick mk-evidence-kick">{t("선택 지점")}</div>
           {selected ? (
             <>
               <div className="mk-detail-head">
@@ -337,14 +333,14 @@ export function MapDesktop() {
                 <div className="mk-detail-lead">
                   <div className="mk-detail-name">{selected.name}</div>
                   <div className="mk-detail-meta">
-                    {selected.address ?? "주소 없음"} · 수온{" "}
+                    {selected.address ?? t("주소 없음")} {t("· 수온")}{" "}
                     {metricText(conditions.data, "water_temperature")}
                   </div>
                 </div>
                 <div className="mk-detail-score" data-grade={selectedGrade.key}>
                   <div className="pd-dk-num mk-detail-score-num">
                     {isInitialLoad(conditions) ? (
-                      <Skeleton width="1.4em" label="점수 조회 중" />
+                      <Skeleton width="1.4em" label={t("점수 조회 중")} />
                     ) : (
                       (selectedScore ?? "–")
                     )}
@@ -356,23 +352,17 @@ export function MapDesktop() {
                 </div>
               </div>
               <div className="mk-detail-actions">
-                <a className="pd-dk-button" href="#my-courses">
-                  코스에 추가
-                </a>
+                <a className="pd-dk-button" href="#my-courses">{t("코스에 추가")}</a>
                 <a className="mk-detail-link" href={spotLink(selected)}>
-                  {selected.name} 상세 →
-                </a>
+                  {selected.name} {t("상세 →")}</a>
               </div>
               <div className="mk-evidence-head-row">
                 <h2 className="mk-evidence-title">
-                  {activities[ACTIVITY]} 점수 근거
-                </h2>
+                  {activities[ACTIVITY]} {t("점수 근거")}</h2>
                 <StateChip kind={conditions.data ? "live" : "no_data"} />
               </div>
               <p className="mk-note">
-                {scoreTitle(ACTIVITY)}를 이루는 항목입니다. 각 조건의 점수를 같은
-                비중으로 평균낸 값이 총점입니다.
-              </p>
+                {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
               <ComponentBars
                 bars={componentBars(conditions.data)}
                 loading={isInitialLoad(conditions)}
@@ -389,17 +379,15 @@ export function MapDesktop() {
               <ScoreExplainer data={conditions.data} />
             </>
           ) : (
-            <p className="mk-note" role="status">
-              지점을 고르면 그 지점의 점수 근거를 조회합니다.
-            </p>
+            <p className="mk-note" role="status">{t("지점을 고르면 그 지점의 점수 근거를 조회합니다.")}</p>
           )}
 
           {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
               자리가 없어 이 패널의 마지막에 들어옵니다 -- 자리를 옮겼을 뿐
               생략하지 않습니다. */}
           <FootNote
-            missing="편의 시설 · 안전요원 정보 · 조위 시계열"
-            note="마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다."
+            missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
+            note={t("마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
           />
         </aside>
       </DesktopMapShell>

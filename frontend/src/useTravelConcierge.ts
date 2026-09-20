@@ -13,6 +13,8 @@ import { setTravelSession, useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import type { DefaultPlaceSelection } from "./useProductData";
 import type { ModelTraceTurn } from "./aiApi";
+import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
+import { t } from "./i18n.ts";
 
 export interface Bubble {
   role: "user" | "assistant";
@@ -80,10 +82,14 @@ export function useTravelConcierge({
   baseRequest: () => TravelRequest;
   action: { busy: boolean; run: (job: (signal: AbortSignal) => Promise<void>) => Promise<void> };
 }) {
+  const { locale } = useTravelLanguage();
   const session = useTravelSession();
-  const [bubbles, setBubbles] = useState<Bubble[]>([
-    { role: "assistant", content: opener },
-  ]);
+  const [conversation, setBubbles] = useState<Bubble[]>([]);
+  // A greeting follows the UI language until the first real turn. Once a
+  // conversation starts, preserve its original text when languages change.
+  const bubbles: Bubble[] = conversation.length
+    ? conversation
+    : [{ role: "assistant", content: t(opener) }];
   const [draft, setDraft] = useState("");
   const [chatRequest, setChatRequest] = useState<TravelRequest | null>(null);
   const [lastTrace, setLastTrace] = useState<ModelTraceTurn[] | null>(null);
@@ -116,11 +122,17 @@ export function useTravelConcierge({
         role: bubble.role,
         content: bubble.content.slice(0, 2000),
       }));
-    setBubbles((current) => [...current, { role: "user", content: message }]);
+    setBubbles((current) => [
+      ...(current.length ? current : bubbles),
+      { role: "user", content: message },
+    ]);
     setDraft("");
     void action.run(async (signal) => {
-      const request = chatRequest ?? baseRequest();
-      const token = session.recommendation?.selection_token;
+      const request = requestInLanguage(chatRequest ?? baseRequest(), locale);
+      // Provider place IDs differ by language. An old selection must not steer
+      // a new-language search back to the previous catalogue.
+      const token = (session.recommendation?.request.locale ?? "ko") === locale
+        ? session.recommendation?.selection_token : undefined;
       const result = await travelJson<TravelChatResponse>(
         import.meta.env.BASE_URL,
         "ai/chat",
@@ -128,7 +140,7 @@ export function useTravelConcierge({
         {
           message,
           history,
-          context: { region: request.region ?? "강릉" },
+          context: { region: request.region },
           travel: {
             action: "conversation",
             request,
@@ -164,7 +176,7 @@ export function useTravelConcierge({
             {
               role: "assistant",
               content:
-                "아래 「경로 계산 조건」에서 출발지와 출발 시각을 넣으면 방문 순서를 계산합니다. 현재 위치 또는 등록 장소를 출발지로 고를 수 있습니다.",
+                t("아래 「경로 계산 조건」에서 출발지와 출발 시각을 넣으면 방문 순서를 계산합니다. 현재 위치 또는 등록 장소를 출발지로 고를 수 있습니다."),
             },
           ]);
       }
@@ -242,7 +254,7 @@ export function useTravelConcierge({
     });
 
   const reset = () => {
-    setBubbles([{ role: "assistant", content: opener }]);
+    setBubbles([]);
     setDraft("");
     setChatRequest(null);
     setLastTrace(null);
