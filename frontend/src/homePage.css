@@ -174,22 +174,8 @@
   color: var(--pd-sky);
 }
 
-/* ── 오늘 이 활동인 이유 ──────────────────
-   히어로에서 내려온 근거 층입니다. 이제 흰 카드 위라 글래스 변형(is-glass)을
-   쓰지 않고 본문 색을 그대로 씁니다. */
-
-.home-page .hm-why-card .pd-why {
-  margin-top: 4px;
-}
-.home-page .hm-why-note {
-  font-size: var(--pd-fs-cap);
-  line-height: 1.6;
-  color: var(--pd-ink-2);
-  margin: 12px 0 0;
-}
-.home-page .hm-why-card .pd-explainer {
-  margin-top: 10px;
-}
+/* 「오늘 이 활동인 이유」 카드는 홈에서 내렸습니다(오늘 탭에 같은 내용이
+   그대로 있습니다). 그 카드에만 쓰이던 .hm-why-* 규칙도 함께 지웁니다. */
 
 /* ── 오늘 한눈에 · 점수를 이루는 항목들 ─────────────────── */
 
