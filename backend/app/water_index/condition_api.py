@@ -3,6 +3,7 @@
 import json
 import math
 from collections import defaultdict
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
@@ -28,11 +29,14 @@ from app.water_index.conditions import (
     ActivityCatalog,
     ConditionMetric,
     ConditionsEnvelope,
+    ConditionSummaries,
     Criterion,
     DisplayMetric,
     ScoreEnvelope,
     SourceValue,
+    SummaryFailure,
     calculate_conditions,
+    summarize_conditions,
     validate_criteria,
 )
 from app.water_index.models import Activity, SafetyEvidence, SupportEvidence
@@ -72,6 +76,60 @@ class ConditionQuery(BaseModel):
         if self.mode == "observation" and at > as_of:
             raise ValueError("Observations cannot evaluate a future target")
         return at, as_of
+
+
+#: 한 요청이 요약할 수 있는 지점 수. 지점마다 관측소 연결과 관측 선별 질의가
+#: 돌므로 무한정 키우면 한 요청이 길어집니다. 화면은 이 값에 맞춰 목록을
+#: 나눠 묻습니다(useConditionSummaries.ts 의 SUMMARY_CHUNKS).
+SUMMARY_BATCH_MAX = 25
+
+
+class SummaryQuery(BaseModel):
+    """목록 한 화면분의 요약 조회.
+
+    `spot_ids` 는 쉼표로 이은 정수 목록입니다. 중복 · 비정수 · 상한 초과는
+    받지 않습니다 -- 묻는 쪽이 무엇을 물었는지 분명해야 답도 분명합니다.
+    """
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    spot_ids: str
+    activity: Activity
+    as_of: AwareDatetime | None = None
+
+    @field_validator("as_of", mode="before")
+    @classmethod
+    def offset_iso_time(cls, value):
+        if value is not None and not isinstance(value, datetime):
+            if not isinstance(value, str) or "T" not in value:
+                raise ValueError("An offset ISO8601 time is required")
+        return value
+
+    @property
+    def ids(self) -> tuple[int, ...]:
+        parts = self.spot_ids.split(",")
+        if not 1 <= len(parts) <= SUMMARY_BATCH_MAX:
+            raise ValueError("between one and %d IDs" % SUMMARY_BATCH_MAX)
+        ids = []
+        for part in parts:
+            if not part.isascii() or not part.isdecimal():
+                raise ValueError("An unsigned decimal ID is required")
+            value = int(part)
+            if value <= 0:
+                raise ValueError("A positive ID is required")
+            ids.append(value)
+        if len(set(ids)) != len(ids):
+            raise ValueError("Distinct IDs are required")
+        return tuple(ids)
+
+    def query(self, spot_id: int) -> ConditionQuery:
+        """요약의 각 줄은 단건 조회와 **같은 질의**로 읽습니다. 목록과 상세가
+        서로 다른 경로로 계산되면 다른 숫자를 말하게 됩니다."""
+        return ConditionQuery(
+            spot_id=spot_id,
+            activity=self.activity,
+            mode="observation",
+            as_of=self.as_of,
+        )
 
 
 class ScoreRequest(ConditionQuery):
@@ -339,7 +397,17 @@ async def read_authority(c, q, at, as_of):
     )
 
 
-async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=None):
+async def read_conditions(
+    reader, q: ConditionQuery, *, now=None, metric_names=None, connection=None
+):
+    """Read one spot's evidence bundle.
+
+    `connection` lets a caller that already holds a connection read several
+    spots on it. The reader hands out only four connection slots with a
+    one second acquire timeout (DataReader.__init__), so a screen that asked
+    per spot did not merely make many requests -- the requests starved each
+    other out of connections and answered 503.
+    """
     at, as_of = q.times(now or datetime.now(UTC))
     allowed = {m.name for m in ACTIVITIES[q.activity].metrics}
     if metric_names is not None:
@@ -359,7 +427,9 @@ async def read_conditions(reader, q: ConditionQuery, *, now=None, metric_names=N
     source_names = sorted(
         requested | {alias for alias, name in ALIASES.items() if name in requested}
     )
-    async with reader.connection() as c:
+    async with (
+        nullcontext(connection) if connection is not None else reader.connection()
+    ) as c:
         place = await (
             await c.execute(
                 "SELECT id,name,lat,lng,catalog_verified_at "
@@ -585,6 +655,61 @@ def create_condition_router(settings):
             return error_response(
                 503, "condition_data_unavailable", "조건 자료를 제공할 수 없습니다."
             )
+
+    @router.get("/conditions/summary", response_model=ConditionSummaries)
+    async def conditions_summary(
+        request: Request, q: Annotated[SummaryQuery, Query()]
+    ):
+        """목록 한 화면분의 점수 · 수온을 한 요청으로.
+
+        예전에는 화면이 지점마다 /conditions 를 불렀습니다 -- 지도에 들어가면
+        그것만으로 100건이 나갔고, 네 개뿐인 연결 슬롯을 서로 빼앗아 상당수가
+        503 으로 돌아왔습니다. 여기서는 연결을 **한 번** 열어 그 위에서 지점을
+        차례로 읽습니다.
+
+        지점 목록을 station_links 에 한꺼번에 넘기지는 않습니다. 그쪽은 링크
+        총합 100건에서 422 를 내므로, 지점이 몇 곳만 돼도 목록 전체가 통째로
+        실패합니다. 지점별로 읽고 실패는 그 지점만 unavailable 로 내립니다.
+        """
+        if len(request.query_params) != len(request.query_params.multi_items()):
+            return error_response(
+                422, "invalid_request", "중복 조회 조건은 허용하지 않습니다."
+            )
+        now = datetime.now(UTC)
+        try:
+            ids = q.ids
+            as_of = q.query(ids[0]).times(now)[1]
+        except ValueError:
+            return error_response(
+                422, "invalid_request", "조회할 지점과 시각을 확인해 주세요."
+            )
+        rows, unavailable = [], []
+        async with reader.connection() as c:
+            for spot_id in ids:
+                try:
+                    rows.append(
+                        summarize_conditions(
+                            await read_conditions(
+                                reader, q.query(spot_id), now=now, connection=c
+                            )
+                        )
+                    )
+                except HTTPException as error:
+                    unavailable.append(
+                        SummaryFailure(spot_id=spot_id, reason=str(error.detail))
+                    )
+                except ValueError, KeyError:
+                    unavailable.append(
+                        SummaryFailure(
+                            spot_id=spot_id, reason="condition_data_unavailable"
+                        )
+                    )
+        return ConditionSummaries(
+            activity=q.activity,
+            as_of=as_of,
+            rows=tuple(rows),
+            unavailable=tuple(unavailable),
+        )
 
     @router.post(
         "/condition-score",

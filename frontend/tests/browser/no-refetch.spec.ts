@@ -69,3 +69,62 @@ test("탭을 갔다 와도 홈이 같은 자료를 다시 묻지 않는다", asy
   await expect(page.locator(".hm-hero-score-num")).toHaveText(score);
   expect(asked, `홈 복귀가 ${asked.length}건을 다시 물었습니다`).toEqual([]);
 });
+
+/** 지도 목록이 줄마다 조건을 묻지 않는지 봅니다.
+ *
+ *  예전에는 데스크탑 지도의 지점 줄(SpotRow)이 저마다 useConditions 를 불렀고,
+ *  지도에 들어가는 것만으로 조건 조회가 줄 수만큼 나갔습니다(서버가 100곳까지
+ *  내려주므로 최대 100건). 서버의 연결 슬롯은 네 개뿐이라 그 요청들은 서로를
+ *  굶겼고, 만료된 근거를 만나면 줄마다 1ms 재조회 루프까지 돌았습니다.
+ *
+ *  이제 목록 전체를 묶어서 묻습니다. 요청 수가 **줄 수를 따라 늘지 않는 것**이
+ *  이 검사의 핵심입니다. */
+test("지도 목록은 줄마다 조건을 묻지 않는다", async ({ page }) => {
+  const conditionCalls: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/water-index/conditions"))
+      conditionCalls.push(request.url());
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("#map");
+  await expect(page.locator(".mk-spot").first()).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  const spotRows = await page.locator(".mk-spot").count();
+  expect(spotRows).toBeGreaterThan(1);
+  // 단건 조회는 **고른 지점 하나**에만 허용됩니다. 나머지는 요약 묶음입니다.
+  const single = conditionCalls.filter((url) => url.includes("conditions?"));
+  const batched = conditionCalls.filter((url) => url.includes("conditions/summary"));
+  expect(
+    batched.length,
+    `요약을 ${batched.length}번 물었습니다 -- 묶음은 목록당 한 번이어야 합니다`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    single.length,
+    `줄마다 조건을 물었습니다(줄 ${spotRows}개, 단건 조회 ${single.length}건)`,
+  ).toBeLessThanOrEqual(2);
+});
+
+/** 가만히 둔 지도가 스스로 다시 묻지 않는지 봅니다.
+ *
+ *  근거의 valid_until 이 이미 지난 상태에서 재조회 지연에 하한이 없으면
+ *  (예전의 `Math.max(1, delay)`) 왕복 속도로 무한 재조회가 돕니다. 화면은
+ *  멈추고 서버는 계속 맞습니다. 하한(REFRESH_MIN)이 살아 있으면 가만히 둔
+ *  동안 추가 요청이 없어야 합니다. */
+test("가만히 둔 지도는 조건을 다시 묻지 않는다", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("#map");
+  await expect(page.locator(".mk-spot").first()).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/water-index/conditions"))
+      asked.push(request.url());
+  });
+  await page.waitForTimeout(8000);
+  expect(
+    asked,
+    `가만히 둔 8초 동안 ${asked.length}건을 다시 물었습니다`,
+  ).toEqual([]);
+});

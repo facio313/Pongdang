@@ -24,11 +24,15 @@ import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import {
   conditionScore,
   dateLabel,
+  formatValue,
   metricText,
+  type ConditionSummary,
   type Place,
 } from "./productData";
 import { isInitialLoad } from "./useResource";
 import { useConditions } from "./useConditions";
+import { useConditionSummaries } from "./useConditionSummaries";
+import { useDebounced } from "./useDebounced";
 import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
 import { spotLink } from "./spotsRoute";
 import "./mapDesktop.css";
@@ -46,19 +50,29 @@ import "./mapDesktop.css";
 /** 점수를 매길 활동. 모바일 지도는 수영 기준이므로 같은 기준을 씁니다. */
 const ACTIVITY: Activity = "swim";
 
-/** 지점 한 줄. 모바일 지도와 달리 목록이 왼쪽에 상주하므로, 줄마다 자기
- *  조건을 조회합니다. 서버가 100건에서 자르고 화면은 그 사실을 밝힙니다. */
+/** 지점 한 줄.
+ *
+ *  **스스로 조회하지 않습니다.** 예전에는 줄마다 useConditions 를 불렀고,
+ *  목록이 100줄이면 지도에 들어가는 것만으로 조건 조회가 100건 나갔습니다.
+ *  서버의 연결 슬롯은 네 개뿐이라 그 요청들은 서로를 굶겨 상당수가 503 으로
+ *  돌아왔고, 만료된 근거를 만나면 줄마다 재조회 루프까지 돌았습니다.
+ *
+ *  이제 목록 전체의 요약을 MapDesktop 이 한 번(묶음당 한 요청) 조회해
+ *  내려줍니다. 한 줄이 쓰는 사실은 그대로입니다. */
 function SpotRow({
   place,
+  summary,
+  loading,
   selected,
   onSelect,
 }: {
   place: Place;
+  summary?: ConditionSummary;
+  loading: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const conditions = useConditions(place.id, ACTIVITY);
-  const score = conditionScore(conditions.data);
+  const score = conditionScore(summary);
   const grade = gradeOf(score);
   return (
     <button
@@ -69,11 +83,7 @@ function SpotRow({
       onClick={onSelect}
     >
       <span className="pd-dk-num mk-spot-score">
-        {isInitialLoad(conditions) ? (
-          <Skeleton width="1.6em" label="점수 조회 중" />
-        ) : (
-          (score ?? "–")
-        )}
+        {loading ? <Skeleton width="1.6em" label="점수 조회 중" /> : (score ?? "–")}
       </span>
       <span className="mk-spot-body">
         <span className="mk-spot-name">{place.name}</span>
@@ -83,7 +93,7 @@ function SpotRow({
         </span>
       </span>
       <span className="pd-dk-num mk-spot-temp">
-        {metricText(conditions.data, "water_temperature")}
+        {formatValue(summary?.water_temperature?.value, summary?.water_temperature?.unit)}
       </span>
     </button>
   );
@@ -94,7 +104,10 @@ export function MapDesktop() {
   const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const places = useWaterPlaces(search);
+  // 입력 상자는 타자마다 즉시 반응하되, **조회 키는 입력이 멎은 뒤** 바뀝니다.
+  // 예전에는 「경포」 세 글자가 목록 조회 세 번과 그에 딸린 조건 조회를 냈고,
+  // 화면이 말하는 사실은 마지막 한 번과 같았습니다.
+  const places = useWaterPlaces(useDebounced(search));
   const pinned = useMemo(() => mappablePlaces(places.rows ?? []), [places.rows]);
   const markers = useMemo(
     () =>
@@ -105,12 +118,20 @@ export function MapDesktop() {
       })),
     [pinned],
   );
-  const rows = pinned.map(({ place }) => place);
+  const rows = useMemo(() => pinned.map(({ place }) => place), [pinned]);
   const selected =
     rows.find((place) => place.id === selectedId) ??
     rows.find((place) => place.id === places.defaultPlaceId) ??
     rows[0];
-  // 오른쪽 패널과 아래 근거는 고른 지점 하나만 조회합니다.
+  // 목록 전체의 점수 · 수온은 **묶음으로 한 번** 조회합니다. 줄마다 부르지
+  // 않습니다(useConditionSummaries 의 주석 참고).
+  const summaries = useConditionSummaries(
+    useMemo(() => rows.map((place) => place.id), [rows]),
+    ACTIVITY,
+  );
+  // 오른쪽 패널과 아래 근거는 고른 지점 하나만 조회합니다 -- 근거 막대 · 설명은
+  // 요약에 없는 전체 봉투가 필요하고, 그건 한 건뿐입니다. 관측 점수가 없을 때의
+  // 예보 폴백도 여기서만 일어납니다.
   const conditions = useConditions(selected?.id, ACTIVITY);
   const selectedScore = conditionScore(conditions.data);
   const selectedGrade = gradeOf(selectedScore);
@@ -161,6 +182,8 @@ export function MapDesktop() {
             <SpotRow
               key={place.id}
               place={place}
+              summary={summaries.byId.get(place.id)}
+              loading={summaries.loading}
               selected={place.id === selected?.id}
               onSelect={() => setSelectedId(place.id)}
             />
@@ -190,9 +213,12 @@ export function MapDesktop() {
             renderMarker={(id) => {
               const place = rows.find((item) => item.id === Number(id));
               if (!place) return null;
-              // 점수는 고른 지점만 조회합니다. 핀마다 부르면 100번이 됩니다.
+              // 핀마다 조회하지 않습니다 -- 그러면 100번이 됩니다. 목록과 같은
+              // 묶음 요약을 읽으므로 고르기 전에도 점수를 말할 수 있습니다.
               const isSelected = place.id === selected?.id;
-              const score = isSelected ? selectedScore : null;
+              const score = isSelected
+                ? selectedScore
+                : conditionScore(summaries.byId.get(place.id));
               const grade = gradeOf(score);
               return (
                 <button
@@ -212,7 +238,7 @@ export function MapDesktop() {
             overlay={
               <>
                 <span className="mk-map-badge">
-                  카카오 지도 · 고른 지점만 점수를 조회합니다
+                  카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다
                 </span>
                 <div className="mk-map-controls">
                   <button
@@ -343,7 +369,7 @@ export function MapDesktop() {
 
       <FootNote
         missing="편의 시설 · 안전요원 정보 · 조위 시계열"
-        note="마커 좌표는 서버가 준 실제 값입니다. 고른 지점만 점수를 조회하며, 고르기 전에는 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다."
+        note="마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다."
       />
     </DesktopShell>
   );

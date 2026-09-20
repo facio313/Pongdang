@@ -54,8 +54,12 @@ const inflight = new Map<string, Promise<{ data?: unknown; error?: string }>>();
 /** 이 시간이 지나면 같은 키라도 한 번 더 읽습니다. 폭 전환 · 탭 왕복은 이보다
  *  훨씬 짧아 요청이 나가지 않고, 오래 열어 둔 탭으로 돌아오면 갱신됩니다. */
 const CACHE_TTL = 60000;
-/** 기억은 무한정 쌓이지 않습니다. 오래 안 쓴 것부터 버립니다. */
-const CACHE_MAX = 50;
+/** 기억은 무한정 쌓이지 않습니다. 오래 안 쓴 것부터 버립니다.
+ *
+ *  지도 한 화면이 장소 목록 · 사진 · 조건 요약 · 고른 지점 조건을 한꺼번에
+ *  읽습니다. 50 이면 그 한 화면이 기억을 통째로 밀어내, 다시 들어올 때마다
+ *  전부 새로 물었습니다. */
+const CACHE_MAX = 80;
 
 function remember(key: string, data: unknown) {
   cache.delete(key);

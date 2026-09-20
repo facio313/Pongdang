@@ -95,8 +95,9 @@ test("desktop map lists real places and scores only the chosen one", async ({ pa
 
   await expect(page.locator(".mk-side-kick")).toContainText(`${mappable.length}곳`);
   await expect(page.locator(".mk-spot")).toHaveCount(mappable.length);
-  // 눌러도 아무 일이 없던 활동 필터는 사라지고 실제로 목록을 바꾸는 검색이 있습니다.
-  await expect(page.locator(".mk-hero-search input")).toBeVisible();
+  // 눌러도 아무 일이 없던 활동 필터는 사라지고 실제로 목록을 바꾸는 검색이
+  // 있습니다. 그 검색은 히어로가 아니라 걸러낼 목록 바로 위에 섭니다.
+  await expect(page.locator(".mk-search input")).toBeVisible();
   await expect(page.locator(".mk-hero")).not.toContainText("주차 · 샤워장");
 
   const body = page.locator(".pd-desktop");

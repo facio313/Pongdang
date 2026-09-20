@@ -8,6 +8,7 @@ import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useWaterPlaces } from "./useWaterPlaces";
+import { useDebounced } from "./useDebounced";
 import { useAction } from "./useAction";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
@@ -449,8 +450,9 @@ function MapScreen() {
   );
   const [search, setSearch] = useState("");
   // 목록 조회는 명소 탭과 같은 훅을 씁니다. 같은 장소를 두 화면이 서로 다른
-  // 소스로 읽지 않기 위해서입니다.
-  const places = useWaterPlaces(search);
+  // 소스로 읽지 않기 위해서입니다. 조회 키는 입력이 멎은 뒤에 바뀝니다 --
+  // 타자마다 목록을 다시 묻지 않기 위해서입니다.
+  const places = useWaterPlaces(useDebounced(search));
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
