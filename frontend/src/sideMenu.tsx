@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { Icon, StateChip } from "./pongdangUi";
+import { LOGO_ALT, logoUrl } from "./brand";
 import "./sideMenu.css";
 
 /** 사이드 메뉴(탭 밖) 항목입니다. 탭바가 담는 여행 흐름(오늘 · 추천 · 지도 ·
@@ -124,7 +125,9 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
       >
         <div className="pd-menu-head">
           <div className="pd-menu-head-top">
-            <span className="pd-header-mark">PONGDANG</span>
+            <span className="pd-header-mark">
+              <img src={logoUrl()} alt={LOGO_ALT} />
+            </span>
             <button
               type="button"
               className="pd-menu-close"

@@ -4,6 +4,7 @@ import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
+import { LOGO_ALT, logoUrl } from "./brand";
 // 물결 굴곡은 모바일 홈 히어로와 공유합니다(waveShape.ts 주석).
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
@@ -56,7 +57,7 @@ export function DesktopNav({
           곳에 닿을 방법이 전혀 없었습니다. */}
       <SideMenuButton />
       <a className="pd-dk-nav-mark" href="#home">
-        PONGDANG
+        <img src={logoUrl()} alt={LOGO_ALT} />
       </a>
       <span className="pd-dk-nav-links">
         {NAV_ITEMS.map((item) => (
@@ -311,11 +312,43 @@ export function FootNote({
 }) {
   return (
     <footer className={"pd-dk-foot" + (alert ? " is-alert" : "")}>
-      <div className="pd-dk-foot-missing">
-        {alert && <Icon name="warning" size={14} />}
-        아직 실연동되지 않은 항목 — {missing}
+      {/* 히어로가 코발트에서 흰 본문으로 내려오는 물결을, 푸터는 거꾸로 세워
+          흰 본문에서 코발트로 되돌립니다. 굴곡은 같은 waveShape.ts 를 쓰고
+          CSS 가 scaleY(-1) 로 뒤집습니다 -- 위아래가 같은 물이어야 합니다. */}
+      <div className="pd-dk-foot-anim" aria-hidden="true">
+        <svg
+          className="pd-dk-wave-back"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} fill="#ffffff" />
+        </svg>
+        <svg
+          className="pd-dk-wave-front"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} fill="#ffffff" opacity="0.5" />
+        </svg>
       </div>
-      <p className="pd-dk-foot-note">{note}</p>
+      <svg
+        className="pd-dk-foot-wave"
+        viewBox="0 0 1440 58"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path d={WAVE_PATH} fill="#ffffff" />
+      </svg>
+
+      <div className="pd-dk-foot-body">
+        {/* 제품 이름은 바로 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
+        <img className="pd-dk-foot-brand" src={logoUrl()} alt="" aria-hidden />
+        <div className="pd-dk-foot-missing">
+          {alert && <Icon name="warning" size={14} />}
+          아직 실연동되지 않은 항목 — {missing}
+        </div>
+        <p className="pd-dk-foot-note">{note}</p>
+      </div>
     </footer>
   );
 }

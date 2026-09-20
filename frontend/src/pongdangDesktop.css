@@ -154,12 +154,18 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-desktop-menu-root {
   display: contents;
 }
+/* 표지는 이미지 한 장입니다(brand.ts). 원본이 코발트와 같은 파랑이라 이
+   면 위에서는 흰 단색으로 눕히고, 흰 배경 변형에서만 원색으로 돌립니다. */
 .pd-dk-nav-mark {
-  font-family: var(--dk-font-num);
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.22em;
-  color: var(--dk-onc);
+  display: flex;
+  align-items: center;
+}
+.pd-dk-nav-mark img {
+  display: block;
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 .pd-dk-nav-links {
   display: flex;
@@ -189,8 +195,8 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 22px var(--dk-pad) 18px;
   border-bottom: 1px solid var(--dk-rule);
 }
-.pd-dk-nav.is-on-surface .pd-dk-nav-mark {
-  color: var(--dk-deep);
+.pd-dk-nav.is-on-surface .pd-dk-nav-mark img {
+  filter: none;
 }
 .pd-dk-nav.is-on-surface .pd-dk-nav-link {
   color: var(--dk-ink-2);
@@ -519,9 +525,69 @@ main:has(.pd-desktop.is-fullscreen) {
    미연동 항목과 「안전 판단에 쓸 수 없음」 문구는 생략하지 않습니다
    (핸드오프 데이터 표기 규칙 3). */
 
+/* 푸터는 화면을 회색 괘선 하나로 끊지 않고, 히어로가 열었던 물로 닫습니다.
+   코발트 토큰도 굴곡도 히어로와 같은 것을 씁니다 -- 위아래가 같은 물이어야
+   한 제품으로 읽힙니다. 물결이 경계이므로 border-top 은 없습니다. */
 .pd-dk-foot {
-  padding: 44px var(--dk-pad) 80px;
-  border-top: 1px solid var(--dk-rule);
+  position: relative;
+  overflow: hidden;
+  padding: 104px var(--dk-pad) 64px;
+  background: var(--dk-cobalt);
+  color: var(--dk-onc);
+}
+/* 물결 · 파도는 절대배치이므로, 본문은 z-index 로 그 위에 올려 둡니다. */
+.pd-dk-foot-body {
+  position: relative;
+  z-index: 1;
+}
+.pd-dk-foot-wave {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 58px;
+  /* 히어로와 같은 WAVE_PATH 를 뒤집어 「채워진 쪽」을 위로 보냅니다. */
+  transform: scaleY(-1);
+}
+/* 히어로의 2겹 파도를 푸터에서도 그대로 씁니다. 다른 점은 컨테이너가 위쪽에
+   붙고 통째로 뒤집힌다는 것뿐이라, 키프레임(pd-dk-wave-back/front)은 히어로
+   것을 그대로 재사용합니다 -- 흐름 속도가 위아래에서 어긋나면 안 됩니다.
+   뒤집기를 svg 가 아니라 컨테이너에 거는 이유: svg 의 transform 은 파도를
+   흘리는 애니메이션이 이미 쓰고 있어, 여기 겹쳐 쓰면 덮어써집니다. */
+.pd-dk-foot-anim {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 0;
+  height: 96px;
+  overflow: hidden;
+  pointer-events: none;
+  transform: scaleY(-1);
+}
+.pd-dk-foot-anim svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2880px;
+  height: 96px;
+}
+.pd-dk-foot-anim .pd-dk-wave-back {
+  opacity: 0.34;
+  animation: pd-dk-wave-back 17s linear infinite;
+}
+.pd-dk-foot-anim .pd-dk-wave-front {
+  animation: pd-dk-wave-front 11s linear infinite;
+}
+.pd-dk-foot-brand {
+  display: block;
+  width: auto;
+  height: 28px;
+  object-fit: contain;
+  margin-bottom: 18px;
+  /* 로고 원본이 코발트와 같은 파랑이라 이 면 위에서는 읽히지 않습니다.
+     흰 단색으로 눕혀 대비를 만듭니다. */
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
 }
 .pd-dk-foot-missing {
   display: flex;
@@ -530,17 +596,20 @@ main:has(.pd-desktop.is-fullscreen) {
   font-weight: 700;
   font-size: 11.5px;
   line-height: 1.5;
-  color: var(--dk-alert);
+  /* 코발트 위에서 --dk-alert(붉은 잉크)는 읽히지 않습니다. 경고 바가 아닌
+     평상시에는 하늘색으로 두고, 경고일 때만 아래에서 붉은 바를 되살립니다. */
+  color: var(--dk-sky);
 }
 .pd-dk-foot.is-alert .pd-dk-foot-missing {
   background: var(--dk-alert-bg);
   border-radius: var(--dk-r-ctl);
   padding: 12px 16px;
+  color: var(--dk-alert);
 }
 .pd-dk-foot-note {
   font-size: 11.5px;
   line-height: 1.7;
-  color: var(--dk-ink-2);
+  color: var(--dk-onc-2);
   max-width: 104ch;
   margin: 6px 0 0;
 }

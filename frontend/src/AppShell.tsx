@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
+import { LOGO_ALT, logoUrl } from "./brand";
+// 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
+import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 
 /** 본문 흐름을 유지하며 모바일 주요 버튼을 하단 탭 위에 두는 공용 슬롯. */
 export function AppActions({ children }: { children: ReactNode }) {
@@ -31,7 +34,9 @@ export function AppHeader({
         <SideMenuButton />
         <span className="pd-header-time">{time}</span>
       </span>
-      <span className="pd-header-mark">PONGDANG</span>
+      <span className="pd-header-mark">
+        <img src={logoUrl()} alt={LOGO_ALT} />
+      </span>
       <span>{title}</span>
     </div>
   );
@@ -46,9 +51,41 @@ export function AppHeader({
 export function AppFootNote() {
   return (
     <footer className="pd-foot">
-      값이 없으면 <b>–</b>로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는
-      물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로
-      다른 값이라 하나로 요약하지 않습니다.
+      {/* 히어로가 코발트에서 본문으로 내려오는 물결을, 푸터는 거꾸로 세워
+          본문에서 코발트로 되돌립니다. 굴곡은 같은 waveShape.ts 를 쓰고 CSS 가
+          scaleY(-1) 로 뒤집습니다 -- 화면 위아래가 같은 물이어야 합니다. */}
+      <div className="pd-foot-anim" aria-hidden="true">
+        <svg
+          className="pd-foot-wave-back"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} />
+        </svg>
+        <svg
+          className="pd-foot-wave-front"
+          viewBox="0 0 2880 96"
+          preserveAspectRatio="none"
+        >
+          <path d={WAVE_LOOP_PATH} opacity="0.5" />
+        </svg>
+      </div>
+      <svg
+        className="pd-foot-wave"
+        viewBox="0 0 1440 58"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path d={WAVE_PATH} />
+      </svg>
+
+      <div className="pd-foot-body">
+        {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
+        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />
+        값이 없으면 <b>–</b>로 두며 0점 · 정상 · 안전으로 치환하지 않습니다.
+        점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전
+        상태는 서로 다른 값이라 하나로 요약하지 않습니다.
+      </div>
     </footer>
   );
 }
