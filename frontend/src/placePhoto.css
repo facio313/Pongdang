@@ -1,0 +1,37 @@
+.place-photo {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+  background: #e8eef5;
+}
+.place-photo img,
+.place-photo-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.place-photo img {
+  /* Preserve the whole original, including images with a no-modification license. */
+  object-fit: contain;
+}
+.place-photo-fallback {
+  display: grid;
+  place-items: center;
+  color: #64748b;
+}
+.place-photo-credit {
+  display: block;
+  margin-top: 5px;
+  color: #526174;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.place-photo-credit a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+.place-photo-link {
+  color: inherit;
+  text-decoration: none;
+}
