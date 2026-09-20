@@ -13,7 +13,7 @@ from app.travel.migrations import migrate_travel
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 9
+VERSION = 10
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -60,6 +60,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
@@ -68,6 +69,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (4,):
                 migrate_features(connection)
@@ -75,24 +77,32 @@ def initialize(settings: Settings) -> bool:
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (5,):
                 migrate_place_provenance(connection)
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (6,):
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (7,):
                 migrate_travel(connection)
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
                 return True
             if row == (8,):
                 migrate_attachments(connection)
+                migrate_regional_collection(connection)
+                return True
+            if row == (9,):
+                migrate_regional_collection(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -149,7 +159,22 @@ def initialize(settings: Settings) -> bool:
         migrate_ai_concierge(connection)
         migrate_travel(connection)
         migrate_attachments(connection)
+        migrate_regional_collection(connection)
     return True
+
+
+def migrate_regional_collection(connection):
+    """Explicit v9 -> v10: source-confirmed regions and resumable catalog scopes."""
+    from app.ingestion.administrative import migrate_place_regions
+    from app.ingestion.gangwon import migrate_tourism_scopes
+
+    migrate_place_regions(connection)
+    migrate_tourism_scopes(connection)
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS collection_place_spot_idx "
+        "ON pongdang_data.collection_place(spot_id)"
+    )
+    connection.execute("UPDATE pongdang_data.schema_version SET version=10 WHERE id=1")
 
 
 def migrate_ai_concierge(connection):

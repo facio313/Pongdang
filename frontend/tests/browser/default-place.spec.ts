@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { routeRecommendation } from "./recommendation";
+import { conditionsFixture, routeRecommendation } from "./recommendation";
 
 test("home uses the selected fallback beach ID, name and conditions consistently", async ({ page }) => {
   const beach = { id: 987, name: "해운대해수욕장", place_kind: "beach", region: "부산", address: null, lat: 35.16, lng: 129.16 };
@@ -34,7 +34,97 @@ test("home uses the selected fallback beach ID, name and conditions consistently
 test("default beach errors are visible and never leave the placeholder checking state", async ({ page }) => {
   await page.route("**/api/data/water-index/default-place", route => route.fulfill({ status: 503, json: { detail: "unavailable" } }));
   await page.goto("");
-  await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
+  await expect(page.locator(".hm-hero-place")).toContainText("장소 선택 필요");
+  await expect(page.locator(".hm-hero-place")).not.toContainText("강릉 경포대 해수욕장");
   await expect(page.locator(".home-page")).toContainText("요청을 처리하지 못했습니다");
   await expect(page.locator(".home-page")).not.toContainText("장소 확인 중");
 });
+
+for (const width of [390, 1440]) {
+  test(`${width}px home and today share a selected reference place across pages and reloads`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const places = Array.from({ length: 105 }, (_, index) => ({
+      id: index + 1001, name: `기준 장소 TEST ${String(index + 1).padStart(3, "0")}`,
+      place_kind: "beach", region: index < 100 ? "강릉" : "속초", address: null,
+      province_code: "gangwon", district_code: index < 100 ? "gangneung" : "sokcho",
+      lat: 37.8, lng: 128.9,
+    }));
+    let emptyDistrict = false;
+    let releaseFailedDistrict!: () => void;
+    const heldDistrict = new Promise<void>(resolve => { releaseFailedDistrict = resolve; });
+    const queriedIds: number[] = [];
+    await page.route("**/api/data/regions", route => route.fulfill({ json: {
+      provinces: [{ code: "gangwon", label: "강원특별자치도", districts: [
+        { code: "gangneung", label: "강릉시" }, { code: "sokcho", label: "속초시" },
+        { code: "yanggu", label: "양구군" },
+      ] }],
+    } }));
+    await page.route("**/api/data/water-index/default-place", route => route.fulfill({ json: {
+      place: places[0], rows: [places[0]], display_name: places[0].name,
+      status: "preferred", message: "TEST default reference",
+    } }));
+    await page.route("**/api/data/places?**", async route => {
+      const query = new URL(route.request().url()).searchParams;
+      expect(query.get("page_size")).toBe("100");
+      expect(query.get("province")).toBe("gangwon");
+      if (query.get("district") === "sokcho") {
+        await heldDistrict;
+        return route.fulfill({ status: 503, json: { detail: "fixture unavailable" } });
+      }
+      const rows = places.filter(place => (!query.get("district") || query.get("district") === place.district_code) &&
+        (!query.get("q") || place.name.includes(query.get("q")!)));
+      const currentPage = Number(query.get("page"));
+      if (query.get("district") === "yanggu") emptyDistrict = true;
+      return route.fulfill({ json: { rows: rows.slice((currentPage - 1) * 100, currentPage * 100),
+        total: rows.length, page: currentPage, page_size: 100, has_more: currentPage * 100 < rows.length } });
+    });
+    await page.route("**/api/data/livecams/preview/places?spot_id=**", route => {
+      const id = Number(new URL(route.request().url()).searchParams.get("spot_id"));
+      return route.fulfill({ json: places.filter(place => place.id === id) });
+    });
+    await page.route("**/api/data/water-index/recommendation?**", route => {
+      const id = Number(new URL(route.request().url()).searchParams.get("spot_id"));
+      queriedIds.push(id);
+      const choice = { activity: "swim", score: id === places[0].id ? 73 : 42 };
+      return route.fulfill({ json: {
+        contract_version: "water-recommendation.v1", spot_id: id, at: new Date().toISOString(),
+        as_of: new Date().toISOString(), mode: "observation", choice: { ...choice, status: "evaluated" },
+        conditions: [{ ...conditionsFixture(choice), spot_id: id }], ranked: [], reasons: [], tide: null,
+        alternatives: [], rules: [], limitations: [], reason_codes: [],
+      } });
+    });
+    await page.goto("#home");
+    const homeScore = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    await expect(homeScore).toHaveText("73");
+    const selector = page.locator(".product-place-selector");
+    await selector.locator("summary").click();
+    await expect(selector.getByLabel("홈·오늘 기준 장소").locator("option")).toHaveCount(101);
+    await selector.getByRole("button", { name: "다음", exact: true }).click();
+    await expect(homeScore).toHaveText("–");
+    await expect(selector.getByLabel("홈·오늘 기준 장소").locator("option")).toHaveCount(6);
+    await selector.getByLabel("홈·오늘 기준 장소").selectOption(String(places[104].id));
+    await expect(homeScore).toHaveText("42");
+    await expect.poll(() => queriedIds.includes(places[104].id)).toBe(true);
+    await page.goto("#today");
+    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).toContainText(places[104].name);
+    await page.reload();
+    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).toContainText(places[104].name);
+    await page.locator(".product-place-selector summary").click();
+    await expect(page.getByLabel("홈·오늘 기준 장소")).toHaveValue(String(places[104].id));
+    await page.getByLabel("시군 선택").selectOption("sokcho");
+    try {
+      await expect(page.locator(".product-place-selector").getByRole("status")).toContainText("장소 조회 중");
+      await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).not.toContainText(places[104].name);
+      await expect(page.getByLabel("홈·오늘 기준 장소")).toBeDisabled();
+    } finally { releaseFailedDistrict(); }
+    await expect(page.locator(".product-place-selector").getByRole("alert")).toContainText("요청을 처리하지 못했습니다");
+    await page.getByLabel("시군 선택").selectOption("yanggu");
+    await expect.poll(() => emptyDistrict).toBe(true);
+    await expect(page.getByRole("status").filter({ hasText: "선택한 지역·검색어에 해당하는 장소가 없습니다." })).toBeVisible();
+    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).not.toContainText(places[104].name);
+    await expect(page.getByLabel("홈·오늘 기준 장소")).toBeDisabled();
+    await page.goto("#home");
+    await expect(homeScore).toHaveText("–");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}

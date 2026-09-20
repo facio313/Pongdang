@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { Icon, Skeleton } from "./pongdangUi";
 import type { Recommendation } from "./recommendationApi";
 import {
@@ -69,7 +70,7 @@ export function RecommendationReason({
     return (
       <div className={root}>
         <p className="pd-why-line" role="alert">
-          추천 근거를 불러오지 못했어요. {error}
+          {t("추천 근거를 불러오지 못했어요. {error}", { error: t(error) })}
         </p>
       </div>
     );
@@ -77,7 +78,7 @@ export function RecommendationReason({
     return (
       <div className={root}>
         <p className="pd-why-line">
-          <Skeleton width="16em" glass={glass} label="추천 근거 조회 중" />
+          <Skeleton width="16em" glass={glass} label={t("추천 근거 조회 중")} />
         </p>
       </div>
     );

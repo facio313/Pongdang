@@ -4,6 +4,7 @@ const waterPlaces = [
   { id: 11, name: "TEST 해변", place_kind: "beach", address: "강릉", region: "강릉", lat: 37.8, lng: 128.9 },
   { id: 12, name: "TEST 계곡", place_kind: "valley", address: "강릉", region: "강릉", lat: 37.8, lng: 128.9 },
 ];
+const placePage = (rows: typeof waterPlaces) => ({ rows, total: rows.length, page: 1, page_size: 100, has_more: false });
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/data/notifications/subscriptions?**", route =>
@@ -15,9 +16,10 @@ test.beforeEach(async ({ page }) => {
 test("first-swim choices use classified water places and save the selected real ID", async ({ page }) => {
   const searches: string[] = [];
   const saves: { spot_id: number }[] = [];
-  await page.route("**/api/data/livecams/preview/places?**", route => {
+  await page.route("**/api/data/places?**", route => {
     searches.push(new URL(route.request().url()).searchParams.get("q") ?? "");
-    return route.fulfill({ json: waterPlaces });
+    expect(new URL(route.request().url()).searchParams.get("province")).toBe("gangwon");
+    return route.fulfill({ json: placePage(waterPlaces) });
   });
   await page.route("**/api/data/notifications/subscriptions", route => {
     saves.push(route.request().postDataJSON());
@@ -32,17 +34,17 @@ test("first-swim choices use classified water places and save the selected real 
   await page.getByLabel("선호 수온 기준 · °C").fill("20");
   await page.getByRole("button", { name: "앱 내 알림 구독 저장" }).click();
   await expect(page.getByRole("status").filter({ hasText: "알림 구독을 저장했습니다" })).toBeVisible();
-  expect(searches).toEqual(["강릉"]);
+  expect(searches).toEqual([""]);
   expect(saves).toHaveLength(1);
   expect(saves[0].spot_id).toBe(12);
-  await expect(page.locator(".feature-page")).toContainText("검색 결과는 최대 100곳");
+  await expect(page.locator(".feature-page")).toContainText("페이지당 최대 100곳");
 });
 
 test("a new empty search clears the prior selection and prevents stale or unclassified saves", async ({ page }) => {
   let posts = 0;
-  await page.route("**/api/data/livecams/preview/places?**", route => {
+  await page.route("**/api/data/places?**", route => {
     const query = new URL(route.request().url()).searchParams.get("q");
-    return route.fulfill({ json: query === "음식점" ? [] : waterPlaces });
+    return route.fulfill({ json: placePage(query === "음식점" ? [] : waterPlaces) });
   });
   await page.route("**/api/data/notifications/subscriptions", route => {
     posts += 1;
@@ -69,7 +71,7 @@ test("a new empty search clears the prior selection and prevents stale or unclas
 });
 
 test("a rejected place classification stays a failure instead of showing saved", async ({ page }) => {
-  await page.route("**/api/data/livecams/preview/places?**", route => route.fulfill({ json: waterPlaces }));
+  await page.route("**/api/data/places?**", route => route.fulfill({ json: placePage(waterPlaces) }));
   await page.route("**/api/data/notifications/subscriptions", route =>
     route.fulfill({ status: 422, json: { detail: "WATER_PLACE_REQUIRED" } }));
   await page.goto("#first-swim");

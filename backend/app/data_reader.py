@@ -14,6 +14,7 @@ from psycopg import sql
 from psycopg.rows import dict_row
 
 from app.config import Settings
+from app.regions import search_aliases
 
 CATALOG = json.loads(Path(__file__).with_name("data_catalog.json").read_text())
 DATASETS = {item["key"]: item for item in CATALOG}
@@ -200,18 +201,21 @@ class DataReader:
                 raise HTTPException(
                     422, "이 데이터셋은 검색 대신 열 필터를 사용합니다."
                 )
-            escaped = (
-                q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            )
+            aliases = search_aliases(q.strip())
             predicates.append(
                 sql.SQL("({})").format(
                     sql.SQL(" OR ").join(
                         sql.SQL("{} ILIKE %s").format(sql.Identifier(column))
+                        for _ in aliases
                         for column in dataset["search"]
                     )
                 )
             )
-            parameters.extend([f"%{escaped}%"] * len(dataset["search"]))
+            for alias in aliases:
+                escaped = (
+                    alias.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                )
+                parameters.extend([f"%{escaped}%"] * len(dataset["search"]))
         if filter_column and filter_value != "":
             predicates.append(
                 sql.SQL("{}::text = %s").format(sql.Identifier(filter_column))

@@ -13,6 +13,10 @@ import { setTravelSession, useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import type { DefaultPlaceSelection } from "./useProductData";
 import type { ModelTraceTurn } from "./aiApi";
+import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
+import { t } from "./i18n.ts";
+import { placeRegionLabel } from "./productData";
+import { setTravelRegion } from "./travelRegion";
 
 export interface Bubble {
   role: "user" | "assistant";
@@ -41,6 +45,7 @@ export function useRouteFormSources() {
     ...recommendations.map((item) => ({
       id: item.spot_id,
       name: item.name,
+      region: placeRegionLabel(item, ""),
       lat: item.confirmed.latitude,
       lng: item.confirmed.longitude,
     })),
@@ -49,6 +54,7 @@ export function useRouteFormSources() {
       .map((row) => ({
         id: row.id,
         name: row.name,
+        region: placeRegionLabel(row, ""),
         lat: row.lat,
         lng: row.lng,
       })),
@@ -62,6 +68,7 @@ export function useRouteFormSources() {
       rank: item.rank,
       spot_id: item.spot_id,
       name: item.name,
+      region: placeRegionLabel(item, ""),
     })),
   };
 }
@@ -80,16 +87,21 @@ export function useTravelConcierge({
   baseRequest: () => TravelRequest;
   action: { busy: boolean; run: (job: (signal: AbortSignal) => Promise<void>) => Promise<void> };
 }) {
+  const { locale } = useTravelLanguage();
   const session = useTravelSession();
-  const [bubbles, setBubbles] = useState<Bubble[]>([
-    { role: "assistant", content: opener },
-  ]);
+  const [conversation, setBubbles] = useState<Bubble[]>([]);
+  // A greeting follows the UI language until the first real turn. Once a
+  // conversation starts, preserve its original text when languages change.
+  const bubbles: Bubble[] = conversation.length
+    ? conversation
+    : [{ role: "assistant", content: t(opener) }];
   const [draft, setDraft] = useState("");
   const [chatRequest, setChatRequest] = useState<TravelRequest | null>(null);
   const [lastTrace, setLastTrace] = useState<ModelTraceTurn[] | null>(null);
   const asked = bubbles.filter((bubble) => bubble.role === "user").length;
 
-  const publish = (result: RecommendationResult) =>
+  const publish = (result: RecommendationResult) => {
+    if (result.request.region) setTravelRegion(result.request.region);
     setTravelSession({
       recommendation: result,
       plan: null,
@@ -98,6 +110,7 @@ export function useTravelConcierge({
         ? recommendationPlan(result, result.request.dates[0])
         : null,
     });
+  };
 
   // keepTurn 이 여기 있었습니다. 화면이 들고 있던 고정 대본의 다음 질문을
   // 로컬에 미리 띄우는 함수였는데, 그 대본이 사라져 띄울 다음 질문이
@@ -116,11 +129,17 @@ export function useTravelConcierge({
         role: bubble.role,
         content: bubble.content.slice(0, 2000),
       }));
-    setBubbles((current) => [...current, { role: "user", content: message }]);
+    setBubbles((current) => [
+      ...(current.length ? current : bubbles),
+      { role: "user", content: message },
+    ]);
     setDraft("");
     void action.run(async (signal) => {
-      const request = chatRequest ?? baseRequest();
-      const token = session.recommendation?.selection_token;
+      const request = requestInLanguage(chatRequest ?? baseRequest(), locale);
+      // Provider place IDs differ by language. An old selection must not steer
+      // a new-language search back to the previous catalogue.
+      const token = (session.recommendation?.request.locale ?? "ko") === locale
+        ? session.recommendation?.selection_token : undefined;
       const result = await travelJson<TravelChatResponse>(
         import.meta.env.BASE_URL,
         "ai/chat",
@@ -128,7 +147,7 @@ export function useTravelConcierge({
         {
           message,
           history,
-          context: { region: request.region ?? "강릉" },
+          context: { region: request.region ?? "gangwon" },
           travel: {
             action: "conversation",
             request,
@@ -139,7 +158,9 @@ export function useTravelConcierge({
       );
       if (signal.aborted) return;
       // The server's own request state becomes the next form state.
-      setChatRequest(result.travel?.request ?? request);
+      const nextRequest = result.travel?.request ?? result.travel_results?.recommendations?.request ?? request;
+      setChatRequest(nextRequest);
+      if (nextRequest.region) setTravelRegion(nextRequest.region);
       setLastTrace(result.model_trace ?? []);
       setBubbles((current) => [
         ...current,
@@ -164,7 +185,7 @@ export function useTravelConcierge({
             {
               role: "assistant",
               content:
-                "아래 「경로 계산 조건」에서 출발지와 출발 시각을 넣으면 방문 순서를 계산합니다. 현재 위치 또는 등록 장소를 출발지로 고를 수 있습니다.",
+                t("아래 「경로 계산 조건」에서 출발지와 출발 시각을 넣으면 방문 순서를 계산합니다. 현재 위치 또는 등록 장소를 출발지로 고를 수 있습니다."),
             },
           ]);
       }
@@ -242,10 +263,17 @@ export function useTravelConcierge({
     });
 
   const reset = () => {
-    setBubbles([{ role: "assistant", content: opener }]);
+    setBubbles([]);
     setDraft("");
     setChatRequest(null);
     setLastTrace(null);
+  };
+
+  const changeRegion = (region: string) => {
+    setChatRequest((current) => current ? { ...current, region } : null);
+    // A new region needs a new candidate selection/token. This only clears
+    // the local preview; a saved course remains unchanged on the server.
+    setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
   };
 
   return {
@@ -255,6 +283,7 @@ export function useTravelConcierge({
     draft,
     setDraft,
     chatRequest,
+    changeRegion,
     lastTrace,
     publish,
     send,

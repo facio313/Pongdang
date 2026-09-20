@@ -587,3 +587,81 @@ def test_emotion_does_not_authorize_model_to_infer_water_activity(activity):
             session.execute("travel_recommend", {"changes": {"activity": activity}})
         )
     assert session.travel_context.request.activity == "relax"
+
+
+def test_province_ties_preserve_district_order_but_explicit_preferences_win():
+    district_order = [place(1), place(1000), place(1001), place(2)]
+    ranked, _ = rank_places(
+        district_order, TravelRequest(region="gangwon"), TravelPreference(), [], {}
+    )
+    assert [row[0]["spot_id"] for row in ranked] == [1, 1000, 1001, 2]
+    local, _ = rank_places(
+        district_order, TravelRequest(region="강릉"), TravelPreference(), [], {}
+    )
+    assert [row[0]["spot_id"] for row in local] == [1, 2, 1000, 1001]
+    district_order[-1] = place(2, ["온천"])
+    preferred, _ = rank_places(
+        district_order,
+        TravelRequest(region="gangwon"),
+        TravelPreference(tags=["온천"]),
+        [],
+        {},
+    )
+    assert [row[0]["spot_id"] for row in preferred] == [2, 1, 1000, 1001]
+
+
+def test_province_environment_shortlist_and_equal_scores_preserve_districts(
+    monkeypatch,
+):
+    from app.config import Settings
+    from app.travel import storage
+    from app.travel.models import RecommendationInput
+    from app.travel.recommend import recommend
+
+    ordered = [place(1), place(1000), *(place(i) for i in range(2, 32))]
+    for row in ordered:
+        row["catalog_locale"] = "ko"
+
+    class ProvinceCatalog(CatalogFixture):
+        async def search(self, request):
+            return ordered, {"scan_order": "round_robin_district_then_spot_id"}
+
+    class MissingEnvironment:
+        def __init__(self):
+            self.calls = []
+
+        async def compare(self, sid, request, target):
+            self.calls.append(sid)
+            return {"status": "incomplete", "preference_points": None}
+
+    monkeypatch.setattr(storage, "signals", lambda *_: [])
+    environment = MissingEnvironment()
+    result = asyncio.run(
+        recommend(
+            Settings(
+                _env_file=None,
+                sso_proxy_secret="offline-test-secret-more-than-32-characters",
+                postgres_password="offline-test-password",
+            ),
+            "offline-test-owner",
+            RecommendationInput(
+                request=TravelRequest(
+                    region="gangwon",
+                    keyword_selection=[
+                        {"category": "weather", "values": ["dry"]},
+                    ],
+                ),
+                preference=TravelPreference(),
+            ),
+            now=NOW,
+            catalog=ProvinceCatalog(),
+            environment=environment,
+        )
+    )
+    assert len(environment.calls) == 30
+    assert environment.calls[:3] == [1, 1000, 2]
+    assert [row.spot_id for row in result.recommendations] == [1, 1000, 2, 3, 4]
+    assert (
+        result.candidate_scope["environment_comparison"]["shortlist_order"]
+        == "explicit_preference_then_district_round_robin"
+    )

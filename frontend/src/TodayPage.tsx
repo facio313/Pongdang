@@ -1,3 +1,5 @@
+import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { t } from "./i18n.ts";
 import { useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { TodayDesktop } from "./TodayDesktop";
@@ -22,6 +24,7 @@ import {
   dataStatusText,
   periodPath,
   dateLabel,
+  placeRegionLabel,
   timeLabel,
   scoreCoverageText,
   tideTimeLabel,
@@ -89,6 +92,7 @@ function Hero({
   conditions,
   baseline,
   baselineLoading = false,
+  placeRequired = false,
   baselineError,
   best,
   recommendation,
@@ -103,6 +107,7 @@ function Hero({
   conditions?: Conditions;
   baseline?: Conditions;
   baselineLoading?: boolean;
+  placeRequired?: boolean;
   baselineError?: string;
   /** 서버가 고른 오늘의 활동. 없으면 「고를 것이 없다」이거나 조회 실패입니다. */
   best?: ActivityCondition | null;
@@ -118,14 +123,14 @@ function Hero({
   return (
     <header className="pd-hero td-hero">
       <AppHeader
-        title={place?.region || (displayName.includes("경포") ? "강릉" : "선택 해수욕장")}
+        title={placeRegionLabel(place, displayName.includes("경포") ? t("강릉") : t("선택 해수욕장"))}
         time={timeLabel(new Date().toISOString())}
         onCobalt
       />
       <div className="td-hero-inner">
         <p className="pd-lbl">
-          {dateLabel()} · {displayName} {conditionModeLabel(conditions)} 기준
-        </p>
+          {t("{date} · {place} {mode} 기준", { date: dateLabel(), place: displayName, mode: conditionModeLabel(conditions) })}</p>
+        <ProductPlaceSelector placeName={displayName} />
         <div className="td-hero-row">
           {/* 예전에는 「오늘의 수영 조건 / 자료를 확인하세요」 라는 상수
               문장이었습니다. 수영은 서버가 고른 활동이 아니라 화면이 박아 둔
@@ -133,11 +138,10 @@ function Hero({
               조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 뗍니다. */}
           <h1 className="td-hero-sentence">
             {recommendationLoading ? (
-              <Skeleton width="7em" glass label="오늘의 활동 조회 중" />
-            ) : best ? (
+              <Skeleton width="7em" glass label={t("오늘의 활동 조회 중")} />
+            ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
-                오늘 가장 좋은 활동
-                <br />
+                {t("오늘 가장 좋은 활동")}<br />
                 <b>{activityHeadline(best.activity)}</b>
               </>
             ) : (
@@ -152,7 +156,7 @@ function Hero({
           <div className="td-hero-score">
             <div className="pd-num td-hero-score-num">
               {loading ? (
-                <Skeleton width="1.6em" glass label="점수 조회 중" />
+                <Skeleton width="1.6em" glass label={t("점수 조회 중")} />
               ) : (
                 (heroScore ?? "–")
               )}
@@ -167,8 +171,8 @@ function Hero({
             />
           </div>
         </div>
-        <p className="pd-note">장소 {conditionModeLabel(baseline)} · 활동 점수 입력과 별도</p>
-        {baselineError && <p role="alert">장소 자료 조회 실패: {baselineError}</p>}
+        <p className="pd-note">{t("장소 {mode} · 활동 점수 입력과 별도", { mode: conditionModeLabel(baseline) })}</p>
+        {baselineError && <p role="alert">{t("장소 자료 조회 실패: {error}", { error: t(baselineError) })}</p>}
         <div className="td-hero-tiles">
           <div className="td-tile">
             <Icon name="sun" size={17} className="td-tile-icon" />
@@ -181,7 +185,7 @@ function Hero({
                 width="2.6em"
               />
             </div>
-            <div className="td-tile-name">기온</div>
+            <div className="td-tile-name">{t("기온")}</div>
           </div>
           <div className="td-tile">
             <Icon name="wave" size={17} className="td-tile-icon" />
@@ -194,7 +198,7 @@ function Hero({
                 width="2.6em"
               />
             </div>
-            <div className="td-tile-name">파고</div>
+            <div className="td-tile-name">{t("파고")}</div>
           </div>
           <div className="td-tile">
             <Icon name="thermometer" size={17} className="td-tile-icon" />
@@ -207,7 +211,7 @@ function Hero({
                 width="2.6em"
               />
             </div>
-            <div className="td-tile-name">수온</div>
+            <div className="td-tile-name">{t("수온")}</div>
           </div>
           {/* 조회 중은 「값 없음」이 아니므로 is-empty 를 붙이지 않습니다. */}
           <div className={"td-tile" + (qualityLoading ? "" : " is-empty")}>
@@ -215,7 +219,7 @@ function Hero({
             <div className="pd-num td-tile-value">
               {qualityLoading ? <Skeleton width="2.6em" glass /> : quality}
             </div>
-            <div className="td-tile-name">수질 · 최근 검사</div>
+            <div className="td-tile-name">{t("수질 · 최근 검사")}</div>
           </div>
         </div>
         {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. 홈과
@@ -266,7 +270,7 @@ function SpotComparisonRow({
         <span className="td-spot-vals">
           <GradeIcon gradeKey={grade.key} size={12} />
           <span>
-            {grade.label} · 수온{" "}
+            {t(grade.label)} {t("· 수온")}{" "}
             {metricText(conditions.data, "water_temperature")}
           </span>
           <StateChip kind={conditions.data ? "live" : "no_data"} />
@@ -295,9 +299,9 @@ function SpotSection({
   return (
     <section>
       <SectionHead
-        label={`지점 비교 · ${activities[activity]} 점수`}
+        label={t("지점 비교 · {activity} 점수", { activity: t(activities[activity]) })}
         href="#map"
-        linkLabel="전체 지도 →"
+        linkLabel={t("전체 지도 →")}
       />
       <div className="pd-card">
         <div className="td-rows">
@@ -319,20 +323,19 @@ function SpotSection({
         {selected && (
           <div className="td-spot-detail">
             <dl>
-              <dt>장소명</dt>
+              <dt>{t("장소명")}</dt>
               <dd>
                 {selected.name}
-                (수집 DB)
-              </dd>
-              <dt>지역</dt>
-              <dd>{selected.region ?? "–"}</dd>
-              <dt>주소</dt>
+                {t("(수집 DB)")}</dd>
+              <dt>{t("지역")}</dt>
+              <dd>{placeRegionLabel(selected)}</dd>
+              <dt>{t("주소")}</dt>
               <dd>{selected.address ?? "–"}</dd>
-              <dt>검증 상태</dt>
+              <dt>{t("검증 상태")}</dt>
               <dd>{selected.catalog_verification ?? "–"}</dd>
-              <dt>{activities[activity]} 점수</dt>
+              <dt>{t(activities[activity])} {t("점수")}</dt>
               <dd>
-                {conditionScore(conditions.data) ?? "–"} · 수온{" "}
+                {conditionScore(conditions.data) ?? "–"} {t("· 수온")}{" "}
                 {metricText(conditions.data, "water_temperature")} ·{" "}
                 {conditions.error ?? evidenceText(conditions.data)}
               </dd>
@@ -342,9 +345,7 @@ function SpotSection({
         )}
 
         <p className="pd-note" role={statusIsError ? "alert" : "status"}>
-          {status} 장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다.
-          자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.
-        </p>
+          {status} {t("장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다. 자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.")}</p>
       </div>
     </section>
   );
@@ -377,7 +378,7 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
   const errors = states.find((state) => state.error)?.error ?? "";
   return (
     <section>
-      <SectionHead label="활동별 점수 · 선택 장소 조건" />
+      <SectionHead label={t("활동별 점수 · 선택 장소 조건")} />
       <div className="pd-card">
         {[activities.slice(0, 3), activities.slice(3)].map((group, index) => (
         <div className="td-acts" key={index}>
@@ -389,17 +390,17 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
                 key={activity.name}
                 data-grade={grade.key}
               >
-                <div className="td-act-name">{activity.name}</div>
+                <div className="td-act-name">{t(activity.name)}</div>
                 <div className="pd-num td-act-score">
                   <GradeIcon gradeKey={grade.key} size={12} />
                   {activity.score === null ? "–" : activity.score}
                 </div>
-                <div className="td-act-label">{activity.eligibility ?? grade.label}</div>
+                <div className="td-act-label">{activity.eligibility ?? t(grade.label)}</div>
                 <div className="td-act-label">
-                  {activity.score !== null ? scoreCoverageText(activity.data) : "숫자 추천 보류"}
+                  {activity.score !== null ? scoreCoverageText(activity.data) : t("숫자 추천 보류")}
                 </div>
                 <div className="td-act-label">
-                  {activity.data?.support_status === "supported" ? "활동 지원 확인" : activity.data?.support_status === "unsupported" ? "활동 미지원" : "지원 미확인"}
+                  {activity.data?.support_status === "supported" ? t("활동 지원 확인") : activity.data?.support_status === "unsupported" ? t("활동 미지원") : t("지원 미확인")}
                 </div>
               </div>
             );
@@ -407,25 +408,22 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
         </div>
         ))}
         <p className="pd-note">
-          <StateChip kind="partial" /> 활동별 참고 점수입니다. 일부 근거로 계산한
-          값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.
-        </p>
+          <StateChip kind="partial" /> {t("활동별 참고 점수입니다. 일부 근거로 계산한 값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.")}</p>
         {errors && <p className="pd-note" role="alert">{errors}</p>}
         {/* 예전에는 활동 6개의 근거가 카드 아래 <details> 6줄로 따로 쌓여
             있었습니다. 위 타일과 짝이 맞지 않아 어느 활동의 근거인지 두 번
             읽어야 했고, 아코디언 줄만 6줄이었습니다. 하나만 펴 두고 활동은
             셀렉트로 고릅니다 -- 근거를 감추는 것이 아니라 자리를 옮깁니다. */}
         <details className="pd-note td-basis">
-          <summary>분야별 근거 확인</summary>
+          <summary>{t("분야별 근거 확인")}</summary>
           <label className="td-basis-pick">
-            활동
-            <select
+            {t("활동")}<select
               value={basisId}
               onChange={(event) => setBasisId(event.target.value)}
             >
               {activities.map((activity) => (
                 <option key={activity.id} value={activity.id}>
-                  {activity.name}
+                  {t(activity.name)}
                 </option>
               ))}
             </select>
@@ -462,16 +460,16 @@ function OperatingRow({
       <span className="td-badge-round">
         <Icon name={activity.icon} size={14} />
       </span>
-      <span className="td-tide-name">{activity.name}</span>
+      <span className="td-tide-name">{t(activity.name)}</span>
       <span className={"td-fit-chip" + (active ? "" : " is-off")}>
-        {active ? "공식 운영" : "확인 필요"}
+        {active ? t("공식 운영") : t("확인 필요")}
       </span>
       <span className="td-tide-when" title={active?.scope}>
         {windows.error
-          ? "조회 실패"
+          ? t("조회 실패")
           : active
             ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
-            : "운영정보 없음"}
+            : t("운영정보 없음")}
       </span>
     </div>
   );
@@ -497,28 +495,25 @@ function TideNote({ tides, status }: { tides?: TideResult; status: string }) {
             {/* 관계를 알 수 없으면 「주변 참고」라고 단정하지 않고 관측소로만
                 적습니다. 모르는 것을 가까운 것으로 바꾸지 않기 위해서입니다. */}
             {nearby
-              ? `주변 ${event.station_name}${distance ? ` ${distance}` : ""} 참고`
-              : `관측소 ${event.station_name}${distance ? ` ${distance}` : ""}`}
+              ? t("주변 {station}{distance} 참고", { station: event.station_name, distance: distance ? ` ${distance}` : "" })
+              : t("관측소 {station}{distance}", { station: event.station_name, distance: distance ? ` ${distance}` : "" })}
           </span>
         )}
         <span>
-          공식 조석 예측의 간조·만조 시각입니다. 이 시각이 오늘의 활동 선택에
-          어떻게 작용했는지는 위 추천 근거에 있습니다 -- 여기 값과 그쪽 값은
-          서로 다른 조회라 시각이 어긋날 수 있어 합치지 않습니다.{" "}
+          {t("공식 조석 예측의 간조·만조 시각입니다. 이 시각이 오늘의 활동 선택에 어떻게 작용했는지는 위 추천 근거에 있습니다 -- 여기 값과 그쪽 값은 서로 다른 조회라 시각이 어긋날 수 있어 합치지 않습니다.")}{" "}
           {dataStatusText(status)}
         </span>
       </p>
       <details className="pd-explainer">
-        <summary className="pd-tap">이 시각의 한계</summary>
+        <summary className="pd-tap">{t("이 시각의 한계")}</summary>
         <div className="pd-explainer-body">
           <p>
-            사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.
-          </p>
+            {t("사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.")}</p>
           {event && (
             <p>
-              {event.station_name ?? "관측소명 없음"} · {event.provider}
+              {event.station_name ?? t("관측소명 없음")} · {event.provider}
               {distance ? ` · ${distance}` : ""}
-              {nearby ? " · 해당 해변의 직접 예측이 아닙니다." : ""}
+              {nearby ? t(" · 해당 해변의 직접 예측이 아닙니다.") : ""}
             </p>
           )}
         </div>
@@ -540,20 +535,20 @@ function TideSection({
 }) {
   return (
     <section>
-      <SectionHead label="물때" suffix="A6" />
+      <SectionHead label={t("물때")} suffix="A6" />
       <div className="pd-card">
         <div className="td-tide-now">
           <span className="td-tide-pill is-now">
-            간조 {tideTimeLabel(tides?.next_low?.event_at)}
+            {t("간조")} {" "}{tideTimeLabel(tides?.next_low?.event_at)}
           </span>
           <span className="td-tide-arrow" aria-hidden="true">
             →
           </span>
           <span className="td-tide-pill">
-            만조 {tideTimeLabel(tides?.next_high?.event_at)}
+            {t("만조")} {" "}{tideTimeLabel(tides?.next_high?.event_at)}
           </span>
           <span className="td-tide-level">
-            다음 만조 높이{" "}
+            {t("다음 만조 높이")}{" "}
             <b className="pd-num">
               {tides?.next_high?.height ?? "–"}
               {tides?.next_high?.unit ?? ""}
@@ -600,10 +595,10 @@ function FirstSwimSection({ id }: { id?: number }) {
   return (
     <section>
       <SectionHead
-        label="올해 첫 입수"
+        label={t("올해 첫 입수")}
         suffix="A7"
         href="#first-swim"
-        linkLabel="내 알림 조회 →"
+        linkLabel={t("내 알림 조회 →")}
       />
       <div className="pd-card">
         <div className="td-swim">
@@ -612,19 +607,19 @@ function FirstSwimSection({ id }: { id?: number }) {
           </span>
           <div>
             <div className="td-swim-date">
-              {subscription ? "기준 관측 알림" : "–"}
+              {subscription ? t("기준 관측 알림") : "–"}
             </div>
             <div className="td-swim-sub">
               {subscription
-                ? `선택 기준 ${subscription.minimum_temperature_c}°C · ${subscription.condition_state} · 최근 평가 ${timeLabel(subscription.last_evaluated_at)}`
-                : "이 장소의 올해 알림 구독이 없습니다."}
+                ? t("선택 기준 {temperature}°C · {state} · 최근 평가 {time}", { temperature: subscription.minimum_temperature_c, state: dataStatusText(subscription.condition_state), time: timeLabel(subscription.last_evaluated_at) })
+                : t("이 장소의 올해 알림 구독이 없습니다.")}
             </div>
           </div>
         </div>
         <p className="pd-note" role={subscriptions.error ? "alert" : "status"}>
           <StateChip kind={subscription ? "live" : "no_data"} />{" "}
           {subscriptions.error ??
-            "개인 구독의 평가 상태입니다. 첫 입수일과 전년 비교는 관측 이력이 입증하지 않아 표시하지 않습니다."}
+            t("개인 구독의 평가 상태입니다. 첫 입수일과 전년 비교는 관측 이력이 입증하지 않아 표시하지 않습니다.")}
         </p>
       </div>
     </section>
@@ -640,9 +635,9 @@ function QualitySection({
 }) {
   return (
     <section>
-      <SectionHead label="수질 등급 · 최근 검사" suffix="A8" />
+      <SectionHead label={t("수질 등급 · 최근 검사")} suffix="A8" />
       <div className="pd-card">
-        <div className="td-conf-row"><b>{error ? "조회 실패" : waterQualityLabel(data)}</b><span>{data?.label}</span></div>
+        <div className="td-conf-row"><b>{error ? t("조회 실패") : waterQualityLabel(data)}</b><span>{t(data?.label ?? "")}</span></div>
         <WaterQualityDetails data={data} error={error} className="pd-note" />
       </div>
     </section>
@@ -651,15 +646,15 @@ function QualitySection({
 
 function UnlinkedAlert() {
   const items = [
-    "공식 안전 판정 — 활동 조건 참고 점수와 별도 확인 필요",
-    "첫 입수일·전년 비교 — 연속 관측 이력 확인 필요",
-    "오늘의 해수욕장 위생 수질 — 최신 대장균·장구균 검사 필요",
+    t("공식 안전 판정 — 활동 조건 참고 점수와 별도 확인 필요"),
+    t("첫 입수일·전년 비교 — 연속 관측 이력 확인 필요"),
+    t("오늘의 해수욕장 위생 수질 — 최신 대장균·장구균 검사 필요"),
   ];
   return (
     <div className="pd-card td-alert" role="note">
       <div className="td-alert-head">
         <Icon name="warning" size={15} />
-        <span>추가 근거가 필요한 항목</span>
+        <span>{t("추가 근거가 필요한 항목")}</span>
       </div>
       <ul>
         {items.map((item) => (
@@ -667,9 +662,7 @@ function UnlinkedAlert() {
         ))}
       </ul>
       <p className="pd-note">
-        장소·조건·공식 예보·물때·수질 비교·개인 알림을 각각 조회합니다. 빈 값과
-        unknown은 안전함을 뜻하지 않습니다.
-      </p>
+        {t("장소·조건·공식 예보·물때·수질 비교·개인 알림을 각각 조회합니다. 빈 값과 unknown은 안전함을 뜻하지 않습니다.")}</p>
     </div>
   );
 }
@@ -680,7 +673,7 @@ function TodayScreen() {
   // 화면은 수영 조건만 늘어놓았습니다.
   const {
     now, place, places, conditions, baseline, activities: activityStates, best,
-    recommendation, displayName, selectionMessage, placeSettled,
+    recommendation, displayName, selectionMessage, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
@@ -692,10 +685,11 @@ function TodayScreen() {
         tab="today"
         hero={
           <Hero
-            quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
+            quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}
             place={place}
             displayName={displayName}
+            placeRequired={placeRequired}
             conditions={conditions.data}
             baseline={baseline.data}
             baselineLoading={isInitialLoad(baseline)}
@@ -727,8 +721,8 @@ function TodayScreen() {
             status={
               tides.error ??
               (tides.loading
-                ? "물때 조회 중"
-                : (tides.data?.status ?? "장소 선택 필요"))
+                ? t("물때 조회 중")
+                : (tides.data?.status ?? t("장소 선택 필요")))
             }
           />
           <FirstSwimSection id={place?.id} />

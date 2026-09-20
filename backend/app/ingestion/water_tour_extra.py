@@ -108,6 +108,37 @@ def tourism_time(raw):
         raise ProviderError("INVALID_SOURCE_TIME") from None
 
 
+def tourism_place(row, fetched):
+    """Preserve TourAPI identity, administrative codes and source timestamps."""
+    code, title = required(row, "contentid"), required(row, "title")
+    lat, lon = coordinate(row.get("mapy")), coordinate(row.get("mapx"), False)
+    if lat is None or lon is None or not lat or not lon:
+        return None
+    created = tourism_time(row["createdtime"]) if row.get("createdtime") else None
+    modified = tourism_time(row["modifiedtime"]) if row.get("modifiedtime") else None
+    if any(dt and dt > fetched for dt in (created, modified)):
+        raise ProviderError("FUTURE_SOURCE_MODIFICATION")
+    if created and modified and created > modified:
+        raise ProviderError("INVALID_SOURCE_CHRONOLOGY")
+    region_fields = (
+        ("lDongRegnCd", "lDongSignguCd")
+        if row.get("lDongRegnCd")
+        else ("areacode", "sigungucode")
+    )
+    return Place(
+        source_id=code,
+        name=title,
+        kind="tourism",
+        latitude=lat,
+        longitude=lon,
+        address=" ".join(str(row[k]) for k in ("addr1", "addr2") if row.get(k)),
+        region=":".join(str(row.get(k) or "") for k in region_fields),
+        category=str(row.get("contenttypeid") or ""),
+        source_created_at=created,
+        source_modified_at=modified,
+    )
+
+
 class WaterTourExtraProvider:
     def __init__(self, settings, client=None, clock=utcnow):
         self.settings = settings
@@ -286,39 +317,15 @@ class WaterTourExtraProvider:
         )
         places, source_rows = {}, {}
         for row in rows:
-            code, title = required(row, "contentid"), required(row, "title")
+            code = required(row, "contentid")
             # Check before skipping incomplete coordinates, so a conflicting
             # later revision cannot silently leave the earlier record selected.
             if code in source_rows and source_rows[code] != row:
                 raise ProviderError("CONFLICTING_PLACE")
             source_rows[code] = row
-            lat, lon = coordinate(row.get("mapy")), coordinate(row.get("mapx"), False)
-            if lat is None or lon is None or not lat or not lon:
+            place = tourism_place(row, fetched)
+            if place is None:
                 continue  # A place cannot be placed at invented coordinates.
-            created = (
-                tourism_time(row["createdtime"]) if row.get("createdtime") else None
-            )
-            modified = (
-                tourism_time(row["modifiedtime"]) if row.get("modifiedtime") else None
-            )
-            if any(dt and dt > fetched for dt in (created, modified)):
-                raise ProviderError("FUTURE_SOURCE_MODIFICATION")
-            if created and modified and created > modified:
-                raise ProviderError("INVALID_SOURCE_CHRONOLOGY")
-            place = Place(
-                source_id=code,
-                name=title,
-                kind="tourism",
-                latitude=lat,
-                longitude=lon,
-                address=" ".join(str(row[k]) for k in ("addr1", "addr2") if row.get(k)),
-                region=":".join(
-                    str(row.get(k) or "") for k in ("areacode", "sigungucode")
-                ),
-                category=str(row.get("contenttypeid") or ""),
-                source_created_at=created,
-                source_modified_at=modified,
-            )
             if not in_radius(place, self.settings):
                 continue
             if code in places and places[code] != place:
@@ -422,15 +429,18 @@ def water_tour_extra_jobs(settings):
         allowed = (
             language != "chinese_traditional" or settings.tourism_traditional_enabled
         )
+        local = getattr(settings, "tourism_collection_scope", "local") == "local"
         jobs.append(
             Job(
                 "tourapi_" + language,
                 86400,
                 partial(provider.tourism_places, language),
-                portal and allowed,
+                portal and allowed and local,
                 disabled_reason=(
                     "SERVICE_APPROVAL_UNCONFIRMED"
                     if portal and not allowed
+                    else "COLLECTION_SCOPE_REPLACED"
+                    if portal and not local
                     else "KEY_NOT_CONFIGURED"
                 ),
             )

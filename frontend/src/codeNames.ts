@@ -1,3 +1,5 @@
+import { t } from "./i18n.ts";
+
 // Display-only dictionaries, scoped by dataset and field. Never rewrite DB values.
 const metrics: Record<string, string> = {
   air_temperature_c: "기온",
@@ -93,9 +95,9 @@ export function codeName(dataset: string, field: string, value: string): string 
   if (dataset === "runs" && field === "task_name") {
     const demo = value.startsWith("DEMO/");
     const code = demo ? value.slice(5) : value;
-    const name = Object.hasOwn(tasks, code) ? tasks[code] : "미등록 코드";
-    return demo ? `${name} · 합성 예시 (실제 실행 아님)` : name;
+    const name = t(Object.hasOwn(tasks, code) ? tasks[code] : "미등록 코드");
+    return demo ? t("{name} · 합성 예시 (실제 실행 아님)", { name }) : name;
   }
   const dictionary = dictionaries[`${dataset}.${field}`];
-  return Object.hasOwn(dictionary, value) ? dictionary[value] : "미등록 코드";
+  return t(Object.hasOwn(dictionary, value) ? dictionary[value] : "미등록 코드");
 }

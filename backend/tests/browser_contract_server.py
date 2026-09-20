@@ -80,6 +80,44 @@ def test_app():
             ],
         ),
     )
+    # Explicit fixture-only administrative evidence for an otherwise addressless
+    # station place. The product uses provider-confirmed coordinate lookup.
+    with connect(settings) as connection:
+        connection.execute(
+            "INSERT INTO pongdang_data.collection_place_region "
+            "(spot_id,province_code,district_code,provider,provider_region_code,"
+            "source_url,verified_at,latitude,longitude) "
+            "SELECT spot_id,'gangwon','gangneung','OFFLINE_TEST','5115000000',"
+            "'https://dapi.kakao.com/v2/local/geo/coord2regioncode.json',%s,"
+            "37.85,128.95 FROM pongdang_data.collection_station "
+            "WHERE source_id='browser-station-beach'",
+            [now],
+        )
+    # Real adapter shape, isolated test records: foreign addresses/region codes
+    # cannot match the recommendation screen's former hard-coded Korean query.
+    for provider, name in (
+        ("english", "OFFLINE TEST English attraction"),
+        ("japanese", "OFFLINE TEST 日本語観光地"),
+        ("chinese_simplified", "OFFLINE TEST 简体中文景点"),
+    ):
+        store_batch(
+            settings,
+            SourceBatch(
+                provider="tourapi_" + provider,
+                fetched_at=now,
+                places=[
+                    Place(
+                        source_id="browser-language-" + provider,
+                        name=name,
+                        kind="tourism",
+                        category="75",
+                        region="32:1",
+                        latitude=37.81,
+                        longitude=128.91,
+                    )
+                ],
+            ),
+        )
     batch = source(
         values=[
             Value(name="air_temperature", numeric_value=24.7, unit="degC"),

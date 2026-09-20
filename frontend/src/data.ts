@@ -1,3 +1,5 @@
+import { dateLocale, t } from "./i18n.ts";
+
 export type Cell =
   | string
   | number
@@ -75,10 +77,10 @@ export const categories: Record<string, string> = {
   operations: "실행 기록",
 };
 export const number = (value: number | undefined) =>
-  value === undefined ? "—" : value.toLocaleString("ko-KR");
+  value === undefined ? "—" : value.toLocaleString(dateLocale());
 export function date(value?: string | null) {
   return value
-    ? new Intl.DateTimeFormat("sv-SE", {
+    ? new Intl.DateTimeFormat(dateLocale() === "ko-KR" ? "sv-SE" : dateLocale(), {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -88,7 +90,7 @@ export function date(value?: string | null) {
         hourCycle: "h23",
         timeZone: "Asia/Seoul",
       }).format(new Date(value))
-    : "기록 없음";
+    : t("기록 없음");
 }
 export function text(value: Cell | undefined, type?: string): string {
   if (value === null || value === undefined) return "—";

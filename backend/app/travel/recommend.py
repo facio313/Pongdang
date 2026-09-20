@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException
 
+from app.regions import region_query
 from app.travel import keywords, storage, tokens
 from app.travel.catalog import Catalog
 from app.travel.language import copy, label
@@ -217,11 +218,15 @@ def rank_places(places, request, preference, signals, restrictions):
     # requested count cannot drop them; they still pass the checks above, and a
     # blocked or unconfirmed one keeps its reason in `excluded`.
     required = set(request.must_include)
+    # Province-wide reads already alternate districts. Preserve that order only
+    # for equal preference weights; explicit choices and evidence still win.
+    broad_region = region_query(request.region or "") == ("gangwon", None)
+    candidate_order = {place["spot_id"]: index for index, place in enumerate(places)}
     ranked.sort(
         key=lambda row: (
             row[0]["spot_id"] not in required,
             -sum(m.weight for m in row[1]),
-            row[0]["spot_id"],
+            candidate_order[row[0]["spot_id"]] if broad_region else row[0]["spot_id"],
         )
     )
     return ranked, excluded
@@ -294,11 +299,17 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
         environment_matches = dict(
             await asyncio.gather(*(read_match(row) for row in shortlist))
         )
+        broad_region = region_query(request.region or "") == ("gangwon", None)
+        shortlist_order = {
+            row[0]["spot_id"]: index for index, row in enumerate(shortlist)
+        }
         scope["environment_comparison"] = {
             "candidate_limit": PREVIEW_LIMIT,
             "compared_count": len(shortlist),
             "truncated": len(ranked) > len(shortlist),
-            "shortlist_order": "explicit_preference_then_spot_id",
+            "shortlist_order": "explicit_preference_then_district_round_robin"
+            if broad_region
+            else "explicit_preference_then_spot_id",
             "time_basis": time_basis,
             "target_at": target.isoformat(),
             "optimality": "only_within_compared_candidates_and_available_evidence",
@@ -312,7 +323,9 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
                 row[0]["spot_id"] not in required,
                 points is None if request.environment_preferences else False,
                 -sum(m.weight for m in row[1]) - (points or 0),
-                row[0]["spot_id"],
+                shortlist_order[row[0]["spot_id"]]
+                if broad_region
+                else row[0]["spot_id"],
             )
 
         ranked = sorted(shortlist, key=environment_order)

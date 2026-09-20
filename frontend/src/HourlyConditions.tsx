@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import type { Activity } from "./aiApi";
 import { metricText } from "./productData";
 import { useHourlyScores } from "./useHourlyScores";
@@ -24,27 +25,27 @@ export function HourlyConditions({
   const hours = useHourlyScores(id, now, activity);
   return (
     <div className="pd-slot">
-      <table aria-label="오늘 시간대별 수집 예보">
-        <caption>오늘 시간대별 예보 (09–18시)</caption>
+      <table aria-label={t("오늘 시간대별 수집 예보")}>
+        <caption>{t("오늘 시간대별 예보 (09–18시)")}</caption>
         <thead>
           <tr>
-            <th scope="col">시각</th>
-            <th scope="col">수온</th>
-            <th scope="col">파고</th>
-            <th scope="col">강수량</th>
+            <th scope="col">{t("시각")}</th>
+            <th scope="col">{t("수온")}</th>
+            <th scope="col">{t("파고")}</th>
+            <th scope="col">{t("강수량")}</th>
           </tr>
         </thead>
         <tbody>
           {hours.map((hour) => (
             <tr key={hour.hour}>
-              <th scope="row">{hour.hour}시</th>
+              <th scope="row">{t("{hour}시", { hour: hour.hour })}</th>
               {(["water_temperature", "wave_height", "precipitation"] as const).map(
                 (name) => (
                   <td key={name} title={hour.error}>
                     {hour.loading
-                      ? "조회 중"
+                      ? t("조회 중")
                       : hour.error
-                        ? "조회 실패"
+                        ? t("조회 실패")
                         : metricText(hour.data, name)}
                   </td>
                 ),
@@ -54,9 +55,7 @@ export function HourlyConditions({
         </tbody>
       </table>
       <span>
-        관측소·격자 예보입니다. ‘최대’는 구간 최대값, ‘강수없음’·범위는 제공기관
-        표현입니다. 발표시각 미제공 예보가 포함될 수 있습니다.
-      </span>
+        {t("관측소·격자 예보입니다. ‘최대’는 구간 최대값, ‘강수없음’·범위는 제공기관 표현입니다. 발표시각 미제공 예보가 포함될 수 있습니다.")}</span>
     </div>
   );
 }

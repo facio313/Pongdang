@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.ai.tools import PLACE_COLUMNS, PLACE_JOIN, ToolSession, _safe_url
 from app.data_reader import DataReader
+from app.regions import district_group_expression, place_search_predicate, region_query
 from app.travel.models import Evidence
 from app.water_index.sources import AuthorityRecord
 
@@ -156,12 +157,9 @@ class Catalog:
 
         providers = PROVIDERS[request.locale]
         region = request.region or ""
-        where = (
-            "WHERE p.provider=ANY(%s) AND (%s='' OR "
-            "position(lower(%s) in lower(coalesce(s.region,'')||' '||"
-            "coalesce(s.address,'')||' '||s.name))>0) AND NOT(s.id=ANY(%s))"
-        )
-        params = [providers, region, region, request.exclude]
+        predicate, region_params = place_search_predicate(region)
+        where = "WHERE p.provider=ANY(%s) AND " + predicate + " AND NOT(s.id=ANY(%s))"
+        params = [providers, *region_params, request.exclude]
         # Apply selected place categories before the 300-candidate limit. A
         # matching lake/onsen must not disappear behind unrelated low-ID places.
         type_predicates = {
@@ -199,6 +197,35 @@ class Catalog:
                 "lodging": "여행 > 숙박%",
             }
             params.extend([kinds, codes, prefixes[request.place_role]])
+        broad_region = region_query(region) == ("gangwon", None)
+        if broad_region:
+            district_expression, district_params = district_group_expression()
+            query = (
+                "WITH candidates AS (SELECT DISTINCT ON(s.id) "
+                + PLACE_COLUMNS
+                + ","
+                + district_expression
+                + " AS candidate_district"
+                + PLACE_JOIN
+                + where
+                + " ORDER BY s.id,p.fetched_at DESC,p.provider,p.source_id),"
+                "ranked AS (SELECT *,row_number() OVER ("
+                "PARTITION BY candidate_district "
+                "ORDER BY spot_id) AS district_position FROM candidates) "
+                "SELECT * FROM ranked ORDER BY district_position,"
+                "candidate_district NULLS LAST,spot_id LIMIT 100 OFFSET %s"
+            )
+            page_params = [*district_params, *params]
+        else:
+            query = (
+                "SELECT DISTINCT ON(s.id) "
+                + PLACE_COLUMNS
+                + PLACE_JOIN
+                + where
+                + " ORDER BY s.id,p.fetched_at DESC,p.provider,p.source_id "
+                "LIMIT 100 OFFSET %s"
+            )
+            page_params = params
         async with self.reader.connection() as c:
             total = (
                 await (
@@ -213,13 +240,8 @@ class Catalog:
                 rows.extend(
                     await (
                         await c.execute(
-                            "SELECT DISTINCT ON(s.id) "
-                            + PLACE_COLUMNS
-                            + PLACE_JOIN
-                            + where
-                            + " ORDER BY s.id,p.fetched_at "
-                            "DESC,p.provider,p.source_id LIMIT 100 OFFSET %s",
-                            [*params, offset],
+                            query,
+                            [*page_params, offset],
                         )
                     ).fetchall()
                 )
@@ -232,7 +254,9 @@ class Catalog:
             "candidate_limit": MAX_CANDIDATES,
             "sql_page_size": 100,
             "truncated": total > len(rows),
-            "scan_order": "stable_spot_id",
+            "scan_order": "round_robin_district_then_spot_id"
+            if broad_region
+            else "stable_spot_id",
             "coverage": "registered_catalog_only",
             "place_role": request.place_role,
             "role_classification": "KTO_content_type_v4.4_or_explicit_place_kind",

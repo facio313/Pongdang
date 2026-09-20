@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 // 서버가 내려준 점수를 「무엇의 · 얼마나 · 왜 · 그래서 뭘」로 읽어 주는 계층.
 //
 // 이 파일은 고르기만 하고 계산하지 않습니다. 점수를 다시 매기거나, 결측을
@@ -26,7 +27,7 @@ const COMFORTABLE = grades.find((grade) => grade.key === "excellent")!.min;
 /** 무엇의 점수인지. 「퐁당 72」는 무슨 점수인지 말해 주지 않으므로 활동명을
  *  항상 붙입니다. */
 export function scoreTitle(activity: Activity) {
-  return `${activities[activity]} 적합도`;
+  return t("{activity} 적합도", { activity: t(activities[activity]) });
 }
 
 // 활동 동사와 등급 꼬리를 나누어 조합합니다. 6활동 × 5등급 = 30 문장을 그대로
@@ -43,11 +44,11 @@ const ACTIVITY_VERB: Record<Activity, string> = {
 // 「수영하기에 좋은」 · 「갯벌에 나가기에는 권하지 않는」처럼 어느 활동에
 // 붙여도 말이 됩니다.
 const GRADE_TAIL: Record<string, string> = {
-  excellent: "에 아주 좋은 조건이에요",
-  good: "에 좋은 조건이에요",
-  fair: "에 무난한 조건이에요",
-  caution: "에는 아쉬운 조건이에요",
-  poor: "에는 권하지 않는 조건이에요",
+  excellent: "{activity}에 아주 좋은 조건이에요",
+  good: "{activity}에 좋은 조건이에요",
+  fair: "{activity}에 무난한 조건이에요",
+  caution: "{activity}에는 아쉬운 조건이에요",
+  poor: "{activity}에는 권하지 않는 조건이에요",
 };
 
 /** 등급을 행동으로 옮긴 한 줄. 「양호」는 상태어일 뿐이라 가도 되는지가 읽히지
@@ -55,7 +56,7 @@ const GRADE_TAIL: Record<string, string> = {
  *  모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */
 export function verdictOf(activity: Activity, gradeKey: string) {
   const tail = GRADE_TAIL[gradeKey];
-  return tail ? ACTIVITY_VERB[activity] + tail : null;
+  return tail ? t(tail, { activity: t(ACTIVITY_VERB[activity]) }) : null;
 }
 
 export interface ScoreFactor {
@@ -84,10 +85,10 @@ function factor(item: Component, text: (label: string, value: string) => string)
   const valueText = formatValue(item.value, item.unit);
   return {
     metric: item.metric,
-    label: item.label,
+    label: t(item.label),
     valueText,
     score: item.score as number,
-    text: text(item.label, valueText),
+    text: text(t(item.label), valueText),
   };
 }
 
@@ -101,7 +102,7 @@ export function limitingFactor(data?: Conditions): ScoreFactor | null {
     (item.score as number) < (low.score as number) ? item : low,
   );
   if ((worst.score as number) >= COMFORTABLE) return null;
-  return factor(worst, (label, value) => `${label} ${value} — 이 조건이 점수를 가장 많이 낮췄어요`);
+  return factor(worst, (label, value) => t("{label} {value} — 이 조건이 점수를 가장 많이 낮췄어요", { label, value }));
 }
 
 /** 가장 점수가 높은 항목. 동점이면 서버가 준 순서를 따릅니다. */
@@ -111,7 +112,7 @@ export function strongFactor(data?: Conditions): ScoreFactor | null {
   const best = items.reduce((high, item) =>
     (item.score as number) > (high.score as number) ? item : high,
   );
-  return factor(best, (label, value) => `${label} ${value} — 오늘 가장 좋은 조건이에요`);
+  return factor(best, (label, value) => t("{label} {value} — 오늘 가장 좋은 조건이에요", { label, value }));
 }
 
 /** 히어로에 올릴 한 줄. 깎은 요인이 있으면 그것을, 없으면 강점을, 둘 다 없으면
@@ -120,7 +121,7 @@ export function strongFactor(data?: Conditions): ScoreFactor | null {
 export function scoreReason(data?: Conditions): ScoreFactor | { text: string } {
   return (
     limitingFactor(data) ??
-    strongFactor(data) ?? { text: "근거가 부족해 점수를 내지 못했어요" }
+    strongFactor(data) ?? { text: t("근거가 부족해 점수를 내지 못했어요") }
   );
 }
 
@@ -145,13 +146,13 @@ export function componentBars(data?: Conditions): ComponentBar[] {
       Number.isFinite(item.score);
     return {
       metric: item.metric,
-      label: item.label,
+      label: t(item.label),
       valueText: formatValue(item.value, item.unit),
       score: evaluated ? (item.score as number) : null,
       status: item.status,
       evaluated,
       reasons: item.reason_codes
-        .map((reason) => SCORE_REASONS[reason] ?? reason)
+        .map((reason) => t(SCORE_REASONS[reason] ?? reason))
         .join(" · "),
     };
   });

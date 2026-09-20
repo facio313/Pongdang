@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 // 서버가 고른 활동을 「왜 이것인가 · 왜 저것이 아닌가 · 지금 물때는 · 대신 갈 곳」
 // 으로 읽어 주는 계층.
 //
@@ -24,18 +25,18 @@ export function activityRecommendationDisplay(
   ranked?: RankedActivity,
 ): { score: number | null; eligibility?: string } {
   if (conditions?.support_status === "unsupported")
-    return { score: null, eligibility: "활동 미지원" };
+    return { score: null, eligibility: t("활동 미지원") };
   if (ranked?.dropped) {
     const rules = ranked.rules_applied;
     const eligibility = rules.includes("essential_measurement_missing")
-      ? "추천 제외 · 필수 근거 부족"
+      ? t("추천 제외 · 필수 근거 부족")
       : rules.includes("water_too_cold_for_immersion")
-        ? "추천 제외 · 수온 기준 미충족"
+        ? t("추천 제외 · 수온 기준 미충족")
         : conditions?.condition_score?.status === "blocked"
-          ? "산정 보류 · 공식 제한 또는 활동 미지원"
+          ? t("산정 보류 · 공식 제한 또는 활동 미지원")
           : rules.includes("activity_blocked")
-            ? "산정 불가 · 근거 부족"
-            : "추천 제외";
+            ? t("산정 불가 · 근거 부족")
+            : t("추천 제외");
     return { score: null, eligibility };
   }
   const score = conditionScore(conditions);
@@ -43,8 +44,8 @@ export function activityRecommendationDisplay(
     return {
       score,
       eligibility: conditions.condition_score?.status === "blocked"
-        ? "산정 보류 · 공식 제한 또는 활동 미지원"
-        : "산정 불가 · 근거 부족",
+        ? t("산정 보류 · 공식 제한 또는 활동 미지원")
+        : t("산정 불가 · 근거 부족"),
     };
   return { score };
 }
@@ -69,7 +70,7 @@ export const ALTERNATIVE_LABEL: Record<
 /** 히어로에 올릴 활동 이름. `relax` 는 서버 enum 이라 그대로 두고, 추천
  *  문맥에서만 갈 곳이 있는 하루로 바꿔 부릅니다. */
 export function activityHeadline(activity: Activity) {
-  return activity === "relax" ? "물에 들어가지 않는 하루" : activities[activity];
+  return activity === "relax" ? t("물에 들어가지 않는 하루") : t(activities[activity]);
 }
 
 export interface ReasonLine {
@@ -84,8 +85,8 @@ export function missingChoiceHeadline(error?: string, polite = false) {
   // 모바일은 해요체, 데스크탑은 합쇼체를 씁니다. 말투까지 한 곳에서 갈라
   // 두어야 화면마다 같은 사실이 다른 문장으로 벌어지지 않습니다.
   if (error)
-    return ["오늘의 활동을", polite ? "불러오지 못했습니다" : "불러오지 못했어요"];
-  return ["오늘 점수를 낼 수 있는", polite ? "활동이 없습니다" : "활동이 없어요"];
+    return [t("오늘의 활동을"), polite ? t("불러오지 못했습니다") : t("불러오지 못했어요")];
+  return [t("오늘 점수를 낼 수 있는"), polite ? t("활동이 없습니다") : t("활동이 없어요")];
 }
 
 function find(rec: Recommendation | undefined, ...codes: string[]) {
@@ -97,7 +98,7 @@ function all(rec: Recommendation | undefined, code: string) {
 /** 「수온 24°C」. 조사(이/가)는 붙이지 않습니다 -- 값이 «1.4m» · «8m/s» 처럼
  *  기호로 끝나 받침을 판정할 수 없어, 어느 쪽을 골라도 절반은 틀립니다. */
 function measured(reason: RecommendationReasonData) {
-  return `${reason.label ?? reason.metric ?? ""} ${formatValue(reason.value, reason.unit ?? "")}`.trim();
+  return `${t(reason.label ?? reason.metric ?? "")} ${formatValue(reason.value, reason.unit ?? "")}`.trim();
 }
 
 /** 왜 이 활동인가. 서버가 그 이유를 코드로 말해 주지 않았으면 문장을 지어내지
@@ -113,14 +114,14 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
       .join(" · ");
     return {
       code: surf.code,
-      text: `${waves} — 오늘은 수영보다 서핑에 맞는 파도예요`,
+      text: t("{waves} — 오늘은 수영보다 서핑에 맞는 파도예요", { waves }),
     };
   }
   const swim = find(rec, "wave_favours_swim");
   if (swim)
     return {
       code: swim.code,
-      text: `${measured(swim)} — 파도가 잔잔해서 바다 수영에 맞아요`,
+      text: t("{waves} — 파도가 잔잔해서 바다 수영에 맞아요", { waves: measured(swim) }),
     };
   const preferred = find(rec, "water_activity_preferred");
   if (preferred && preferred.rival)
@@ -129,9 +130,9 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
       // 여섯 활동 이름이 모두 받침으로 끝나므로(수영 · 서핑 · 휴식 · 갯벌 ·
       // 온천 · 래프팅) 여기서는 «을» 하나로 맞습니다. 측정값과 달리 활동
       // 이름은 고정된 낱말이라 조사를 붙여도 절반이 틀리지 않습니다.
-      text:
-        `${activities[preferred.rival]} 점수가 더 높지만, 오늘은 물에 들어갈 수 ` +
-        `있어서 ${activities[choice.activity]}을 먼저 권해요`,
+      text: t("{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity}을 먼저 권해요", {
+        rival: t(activities[preferred.rival]), activity: t(activities[choice.activity]),
+      }),
     };
   return null;
 }
@@ -147,9 +148,9 @@ export function rejectionReason(rec?: Recommendation): ReasonLine | null {
       .join(" · ");
     return {
       code: cold.code,
-      text:
-        `${measures} — 바다에 들어가기에는 낮아요` +
-        `(수온 ${formatValue(cold.threshold, "°C")} 아래)`,
+      text: t("{measures} — 바다에 들어가기에는 낮아요(수온 {threshold} 아래)", {
+        measures, threshold: formatValue(cold.threshold, "°C"),
+      }),
     };
   }
   const missing = all(rec, "essential_measurement_missing");
@@ -157,20 +158,20 @@ export function rejectionReason(rec?: Recommendation): ReasonLine | null {
     // 빠진 지표가 아니라 **빠진 활동**을 말합니다. 「시설 욕조 수온 자료가
     // 없어요」는 사실이지만, 사용자가 궁금한 것은 «왜 온천이 아닌가» 입니다.
     const names = [
-      ...new Set(missing.map((reason) => activities[reason.activity!])),
+      ...new Set(missing.map((reason) => t(activities[reason.activity!]))),
     ].join(" · ");
     const metrics = [
-      ...new Set(missing.map((reason) => METRIC_NAMES[reason.metric ?? ""] ?? reason.metric)),
+      ...new Set(missing.map((reason) => t(METRIC_NAMES[reason.metric ?? ""] ?? reason.metric ?? ""))),
     ].join(" · ");
     return {
       code: "essential_measurement_missing",
-      text: `${names}은 이곳의 ${metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다`,
+      text: t("{names}은 이곳의 {metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다", { names, metrics }),
     };
   }
   if (find(rec, "no_water_activity_today"))
     return {
       code: "no_water_activity_today",
-      text: "오늘 이곳에서 점수를 낼 수 있는 물 활동이 없어요",
+      text: t("오늘 이곳에서 점수를 낼 수 있는 물 활동이 없어요"),
     };
   return null;
 }
@@ -198,14 +199,14 @@ export function tideLine(rec?: Recommendation): ReasonLine | null {
   if (!tide || tide.status !== "available") return null;
   const applied = find(rec, "tide_phase_product_rule");
   if (applied && applied.minutes !== null) {
-    const kind = tide.phase === "near_high" ? "만조" : "간조";
+    const kind = tide.phase === "near_high" ? t("만조") : t("간조");
     // 「만조 40분 전」은 만조까지 40분 남았다는 뜻으로 읽힙니다. 이미 지난
     // 쪽은 「지난 지 20분」으로 갈라 적습니다 -- 물이 드는 중인지 빠지는
     // 중인지가 그 한 낱말에 달려 있습니다.
-    const when =
+    const timing =
       applied.minutes >= 0
-        ? `${applied.minutes}분 전`
-        : `지난 지 ${-applied.minutes}분`;
+        ? t("{kind} {minutes}분 전", { kind, minutes: applied.minutes })
+        : t("{kind} 지난 지 {minutes}분", { kind, minutes: -applied.minutes });
     // 물때로 바다를 미뤘어도 대신 올릴 활동이 없으면 서버는 그대로 바다를
     // 고릅니다(강등은 제외가 아닙니다). 그때 「바다 대신」이라고 쓰면 바로
     // 위에서 수영을 권해 놓고 아래에서 말리는 꼴이 됩니다. 고른 것이 무엇인지
@@ -215,14 +216,14 @@ export function tideLine(rec?: Recommendation): ReasonLine | null {
     return {
       code: applied.code,
       text: stillSea
-        ? `지금은 ${kind} ${when}이에요. 물때를 보고 시간을 고르세요. ${TIDE_DISCLAIMER}`
-        : `지금은 ${kind} ${when} — 바다 대신 가까운 곳을 권해요. ${TIDE_DISCLAIMER}`,
+        ? t("지금은 {timing}이에요. 물때를 보고 시간을 고르세요. {disclaimer}", { timing, disclaimer: t(TIDE_DISCLAIMER) })
+        : t("지금은 {timing} — 바다 대신 가까운 곳을 권해요. {disclaimer}", { timing, disclaimer: t(TIDE_DISCLAIMER) }),
     };
   }
   if (tide.phase === "rising" || tide.phase === "falling")
     return {
       code: `tide_${tide.phase}`,
-      text: `물이 ${tide.phase === "rising" ? "드는" : "빠지는"} 중이에요. ${TIDE_DISCLAIMER}`,
+      text: t(tide.phase === "rising" ? "물이 드는 중이에요. {disclaimer}" : "물이 빠지는 중이에요. {disclaimer}", { disclaimer: t(TIDE_DISCLAIMER) }),
     };
   return null;
 }
@@ -240,7 +241,7 @@ export function alternativeGroups(rec?: Recommendation): AlternativeGroup[] {
   for (const place of rec?.alternatives ?? []) {
     const group = groups.get(place.kind) ?? {
       kind: place.kind,
-      label: ALTERNATIVE_LABEL[place.kind],
+      label: t(ALTERNATIVE_LABEL[place.kind]),
       places: [],
     };
     group.places.push(place);
@@ -255,7 +256,7 @@ export function alternativeText(place: RecommendationAlternative) {
     typeof place.distance_km === "number" ? ` · ${place.distance_km.toFixed(1)}km` : "";
   const score =
     place.best_activity && typeof place.score === "number"
-      ? ` · ${activities[place.best_activity]} ${place.score}점`
+      ? t(" · {activity} {score}점", { activity: t(activities[place.best_activity]), score: place.score })
       : "";
   return `${place.name}${distance}${score}`;
 }

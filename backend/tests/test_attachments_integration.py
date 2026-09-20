@@ -303,6 +303,10 @@ def test_additive_v8_migration_preserves_existing_places_and_is_idempotent(datab
     assert fetch(database, "SELECT id,name FROM pongdang_data.spots_waterspot") == [
         (1, "경포해수욕장")
     ]
-    assert fetch(database, "SELECT version FROM pongdang_data.schema_version") == [(9,)]
+    from app.schema import VERSION
+
+    assert fetch(database, "SELECT version FROM pongdang_data.schema_version") == [
+        (VERSION,)
+    ]
     assert not initialize(database)
     assert fetch(database, "SELECT count(*) FROM pongdang_data.attachment") == [(0,)]

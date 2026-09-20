@@ -1,3 +1,5 @@
+import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { t } from "./i18n.ts";
 import { useState } from "react";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
@@ -28,12 +30,14 @@ import {
 } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
+import { travelActivityLabel } from "./travelApi";
 import type { Recommendation } from "./recommendationApi";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { usePlacePhotos } from "./usePlacePhotos";
 import {
   conditionModeLabel,
   dateLabel,
+  placeRegionLabel,
   waterQualityLabel,
   type Conditions,
   type Place,
@@ -68,7 +72,6 @@ import "./homeDesktop.css";
 // 고르셨습니다」로 떠 있었고, 저장된 적 없는 코스가 「3곳 · 12.0km」로 적혀
 // 있었습니다. 데이터가 없으면 지어내지 않고 그 사실을 적습니다.
 
-const HERO_DATE = dateLabel();
 const BAR_MAX_HEIGHT = 104;
 
 /** 예전에는 이 히어로가 「오늘 바다는 / 들어가기 좋습니다」라는 고정 문장과
@@ -86,6 +89,7 @@ function HomeHero({
   qualityLoading = false,
   loading = false,
   baselineLoading = false,
+  placeRequired = false,
 }: {
   placeName: string;
   /** 서버가 고른 활동과 그 근거. 히어로의 근거 줄이 이것을 읽습니다. */
@@ -99,6 +103,7 @@ function HomeHero({
   qualityLoading?: boolean;
   loading?: boolean;
   baselineLoading?: boolean;
+  placeRequired?: boolean;
 }) {
   const verdict =
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
@@ -107,7 +112,7 @@ function HomeHero({
       nav={
         <DesktopNav
           active="home"
-          context={`${placeName} · ${HERO_DATE} · ${conditionModeLabel(baseline)} 기준`}
+          context={t("{place} · {date} · {mode} 기준", { place: placeName, date: dateLabel(), mode: conditionModeLabel(baseline) })}
         />
       }
       wave="animated"
@@ -115,16 +120,16 @@ function HomeHero({
     >
       <div className="hd-hero">
         <div className="hd-hero-lead">
-          <div className="pd-dk-kick hd-hero-kick">강릉 물놀이</div>
+          <ProductPlaceSelector placeName={placeName} />
+          <div className="pd-dk-kick hd-hero-kick">{t("강원도 물놀이")}</div>
           {/* 조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 떼어 둡니다.
               「수영」·「갯벌」처럼 받침이 갈립니다. */}
           <h1 className="hd-hero-title">
             {loading ? (
-              <Skeleton width="8em" glass label="오늘의 활동 조회 중" />
-            ) : best ? (
+              <Skeleton width="8em" glass label={t("오늘의 활동 조회 중")} />
+            ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
-                오늘 가장 좋은 활동
-                <br />
+                {t("오늘 가장 좋은 활동")}<br />
                 {activityHeadline(best.activity)}
               </>
             ) : (
@@ -139,7 +144,7 @@ function HomeHero({
           <div className="hd-hero-score">
             <span className="pd-dk-num hd-hero-score-num">
               {loading ? (
-                <Skeleton width="1.6em" glass label="점수 조회 중" />
+                <Skeleton width="1.6em" glass label={t("점수 조회 중")} />
               ) : (
                 (best?.score ?? "–")
               )}
@@ -169,16 +174,14 @@ function HomeHero({
           />
           <div className="hd-hero-buttons">
             <a className="pd-dk-button is-on-cobalt" href="#today">
-              오늘 후보 활동 {recommendedActivities.length}가지 보기 →
-            </a>
+              {t("오늘 후보 활동 {count}가지 보기 →", { count: recommendedActivities.length })}</a>
             <a className="pd-dk-button is-glass" href="#recommend">
-              코스 만들기
-            </a>
+              {t("코스 만들기")}</a>
           </div>
         </div>
         <div className="hd-hero-metrics">
           <div>
-            <div className="hd-metric-name">수온</div>
+            <div className="hd-metric-name">{t("수온")}</div>
             <div className="pd-dk-num hd-metric-value">
               <MetricValue
                 conditions={baseline}
@@ -189,7 +192,7 @@ function HomeHero({
             </div>
           </div>
           <div>
-            <div className="hd-metric-name">파고</div>
+            <div className="hd-metric-name">{t("파고")}</div>
             <div className="pd-dk-num hd-metric-value">
               <MetricValue
                 conditions={baseline}
@@ -202,7 +205,7 @@ function HomeHero({
           {/* 수질은 점수에 들어가지 않습니다. 점수 옆에 그냥 두면 근거로
               읽히므로 그 사실을 함께 적습니다. */}
           <div>
-            <div className="hd-metric-name">수질 · 점수 미반영</div>
+            <div className="hd-metric-name">{t("수질 · 점수 미반영")}</div>
             <div className="pd-dk-num hd-metric-value">
               {qualityLoading ? <Skeleton width="3.2em" glass /> : quality}
             </div>
@@ -248,11 +251,11 @@ function HourBars({
               className={"hd-hour" + (hour.score === null ? " is-empty" : "")}
               data-grade={grade.key}
               key={hour.hour}
-              aria-label={`${hour.hour}시 · ${hour.score === null ? "평가값 없음" : `${hour.score}점 ${grade.label}`}`}
+              aria-label={t("{hour}시 · {score}", { hour: hour.hour, score: hour.score === null ? t("평가값 없음") : t("{score}점 {grade}", { score: hour.score, grade: t(grade.label) }) })}
             >
               <div className="pd-dk-num hd-hour-score">
                 {hour.loading ? (
-                  <Skeleton width="1.6em" label="시간대 점수 조회 중" />
+                  <Skeleton width="1.6em" label={t("시간대 점수 조회 중")} />
                 ) : (
                   (hour.score ?? "–")
                 )}
@@ -274,7 +277,7 @@ function HourBars({
       <div className="hd-hour-labels">
         {hours.map((hour) => (
           <div className="hd-hour-label" key={hour.hour}>
-            <span className="pd-dk-num">{Number(hour.hour)}시</span>
+            <span className="pd-dk-num">{t("{hour}시", { hour: Number(hour.hour) })}</span>
           </div>
         ))}
       </div>
@@ -283,7 +286,7 @@ function HourBars({
           시간대 축 바로 아래 붙이면 그 축에 속한 값으로 읽히므로 괘선과
           소제목으로 끊습니다 -- 시각별 점수와 항목별 점수는 다른 값입니다. */}
       <div className="hd-parts">
-        <div className="hd-parts-head">지금 점수를 이루는 것들</div>
+        <div className="hd-parts-head">{t("지금 점수를 이루는 것들")}</div>
         <ComponentBars bars={componentBars(conditions)} loading={loading} />
         {/* 점수를 가장 많이 깎은 항목. 히어로에서 이 자리로 내려왔습니다 --
             히어로는 「왜 이 활동인가」를, 여기는 「그 점수가 왜 그 점수인가」를
@@ -301,11 +304,11 @@ function BeachCard({ place }: { place: Place }) {
         <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} />
         <span className="hd-beach-head">
           <b className="hd-beach-name">{place.name}</b>
-          <span className="hd-beach-category">해변</span>
+          <span className="hd-beach-category">{t("해변")}</span>
         </span>
         <span className="hd-beach-foot">
           <span className="hd-beach-operating">
-            {place.region ?? "지역 미확인"}
+            {placeRegionLabel(place)}
           </span>
         </span>
       </a>
@@ -315,7 +318,7 @@ function BeachCard({ place }: { place: Place }) {
 }
 
 export function HomeDesktop() {
-  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage, placeSettled } =
+  const { now, place, places, conditions, baseline, best, recommendation, displayName, selectionMessage, placeSettled, placeRequired } =
     useProductData("best");
   const quality = settledWithoutPlace(
     useResource<WaterQualityGrade>(
@@ -351,7 +354,7 @@ export function HomeDesktop() {
       const href =
         player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
       return href
-        ? [{ camera, href, label: player ? "타임랩스" : "원본 보기" }]
+        ? [{ camera, href, label: player ? t("타임랩스") : t("원본 보기") }]
         : [];
     })
     .slice(0, 3);
@@ -359,27 +362,28 @@ export function HomeDesktop() {
     <DesktopShell>
       <HomeHero
         placeName={displayName}
+        placeRequired={placeRequired}
         baseline={baseline.data}
         best={best}
         recommendation={recommendation.data}
         recommendationLoading={isInitialLoad(recommendation)}
         recommendationError={recommendation.error}
-        quality={quality.error ? "조회 실패" : waterQualityLabel(quality.data)}
+        quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
         baselineLoading={isInitialLoad(baseline)}
       />
 
       <LabelRow
-        kick="오늘 한눈에"
+        kick={t("오늘 한눈에")}
         title={
           best
-            ? `${displayName} · ${activities[best.activity]} 점수를 이루는 것들`
-            : `${displayName} · 시간대별`
+            ? t("{place} · {activity} 점수를 이루는 것들", { place: displayName, activity: t(activities[best.activity]) })
+            : t("{place} · 시간대별", { place: displayName })
         }
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
-        desc="더 자세한 비교와 예보, 수질 근거가 궁금하다면 오늘 탭을 살펴보세요!"
-        link={{ href: "#today", label: "오늘 탭에서 근거 보기" }}
+        desc={t("더 자세한 비교와 예보, 수질 근거가 궁금하다면 오늘 탭을 살펴보세요!")}
+        link={{ href: "#today", label: t("오늘 탭에서 근거 보기") }}
       >
         <HourBars
           id={place?.id}
@@ -399,17 +403,15 @@ export function HomeDesktop() {
       </LabelRow>
 
       <LabelRow
-        kick="바다가 좋은 오늘"
+        kick={t("바다가 좋은 오늘")}
         title={
           <>
-            해변 명소
-            <br />
-            바로 이어가기
-          </>
+            {t("해변 명소")}<br />
+            {t("바로 이어가기")}</>
         }
         chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
-        desc="명소 페이지로 가서 더 많은 강릉 명소를 둘러보세요."
-        link={{ href: "#spots", label: "명소 탭 전체 보기" }}
+        desc={t("명소 페이지로 가서 더 많은 강원도 명소를 둘러보세요.")}
+        link={{ href: "#spots", label: t("명소 탭 전체 보기") }}
       >
         <div className="hd-beaches">
           {beaches.map((place) => (
@@ -420,16 +422,12 @@ export function HomeDesktop() {
           <p className="hd-row-note" role={catalog.error ? "alert" : "status"}>
             {catalog.error ??
               (catalog.loading
-                ? "해변 목록을 조회하고 있습니다."
-                : "수집된 해변이 아직 없습니다.")}
+                ? t("해변 목록을 조회하고 있습니다.")
+                : t("수집된 해변이 아직 없습니다."))}
           </p>
         )}
         <p className="hd-row-note">
-          명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는
-          것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은 아직
-          내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에
-          표시합니다. 리뷰 평점은 쓰지 않습니다.
-        </p>
+          {t("명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은 아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다. 리뷰 평점은 쓰지 않습니다.")}</p>
       </LabelRow>
 
       {/* 예전에는 「서핑과 온천을 고르셨습니다」가 늘 떠 있었고 칩 네 개 중
@@ -437,28 +435,26 @@ export function HomeDesktop() {
           취향은 파일 안 상수였습니다. 실제로 고른 취향은 추천 결과 안에만
           남습니다(matched_preferences). */}
       <LabelRow
-        kick="취향 맞추기"
+        kick={t("취향 맞추기")}
         title={
           <>
-            뭘 좋아하는지
-            <br />
-            알려 주세요
-          </>
+            {t("뭘 좋아하는지")}<br />
+            {t("알려 주세요")}</>
         }
-        desc="취향을 골라 나만의 코스를 만들어보세요."
+        desc={t("취향을 골라 나만의 코스를 만들어보세요.")}
       >
         <SplitBody columns="1.25fr 1fr">
           <div className="hd-taste">
             <div className="hd-taste-lead">
               {tags.length
-                ? `${tags.join(" · ")}을 고르셨습니다`
-                : "아직 고른 취향이 없습니다"}
+                ? t("{tags}을 고르셨습니다", { tags: tags.map((tag) => t(tag)).join(" · ") })
+                : t("아직 고른 취향이 없습니다")}
             </div>
             {tags.length > 0 && (
               <div className="hd-taste-chips">
                 {tags.map((tag) => (
                   <span className="hd-taste-chip is-on" key={tag}>
-                    {tag}
+                    {t(tag)}
                     <Icon name="check" size={13} />
                   </span>
                 ))}
@@ -466,7 +462,7 @@ export function HomeDesktop() {
             )}
             <div className="hd-taste-actions">
               <a className="pd-dk-button" href="#recommend">
-                {tags.length ? "추천 다시 보기 →" : "취향 고르기 →"}
+                {tags.length ? t("추천 다시 보기 →") : t("취향 고르기 →")}
               </a>
             </div>
           </div>
@@ -474,7 +470,7 @@ export function HomeDesktop() {
             <img
               className="hd-ai-mascot"
               src={mascotUrl("ai")}
-              alt={MASCOT_ALT}
+              alt={t(MASCOT_ALT)}
               width={92}
               height={92}
             />
@@ -485,11 +481,10 @@ export function HomeDesktop() {
                   12:34 이후 밀물」이라는 지어낸 근거가 적혀 있었습니다. */}
               <span className="pd-ai-chip">
                 <Icon name="sparkle" size={12} />
-                AI 제안
-              </span>
+                {t("AI 제안")}</span>
               <div className="hd-ai-headline">
                 {best
-                  ? `오늘 이 장소에서는 ${activities[best.activity]}이(가) 가장 잘 맞습니다`
+                  ? t("오늘 이 장소에서는 {activity}이(가) 가장 잘 맞습니다", { activity: t(activities[best.activity]) })
                   : missingChoiceHeadline(recommendation.error, true).join(" ")}
               </div>
               {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면
@@ -505,9 +500,9 @@ export function HomeDesktop() {
                 className="hd-ai-basis"
                 role={recommendation.error ? "alert" : undefined}
               >
-                근거 —{" "}
+                {t("근거 —")}{" "}
                 {recommendation.error
-                  ? `추천 근거를 불러오지 못했어요. ${recommendation.error}`
+                  ? t("추천 근거를 불러오지 못했어요. {error}", { error: t(recommendation.error) })
                   : (choiceReason(recommendation.data)?.text ??
                     scoreReason(best?.data).text)}
               </p>
@@ -520,17 +515,15 @@ export function HomeDesktop() {
           것도 없어, 추천 결과가 있을 때만 싣습니다. */}
       {tastePicks.length > 0 && (
         <LabelRow
-          kick="취향에 맞는 명소"
+          kick={t("취향에 맞는 명소")}
           title={
             <>
-              고르신 취향에
-              <br />
-              맞춰 골랐습니다
-            </>
+              {t("고르신 취향에")}<br />
+              {t("맞춰 골랐습니다")}</>
           }
           chip={<StateChip kind="live" />}
-          desc="추천에서 고른 취향에 맞춰 서버가 고른 장소입니다."
-          link={{ href: "#recommend", label: "추천 다시 보기" }}
+          desc={t("추천에서 고른 취향에 맞춰 서버가 고른 장소입니다.")}
+          link={{ href: "#recommend", label: t("추천 다시 보기") }}
         >
           <SplitBody>
             {tastePicks.map((item) => (
@@ -538,7 +531,7 @@ export function HomeDesktop() {
                 <a
                   className="place-photo-link"
                   href={spotLink(item)}
-                  aria-label={`${item.name} 상세`}
+                  aria-label={t("{name} 상세", { name: item.name })}
                 >
                   <PlacePhoto
                     className="hd-taste-photo"
@@ -554,10 +547,10 @@ export function HomeDesktop() {
                     {item.name}
                   </a>
                   <span className="hd-taste-spot-meta">
-                    {item.region ?? "지역 미확인"} ·{" "}
+                    {placeRegionLabel(item)} ·{" "}
                     {item.activities
-                      .map((activity) => activity.label)
-                      .join(" · ") || "활동 미확인"}
+                      .map((activity) => travelActivityLabel(activity.activity, activity.label))
+                      .join(" · ") || t("활동 미확인")}
                   </span>
                   <PlacePhotoCredit photo={item.photo} />
                 </span>
@@ -571,14 +564,14 @@ export function HomeDesktop() {
           사천진 14:30 이 파일 안 상수로 적혀 있었습니다. 저장된 코스가 없어도
           코스가 있는 것처럼 보였습니다. */}
       <LabelRow
-        kick="물놀이 최적경로"
+        kick={t("물놀이 최적경로")}
         title={
           course
-            ? `오늘 조건으로 ${course.items.length}곳`
-            : "코스를 만들면 여기에"
+            ? t("오늘 조건으로 {count}곳", { count: course.items.length })
+            : t("코스를 만들면 여기에")
         }
         chip={<StateChip kind={course ? "live" : "partial"} />}
-        desc="최적의 여행 코스를 만들어보세요."
+        desc={t("최적의 여행 코스를 만들어보세요.")}
       >
         {course ? (
           <SplitBody>
@@ -600,18 +593,16 @@ export function HomeDesktop() {
           </SplitBody>
         ) : (
           <div className="pd-dk-slot hd-course-empty">
-            추천에서 장소를 고르고 지도에서 경로를 요청하세요
-          </div>
+            {t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}</div>
         )}
         <div className="hd-course-foot">
           <span className="hd-row-note">
             {course
-              ? `예상 이동 ${course.travel_minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.`
+              ? t("예상 이동 {minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.", { minutes: course.travel_minutes })
               : ""}
           </span>
           <a className="pd-dk-button is-pill" href="#map?view=course">
-            지도에서 경로 탐색 →
-          </a>
+            {t("지도에서 경로 탐색 →")}</a>
         </div>
       </LabelRow>
 
@@ -619,11 +610,11 @@ export function HomeDesktop() {
           LIVE). 모바일 홈은 같은 자리에서 이미 실제 카탈로그를 읽고
           있었습니다 -- 데스크탑만 지어내고 있었습니다. */}
       <LabelRow
-        kick="라이브캠"
-        title="지금 바다 보기"
+        kick={t("라이브캠")}
+        title={t("지금 바다 보기")}
         chip={<StateChip kind={webcams.result ? "live" : "no_data"} />}
-        desc="지금 이 순간의 바다, 그 풍경을 직접 느껴보세요"
-        link={{ href: "#livecam", label: "전체 화면으로" }}
+        desc={t("지금 이 순간의 바다, 그 풍경을 직접 느껴보세요")}
+        link={{ href: "#livecam", label: t("전체 화면으로") }}
       >
         {/* 모바일 홈에는 재추첨이 있는데 이 화면에는 없었습니다. 목록 유효기간이
             지나면 원본 페이지로 물러서는데, 그때 할 수 있는 일이 이것뿐입니다. */}
@@ -633,8 +624,7 @@ export function HomeDesktop() {
           disabled={webcams.loading}
           onClick={() => setShuffleSeed(shuffleWebcams())}
         >
-          다른 풍경 보기
-        </button>
+          {t("다른 풍경 보기")}</button>
         <div className="hd-cams">
           {cameras.map(({ camera, href, label }) => (
             <a
@@ -673,13 +663,13 @@ export function HomeDesktop() {
               <div className="hd-cam-frame is-empty">
                 <img src={mascotUrl("empty")} alt="" width={46} height={46} />
                 <div className="hd-cam-empty-title">
-                  {webcams.loading ? "조회 중" : "송출 없음"}
+                  {webcams.loading ? t("조회 중") : t("송출 없음")}
                 </div>
                 <div className="hd-cam-empty-note">
                   {webcams.error ??
                     (webcams.loading
-                      ? "물 풍경을 고르는 중입니다"
-                      : "열 수 있는 물 풍경 카메라가 없습니다")}
+                      ? t("물 풍경을 고르는 중입니다")
+                      : t("열 수 있는 물 풍경 카메라가 없습니다"))}
                 </div>
               </div>
             </div>
@@ -687,11 +677,11 @@ export function HomeDesktop() {
         </div>
         <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
           {webcams.error ??
-            "장소와 관계없이 무작위로 선택된 물 풍경이며, 배경은 영상 썸네일이 아닙니다."}{" "}
+            t("장소와 관계없이 무작위로 선택된 물 풍경이며, 배경은 영상 썸네일이 아닙니다.")}{" "}
           {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
               적는데 이 화면은 말없이 링크만 바꿨습니다. */}
           {webcams.expired &&
-            "원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. "}
+            t("원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. ")}
           Webcams provided by windy.com
         </p>
       </LabelRow>
@@ -699,7 +689,7 @@ export function HomeDesktop() {
       {/* 시간대별 예보와 코스는 이제 연동됐으므로 목록에서 뺐습니다. 남은
           것만 적습니다 -- 다 고친 뒤에도 미연동이라고 적어 두면 그것도
           거짓말입니다. */}
-      <FootNote missing="운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거" />
+      <FootNote missing={t("운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거")} />
     </DesktopShell>
   );
 }

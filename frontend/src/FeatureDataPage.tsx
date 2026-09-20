@@ -1,3 +1,5 @@
+import { InlineLanguageSelector } from "./TravelLanguageSelector";
+import { t } from "./i18n";
 import { useEffect, useState } from "react";
 import { activities, displayTime, requestJson, safeSourceUrl, type Activity } from "./aiApi";
 import { contextLink, featurePages, featurePath, type FeaturePage } from "./featureRoutes";
@@ -12,12 +14,12 @@ function localInput(iso: string) {
 }
 function isoInput(local: string) { return new Date(local + ":00+09:00").toISOString(); }
 function Cell({ value, column }: { value: unknown; column: string }) {
-  if (value === null || value === undefined) return <span className="null-value">NULL · 기록 없음</span>;
-  if (typeof value === "object") return <details><summary>상세 근거</summary><pre className="feature-json">{JSON.stringify(value, null, 2)}</pre></details>;
+  if (value === null || value === undefined) return <span className="null-value">{t("NULL · 기록 없음")}</span>;
+  if (typeof value === "object") return <details><summary>{t("상세 근거")}</summary><pre className="feature-json">{JSON.stringify(value, null, 2)}</pre></details>;
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) return <>{displayTime(value)}</>;
   if (["source_url", "public_page", "terms_url"].includes(column) && typeof value === "string") {
     const url = safeSourceUrl(value);
-    if (url) return <a href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{column === "public_page" ? "공식 영상 페이지 열기" : "공식 출처 열기"} ↗</a>;
+    if (url) return <a href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{t(column === "public_page" ? "공식 영상 페이지 열기" : "공식 출처 열기")} ↗</a>;
   }
   return <>{String(value)}</>;
 }
@@ -66,37 +68,38 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
   const markers = rows.filter((row) => typeof row.spot_id === "number" && typeof row.name === "string" && typeof row.lat === "number" && typeof row.lng === "number")
     .map((row) => ({ id: String(row.spot_id), name: row.name as string, latitude: row.lat as number, longitude: row.lng as number }));
   return <article className="feature-page">
+    <InlineLanguageSelector />
     {/* 이 화면은 셸(AppShell · DesktopShell) 밖이라 탭바도 네비도 없습니다.
         사이드 메뉴의 「지점 즐겨찾기」·「알림 설정」·「데이터 출처」가 전부
         여기로 오는데, 예전에는 제품 화면으로 돌아갈 길이 하나도 없었습니다.
         전면 개편 전까지 최소한 돌아가는 길은 둡니다. */}
-    <a className="feature-back" href="#home">← 퐁당 앱으로</a>
-    <div className="ai-heading"><h1>{featurePages[page]} · 실제 자료 조회</h1><a href={contextLink({ spot_id: spotId, activity }, ["water-index", "water-forecast", "tide"].includes(page) && periodValid ? { from: isoInput(from), until: isoInput(until) } : undefined)}>이 조건으로 AI에게 물어보기</a></div>
-    <p>{personal ? "기존 SSO 계정에 속한 개인 자료입니다." : "실제 Pongdang 읽기 서비스의 공개 자료입니다."} 관측·예보·관측소 자료의 시각과 공간 범위를 구분해 확인하세요. NULL·unknown은 안전함을 뜻하지 않습니다.</p>
-    {personal ? <p className="ai-notice">본인의 SSO 세션에 저장된 자료입니다. 수온 기준 통과와 방문 기록은 입수 안전 판정이 아닙니다.</p> : <>
-      <form className="toolbar" onSubmit={(event) => { event.preventDefault(); setPlaceQuery(search); }}><label>장소 찾기<input type="search" maxLength={100} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="실제 장소명·지역" /></label><button type="submit">장소 검색</button></form>
-      {placesError && <p role="alert">{placesError}</p>}
-      <div className="toolbar"><label>장소<select value={spotId ?? ""} onChange={(event) => setSpotId(event.target.value ? Number(event.target.value) : undefined)}><option value="">장소 선택</option>{initialSpotId && !places?.rows.some((row) => row.id === initialSpotId) && <option value={initialSpotId}>장소 ID {initialSpotId} · 서버 조회로 확인</option>}{places?.rows.map((row) => <option key={String(row.id)} value={String(row.id)}>{String(row.name ?? "이름 기록 없음")} · ID {String(row.id)}</option>)}</select></label>
-        <label>활동<select value={activity} onChange={(event) => setActivity(event.target.value as Activity)}>{Object.entries(activities).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-        {["water-index", "water-forecast", "tide"].includes(page) && <><label>시작 · KST<input type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} /></label><label>종료 · KST<input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} /></label></>}
+    <a className="feature-back" href="#home">{t("← 퐁당 앱으로")}</a>
+    <div className="ai-heading"><h1>{t(featurePages[page])} {t("· 실제 자료 조회")}</h1><a href={contextLink({ spot_id: spotId, activity }, ["water-index", "water-forecast", "tide"].includes(page) && periodValid ? { from: isoInput(from), until: isoInput(until) } : undefined)}>{t("이 조건으로 AI에게 물어보기")}</a></div>
+    <p>{t(personal ? "기존 SSO 계정에 속한 개인 자료입니다." : "실제 Pongdang 읽기 서비스의 공개 자료입니다.")} {t("관측·예보·관측소 자료의 시각과 공간 범위를 구분해 확인하세요. NULL·unknown은 안전함을 뜻하지 않습니다.")}</p>
+    {personal ? <p className="ai-notice">{t("본인의 SSO 세션에 저장된 자료입니다. 수온 기준 통과와 방문 기록은 입수 안전 판정이 아닙니다.")}</p> : <>
+      <form className="toolbar" onSubmit={(event) => { event.preventDefault(); setPlaceQuery(search); }}><label>{t("장소 찾기")}<input type="search" maxLength={100} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("실제 장소명·지역")} /></label><button type="submit">{t("장소 검색")}</button></form>
+      {placesError && <p role="alert">{t(placesError)}</p>}
+      <div className="toolbar"><label>{t("장소")}<select value={spotId ?? ""} onChange={(event) => setSpotId(event.target.value ? Number(event.target.value) : undefined)}><option value="">{t("장소 선택")}</option>{initialSpotId && !places?.rows.some((row) => row.id === initialSpotId) && <option value={initialSpotId}>{t("장소 ID")} {initialSpotId} {t("· 서버 조회로 확인")}</option>}{places?.rows.map((row) => <option key={String(row.id)} value={String(row.id)}>{String(row.name ?? t("이름 기록 없음"))} · ID {String(row.id)}</option>)}</select></label>
+        <label>{t("활동")}<select value={activity} onChange={(event) => setActivity(event.target.value as Activity)}>{Object.entries(activities).map(([id, name]) => <option key={id} value={id}>{t(name)}</option>)}</select></label>
+        {["water-index", "water-forecast", "tide"].includes(page) && <><label>{t("시작 · KST")}<input type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} /></label><label>{t("종료 · KST")}<input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} /></label></>}
       </div>
-      {selectedPlace && <p>선택 장소: {String(selectedPlace.name)} · 유형: {String(selectedPlace.type ?? "기록 없음")} · 지역: {String(selectedPlace.region ?? "기록 없음")}</p>}
-      {(places?.total ?? 0) > 100 && <p className="table-note">장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.</p>}
+      {selectedPlace && <p>{t("선택 장소:")} {String(selectedPlace.name)} {t("· 유형:")} {String(selectedPlace.type ?? t("기록 없음"))} {t("· 지역:")} {String(selectedPlace.region ?? t("기록 없음"))}</p>}
+      {(places?.total ?? 0) > 100 && <p className="table-note">{t("장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.")}</p>}
     </>}
     {page === "first-swim" && <NotificationSettings onSaved={() => setRevision(value => value + 1)} />}
-    {!periodValid && <p role="alert">시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.</p>}
-    {periodValid && !path && <p className="ai-notice">실제 장소를 선택하면 자료를 조회합니다.</p>}
-    {path && !current && <p role="status">실제 자료 조회 중…</p>}
-    {current?.error && <p role="alert">조회 실패: {current.error}</p>}
-    {path && <button type="button" disabled={!current} onClick={() => setRevision((value) => value + 1)}>자료 새로고침</button>}
+    {!periodValid && <p role="alert">{t("시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.")}</p>}
+    {periodValid && !path && <p className="ai-notice">{t("실제 장소를 선택하면 자료를 조회합니다.")}</p>}
+    {path && !current && <p role="status">{t("실제 자료 조회 중…")}</p>}
+    {current?.error && <p role="alert">{t("조회 실패:")} {t(current.error)}</p>}
+    {path && <button type="button" disabled={!current} onClick={() => setRevision((value) => value + 1)}>{t("자료 새로고침")}</button>}
     {current?.data && <>
-      <p className="table-note">자료 상태: {current.data.status ?? "개별 기록 참조"} · 기준시각: {displayTime(current.data.as_of ?? current.data.queried_at)} · 최대 100행</p>
-      {current.data.reason_codes?.length ? <p>제한: {current.data.reason_codes.join(" · ")}</p> : null}
-      {current.data.coverage != null && <details><summary>자료 범위와 지원 상태</summary><pre>{JSON.stringify(current.data.coverage, null, 2)}</pre></details>}
+      <p className="table-note">{t("자료 상태:")} {current.data.status ?? t("개별 기록 참조")} {t("· 기준시각:")} {displayTime(current.data.as_of ?? current.data.queried_at)} {t("· 최대 100행")}</p>
+      {current.data.reason_codes?.length ? <p>{t("제한:")} {current.data.reason_codes.join(" · ")}</p> : null}
+      {current.data.coverage != null && <details><summary>{t("자료 범위와 지원 상태")}</summary><pre>{JSON.stringify(current.data.coverage, null, 2)}</pre></details>}
       {page === "water-index-map" && markers.length > 0 && <div style={{ height: 360, position: "relative" }}><KakaoMapCanvas markers={markers} selectedId={spotId ? String(spotId) : null} renderMarker={(id) => <button onClick={() => setSpotId(Number(id))}>{markers.find((marker) => marker.id === id)?.name}</button>} /></div>}
-      {rows.length > 0 ? <div className="table-scroll" role="region" aria-label={featurePages[page] + " 실제 자료 표"} tabIndex={0}><table><thead><tr>{columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? row.spot_id ?? index)}>{columns.map((column) => <td key={column}><Cell value={row[column]} column={column} /></td>)}</tr>)}</tbody></table></div> : <p className="ai-notice">조회 조건에 해당하는 저장 자료가 없습니다. 자료 부족으로 평가·추천·현재 상태를 판단할 수 없습니다.</p>}
-      {(current.data.has_more || (current.data.total ?? 0) > 100) && <p>첫 100건을 표시했습니다. 장소와 기간을 좁히거나 <a href="#data">데이터 조회</a>의 페이지·필터를 사용하세요.</p>}
+      {rows.length > 0 ? <div className="table-scroll" role="region" aria-label={t("{feature} 실제 자료 표", { feature: t(featurePages[page]) })} tabIndex={0}><table><thead><tr>{columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? row.spot_id ?? index)}>{columns.map((column) => <td key={column}><Cell value={row[column]} column={column} /></td>)}</tr>)}</tbody></table></div> : <p className="ai-notice">{t("조회 조건에 해당하는 저장 자료가 없습니다. 자료 부족으로 평가·추천·현재 상태를 판단할 수 없습니다.")}</p>}
+      {(current.data.has_more || (current.data.total ?? 0) > 100) && <p>{t("첫 100건을 표시했습니다. 장소와 기간을 좁히거나 데이터 조회의 페이지·필터를 사용하세요.")} <a href="#data">{t("데이터 조회")}</a></p>}
     </>}
-    <p className="table-note">라이브캠 등록과 링크 상태는 영상 내용 확인을 뜻하지 않습니다. 물때와 관측 자료만으로 활동의 안전함이나 검증되지 않은 점수·순위를 만들지 않습니다.</p>
+    <p className="table-note">{t("라이브캠 등록과 링크 상태는 영상 내용 확인을 뜻하지 않습니다. 물때와 관측 자료만으로 활동의 안전함이나 검증되지 않은 점수·순위를 만들지 않습니다.")}</p>
   </article>;
 }

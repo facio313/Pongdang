@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     collection_latitude: float = Field(default=37.8034055083, ge=-90, le=90)
     collection_longitude: float = Field(default=128.9102102476, ge=-180, le=180)
     collection_radius_m: int = Field(default=20000, ge=100, le=20000)
+    tourism_collection_scope: Literal["local", "gangwon"] = "gangwon"
+    tourism_pages_per_run: int = Field(default=5, ge=1, le=10)
     aws_stations: str = "516"
     khoa_tide_station_code: str = "DT_0006"
     khoa_buoy_station_code: str = "TW_0089"

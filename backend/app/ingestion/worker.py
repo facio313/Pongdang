@@ -17,6 +17,7 @@ from app.schema import connect
 def registered_jobs(settings):
     from app.attachments.collector import attachment_jobs
     from app.feature_jobs import feature_jobs
+    from app.ingestion.administrative import administrative_jobs
     from app.ingestion.environment import environment_jobs
     from app.ingestion.marine import marine_jobs
     from app.ingestion.marine_extra import marine_extra_jobs
@@ -33,6 +34,7 @@ def registered_jobs(settings):
         + marine_extra_jobs(settings)
         + environment_jobs(settings)
         + water_tour_extra_jobs(settings)
+        + administrative_jobs(settings)
         + feature_jobs(settings)
         + attachment_jobs(settings)
     )
@@ -108,6 +110,7 @@ def run_due(settings, jobs, *, force=False):
                     )
                 heartbeat(settings, tasks=[job.name])
                 state, error, received, inserted = "succeeded", "", 0, 0
+                next_run_seconds = None
                 try:
                     if job.process is not None:
                         result = job.process()
@@ -115,6 +118,12 @@ def run_due(settings, jobs, *, force=False):
                         state, error = result["state"], result.get("error", "")
                         if state not in {"succeeded", "partial", "no_data", "failed"}:
                             raise ValueError("Unknown domain job result")
+                        next_run_seconds = result.get("next_run_seconds")
+                        if next_run_seconds is not None and (
+                            type(next_run_seconds) is not int
+                            or not 30 <= next_run_seconds <= 86400
+                        ):
+                            raise ValueError("Invalid domain job continuation delay")
                     else:
                         batch = job.fetch()
                         received = (
@@ -146,6 +155,9 @@ def run_due(settings, jobs, *, force=False):
                 delay = (
                     min(86400, job.interval_seconds * 2 ** min(failures, 6))
                     if failures
+                    else next_run_seconds
+                    if next_run_seconds is not None
+                    and state in {"succeeded", "partial"}
                     else job.interval_seconds
                 )
                 next_run = finished + timedelta(seconds=delay)

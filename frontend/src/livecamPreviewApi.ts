@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 export type PreviewPlace = { id: number; name: string; place_kind: 'beach' | 'valley'; address: string | null; region: string | null; lat: number | null; lng: number | null };
 export type PreviewCamera = {
   provider_camera_id: string; title: string; country_code: string | null;
@@ -22,7 +23,7 @@ export const webcamCategories = { beach: '해변', coast: '해안', port: '항�
 export type WebcamCategory = keyof typeof webcamCategories;
 export function cameraCategories(values: string[]) {
   const labels: Record<string, string> = { ...webcamCategories, landscape: '풍경', city: '도시', traffic: '교통', island: '섬', mountain: '산', building: '건물', meteo: '기상', airport: '공항', forest: '숲', water: '물', sport: '스포츠', indoor: '실내', other: '기타', pool: '수영장' };
-  return values.map(value => labels[value] ?? value).join(' · ') || '미분류';
+  return values.map(value => t(labels[value] ?? value)).join(' · ') || t('미분류');
 }
 const errors: Record<string, string> = {
   WINDY_NOT_CONFIGURED: '연동 미설정 · 서버에 Windy Webcams API 키가 필요합니다.',
@@ -42,17 +43,35 @@ const errors: Record<string, string> = {
   WEBCAM_COORDINATES_MISSING: '좌표 없음 · 이 장소의 주변 카메라를 검색할 수 없습니다.',
   WEBCAM_PLACE_NOT_FOUND: '선택한 해수욕장·계곡을 찾을 수 없습니다.',
 };
-function previewFailure(response: Response, payload: unknown): string {
+/** Keep structured app copy so an already-visible error follows language changes. */
+export class WebcamPreviewError extends Error {
+  readonly parts: string[];
+  readonly retrySeconds: number;
+  constructor(parts: string[], retrySeconds = 0) {
+    const count = retrySeconds < 60 ? retrySeconds : Math.ceil(retrySeconds / 60);
+    super(parts.join(' ') + (retrySeconds ? ` 약 ${count}${retrySeconds < 60 ? '초' : '분'} 후 다시 조회할 수 있습니다.` : ''));
+    this.parts = parts;
+    this.retrySeconds = retrySeconds;
+  }
+  localizedMessage() {
+    const seconds = this.retrySeconds;
+    const wait = seconds ? t(' 약 {count}{unit} 후 다시 조회할 수 있습니다.', {
+      count: seconds < 60 ? seconds : Math.ceil(seconds / 60),
+      unit: t(seconds < 60 ? '초' : '분'),
+    }) : '';
+    return this.parts.map(part => t(part)).join(' ') + wait;
+  }
+}
+function previewFailure(response: Response, payload: unknown): WebcamPreviewError {
   const detail = payload && typeof payload === 'object' && 'detail' in payload && typeof payload.detail === 'string' ? payload.detail : '';
   const cause = detail === 'WINDY_BACKOFF' ? response.headers.get('X-Webcam-Failure-Code') : null;
-  const reason = cause && Object.hasOwn(errors, cause) ? `${errors[cause]} ${errors.WINDY_BACKOFF}` : Object.hasOwn(errors, detail) ? errors[detail] : undefined;
+  const reason = cause && Object.hasOwn(errors, cause) ? [errors[cause], errors.WINDY_BACKOFF] : Object.hasOwn(errors, detail) ? [errors[detail]] : undefined;
   const retry = response.headers.get('Retry-After') ?? '';
   const seconds = /^\d{1,6}$/.test(retry) ? Number(retry) : 0;
-  const wait = seconds > 0 && seconds <= 604800 && ['WINDY_BACKOFF', 'WINDY_DAILY_BUDGET', 'WINDY_HTTP_429', 'WEBCAM_REQUEST_IN_PROGRESS'].includes(detail)
-    ? ` 약 ${seconds < 60 ? `${seconds}초` : `${Math.ceil(seconds / 60)}분`} 후 다시 조회할 수 있습니다.` : '';
-  if (reason) return reason + wait;
-  if (response.status === 401 || response.status === 403 || response.redirected) return '로그인 또는 접근 권한을 확인해 주세요. 다시 로그인한 뒤 웹캠 목록을 열어 주세요.';
-  return '웹캠 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  const wait = seconds > 0 && seconds <= 604800 && ['WINDY_BACKOFF', 'WINDY_DAILY_BUDGET', 'WINDY_HTTP_429', 'WEBCAM_REQUEST_IN_PROGRESS'].includes(detail) ? seconds : 0;
+  if (reason) return new WebcamPreviewError(reason, wait);
+  if (response.status === 401 || response.status === 403 || response.redirected) return new WebcamPreviewError(['로그인 또는 접근 권한을 확인해 주세요. 다시 로그인한 뒤 웹캠 목록을 열어 주세요.']);
+  return new WebcamPreviewError(['웹캠 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.']);
 }
 export async function requestWebcamPreview(base: string, spotId: number | undefined, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<PreviewResult> {
   return requestPreview(base, spotId === undefined ? {} : { spot_id: spotId }, signal, fetcher);
@@ -71,7 +90,7 @@ async function requestPreview(base: string, body: object, signal: AbortSignal, f
       : '퐁당 웹캠 서버에 연결하지 못했습니다. 인터넷 연결과 로그인 상태를 확인한 뒤 다시 불러와 주세요.');
   }
   const payload = await response.json().catch(() => null);
-  if (!response.ok || response.redirected) throw new Error(previewFailure(response, payload));
+  if (!response.ok || response.redirected) throw previewFailure(response, payload);
   if (payload?.contract_version !== 'livecams.preview.v1' || !Array.isArray(payload.rows) || payload.rows.length > 50) throw new Error('웹캠 응답 형식을 확인할 수 없습니다.');
   return payload;
 }

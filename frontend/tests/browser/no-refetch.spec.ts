@@ -62,6 +62,9 @@ test("탭을 갔다 와도 홈이 같은 자료를 다시 묻지 않는다", asy
   const score = await page.locator(".hm-hero-score-num").innerText();
 
   await page.goto("#spots");
+  // The region catalog can wait in the read queue after the first network idle.
+  // Finish that initial lookup before measuring requests made on home reentry.
+  await expect(page.getByRole("combobox", { name: "시군 선택" })).toBeEnabled();
   await page.waitForLoadState("networkidle");
   asked.length = 0;
   await page.goto("#home");

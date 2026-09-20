@@ -1,3 +1,4 @@
+import { t, dateLocale } from "./i18n.ts";
 import { forbiddenMessage } from "./authMessages.ts";
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅" } as const;
 export type Activity = keyof typeof activities;
@@ -65,8 +66,8 @@ export function safeSourceUrl(value?: string | null): string | null {
   } catch { return null; }
 }
 export function aiStatusText(status: AiStatus): string {
-  const prefix = status.auth_mode === "local_operator" ? "로컬 테스트 · 이 컴퓨터의 임시 운영자 세션 · " : "";
-  return prefix + aiReadinessText(status);
+  const prefix = status.auth_mode === "local_operator" ? t("로컬 테스트 · 이 컴퓨터의 임시 운영자 세션 · ") : "";
+  return prefix + t(aiReadinessText(status));
 }
 function aiReadinessText(status: AiStatus): string {
   if (status.status === "ready_to_try") return "AI 설정 준비됨 · 실제 OpenAI 연결은 질문 전송 시 확인합니다.";
@@ -148,6 +149,6 @@ export class ConversationRequest {
 }
 
 export function displayTime(value: unknown): string {
-  if (typeof value !== "string" || !Number.isFinite(Date.parse(value))) return "기록 없음";
-  return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul", hourCycle: "h23" }).format(new Date(value)) + " KST";
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value))) return t("기록 없음");
+  return new Intl.DateTimeFormat(dateLocale(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul", hourCycle: "h23" }).format(new Date(value)) + " KST";
 }

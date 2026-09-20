@@ -1,15 +1,16 @@
+import { t } from "./i18n.ts";
 import { AppHeader, AppShell } from "./AppShell";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
-import { timeLabel, type Place } from "./productData";
+import { placeRegionLabel, timeLabel, type Place } from "./productData";
 import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
-import { useWaterPlaces } from "./useWaterPlaces";
+import { useWaterPlace } from "./useWaterPlaces";
 import { useSpotActions } from "./useSpotActions";
 import { isInitialLoad } from "./useResource";
 import "./spotsPage.css";
@@ -44,9 +45,9 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   // 분류(해변 · 계곡)는 분류된 목록에만 있습니다. datasets/spots 의 type 은
   // 수집 종류(beach_search_result · tourism)라 분류로 쓸 수 없습니다.
   // 그래서 분류 목록에서 먼저 찾고, 거기 없으면(100건 밖) id 조회로 갑니다.
-  const catalog = useWaterPlaces("");
+  const catalog = useWaterPlace(spotId);
   const lookup = usePlacesById([spotId]);
-  const classified = catalog.rows?.find((item) => item.id === spotId);
+  const classified = catalog.place;
   const place: Place | undefined = classified
     ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
     : lookup.rows[0];
@@ -67,37 +68,35 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
         tab="spots"
         hero={
           <header className="sd-hero">
-            <PlacePhoto className="sd-hero-photo" name={place?.name ?? "장소"} photo={place?.photo} eager />
+            <PlacePhoto className="sd-hero-photo" name={place?.name ?? t("장소")} photo={place?.photo} eager />
             <div className="sd-hero-bar">
               <AppHeader
-                title="명소"
+                title={t("명소")}
                 time={timeLabel(new Date().toISOString())}
               />
             </div>
             <div className="sd-hero-caption">
               <div className="sd-hero-chips">
                 <span className="sd-hero-chip">
-                  {(place?.type && KIND_LABEL[place.type]) ?? "분류 미확인"}
+                  {t((place?.type && KIND_LABEL[place.type]) || "분류 미확인")}
                 </span>
               </div>
               <h1 className="sd-hero-name">
                 {placeLoading ? (
-                  <Skeleton width="6em" glass label="장소 조회 중" />
+                  <Skeleton width="6em" glass label={t("장소 조회 중")} />
                 ) : (
-                  (place?.name ?? "장소를 찾지 못했습니다")
+                  (place?.name ?? t("장소를 찾지 못했습니다"))
                 )}
               </h1>
               <div className="sd-hero-address">
-                {place?.address ?? "주소 없음"} · {place?.region ?? "지역 미확인"}
+                {place?.address ?? t("주소 없음")} · {placeRegionLabel(place)}
               </div>
             </div>
           </header>
         }
       >
         <PlacePhotoCredit photo={place?.photo} />
-        <a className="sd-back pd-inline" href="#spots">
-          ← 명소 목록
-        </a>
+        <a className="sd-back pd-inline" href="#spots">{t("← 명소 목록")}</a>
 
         {lookup.error && (
           <p className="pd-note" role="alert">
@@ -109,23 +108,23 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           <div className="sd-score" data-grade={grade.key}>
             <div className="pd-num sd-score-num">
               {loading ? (
-                <Skeleton width="1.6em" label="점수 조회 중" />
+                <Skeleton width="1.6em" label={t("점수 조회 중")} />
               ) : (
                 (score ?? "–")
               )}
             </div>
             <div className="sd-score-grade">
               <GradeIcon gradeKey={grade.key} size={10} />
-              {grade.label}
+              {t(grade.label)}
             </div>
           </div>
           <div className="sd-score-body">
             <div className="sd-score-title">
               {best
-                ? `오늘 여기서 가장 좋은 활동 · ${activityHeadline(best.activity)}`
+                ? t("오늘 여기서 가장 좋은 활동 · {activity}", { activity: activityHeadline(best.activity) })
                 : recommendation.error
-                  ? "오늘의 활동을 불러오지 못했습니다"
-                  : "오늘 이 장소의 물놀이 조건"}
+                  ? t("오늘의 활동을 불러오지 못했습니다")
+                  : t("오늘 이 장소의 물놀이 조건")}
             </div>
             {best && (
               <div className="sd-score-what">{scoreTitle(best.activity)}</div>
@@ -147,28 +146,23 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
         {/* 아래 다섯 줄은 모두 서버에 컬럼이 없습니다. 지어내지 않고 비웁니다.
             travel 카탈로그도 opening_hours 를 None 으로 고정해 내려줍니다. */}
         <div className="pd-card sd-info">
-          <InfoRow name="운영" value={null} />
-          <InfoRow name="개장 기간" value={null} />
-          <InfoRow name="주차" value={null} />
-          <InfoRow name="편의시설" value={null} />
-          <InfoRow name="문의" value={null} />
-          <p className="pd-note">
-            운영 · 개장 기간 · 주차 · 편의시설 · 문의를 내려주는 API 가 아직
-            없습니다. 값이 없다는 뜻이며 「없음」이나 「이용 불가」가 아닙니다.
-          </p>
+          <InfoRow name={t("운영")} value={null} />
+          <InfoRow name={t("개장 기간")} value={null} />
+          <InfoRow name={t("주차")} value={null} />
+          <InfoRow name={t("편의시설")} value={null} />
+          <InfoRow name={t("문의")} value={null} />
+          <p className="pd-note">{t("운영 · 개장 기간 · 주차 · 편의시설 · 문의를 내려주는 API 가 아직 없습니다. 값이 없다는 뜻이며 「없음」이나 「이용 불가」가 아닙니다.")}</p>
         </div>
 
         <div className="pd-card">
           <div className="sd-location-head">
-            <span className="pd-card-title sd-section-title">위치</span>
-            {place && <a className="sd-location-link pd-inline" href={`#map?spot_id=${place.id}`}>
-              지도에서 보기 →
-            </a>}
+            <span className="pd-card-title sd-section-title">{t("위치")}</span>
+            {place && <a className="sd-location-link pd-inline" href={`#map?spot_id=${place.id}`}>{t("지도에서 보기 →")}</a>}
           </div>
           <div className="sd-info">
-            <InfoRow name="주소" value={place?.address ?? null} />
+            <InfoRow name={t("주소")} value={place?.address ?? null} />
             <InfoRow
-              name="좌표"
+              name={t("좌표")}
               value={
                 typeof place?.lat === "number" && typeof place?.lng === "number"
                   ? `${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`
@@ -178,29 +172,24 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           </div>
           {!(typeof place?.lat === "number" && typeof place?.lng === "number") &&
             !placeLoading && (
-              <p className="pd-note">
-                좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를
-                임의로 만들지 않습니다.
-              </p>
+              <p className="pd-note">{t("좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를 임의로 만들지 않습니다.")}</p>
             )}
         </div>
 
         {place && <>
           <div className="sd-actions">
-            <button type="button" className="pd-primary sd-add" disabled={action.busy} onClick={add}>
-              내 코스에 추가
-            </button>
+            <button type="button" className="pd-primary sd-add" disabled={action.busy} onClick={add}>{t("내 코스에 추가")}</button>
             <button type="button" className="pd-secondary sd-save"
               disabled={action.busy || favorites.loading || !favorites.data}
-              aria-pressed={Boolean(saved)} aria-label={saved ? "저장 해제" : "저장"}
+              aria-pressed={Boolean(saved)} aria-label={saved ? t("저장 해제") : t("저장")}
               onClick={toggleFavorite}>
               <Icon name="save" size={19} />
             </button>
           </div>
-          {favorites.loading && <p role="status">즐겨찾기 조회 중…</p>}
-          {favorites.error && <p role="alert">즐겨찾기 조회 실패: {favorites.error}</p>}
+          {favorites.loading && <p role="status">{t("즐겨찾기 조회 중…")}</p>}
+          {favorites.error && <p role="alert">{t("즐겨찾기 조회 실패:")} {favorites.error}</p>}
           {action.error && <p role="alert">{action.error}</p>}
-          {message && <p role="status">{message} {showDraftLink && <a href="#map?view=course">코스 초안 보기</a>}</p>}
+          {message && <p role="status">{message} {showDraftLink && <a href="#map?view=course">{t("코스 초안 보기")}</a>}</p>}
         </>}
       </AppShell>
     </article>

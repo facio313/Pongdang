@@ -1,12 +1,15 @@
+import { t } from "./i18n.ts";
 import { useState } from "react";
 import { kstDate, type Place } from "./productData";
 import { travelJson, type TripPlan } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useAction } from "./useAction";
 import { useResource } from "./useResource";
+import { useTravelLanguage } from "./travelLanguage";
 
 /** Both detail layouts add the selected real place through the same draft API. */
 export function useSpotActions(place: Place | undefined, { queryFavorites = true } = {}) {
+  const { locale } = useTravelLanguage();
   const session = useTravelSession();
   const action = useAction();
   const [signalRevision, setSignalRevision] = useState(0);
@@ -20,7 +23,7 @@ export function useSpotActions(place: Place | undefined, { queryFavorites = true
     void action.run(async (signal) => {
       if (!place) return;
       const input = session.planInput ?? {
-        request: { dates: [kstDate()], region: place.region?.trim() || undefined, preferred_tags: [], activity: "relax" as const, transport: "driving" as const },
+        request: { locale, dates: [kstDate()], region: place.region?.trim() || undefined, preferred_tags: [], activity: "relax" as const, transport: "driving" as const },
         stops: [],
       };
       if (input.stops.some((stop) => stop.spot_id === place.id)) {
@@ -53,5 +56,5 @@ export function useSpotActions(place: Place | undefined, { queryFavorites = true
       }
     });
   };
-  return { action, favorites, saved, message: feedback?.text ?? "", showDraftLink: feedback?.draft ?? false, add, toggleFavorite };
+  return { action, favorites, saved, message: feedback ? t(feedback.text) : "", showDraftLink: feedback?.draft ?? false, add, toggleFavorite };
 }

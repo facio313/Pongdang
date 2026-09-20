@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import {
   createContext,
   useContext,
@@ -7,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Icon, StateChip } from "./pongdangUi";
+import { TravelLanguageSelector } from "./TravelLanguageSelector";
 import "./sideMenu.css";
 
 /** 사이드 메뉴(탭 밖) 항목입니다. 탭바가 담는 여행 흐름(오늘 · 추천 · 지도 ·
@@ -46,7 +48,7 @@ export function SideMenuButton() {
       type="button"
       className="pd-menu-button pd-tap"
       onClick={control.open}
-      aria-label="사이드 메뉴 열기"
+      aria-label={t("사이드 메뉴 열기")}
     >
       <Icon name="menu" size={18} />
     </button>
@@ -112,14 +114,14 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
         type="button"
         className="pd-backdrop"
         onClick={onClose}
-        aria-label="사이드 메뉴 닫기"
+        aria-label={t("사이드 메뉴 닫기")}
         tabIndex={-1}
       />
       <div
         className="pd-menu"
         role="dialog"
         aria-modal="true"
-        aria-label="사이드 메뉴"
+        aria-label={t("사이드 메뉴")}
         ref={panel}
       >
         <div className="pd-menu-head">
@@ -129,27 +131,22 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
               type="button"
               className="pd-menu-close"
               onClick={onClose}
-              aria-label="닫기"
+              aria-label={t("닫기")}
               ref={closeButton}
             >
               <Icon name="close" size={16} />
             </button>
           </div>
           <div className="pd-menu-profile">
-            <span className="pd-menu-avatar">
-              사진
-              <br />
-              없음
-            </span>
+            <span className="pd-menu-avatar">{t("사진")}<br />{t("없음")}</span>
             <div>
               <div className="pd-menu-signin">Pongdang</div>
-              <div className="pd-menu-signin-sub">
-                기존 SSO 세션으로 개인 코스를 관리합니다
-              </div>
+              <div className="pd-menu-signin-sub">{t("기존 SSO 세션으로 개인 코스를 관리합니다")}</div>
             </div>
           </div>
         </div>
-        <nav className="pd-menu-list" aria-label="사이드 메뉴 항목">
+        <TravelLanguageSelector />
+        <nav className="pd-menu-list" aria-label={t("사이드 메뉴 항목")}>
           {MENU_ITEMS.map((item) =>
             item.href ? (
               <a
@@ -158,7 +155,7 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
                 key={item.label}
                 onClick={onClose}
               >
-                {item.label}
+                {t(item.label)}
               </a>
             ) : (
               <button
@@ -167,16 +164,13 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
                 key={item.label}
                 disabled
               >
-                {item.label}
+                {t(item.label)}
                 <StateChip kind="uncollected" />
               </button>
             ),
           )}
         </nav>
-        <p className="pd-menu-note">
-          개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 추천 취향은
-          추천 탭의 취향 단계에서 바꿉니다.
-        </p>
+        <p className="pd-menu-note">{t("개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 추천 취향은 추천 탭의 취향 단계에서 바꿉니다.")}</p>
       </div>
     </>
   );

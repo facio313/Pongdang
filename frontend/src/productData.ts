@@ -1,3 +1,4 @@
+import { t, dateLocale } from "./i18n.ts";
 import type { Activity } from "./aiApi";
 import type { PlacePhoto } from "./placePhotos";
 
@@ -6,6 +7,8 @@ export interface Place {
   name: string;
   address: string | null;
   region: string | null;
+  province_code?: string | null;
+  district_code?: string | null;
   lat: number | null;
   lng: number | null;
   type: string | null;
@@ -21,6 +24,37 @@ export function productPlaces(rows: ClassifiedWaterPlace[]): RowPage<Place> {
     total: rows.length,
   };
 }
+const districtLabels: Record<string, string> = {
+  chuncheon: "춘천시", wonju: "원주시", gangneung: "강릉시", donghae: "동해시",
+  taebaek: "태백시", sokcho: "속초시", samcheok: "삼척시", hongcheon: "홍천군",
+  hoengseong: "횡성군", yeongwol: "영월군", pyeongchang: "평창군", jeongseon: "정선군",
+  cheorwon: "철원군", hwacheon: "화천군", yanggu: "양구군", inje: "인제군",
+  goseong: "고성군", yangyang: "양양군",
+};
+
+/** Display metadata or a provider address without changing the source region.
+ * Numeric provider codes alone are not interpreted as administrative evidence.
+ */
+export function placeRegionLabel(place?: {
+  region?: string | null;
+  address?: string | null;
+  province_code?: string | null;
+  district_code?: string | null;
+  confirmed?: Record<string, unknown>;
+}, fallback = t("지역 미확인")): string {
+  const district = place?.district_code;
+  if (district && Object.hasOwn(districtLabels, district)) return t(districtLabels[district]);
+  const region = place?.region?.trim();
+  const isCode = (value: string) => /^\d+(?::\d+)*$/.test(value);
+  if (region && !isCode(region)) return region === "gangwon" ? t("강원도") : t(region);
+  const address = (place?.address ?? (typeof place?.confirmed?.address === "string" ? place.confirmed.address : null))?.trim();
+  if (address && !isCode(address)) {
+    const administrativeName = address.match(/(?:^|\s)([가-힣]+(?:시|군|구))(?=\s|$)/)?.[1];
+    return administrativeName ? t(administrativeName) : address;
+  }
+  return place?.province_code === "gangwon" ? t("강원도") : fallback;
+}
+
 export interface Metric {
   name: string;
   label: string;
@@ -102,16 +136,16 @@ export function conditionScore(
 /** 숫자 바로 옆에 놓는 근거 요약. 부분 점수의 원값과 서버의 확보율을 유지합니다. */
 export function scoreCoverageText(data?: Conditions): string {
   const index = data?.condition_score;
-  if (!index) return "근거 정보 없음";
-  const prefix = index.status === "partial" ? "부분 점수 · " : "";
+  if (!index) return t("근거 정보 없음");
+  const prefix = index.status === "partial" ? t("부분 점수 · ") : "";
   const available = index.available_components;
   const total = index.total_components;
   if (!Number.isInteger(available) || available < 0 ||
       !Number.isInteger(total) || total < 0 || available > total)
-    return `${prefix}근거 정보 없음`;
+    return `${prefix}${t("근거 정보 없음")}`;
   const percentage = Number.isFinite(index.coverage)
     ? ` (${Math.round(index.coverage * 100)}%)` : "";
-  return `${prefix}근거 ${available}/${total}${percentage}`;
+  return `${prefix}${t("근거 {available}/{total}{percentage}", { available, total, percentage })}`;
 }
 
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
@@ -137,16 +171,20 @@ export const SCORE_REASONS: Record<string, string> = {
 };
 export function conditionScoreText(data?: Conditions) {
   const index = data?.condition_score;
-  if (!index) return "환경 참고점수 자료를 읽지 못했습니다.";
+  if (!index) return t("환경 참고점수 자료를 읽지 못했습니다.");
   const score = conditionScore(data);
-  const coverage = Number.isFinite(index.coverage) ? ` · 근거 확보 ${Math.round(index.coverage * 100)}% (${index.available_components}/${index.total_components}개)` : "";
-  const state = index.status === "blocked" ? "공식 제한 또는 활동 미지원으로 계산 보류"
-    : score === null ? "계산에 필요한 근거 부족"
-    : index.status === "partial" ? "일부 근거로 계산" : "조건 근거로 계산";
-  const support = index.reason_codes.includes("activity_support_unknown") ? " 활동 지원 여부 미확인." : "";
-  const context = index.reason_codes.includes("nearby_station_context") ? " 주변 관측소 참고 · 장소 실측 아님." : "";
-  const issueUnknown = index.components.some((component) => component.reason_codes.includes("provider_issue_time_unknown")) ? " 예보 발표 시각 미확인." : "";
-  return `${index.label} ${score === null ? "–" : `${score}점`}${coverage} · ${state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.${support}${context}${issueUnknown}`;
+  const coverage = Number.isFinite(index.coverage) ? t(" · 근거 확보 {percent}% ({available}/{total}개)", {
+    percent: Math.round(index.coverage * 100), available: index.available_components, total: index.total_components,
+  }) : "";
+  const state = index.status === "blocked" ? t("공식 제한 또는 활동 미지원으로 계산 보류")
+    : score === null ? t("계산에 필요한 근거 부족")
+    : index.status === "partial" ? t("일부 근거로 계산") : t("조건 근거로 계산");
+  const support = index.reason_codes.includes("activity_support_unknown") ? t(" 활동 지원 여부 미확인.") : "";
+  const context = index.reason_codes.includes("nearby_station_context") ? t(" 주변 관측소 참고 · 장소 실측 아님.") : "";
+  const issueUnknown = index.components.some((component) => component.reason_codes.includes("provider_issue_time_unknown")) ? t(" 예보 발표 시각 미확인.") : "";
+  return t("{label} {score}{coverage} · {state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.{support}{context}{issueUnknown}", {
+    label: t(index.label), score: score === null ? "–" : t("{score}점", { score }), coverage, state, support, context, issueUnknown,
+  });
 }
 /** 히어로에 항상 보이는 한 줄. 예전에는 conditionScoreText + evidenceText 전문이
  *  점수 바로 아래 펼쳐져 있었는데, 의무 면책 · 출처 원문 · 서버 enum 이 같은 층에
@@ -157,24 +195,24 @@ export function conditionScoreText(data?: Conditions) {
  *  바꾸지 마세요. */
 export function evidenceSummary(data?: Conditions) {
   const index = data?.condition_score;
-  if (!index) return "근거 확보 자료를 읽지 못했습니다.";
+  if (!index) return t("근거 확보 자료를 읽지 못했습니다.");
   const score = conditionScore(data);
-  const value = index.status === "blocked" ? "계산 보류" : score === null ? "–" : `${score}`;
+  const value = index.status === "blocked" ? t("계산 보류") : score === null ? "–" : `${score}`;
   // 확보율은 백분율보다 「4개 중 4개」가 바로 읽힙니다. 백분율 전문은 details 안에
   // conditionScoreText 로 그대로 남습니다.
-  const coverage = ` · 근거 확보 ${index.available_components}/${index.total_components}`;
+  const coverage = t(" · 근거 확보 {available}/{total}", { available: index.available_components, total: index.total_components });
   const at = timeLabel(data?.at);
-  return `참고 점수 ${value}${coverage} · ${conditionModeLabel(data)} ${at} KST`;
+  return t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
 }
 /** 안전 상태의 사용자 문장. 서버 enum(unknown/caution/restricted)을 그대로 쓰면
  *  뜻이 전달되지 않고, 특히 unknown 은 「이상 없음」으로 읽힙니다. 모르는 값은
  *  유리한 쪽으로 매핑하지 않고 코드를 남깁니다. */
 export function safetyStatusText(data?: Conditions) {
   const status = data?.safety_status ?? "unknown";
-  if (status === "restricted") return "안전 상태 restricted — 공식 제한이 있습니다. 해당 안내를 먼저 따르세요.";
-  if (status === "caution") return "안전 상태 caution — 확인된 주의 사항이 있습니다.";
-  if (status === "unknown") return "안전 상태 unknown — 판정이 없다는 뜻이며 안전하다는 뜻이 아닙니다.";
-  return `안전 상태 ${status}.`;
+  if (status === "restricted") return t("안전 상태 restricted — 공식 제한이 있습니다. 해당 안내를 먼저 따르세요.");
+  if (status === "caution") return t("안전 상태 caution — 확인된 주의 사항이 있습니다.");
+  if (status === "unknown") return t("안전 상태 unknown — 판정이 없다는 뜻이며 안전하다는 뜻이 아닙니다.");
+  return t("안전 상태 {status}.", { status });
 }
 /** 자료 조회 상태의 한국어 표기. 서버 enum 을 화면 문장 자리에 그대로 내보내지
  *  않기 위한 것이며(예전에는 문단이 「available」로 시작했습니다), 모르는 코드는
@@ -185,12 +223,25 @@ export const DATA_STATUS: Record<string, string> = {
   partial: "일부 자료",
   unavailable: "제공 불가",
   evaluated: "평가 완료",
+  current: "현재 유효",
+  recorded: "기록됨",
+  stale: "자료 유효기간 만료",
+  met: "선택 기준 충족",
+  not_met: "선택 기준 미충족",
+  unknown: "판정 없음",
   no_forecast_data: "연결된 예보 자료 없음.",
   outside_forecast_horizon: "예보 지원 기간 밖입니다.",
   missing_within_horizon: "지원 기간 안이지만 해당 시각의 자료가 없습니다.",
 };
 export const dataStatusText = (status?: string) =>
-  status ? (DATA_STATUS[status] ?? `자료 상태 ${status}.`) : "";
+  status ? (DATA_STATUS[status] !== undefined ? t(DATA_STATUS[status]) : t("자료 상태 {status}.", { status })) : "";
+const METRIC_LABELS: Record<string, string> = {
+  water_temperature: "수온", sea_water_temperature: "수온", bath_water_temperature: "시설 욕조 수온",
+  air_temperature: "외부 기온", relative_humidity: "상대습도", wind_speed: "풍속",
+  maximum_wind_speed: "최대 풍속", wave_height: "파고", maximum_wave_height: "최대 파고",
+  wave_period: "파주기", precipitation: "1시간 강수량", river_level: "하천 수위", river_flow: "하천 유량",
+};
+export const metricNameLabel = (name: string) => t(METRIC_LABELS[name] ?? name);
 export function conditionScoreExpiry(data?: Conditions): number | undefined {
   const used = data?.condition_score?.components.filter((item) => item.status === "evaluated" && item.score !== null) ?? [];
   const expiries = [...(data?.metrics ?? []), ...(data?.context_metrics ?? [])]
@@ -203,12 +254,22 @@ export function conditionScoreExpiry(data?: Conditions): number | undefined {
 export function conditionComponentsText(data?: Conditions) {
   return data?.condition_score?.components.map((item) => {
     const score = typeof item.score === "number" && Number.isFinite(item.score)
-      ? `${item.score}점` : "–";
-    const reasons = item.reason_codes.map((reason) => SCORE_REASONS[reason] ?? reason).join(" · ");
+      ? t("{score}점", { score: item.score }) : "–";
+    const reasons = item.reason_codes.map((reason) => t(SCORE_REASONS[reason] ?? reason)).join(" · ");
     const source = item.station_name ? ` · ${item.station_name}` : "";
     const distance = typeof item.distance_km === "number" ? ` ${item.distance_km.toFixed(1)}km` : "";
-    return `${item.label} ${formatValue(item.value, item.unit)} → ${score}${source}${distance}${reasons ? ` · ${reasons}` : ""}`;
+    return `${t(item.label)} ${formatValue(item.value, item.unit)} → ${score}${source}${distance}${reasons ? ` · ${reasons}` : ""}`;
   }).join(" / ") ?? "";
+}
+/** Translate the documented app-generated curve format, retaining every knot,
+ * unit and source value. Unknown formats remain verbatim instead of guessing. */
+export function conditionCriterionText(criterion: string): string {
+  const parts = criterion.split(" · ");
+  if (parts.length !== 4 || !["각 하한 이상 구간 적용", "절점 사이 선형 보간"].includes(parts[3]))
+    return t(criterion);
+  const knots = parts[2].split(", ").map((point) => point.match(/^(.+)→(-?\d+(?:\.\d+)?)점$/));
+  if (knots.some((point) => point === null)) return t(criterion);
+  return [t(parts[0]), t(parts[1]), knots.map((point) => `${point![1]}→${t("{score}점", { score: point![2] })}`).join(", "), t(parts[3])].join(" · ");
 }
 export interface Forecast {
   source_key: string;
@@ -286,15 +347,22 @@ export interface WaterQualityGrade {
 }
 export function waterQualityLabel(data?: WaterQualityGrade) {
   return data?.grade != null && Number.isInteger(data.grade) && data.grade >= 1 && data.grade <= 5 && ["available", "historical"].includes(data.status)
-    ? `${data.grade}등급${data.status === "historical" ? " · 과거" : ""}`
-    : data?.status === "conflict" ? "자료 상충" : data?.status === "unsupported" ? "평가 기준 없음" : "검사 자료 없음";
+    ? t("{grade}등급{historical}", { grade: data.grade, historical: data.status === "historical" ? t(" · 과거") : "" })
+    : data?.status === "conflict" ? t("자료 상충") : data?.status === "unsupported" ? t("평가 기준 없음") : t("검사 자료 없음");
 }
 export function waterQualityDescription(data?: WaterQualityGrade) {
-  if (!data) return "수질 검사 자료를 조회하고 있습니다.";
-  if (data.status === "unsupported") return "해양 WQI는 하천·계곡에 적용하지 않습니다. 이 장소의 별도 수질 평가 기준이 필요합니다.";
-  if (!data.station_name || !data.observed_at) return "10km 안에 수집된 해양 수질 검사 자료가 없습니다.";
-  const location = data.relation === "nearby_station_context" ? `주변 ${data.station_name} 관측소${data.distance_km != null ? ` ${data.distance_km.toFixed(1)}km` : ""}` : `${data.station_name} 관측소`;
-  return `${location} · ${kstDate(data.observed_at)} 검사${data.status === "historical" ? ` · ${data.age_days}일 전 과거 자료` : ""}. ${data.grade != null ? `${data.grade}등급 ${data.label ?? ""}` : "등급을 확인할 수 없습니다"}${data.wqi != null ? ` · WQI ${data.wqi}` : ""}. 해역의 생태 수질 등급이며 오늘 해변의 수질·입수 안전 판정은 아닙니다.`;
+  if (!data) return t("수질 검사 자료를 조회하고 있습니다.");
+  if (data.status === "unsupported") return t("해양 WQI는 하천·계곡에 적용하지 않습니다. 이 장소의 별도 수질 평가 기준이 필요합니다.");
+  if (!data.station_name || !data.observed_at) return t("10km 안에 수집된 해양 수질 검사 자료가 없습니다.");
+  const location = data.relation === "nearby_station_context"
+    ? t("주변 {station} 관측소{distance}", { station: data.station_name, distance: data.distance_km != null ? ` ${data.distance_km.toFixed(1)}km` : "" })
+    : t("{station} 관측소", { station: data.station_name });
+  return t("{location} · {date} 검사{historical}. {grade}{wqi}. 해역의 생태 수질 등급이며 오늘 해변의 수질·입수 안전 판정은 아닙니다.", {
+    location, date: kstDate(data.observed_at),
+    historical: data.status === "historical" ? t(" · {days}일 전 과거 자료", { days: data.age_days ?? "–" }) : "",
+    grade: data.grade != null ? t("{grade}등급 {label}", { grade: data.grade, label: t(data.label ?? "") }) : t("등급을 확인할 수 없습니다"),
+    wqi: data.wqi != null ? ` · WQI ${data.wqi}` : "",
+  });
 }
 export type RowPage<T> = { rows: T[]; total: number; status?: string };
 
@@ -320,14 +388,14 @@ export const kstDate = (value: Date | string = new Date()) =>
     day: "2-digit",
   }).format(new Date(value));
 export const dateLabel = (value: Date | string = new Date()) =>
-  new Intl.DateTimeFormat("ko-KR", {
+  new Intl.DateTimeFormat(dateLocale(), {
     timeZone: "Asia/Seoul",
     month: "long",
     day: "numeric",
   }).format(new Date(value));
 export const timeLabel = (value?: string | null) =>
   value && Number.isFinite(Date.parse(value))
-    ? new Intl.DateTimeFormat("ko-KR", {
+    ? new Intl.DateTimeFormat(dateLocale(), {
         timeZone: "Asia/Seoul",
         hour: "2-digit",
         minute: "2-digit",
@@ -465,7 +533,7 @@ export function metricText(data: Conditions | undefined, name: string) {
   if (displayed) return displayed.status === "text" ? displayed.text_value! : formatValue(displayed.value, displayed.unit);
   if (["wave_height", "wind_speed"].includes(name) && ![...(data?.metrics ?? []), ...(data?.context_metrics ?? [])].some(m => m.name === name)) {
     const maximum = data?.display_metrics?.find(m => m.name === `maximum_${name}` && ["available", "provisional"].includes(m.status) && m.value !== null);
-    if (maximum) return `최대 ${formatValue(maximum.value, maximum.unit)}`;
+    if (maximum) return t("최대 {value}", { value: formatValue(maximum.value, maximum.unit) });
   }
   // Context or provisional forecast values are displayed only when the server
   // explicitly evaluated that component, with its context/limitations alongside.
@@ -474,20 +542,22 @@ export function metricText(data: Conditions | undefined, name: string) {
   );
   return formatValue(component?.value, component?.unit);
 }
-export const conditionModeLabel = (data?: Conditions) => data?.mode === "forecast" ? "예보" : "관측";
+export const conditionModeLabel = (data?: Conditions) => data?.mode === "forecast" ? t("예보") : t("관측");
 export function evidenceText(data?: Conditions) {
-  if (!data) return "아직 조건 자료를 읽지 못했습니다.";
+  if (!data) return t("아직 조건 자료를 읽지 못했습니다.");
   const sources = [
     ...new Set(
       [...data.metrics, ...(data.context_metrics ?? [])].flatMap((m) =>
         m.evidence.map(
           (e) =>
-            `${m.relation === "nearby_station_context" ? `주변 관측소 참고${typeof m.distance_km === "number" ? ` ${m.distance_km.toFixed(1)}km` : ""}` : m.relation === "containing_forecast_grid" ? "격자 기상" : m.relation === "representative_station" ? "대표 관측소" : "관측 지점"} ${m.station_name ?? "관측소명 없음"} · ${e.provider} · ${timeLabel(e.observed_at)} KST`,
+            `${m.relation === "nearby_station_context" ? t("주변 관측소 참고{distance}", { distance: typeof m.distance_km === "number" ? ` ${m.distance_km.toFixed(1)}km` : "" }) : m.relation === "containing_forecast_grid" ? t("격자 기상") : m.relation === "representative_station" ? t("대표 관측소") : t("관측 지점")} ${m.station_name ?? t("관측소명 없음")} · ${e.provider} · ${timeLabel(e.observed_at)} KST`,
         ),
       ),
     ),
   ];
-  return `${data.mode === "forecast" ? "예보" : "관측"} 기준 ${dateLabel(data.at)} ${timeLabel(data.at)} KST. ${sources.join(" / ") || "관측·예보 근거 없음"}. 관측소·격자 자료는 현장 실측과 다릅니다.`;
+  return t("{mode} 기준 {date} {time} KST. {sources}. 관측소·격자 자료는 현장 실측과 다릅니다.", {
+    mode: conditionModeLabel(data), date: dateLabel(data.at), time: timeLabel(data.at), sources: sources.join(" / ") || t("관측·예보 근거 없음"),
+  });
 }
 export function calendarDays(now: string, count: number) {
   const start = Date.parse(kstDate(now) + "T12:00:00+09:00");
@@ -498,10 +568,10 @@ export function calendarDays(now: string, count: number) {
       at,
       weekday:
         index === 0
-          ? "오늘"
+          ? t("오늘")
           : index === 1
-            ? "내일"
-            : new Intl.DateTimeFormat("ko-KR", {
+            ? t("내일")
+            : new Intl.DateTimeFormat(dateLocale(), {
                 timeZone: "Asia/Seoul",
                 weekday: "short",
               }).format(new Date(at)),
@@ -512,8 +582,8 @@ export function calendarDays(now: string, count: number) {
 }
 export function qualityValues(rows: QualityRow[]) {
   return [
-    { label: "탁도", names: ["turbidity"] },
-    { label: "용존산소", names: ["dissolved_oxygen", "do"] },
+    { label: t("탁도"), names: ["turbidity"] },
+    { label: t("용존산소"), names: ["dissolved_oxygen", "do"] },
     { label: "pH", names: ["ph", "pH"] },
   ].map((def) => {
     const measures = rows

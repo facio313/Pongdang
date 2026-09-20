@@ -1,4 +1,5 @@
-import { conditionScoreText, conditionComponentsText, type Conditions } from "./productData";
+import { t } from "./i18n.ts";
+import { conditionScoreText, conditionComponentsText, conditionCriterionText, type Conditions } from "./productData";
 
 /** Evidence and scoring criteria use the existing page typography; no display
  * value is calculated from raw measurements in the browser. */
@@ -12,14 +13,14 @@ export function ConditionScoreDetails({ data, className }: {
       <p>{conditionScoreText(data)}</p>
       {index && (
         <details>
-          <summary>분야별 점수·산정 기준·출처</summary>
+          <summary>{t("분야별 점수·산정 기준·출처")}</summary>
           <p>{conditionComponentsText(data)}</p>
-          <p>{index.methodology} · 방법론 {index.model_id} {index.model_version}</p>
+          <p>{t(index.methodology)} · {t("방법론 {model} {version}", { model: index.model_id, version: index.model_version })}</p>
           <dl>
             {index.components.map((item) => (
               <div key={item.metric}>
-                <dt>{item.label}</dt>
-                <dd>{item.criterion}</dd>
+                <dt>{t(item.label)}</dt>
+                <dd>{conditionCriterionText(item.criterion)}</dd>
               </div>
             ))}
           </dl>
@@ -27,7 +28,7 @@ export function ConditionScoreDetails({ data, className }: {
             {index.sources.map((source) => (
               <li key={source.id}>
                 <a href={/^https:\/\//.test(source.url) ? source.url : undefined}
-                  target="_blank" rel="noreferrer">{source.title}</a> · {source.usage}
+                  target="_blank" rel="noreferrer">{source.title}</a> · {t(source.usage)}
               </li>
             ))}
           </ul>

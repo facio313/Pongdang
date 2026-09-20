@@ -222,6 +222,31 @@ def test_collected_water_place_picker_does_not_require_windy_key_or_provider_cal
     assert not s.client.calls
 
 
+@pytest.mark.parametrize("spot_id", [7, 99999999])
+def test_collected_place_detail_forwards_exact_id_and_preserves_missing(spot_id):
+    reads = []
+
+    async def read(_reader, **kwargs):
+        reads.append(kwargs)
+        return [place()] if kwargs["spot_id"] == 7 else []
+
+    s = service(windy_webcams_api_key="")
+    client = app_client(s, read)
+    response = client.get(f"/api/data/livecams/preview/places?spot_id={spot_id}")
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()] == ([7] if spot_id == 7 else [])
+    assert reads == [{"q": "", "spot_id": spot_id}]
+    for invalid in (0, -1, 9223372036854775808):
+        assert (
+            client.get(
+                f"/api/data/livecams/preview/places?spot_id={invalid}"
+            ).status_code
+            == 422
+        )
+    assert len(reads) == 1
+    assert not s.client.calls
+
+
 def test_empty_nearby_expands_only_three_radii_and_caches_empty_success():
     s = service(Client([]))
     result = s.query(place())

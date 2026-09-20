@@ -207,6 +207,69 @@ def test_parallel_worker_lock_skips_job_and_disabled_never_fetches(db):
     assert run_due(db, [Job("disabled", 60, unexpected, False)]) == []
 
 
+def test_partial_catalog_resumes_then_returns_to_daily_schedule(db):
+    result = dict(state="partial", received=500, inserted=500, next_run_seconds=60)
+    job = Job("district_catalog", 86400, process=lambda: result)
+    assert run_due(db, [job])[0]["state"] == "partial"
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT extract(epoch from next_run_at-finished_at) "
+            "FROM pongdang_data.collection_job WHERE task_name=%s",
+            [job.name],
+        ).fetchone() == (60,)
+    assert run_due(db, [job]) == []
+    result.clear()
+    result.update(state="succeeded", received=12, inserted=12)
+    assert run_due(db, [job], force=True)[0]["state"] == "succeeded"
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT extract(epoch from next_run_at-finished_at) "
+            "FROM pongdang_data.collection_job WHERE task_name=%s",
+            [job.name],
+        ).fetchone() == (86400,)
+
+
+@pytest.mark.parametrize("delay", [True, 0, 29, 86401, "60"])
+def test_invalid_continuation_delay_uses_failure_backoff(db, delay):
+    job = Job(
+        "invalid_continuation",
+        600,
+        process=lambda: dict(
+            state="partial", received=0, inserted=0, next_run_seconds=delay
+        ),
+    )
+    assert run_due(db, [job])[0]["error"] == "COLLECTION_ERROR"
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT state,consecutive_failures,last_success_at,"
+            "extract(epoch from next_run_at-finished_at) "
+            "FROM pongdang_data.collection_job WHERE task_name=%s",
+            [job.name],
+        ).fetchone() == ("failed", 1, None, 1200)
+
+
+def test_v9_region_migration_preserves_existing_data(db):
+    store_batch(db, evidence())
+    with connect(db) as c:
+        before = c.execute("SELECT * FROM pongdang_data.spots_waterspot").fetchall()
+        c.execute("DROP TABLE pongdang_data.collection_scope_cursor")
+        c.execute("DROP TABLE pongdang_data.collection_place_region")
+        c.execute("UPDATE pongdang_data.schema_version SET version=9")
+    assert initialize(db) is True
+    assert initialize(db) is False
+    with connect(db) as c:
+        assert (
+            c.execute("SELECT * FROM pongdang_data.spots_waterspot").fetchall()
+            == before
+        )
+        assert c.execute(
+            "SELECT count(*) FROM pongdang_data.collection_scope_cursor"
+        ).fetchone() == (0,)
+        assert c.execute(
+            "SELECT count(*) FROM pongdang_data.collection_place_region"
+        ).fetchone() == (0,)
+
+
 def test_demo_removal_preserves_real_collection_and_is_idempotent(db):
     store_batch(db, evidence())
     with connect(db) as c:

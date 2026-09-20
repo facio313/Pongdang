@@ -30,6 +30,7 @@ from app.livecams.service import CameraEnvelope, read_cameras
 from app.quality.api import QualityQuery
 from app.quality.models import ComparisonEnvelope
 from app.quality.storage import read_analyses
+from app.regions import PLACE_REGION_JOIN, place_search_predicate
 from app.tides.service import tide_event
 from app.tides.storage import read_windows
 from app.twin.api import SpatialQuery, spatial_view
@@ -305,7 +306,7 @@ PLACE_COLUMNS = (
 PLACE_JOIN = (
     " FROM pongdang_data.spots_waterspot s JOIN pongdang_data.collection_place p "
     "ON p.spot_id=s.id "
-)
+) + PLACE_REGION_JOIN
 
 
 class ToolSession:
@@ -599,24 +600,17 @@ class ToolSession:
         query = args.query.strip()
         if not query or query in {"%", "_"}:
             raise ToolError("region_or_place_required")
-        # A literal substring, never SQL wildcards or free-form where clauses.
-        pattern = (
-            "%"
-            + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            + "%"
-        )
+        predicate, params = place_search_predicate(query)
         async with self.reader.connection() as c:
             rows = await (
                 await c.execute(
                     "SELECT "
                     + PLACE_COLUMNS
                     + PLACE_JOIN
-                    + (
-                        "WHERE (s.name ILIKE %s OR s.region ILIKE %s OR "
-                        "s.address ILIKE %s) "
-                    )
-                    + "ORDER BY s.name,s.id LIMIT %s",
-                    [pattern, pattern, pattern, args.limit + 1],
+                    + "WHERE "
+                    + predicate
+                    + " ORDER BY s.name,s.id LIMIT %s",
+                    [*params, args.limit + 1],
                 )
             ).fetchall()
         self._count(rows)

@@ -12,6 +12,7 @@ from app.config import Settings
 from app.data_reader import create_data_router
 from app.database import check_database
 from app.forecast.api import create_forecast_router
+from app.livecams.places import create_places_router
 from app.livecams.preview import create_preview_router
 from app.livecams.service import create_livecam_router
 from app.notifications.api import create_router as create_notifications_router
@@ -64,6 +65,7 @@ def create_app(
         return {"status": "ok"}
 
     app.include_router(create_data_router(settings))
+    app.include_router(create_places_router(settings))
     app.include_router(create_attachment_router(settings))
     app.include_router(create_water_index_router(settings))
     app.include_router(create_condition_router(settings))

@@ -1,3 +1,5 @@
+import { t } from "./i18n.ts";
+import { useTravelLanguage } from "./travelLanguage";
 import { useEffect, useMemo, useState } from "react";
 import { MapDesktop } from "./MapDesktop";
 import { useIsDesktop } from "./useIsDesktop";
@@ -7,15 +9,17 @@ import { AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
-import { useWaterPlaces } from "./useWaterPlaces";
-import { useDebounced } from "./useDebounced";
+import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
+import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { useAction } from "./useAction";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionScore,
+  dataStatusText,
   kstDate,
   metricText,
+  placeRegionLabel,
   timeLabel,
   type Place,
   type Conditions,
@@ -53,6 +57,7 @@ function Stage({
   selectedSpotId,
   onSelectSpot,
   spots,
+  places,
   search,
   setSearch,
 }: {
@@ -60,6 +65,7 @@ function Stage({
   selectedSpotId: number | null;
   onSelectSpot: (id: number) => void;
   spots: Spot[];
+  places: Place[];
   search: string;
   setSearch: (value: string) => void;
 }) {
@@ -70,44 +76,21 @@ function Stage({
     session.planInput?.stops.map((item) => item.spot_id) ??
     [];
   const start = calculated?.origin;
-  // The origin is a marker too, so the map frames the whole trip. A shared
-  // location without stored coordinates simply has no pin.
-  const originMarker =
-    view === "course" &&
-    start &&
-    start.latitude !== null &&
-    start.longitude !== null
-      ? { id: "origin", latitude: start.latitude, longitude: start.longitude }
-      : null;
-  const key = JSON.stringify([
-    spots.map((spot) => [spot.id, spot.lat, spot.lng]),
-    view,
-    courseIds,
-    originMarker,
-  ]);
+  // Coordinates come from the stable catalog rows, independently of score
+  // updates. Changing a condition therefore does not recreate the map.
   const markers = useMemo(() => {
-    const [coords, currentView, ids, origin] = JSON.parse(key) as [
-      [number, number | null, number | null][],
-      View,
-      number[],
-      { id: string; latitude: number; longitude: number } | null,
-    ];
+    const ids = new Set(calculated?.items.map((item) => item.spot_id) ??
+      session.planInput?.stops.map((item) => item.spot_id) ?? []);
+    // Include the registered origin so bounds still frame the whole course.
+    const origin = view === "course" && start && start.latitude !== null && start.longitude !== null
+      ? { id: "origin", latitude: start.latitude, longitude: start.longitude } : null;
     return [
       ...(origin ? [origin] : []),
-      ...coords
-        .filter(
-          ([id, lat, lng]) =>
-            lat !== null &&
-            lng !== null &&
-            (currentView === "spots" || ids.includes(id)),
-        )
-        .map(([id, latitude, longitude]) => ({
-          id: String(id),
-          latitude: latitude!,
-          longitude: longitude!,
-        })),
+      ...places.flatMap((place) => place.lat !== null && place.lng !== null &&
+        (view === "spots" || ids.has(place.id))
+        ? [{ id: String(place.id), latitude: place.lat, longitude: place.lng }] : []),
     ];
-  }, [key]);
+  }, [places, view, start, calculated?.items, session.planInput?.stops]);
   const paths = useMemo(
     () => (view === "course" ? routePaths(session.route) : []),
     [session.route, view],
@@ -115,7 +98,7 @@ function Stage({
   return (
     <div className="mp-stage">
       <AppHeader
-        title={view === "spots" ? "지도" : "코스 지도"}
+        title={view === "spots" ? t("지도") : t("코스 지도")}
         time={timeLabel(new Date().toISOString())}
       />
 
@@ -127,15 +110,15 @@ function Stage({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             maxLength={100}
-            placeholder="물놀이 할 곳 찾기"
-            aria-label="장소명·지역 검색"
+            placeholder={t("물놀이 할 곳 찾기")}
+            aria-label={t("장소명·지역 검색")}
             className="mp-search-input"
           />
         </label>
       ) : (
         <div className="mp-searchbar is-course">
           <Icon name="course" size={16} />
-          {`선택 코스 · ${courseIds.length}곳 · ${session.route?.route ? `${session.route.route.travel_minutes}분 이동` : "경로 계산 전"}`}
+          {t("선택 코스 · {count}곳 · {minutes}", { count: courseIds.length, minutes: session.route?.route ? t("{minutes}분 이동", { minutes: session.route.route.travel_minutes }) : t("경로 계산 전") })}
         </div>
       )}
 
@@ -149,10 +132,10 @@ function Stage({
               return (
                 <span className="mp-pin is-origin">
                   <span className="mp-pin-ring">
-                    <span className="mp-pin-core">출발</span>
+                    <span className="mp-pin-core">{t("출발")}</span>
                   </span>
                   <span className="mp-pin-label">
-                    {start?.label ?? "출발지"}
+                    {start?.label ?? t("출발지")}
                   </span>
                 </span>
               );
@@ -210,9 +193,9 @@ function SpotSheet({
 }) {
   const href = directionLink(spot.name, spot.lat, spot.lng);
   const tiles: { name: string; value: string; icon: IconName }[] = [
-    { name: "수온", value: spot.waterTemp, icon: "thermometer" },
-    { name: "기온", value: spot.airTemp, icon: "sun" },
-    { name: "풍속", value: spot.wind, icon: "wind" },
+    { name: t("수온"), value: spot.waterTemp, icon: "thermometer" },
+    { name: t("기온"), value: spot.airTemp, icon: "sun" },
+    { name: t("풍속"), value: spot.wind, icon: "wind" },
   ];
   return (
     <>
@@ -228,7 +211,7 @@ function SpotSheet({
               style={{ color: gradeOf(spot.score).color }}
             >
               {loading ? (
-                <Skeleton width="1.6em" label="점수 조회 중" />
+                <Skeleton width="1.6em" label={t("점수 조회 중")} />
               ) : spot.score === null ? (
                 "–"
               ) : (
@@ -254,14 +237,14 @@ function SpotSheet({
         <div className="mp-chips">
           <span className="mp-unknown-chip">
             <Icon name="warning" size={11} />
-            안전 상태 {conditions?.safety_status ?? "unknown"}
+            {t("안전 상태 {status}", { status: dataStatusText(conditions?.safety_status ?? "unknown") })}
           </span>
           <StateChip kind="live" />
         </div>
 
         {/* 안전 상태는 바로 위 mp-chips 가 이미 크게 말하고 있으므로 이 줄의
             칩은 끕니다. 문장 자체는 「근거 보기」 안에 그대로 있습니다. */}
-        <p className="pd-note">지도 점수는 선택한 장소를 조회한 값입니다.</p>
+        <p className="pd-note">{t("지도 점수는 선택한 장소를 조회한 값입니다.")}</p>
         <EvidenceNote data={conditions} className="pd-note" chip={false} />
         <ConditionScoreDetails data={conditions} className="pd-note" />
       </div>
@@ -274,17 +257,12 @@ function SpotSheet({
           target="_blank"
           rel="noopener noreferrer"
         >
-          <Icon name="transit" size={16} />
-          길찾기
-        </a>
+          <Icon name="transit" size={16} />{t("길찾기")}</a>
         <button type="button" className="pd-primary mp-action" onClick={onAdd}>
-          <Icon name="course" size={16} />
-          코스에 넣기
-        </button>
+          <Icon name="course" size={16} />{t("코스에 넣기")}</button>
       </div>
       <p className="pd-note mp-actions-note">
-        <StateChip kind="live" /> 카카오 지도에 등록 좌표를 전달합니다. 코스에
-        넣으면 저장 전 일정에 추가합니다.{" "}
+        <StateChip kind="live" /> {t("카카오 지도에 등록 좌표를 전달합니다. 코스에 넣으면 저장 전 일정에 추가합니다.")}{" "}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
             듣지 않으므로 히트박스만 넓히는 .pd-tap 을 붙입니다. */}
         <a
@@ -294,9 +272,7 @@ function SpotSheet({
             event.preventDefault();
             onFavorite();
           }}
-        >
-          즐겨찾기 저장 →
-        </a>
+        >{t("즐겨찾기 저장 →")}</a>
       </p>
     </>
   );
@@ -310,9 +286,9 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
     ? items.map((item, index) => ({
         no: index + 1,
         name: item.name,
-        meta: `${timeLabel(item.arrival_at)} 도착`,
+        meta: t("{time} 도착", { time: timeLabel(item.arrival_at) }),
         distance: calculated?.legs[index]
-          ? `${calculated.legs[index].duration_minutes}분`
+          ? t("{minutes}분", { minutes: calculated.legs[index].duration_minutes })
           : null,
         leg: calculated
           ? kakaoRouteLink(
@@ -330,7 +306,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
         .map((item, index) => ({
           no: index + 1,
           name: item.name,
-          meta: "방문 시각 미계산",
+          meta: t("방문 시각 미계산"),
           distance: null,
           leg: null,
         }));
@@ -342,7 +318,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
     <>
       <div className="pd-card">
         <div className="mp-card-top">
-          <div className="pd-card-title">이동 순서</div>
+          <div className="pd-card-title">{t("이동 순서")}</div>
           <StateChip kind="live" />
         </div>
         <div className="mp-rows">
@@ -360,8 +336,7 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {stop.distance ?? "–"} · 길찾기
-                </a>
+                  {stop.distance ?? "–"} {t("· 길찾기")}</a>
               ) : (
                 <span className="mp-stop-dist">{stop.distance ?? "–"}</span>
               )}
@@ -370,17 +345,14 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
         </div>
         <p className="pd-note">
           {session.route?.route_calculated
-            ? `출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, ${session.route.optimality === "provisional_missing_comparison_evidence" ? "일부 비교 자료가 부족한 임시 결과입니다." : "전체 지역의 최적 경로를 뜻하지 않습니다."}`
-            : "이동시간과 도로 경로는 아직 계산하지 않았습니다."}{" "}
+            ? t("출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, {detail}", { detail: session.route.optimality === "provisional_missing_comparison_evidence" ? t("일부 비교 자료가 부족한 임시 결과입니다.") : t("전체 지역의 최적 경로를 뜻하지 않습니다.") })
+            : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}{" "}
           {stops.length === 0 &&
-            "추천에서 장소를 고르거나 지도에서 코스에 넣어 주세요."}
+            t("추천에서 장소를 고르거나 지도에서 코스에 넣어 주세요.")}
         </p>
         {calculated && (
           <p className="pd-note">
-            도로 선은 길찾기 응답을 받은 구간 {lines}개만 그립니다
-            {lines < calculated.legs.length &&
-              ` (전체 ${calculated.legs.length}구간)`}
-            . 받지 못한 구간은 직선으로 채우지 않습니다.
+            {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: lines, total: calculated.legs.length })}
           </p>
         )}
         {wholeTrip && (
@@ -390,17 +362,13 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Icon name="transit" size={16} />
-            카카오맵에서 순서대로 길찾기 →
-          </a>
+            <Icon name="transit" size={16} />{t("카카오맵에서 순서대로 길찾기 →")}</a>
         )}
       </div>
 
       <div className="mp-actions">
         <a className="pd-secondary mp-action" href="#recommend">
-          <Icon name="transit" size={16} />
-          추천에서 편집
-        </a>
+          <Icon name="transit" size={16} />{t("추천에서 편집")}</a>
         <button
           type="button"
           className="pd-primary mp-action"
@@ -408,19 +376,17 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
           onClick={onSave}
         >
           <Icon name="save" size={16} />
-          {session.plan?.plan_id ? "저장됨" : "내 코스에 저장"}
+          {session.plan?.plan_id ? t("저장됨") : t("내 코스에 저장")}
         </button>
       </div>
       <p className="pd-note mp-actions-note">
-        <StateChip kind="partial" /> 카카오맵 길찾기는 등록 좌표와 순서를
-        전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지
-        않습니다.
-      </p>
+        <StateChip kind="partial" /> {t("카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.")}</p>
     </>
   );
 }
 
 function MapScreen() {
+  const { locale } = useTravelLanguage();
   const session = useTravelSession();
   const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
     "plan_id",
@@ -448,11 +414,11 @@ function MapScreen() {
       ? "course"
       : "spots",
   );
-  const [search, setSearch] = useState("");
+  const browser = useWaterPlaceBrowser();
+  const { search, setSearch, places } = browser;
   // 목록 조회는 명소 탭과 같은 훅을 씁니다. 같은 장소를 두 화면이 서로 다른
   // 소스로 읽지 않기 위해서입니다. 조회 키는 입력이 멎은 뒤에 바뀝니다 --
   // 타자마다 목록을 다시 묻지 않기 위해서입니다.
-  const places = useWaterPlaces(useDebounced(search));
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
@@ -466,14 +432,14 @@ function MapScreen() {
         ? [selectedSpotId]
         : [],
   );
-  const raw = [
+  const raw = useMemo(() => [
     ...new Map(
       [...(places.rows ?? []), ...coursePlaces.rows].map((item) => [
         item.id,
         item,
       ]),
     ).values(),
-  ];
+  ], [places.rows, coursePlaces.rows]);
   const selected = selectedSpotId !== null
     ? raw.find((item) => item.id === selectedSpotId)
     : raw.find((item) => item.id === places.defaultPlaceId) ??
@@ -505,8 +471,9 @@ function MapScreen() {
       if (!spot) return;
       const input = session.planInput ?? {
         request: {
+          locale,
           dates: [kstDate()],
-          region: "강릉",
+          region: "gangwon",
           preferred_tags: [],
           activity: "relax" as const,
           transport: "driving" as const,
@@ -611,9 +578,9 @@ function MapScreen() {
         .map((item) => item.rank);
       if (ranks.length !== must_include.length || !recommendations.selection_token)
         throw new Error(
-          `선택 장소 ${must_include.length}곳 중 ${ranks.length}곳만 현재 조건에서 경로 후보로 확인했습니다. ` +
+          t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
             (exclusionReasonsText(recommendations.excluded, must_include) ||
-              "후보를 다시 선택해 주세요."),
+              t("후보를 다시 선택해 주세요.")),
         );
       const result = await travelJson<RouteResult>(
         import.meta.env.BASE_URL,
@@ -647,6 +614,7 @@ function MapScreen() {
           <Stage
           view={view}
           spots={spots}
+          places={raw}
           selectedSpotId={selected?.id ?? null}
           onSelectSpot={setSelectedSpotId}
           search={search}
@@ -659,7 +627,7 @@ function MapScreen() {
       >
         <div className="mp-sheet">
           <div className="mp-handle" aria-hidden="true" />
-          <div className="mp-switch" role="group" aria-label="지도 보기 전환">
+          <div className="mp-switch" role="group" aria-label={t("지도 보기 전환")}>
             {(["spots", "course"] as const).map((key) => (
               <button
                 type="button"
@@ -668,11 +636,19 @@ function MapScreen() {
                 aria-pressed={view === key}
                 onClick={() => setView(key)}
               >
-                {key === "spots" ? "지점 보기" : "코스 경로"}
+                {key === "spots" ? t("지점 보기") : t("코스 경로")}
               </button>
             ))}
           </div>
           <fieldset className="mp-fieldset" disabled={action.busy}>
+            {view === "spots" && <>
+              <WaterPlaceFilters
+                district={browser.district} kind={browser.kind}
+                onDistrict={(district) => { browser.setDistrict(district); setSelectedSpotId(null); }}
+                onKind={(kind) => { browser.setKind(kind); setSelectedSpotId(null); }}
+              />
+              <WaterPlacePagination {...places} count={places.rows?.length ?? 0} onPage={(page) => { browser.setPage(page); setSelectedSpotId(null); }} />
+            </>}
             {view === "spots" ? (
               spot ? (
                 <SpotSheet
@@ -686,9 +662,9 @@ function MapScreen() {
                 <div className="pd-card">
                   {selectedSpotId !== null
                     ? coursePlaces.error ?? (coursePlaces.loading
-                        ? "선택한 장소를 조회하고 있습니다."
-                        : "선택한 장소를 찾을 수 없습니다.")
-                    : places.loading ? "장소 조회 중" : "검색 결과 없음"}
+                        ? t("선택한 장소를 조회하고 있습니다.")
+                        : t("선택한 장소를 찾을 수 없습니다."))
+                    : places.loading ? t("장소 조회 중") : t("검색 결과 없음")}
                 </div>
               )
             ) : (
@@ -712,33 +688,29 @@ function MapScreen() {
                 coursePlaces.error ||
                 conditions.error ||
                 (action.busy
-                  ? "서버에 요청 중입니다…"
-                  : `검색 결과 ${raw.length}곳 · 최대 100곳`)}{" "}
+                  ? t("서버에 요청 중입니다…")
+                  : t("현재 페이지와 선택한 장소 중 좌표가 있는 곳을 표시합니다."))}{" "}
               {session.route && !session.route.route_calculated
-                ? `경로 미계산: ${routeReasonsText(session.route.reason_codes)}`
+                ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
                 : ""}
             </p>
             {view === "course" && (
               <RouteRequestForm
-                places={raw}
+                places={raw.map((place) => ({ ...place, region: placeRegionLabel(place, "") }))}
                 defaultDate={session.planInput?.request.dates[0]}
                 disabled={action.busy || !session.planInput?.stops.length}
                 submitLabel={
                   session.route?.route_calculated
-                    ? "조건을 바꿔 다시 계산"
-                    : "선택 코스 경로 계산"
+                    ? t("조건을 바꿔 다시 계산")
+                    : t("선택 코스 경로 계산")
                 }
                 onSubmit={route}
               />
             )}
             <div className="pd-slot mp-todo">
               <div>
-                <b>편의시설 필터</b>
-                <br />
-                샤워장 · 주차 · 카페 · 반려동물 가능
-                <br />
-                시설 근거별 필터 화면 미작성
-              </div>
+                <b>{t("편의시설 필터")}</b>
+                <br />{t("샤워장 · 주차 · 카페 · 반려동물 가능")}<br />{t("시설 근거별 필터 화면 미작성")}</div>
             </div>
           </fieldset>
         </div>

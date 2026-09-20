@@ -108,6 +108,10 @@ def tourism_places(settings: Settings, client=None) -> SourceBatch:
 
 
 def place_jobs(settings: Settings) -> list[Job]:
+    from app.ingestion.gangwon import gangwon_tourism_jobs
+
+    portal = bool(settings.data_go_kr_key.get_secret_value())
+    local = getattr(settings, "tourism_collection_scope", "local") == "local"
     return [
         Job(
             "kakao_places",
@@ -119,6 +123,9 @@ def place_jobs(settings: Settings) -> list[Job]:
             "tourism_places",
             86400,
             lambda: tourism_places(settings),
-            bool(settings.data_go_kr_key.get_secret_value()),
+            portal and local,
+            disabled_reason=(
+                "COLLECTION_SCOPE_REPLACED" if portal else "KEY_NOT_CONFIGURED"
+            ),
         ),
-    ]
+    ] + gangwon_tourism_jobs(settings)

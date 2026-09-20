@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useEffect, useRef, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { RecommendDesktop } from "./RecommendDesktop";
@@ -25,6 +26,7 @@ import {
   conditionTargetInRange,
   dataStatusText,
   dateLabel,
+  placeRegionLabel,
   kstDate,
   metricText,
   timeLabel,
@@ -39,6 +41,7 @@ import {
   recommendationPlan,
   routeReasonsText,
   travelJson,
+  travelActivityLabel,
   type PlanInput,
   type RecommendationResult,
   type RouteResult,
@@ -59,11 +62,13 @@ import {
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import type { ModelTraceTurn } from "./aiApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
+import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
+import { TravelRegionSelector } from "./TravelRegionSelector";
+import { travelRegionLabel, useTravelRegionSelection } from "./travelRegion";
+import { DEFAULT_PROVINCE, type RegionCatalog } from "./waterPlaceApi";
 import "./recommendPage.css";
 
 type Step = "entry" | "taste" | "chat" | "course" | "realert";
-
-const TODAY_LABEL = dateLabel();
 
 /** 고를 수 있는 항목 · 저장된 취향은 useTastePreference 가 읽습니다. 데스크탑
  *  추천과 같은 카테고리 · 같은 저장 계약입니다.
@@ -100,6 +105,9 @@ function ExampleNote({ children }: { children: React.ReactNode }) {
 // ── 1. 진입 ────────────────────────────────────────────────
 
 function EntryStep({
+  region,
+  regionTitle,
+  onRegion,
   shortcuts,
   picked,
   canPick,
@@ -108,6 +116,9 @@ function EntryStep({
   onChat,
   onTags,
 }: {
+  region: string;
+  regionTitle: string;
+  onRegion: (region: string) => void;
   /** 서버 활동 카테고리의 앞 세 가지. 예전에는 「서핑 · 온천 · 카페」가 파일
    *  안에 박혀 있었고, 그 중 「카페」는 서버에 없는 이름이었습니다. */
   shortcuts: { id: string; label: string }[];
@@ -127,7 +138,7 @@ function EntryStep({
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title="강릉"
+          title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
@@ -136,22 +147,18 @@ function EntryStep({
               저장된 것을 그대로 말하고, 거기서 대화로 바로 이어 갑니다. */}
           <p className="pd-lbl">
             {saved
-              ? `${TODAY_LABEL} · 저장한 취향 ${savedTastes.length}개`
-              : `${TODAY_LABEL} · 오늘 조건 반영`}
+              ? t("{date} · 저장한 취향 {count}개", { date: dateLabel(), count: savedTastes.length })
+              : t("{date} · 오늘 조건 반영", { date: dateLabel() })}
           </p>
           <h1 className="rc-hero-title">
             {saved ? (
               <>
-                저장한 취향으로
-                <br />
-                바로 찾아 드릴까요?
-              </>
+                {t("저장한 취향으로")}<br />
+                {t("바로 찾아 드릴까요?")}</>
             ) : (
               <>
-                취향에 맞는 일정을
-                <br />
-                만들어 드릴까요?
-              </>
+                {t("취향에 맞는 일정을")}<br />
+                {t("만들어 드릴까요?")}</>
             )}
           </h1>
           {saved && (
@@ -159,13 +166,12 @@ function EntryStep({
               <div className="rc-hero-tastes">
                 {savedTastes.map((label) => (
                   <span className="rc-hero-taste" key={label}>
-                    {label}
+                    {t(label)}
                   </span>
                 ))}
               </div>
               <button type="button" className="rc-hero-ai" onClick={onChat}>
-                AI에게 이어서 물어보기 →
-              </button>
+                {t("AI에게 이어서 물어보기 →")}</button>
             </>
           )}
         </div>
@@ -174,9 +180,10 @@ function EntryStep({
     >
         <div className="pd-card">
           <div className="rc-card-top">
-            <div className="pd-card-title">내 취향</div>
-            <span className="pd-state-chip">선택 후 저장</span>
+            <div className="pd-card-title">{t("내 취향")}</div>
+            <span className="pd-state-chip">{t("선택 후 저장")}</span>
           </div>
+          <TravelRegionSelector region={region} onChange={onRegion} />
           <div className="rc-tags">
             {shortcuts.map((option) => (
               <button
@@ -190,56 +197,48 @@ function EntryStep({
                 disabled={!canPick(option.id)}
                 onClick={() => togglePick(option.id)}
               >
-                {option.label}
+                {t(option.label)}
                 {picked.includes(option.id) && <Icon name="check" size={11} />}
               </button>
             ))}
             <button type="button" className="rc-tag" onClick={onTags}>
-              + 더 고르기
-            </button>
+              {t("+ 더 고르기")}</button>
           </div>
           <div className="rc-facts">
             <div className="rc-fact">
-              <div className="rc-fact-name">동행</div>
-              <div className="rc-fact-value">선택 전</div>
+              <div className="rc-fact-name">{t("동행")}</div>
+              <div className="rc-fact-value">{t("선택 전")}</div>
             </div>
             <div className="rc-fact">
-              <div className="rc-fact-name">기간</div>
-              <div className="rc-fact-value">날짜 선택</div>
+              <div className="rc-fact-name">{t("기간")}</div>
+              <div className="rc-fact-value">{t("날짜 선택")}</div>
             </div>
             <div className="rc-fact">
-              <div className="rc-fact-name">이동</div>
-              <div className="rc-fact-value">자동차 기본</div>
+              <div className="rc-fact-name">{t("이동")}</div>
+              <div className="rc-fact-value">{t("자동차 기본")}</div>
             </div>
           </div>
           <p className="pd-note">
-            선택한 태그는 이번 추천에 반영합니다. 「취향 저장하고 코스 보기」를
-            누르면 저장합니다. 동행과 이동은 대화 답변으로 변경할 수 있습니다.
-          </p>
+            {t("선택한 태그는 이번 추천에 반영합니다. 「취향 저장하고 코스 보기」를 누르면 저장합니다. 동행과 이동은 대화 답변으로 변경할 수 있습니다.")}</p>
         </div>
 
         <div className="pd-card">
           <AiSuggestion
-            headline="질문 3개 · 30초"
+            headline={t("질문 3개 · 30초")}
             basis={
-              "실제 장소 카탈로그와 선택한 취향·날짜를 비교하고 확인되지 않은 환경 조건을 함께 표시합니다."
+              t("실제 장소 카탈로그와 선택한 취향·날짜를 비교하고 확인되지 않은 환경 조건을 함께 표시합니다.")
             }
           />
           <div className="pd-card-title rc-sub-title">
-            일정 추천받기
-          </div>
+            {t("일정 추천받기")}</div>
           <div className="rc-stack">
             <button type="button" className="pd-primary" onClick={onChat}>
-              대화로 추천받기 →
-            </button>
+              {t("대화로 추천받기 →")}</button>
             <button type="button" className="pd-secondary" onClick={onTags}>
-              태그로 바로 받기
-            </button>
+              {t("태그로 바로 받기")}</button>
           </div>
           <p className="pd-note">
-            추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 같은 화면에서
-            출발지와 시각을 넣은 뒤 별도로 요청합니다.
-          </p>
+            {t("추천은 장소·활동 후보를 먼저 제시합니다. 이동 경로는 같은 화면에서 출발지와 시각을 넣은 뒤 별도로 요청합니다.")}</p>
         </div>
     </AppShell>
   );
@@ -255,6 +254,8 @@ function EntryStep({
 type TastePhase = "tags" | "cards" | "summary";
 
 function TasteStep({
+  region,
+  onRegion,
   phase,
   groupIndex,
   stepNo,
@@ -282,6 +283,8 @@ function TasteStep({
   busy,
   signalError,
 }: {
+  region: string;
+  onRegion: (region: string) => void;
   phase: TastePhase;
   /** 태그 화면에서 지금 보고 있는 카테고리. */
   groupIndex: number;
@@ -328,28 +331,27 @@ function TasteStep({
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title={`STEP ${stepNo} / ${stepTotal}`}
+          title={t("STEP {current} / {total}", { current: stepNo, total: stepTotal })}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
-            ← 추천 처음으로
-          </button>
+            {t("← 추천 처음으로")}</button>
           <p className="pd-lbl rc-hero-lbl">
-            STEP {stepNo} ·{" "}
+            {t("STEP {current}", { current: stepNo })} ·{" "}
             {phase === "tags"
-              ? (group?.label ?? "태그")
+              ? t(group?.label ?? "태그")
               : phase === "cards"
-                ? "활동 카드"
-                : "요약"}
+                ? t("활동 카드")
+                : t("요약")}
           </p>
           <h1 className="rc-hero-title">
             {phase === "tags"
-              ? (group ? `${group.label}을(를) 골라 주세요` : "뭘 하고 싶으세요?")
+              ? (group ? t("{label}을(를) 골라 주세요", { label: t(group.label) }) : t("뭘 하고 싶으세요?"))
               : phase === "cards"
-                ? "이건 어떠세요?"
-                : "이렇게 정리했어요"}
+                ? t("이건 어떠세요?")
+                : t("이렇게 정리했어요")}
           </h1>
           <div className="rc-progress" aria-hidden="true">
             {Array.from({ length: stepTotal }, (_, index) => (
@@ -366,7 +368,7 @@ function TasteStep({
               {group ? (
                 <div>
                   <p className="pd-lbl rc-group-lbl">
-                    {group.label} · 최대 {group.max_selections}개
+                    {t("{label} · 최대 {count}개", { label: t(group.label), count: group.max_selections })}
                   </p>
                   <div className="rc-tags">
                     {group.options.map((option) => (
@@ -380,7 +382,7 @@ function TasteStep({
                         disabled={!canPick(option.id)}
                         onClick={() => togglePick(option.id)}
                       >
-                        {option.label}
+                        {t(option.label)}
                         {selectedIds.includes(option.id) && (
                           <Icon name="check" size={11} />
                         )}
@@ -392,28 +394,24 @@ function TasteStep({
                 <p className="pd-note" role={catalogue.error ? "alert" : "status"}>
                   {catalogue.error ??
                     (catalogue.loading
-                      ? "선택 항목을 조회하고 있습니다."
-                      : "서버가 발행한 선택 항목이 없습니다.")}
+                      ? t("선택 항목을 조회하고 있습니다.")
+                      : t("서버가 발행한 선택 항목이 없습니다."))}
                 </p>
               )}
               <ExampleNote>
-                선택 항목은 서버 키워드 카탈로그(travel-keywords.v1)에서
-                읽습니다. 고른 것은 여행 취향이며, 편의시설의 실제 지원과 안전
-                판정은 별도로 확인해야 합니다.
-              </ExampleNote>
+                {t("선택 항목은 서버 키워드 카탈로그(travel-keywords.v1)에서 읽습니다. 고른 것은 여행 취향이며, 편의시설의 실제 지원과 안전 판정은 별도로 확인해야 합니다.")}</ExampleNote>
               {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
             </div>
             <AppActions>
             <div className="rc-stack">
               <button type="button" className="pd-primary" onClick={onNext} disabled={Boolean(group && selectedIds.filter(id => group.options.some(option => option.id === id)).length > group.max_selections)}>
                 {groupIndex + 1 >= groups.length
-                  ? "다음 · 카드로 확정하기"
-                  : "다음"}
+                  ? t("다음 · 카드로 확정하기")
+                  : t("다음")}
               </button>
               {groupIndex > 0 && (
                 <button type="button" className="pd-secondary" onClick={onPrev}>
-                  이전
-                </button>
+                  {t("이전")}</button>
               )}
             </div>
             </AppActions>
@@ -423,27 +421,24 @@ function TasteStep({
         {phase === "cards" && (
           <>
             <div className="pd-card">
-              {signalError && <p className="pd-note" role="alert">{signalError}</p>}
+              {signalError && <p className="pd-note" role="alert">{t(signalError)}</p>}
               {card ? (
                 <>
                   <div className="pd-slot rc-photo-slot">
-                    활동 사진 영역
-                    <br />
-                    (에셋 미확보 · 별도 작업)
-                  </div>
+                    {t("활동 사진 영역")}<br />
+                    {t("(에셋 미확보 · 별도 작업)")}</div>
                   <div className="rc-swipe-head">
-                    <div className="rc-swipe-name">{card.label}</div>
+                    <div className="rc-swipe-name">{t(card.label)}</div>
                     <GradeChip score={null} />
                   </div>
-                  <div className="rc-stop-place">활동 취향 선택</div>
+                  <div className="rc-stop-place">{t("활동 취향 선택")}</div>
                   <p className="pd-note" role="status">
-                    태그와 좋아요를 합쳐 활동 {activityCount} / {activityGroup?.max_selections}개 선택
+                    {t("태그와 좋아요를 합쳐 활동 {count} / {limit}개 선택", { count: activityCount, limit: activityGroup?.max_selections ?? "–" })}
                     {!canPick(card.id) &&
-                      " · 최대 개수를 골랐습니다. 패스하거나 다시 고르기에서 선택을 줄여 주세요."}
+                      t(" · 최대 개수를 골랐습니다. 패스하거나 다시 고르기에서 선택을 줄여 주세요.")}
                   </p>
                   <p className="pd-note">
-                    장소 선택 전 점수 – · {grade.label} — 실제 장소와 날짜를
-                    고르면 조건 점수를 조회합니다.
+                    {t("장소 선택 전 점수 – · {grade}. 실제 장소와 날짜를 고르면 조건 점수를 조회합니다.", { grade: t(grade.label) })}
                   </p>
                   <div className="rc-swipe-actions">
                     <button
@@ -451,28 +446,25 @@ function TasteStep({
                       className="pd-secondary"
                       onClick={onPass}
                     >
-                      패스
-                    </button>
+                      {t("패스")}</button>
                     <button
                       type="button"
                       className="pd-primary"
                       onClick={onLike}
                       disabled={!canPick(card.id)}
                     >
-                      좋아요
-                    </button>
+                      {t("좋아요")}</button>
                   </div>
                   <p className="pd-note">
-                    {Math.min(cardIndex + 1, cards.length)} / {cards.length}
-                    번째 카드입니다. <StateChip kind="partial" />
+                    {t("{current} / {total}번째 카드입니다.", { current: Math.min(cardIndex + 1, cards.length), total: cards.length })} <StateChip kind="partial" />
                   </p>
                 </>
               ) : (
                 <p className="pd-note" role={catalogue.error ? "alert" : "status"}>
                   {catalogue.error ??
                     (catalogue.loading
-                      ? "활동 목록을 조회하고 있습니다."
-                      : "서버가 발행한 활동 목록이 없습니다.")}
+                      ? t("활동 목록을 조회하고 있습니다.")
+                      : t("서버가 발행한 활동 목록이 없습니다."))}
                 </p>
               )}
             </div>
@@ -482,8 +474,7 @@ function TasteStep({
                 className="pd-secondary"
                 onClick={onRestart}
               >
-                다시 고르기
-              </button>
+                {t("다시 고르기")}</button>
             </AppActions>
           </>
         )}
@@ -491,13 +482,11 @@ function TasteStep({
         {phase === "summary" && (
           <>
             <div className="pd-card">
-              <div className="pd-card-title">좋아요 한 활동</div>
+              <div className="pd-card-title">{t("좋아요 한 활동")}</div>
               <div className="rc-liked-list">
                 {liked.length === 0 ? (
                   <p className="pd-note rc-note-flush">
-                    좋아요 한 활동이 없습니다. 선택 없이도 다음으로 갈 수
-                    있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.
-                  </p>
+                    {t("좋아요 한 활동이 없습니다. 선택 없이도 다음으로 갈 수 있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.")}</p>
                 ) : (
                   liked.map((id) => (
                     <button
@@ -506,17 +495,17 @@ function TasteStep({
                       key={id}
                       onClick={() => removePick(id)}
                       disabled={busy}
-                      aria-label={`${labelOf(id)} 좋아요 선택 해제`}
+                      aria-label={t("{label} 좋아요 선택 해제", { label: t(labelOf(id)) })}
                     >
-                      {labelOf(id)} ×
+                      {t(labelOf(id))} ×
                     </button>
                   ))
                 )}
               </div>
-              <div className="pd-card-title rc-group-title">고른 항목</div>
+              <div className="pd-card-title rc-group-title">{t("고른 항목")}</div>
               <div className="rc-liked-list">
                 {picked.length === 0 ? (
-                  <p className="pd-note rc-note-flush">고른 항목이 없습니다.</p>
+                  <p className="pd-note rc-note-flush">{t("고른 항목이 없습니다.")}</p>
                 ) : (
                   picked.map((id) => (
                     <button
@@ -525,21 +514,19 @@ function TasteStep({
                       key={id}
                       onClick={() => removePick(id)}
                       disabled={busy}
-                      aria-label={`${labelOf(id)} 태그 선택 해제`}
+                      aria-label={t("{label} 태그 선택 해제", { label: t(labelOf(id)) })}
                     >
-                      {labelOf(id)} ×
+                      {t(labelOf(id))} ×
                     </button>
                   ))
                 )}
               </div>
+              <TravelRegionSelector region={region} onChange={onRegion} disabled={busy} />
               <ExampleNote>
-                고른 항목과 좋아요를 합쳐 취향에 저장하고 실제 장소를
-                추천받습니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가
-                조건을 만들어 붙이지 않습니다.
-              </ExampleNote>
+                {t("고른 항목과 좋아요를 합쳐 취향에 저장하고 실제 장소를 추천받습니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다.")}</ExampleNote>
               {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
-              {preferenceSaved && <p className="pd-note" role="status">취향을 저장했습니다.</p>}
-              {signalError && <p className="pd-note" role="alert">{signalError}</p>}
+              {preferenceSaved && <p className="pd-note" role="status">{t("취향을 저장했습니다.")}</p>}
+              {signalError && <p className="pd-note" role="alert">{t(signalError)}</p>}
             </div>
             <AppActions>
               <div className="rc-stack">
@@ -549,16 +536,14 @@ function TasteStep({
                   onClick={onDone}
                   disabled={busy || Boolean(selectionIssue)}
                 >
-                  취향 저장하고 코스 보기 →
-                </button>
+                  {t("취향 저장하고 코스 보기 →")}</button>
                 <button
                   type="button"
                   className="pd-secondary"
                   onClick={onRestart}
                   disabled={busy}
                 >
-                  다시 고르기
-                </button>
+                  {t("다시 고르기")}</button>
               </div>
             </AppActions>
           </>
@@ -570,6 +555,9 @@ function TasteStep({
 // ── 3. B3 대화형 컨시어지 ──────────────────────────────────
 
 function ChatStep({
+  region,
+  regionTitle,
+  onRegion,
   bubbles,
   draft,
   setDraft,
@@ -580,6 +568,9 @@ function ChatStep({
   onReset,
   onBack,
 }: {
+  region: string;
+  regionTitle: string;
+  onRegion: (region: string) => void;
   bubbles: Bubble[];
   draft: string;
   setDraft: (value: string) => void;
@@ -596,7 +587,7 @@ function ChatStep({
   // 아니라 설문이었습니다. 이제 여는 말 한 줄만 두고 나머지는 서버에 맡깁니다
   // (데스크탑 추천과 같은 방식). 빠른 답 칩은 실제로 서버가 실행할 수 있는
   // 문장들입니다.
-  const quick = FOLLOWUPS;
+  const quick = FOLLOWUPS.map((reply) => t(reply));
   const pickReply = (reply: string) => setDraft(reply);
   const session = useTravelSession();
   const [traceOpen, setTraceOpen] = useState(false);
@@ -611,9 +602,9 @@ function ChatStep({
     ),
   );
   const bars = [
-    { name: "파고", value: metricText(conditions.data, "wave_height") },
-    { name: "수온", value: metricText(conditions.data, "water_temperature") },
-    { name: "수질", value: "–" },
+    { name: t("파고"), value: metricText(conditions.data, "wave_height") },
+    { name: t("수온"), value: metricText(conditions.data, "water_temperature") },
+    { name: t("수질"), value: "–" },
   ];
   return (
     <AppShell
@@ -621,7 +612,7 @@ function ChatStep({
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title="강릉"
+          title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
@@ -630,19 +621,18 @@ function ChatStep({
             <Icon name="sparkle" size={21} />
           </span>
           <div>
-            <div className="rc-bot-name">퐁당 컨시어지</div>
+            <div className="rc-bot-name">{t("퐁당 컨시어지")}</div>
             <div className="rc-bot-sub">
-              대화 {asked}턴
+              {t("대화 {count}턴", { count: asked })}
               {session.recommendation?.recommendations.length
-                ? ` · 후보 ${session.recommendation.recommendations.length}곳`
+                ? t(" · 후보 {count}곳", { count: session.recommendation.recommendations.length })
                 : ""}
             </div>
           </div>
         </div>
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
-            ← 추천 처음으로
-          </button>
+            {t("← 추천 처음으로")}</button>
         </div>
         </header>
       }
@@ -666,7 +656,7 @@ function ChatStep({
           ))}
           {busy && (
             <div className="rc-bubble-row">
-              <div className="rc-bubble">답변을 조회하고 있습니다…</div>
+              <div className="rc-bubble">{t("답변을 조회하고 있습니다…")}</div>
             </div>
           )}
         </div>
@@ -696,6 +686,7 @@ function ChatStep({
           ))}
         </div>
 
+        <TravelRegionSelector region={region} onChange={onRegion} disabled={busy} />
         <form
           className="rc-compose"
           onSubmit={(event) => {
@@ -708,8 +699,8 @@ function ChatStep({
             type="text"
             value={draft}
             maxLength={2000}
-            aria-label="컨시어지에게 보낼 내용"
-            placeholder="원하는 조건을 적어 주세요"
+            aria-label={t("컨시어지에게 보낼 내용")}
+            placeholder={t("원하는 조건을 적어 주세요")}
             onChange={(event) => setDraft(event.target.value)}
           />
           <button
@@ -717,8 +708,7 @@ function ChatStep({
             className="rc-compose-send"
             disabled={busy || !draft.trim()}
           >
-            보내기
-          </button>
+            {t("보내기")}</button>
         </form>
 
         {session.recommendation?.recommendations.length ? (
@@ -726,8 +716,8 @@ function ChatStep({
              합니다. 문장은 서버가 구조화 결과로 만든 것입니다. */
           <div className="pd-card">
             <AiSuggestion
-              headline="답변에 사용한 근거"
-              basis={`후보 ${session.recommendation.recommendations.length}곳 · 조회 ${timeLabel(session.recommendation.queried_at)} KST · ${session.recommendation.request.preferred_tags.join(" · ") || "선택 취향 없음"}`}
+              headline={t("답변에 사용한 근거")}
+              basis={t("후보 {count}곳 · 조회 {time} KST · {preferences}", { count: session.recommendation.recommendations.length, time: timeLabel(session.recommendation.queried_at), preferences: session.recommendation.request.preferred_tags.map((tag) => t(tag)).join(" · ") || t("선택 취향 없음") })}
             />
             {bars.map((bar) => (
               <div className="rc-basis-row" key={bar.name}>
@@ -743,17 +733,12 @@ function ChatStep({
               </div>
             ))}
             <p className="pd-note">
-              첫 후보의 선택 날짜 정오 예보입니다. {conditions.error} 추천
-              순서는 취향 일치 기준이며 안전 점수가 아닙니다. 답변 문장은 서버가
-              조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.
-            </p>
+              {t("첫 후보의 선택 날짜 정오 예보입니다. ")}{conditions.error} {t(" 추천 순서는 취향 일치 기준이며 안전 점수가 아닙니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.")}</p>
             <ConditionScoreDetails data={conditions.data} className="pd-note" />
           </div>
         ) : (
           <ExampleNote>
-            대화 답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면
-            미확인으로 표시합니다.
-          </ExampleNote>
+            {t("대화 답변으로 실제 장소와 활동을 조회합니다. 환경 근거가 없으면 미확인으로 표시합니다.")}</ExampleNote>
         )}
 
         {session.route && <RoutePanel route={session.route} />}
@@ -768,8 +753,8 @@ function ChatStep({
             disabled={busy}
             submitLabel={
               session.route?.route_calculated
-                ? "조건을 바꿔 다시 계산"
-                : "이 후보로 경로 계산"
+                ? t("조건을 바꿔 다시 계산")
+                : t("이 후보로 경로 계산")
             }
             onSubmit={onRoute}
           />
@@ -781,8 +766,7 @@ function ChatStep({
             onClick={onReset}
             disabled={busy}
           >
-            처음부터
-          </button>
+            {t("처음부터")}</button>
         </div>
     </AppShell>
   );
@@ -824,7 +808,7 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
           <span className="rc-basis-chip">{stop.basisChip}</span>
           <StateChip kind={conditions.data?.condition_score?.status === "evaluated" ? "live" : "partial"} />
         </div>
-        <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} KST 예보 · {targetValid ? conditions.error : "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다."}</p>
+        <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} {t(" KST 예보 · ")}{targetValid ? conditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.")}</p>
         <ConditionScoreDetails data={conditions.data} className="pd-note" />
       </div>
     </div>
@@ -837,11 +821,11 @@ function RoutePanel({ route }: { route: RouteResult }) {
   if (!route.route_calculated || !route.route)
     return (
       <div className="pd-card">
-        <div className="pd-card-title">경로를 계산하지 못했습니다</div>
+        <div className="pd-card-title">{t("경로를 계산하지 못했습니다")}</div>
         <p className="pd-note rc-note-flush">
           <StateChip kind="no_data" />{" "}
           {routeReasonsText(route.reason_codes) ||
-            "경로 계산 조건을 확인해 주세요."}
+            t("경로 계산 조건을 확인해 주세요.")}
         </p>
       </div>
     );
@@ -850,7 +834,7 @@ function RoutePanel({ route }: { route: RouteResult }) {
   return (
     <div className="pd-card">
       <div className="rc-card-top">
-        <div className="pd-card-title">계산한 방문 순서</div>
+        <div className="pd-card-title">{t("계산한 방문 순서")}</div>
         <StateChip kind="live" />
       </div>
       <div className="rc-route-rows">
@@ -865,11 +849,10 @@ function RoutePanel({ route }: { route: RouteResult }) {
               <div className="rc-route-body">
                 <div className="rc-route-name">{item.name}</div>
                 <div className="rc-route-when">
-                  {timeLabel(item.arrival_at)} 도착 ·{" "}
-                  {timeLabel(item.departure_at)} 출발 ·{" "}
+                  {t("{arrival} 도착 · {departure} 출발", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at) })} ·{" "}
                   {legs[index]
-                    ? `${legs[index].duration_minutes}분 이동`
-                    : "이동시간 –"}
+                    ? t("{minutes}분 이동", { minutes: legs[index].duration_minutes })
+                    : t("이동시간 –")}
                 </div>
               </div>
               {leg ? (
@@ -879,10 +862,9 @@ function RoutePanel({ route }: { route: RouteResult }) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  이 구간 길찾기
-                </a>
+                  {t("이 구간 길찾기")}</a>
               ) : (
-                <span className="rc-route-leg">좌표 –</span>
+                <span className="rc-route-leg">{t("좌표 –")}</span>
               )}
             </div>
           );
@@ -890,32 +872,31 @@ function RoutePanel({ route }: { route: RouteResult }) {
       </div>
       <div className="rc-facts">
         <div className="rc-fact">
-          <div className="rc-fact-name">이동 합</div>
-          <div className="rc-fact-value">{travel_minutes}분</div>
+          <div className="rc-fact-name">{t("이동 합")}</div>
+          <div className="rc-fact-value">{t("{count}분", { count: travel_minutes })}</div>
         </div>
         <div className="rc-fact">
-          <div className="rc-fact-name">예상 귀가</div>
+          <div className="rc-fact-name">{t("예상 귀가")}</div>
           <div className="rc-fact-value">{timeLabel(return_at)}</div>
         </div>
         <div className="rc-fact">
-          <div className="rc-fact-name">출발</div>
+          <div className="rc-fact-name">{t("출발")}</div>
           <div className="rc-fact-value">
-            {route.route.origin?.label ?? "출발지"}
+            {route.route.origin?.label ?? t("출발지")}
           </div>
         </div>
       </div>
       <p className="pd-note">
-        출발 기준 교통 자료로 계산한 예상 시각입니다.{" "}
+        {t("출발 기준 교통 자료로 계산한 예상 시각입니다.")}{" "}
         {route.optimality === "provisional_missing_comparison_evidence"
-          ? "일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다."
-          : "선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다."}{" "}
+          ? t("일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다.")
+          : t("선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다.")}{" "}
         {routeReasonsText(route.reason_codes)}
       </p>
       <div className="rc-stack">
         <a className="pd-secondary" href="#map?view=course">
           <Icon name="course" size={16} />
-          지도에서 경로 보기 →
-        </a>
+          {t("지도에서 경로 보기 →")}</a>
         {wholeTrip ? (
           <a
             className="pd-secondary"
@@ -924,13 +905,10 @@ function RoutePanel({ route }: { route: RouteResult }) {
             rel="noopener noreferrer"
           >
             <Icon name="transit" size={16} />
-            카카오맵에서 순서대로 길찾기 →
-          </a>
+            {t("카카오맵에서 순서대로 길찾기 →")}</a>
         ) : (
           <p className="pd-note rc-note-flush">
-            출발지나 일부 장소의 좌표가 없어 카카오맵 순차 길찾기를 만들지
-            못했습니다. 구간별 링크를 확인해 주세요.
-          </p>
+            {t("출발지나 일부 장소의 좌표가 없어 카카오맵 순차 길찾기를 만들지 못했습니다. 구간별 링크를 확인해 주세요.")}</p>
         )}
       </div>
     </div>
@@ -938,6 +916,7 @@ function RoutePanel({ route }: { route: RouteResult }) {
 }
 
 function CourseStep({
+  regionTitle,
   dayIndex,
   setDayIndex,
   saved,
@@ -951,6 +930,7 @@ function CourseStep({
   statusText,
   preferenceSaved,
 }: {
+  regionTitle: string;
   dayIndex: number;
   setDayIndex: (index: number) => void;
   saved: boolean;
@@ -987,20 +967,20 @@ function CourseStep({
         name: item.name,
         icon: "pin" as IconName,
         place: placeRoleLabel(item.role),
-        basis: unknownConditionsText(item.unknown_conditions) || "선택한 실제 장소",
-        basisChip: "저장 일정",
+        basis: unknownConditionsText(item.unknown_conditions) || t("선택한 실제 장소"),
+        basisChip: t("저장 일정"),
       })))
     : (session.recommendation?.recommendations ?? []).map((item) => ({
         spotId: item.spot_id,
         at: selectedAt,
-        time: `후보 ${item.rank}`,
+        time: t("후보 {count}", { count: item.rank }),
         name: item.name,
         icon: "pin" as IconName,
-        place: `${item.region ?? "지역 미확인"} · ${item.activities.map((activity) => activity.label).join(" · ") || "활동 미확인"}`,
-        basis: `${item.reason} 미확인: ${unknownConditionsText(item.unknown_conditions) || "없음"}`,
+        place: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
+        basis: t("{reason} 미확인: {conditions}", { reason: item.reason, conditions: unknownConditionsText(item.unknown_conditions) || t("없음") }),
         basisChip:
-          item.matched_preferences.map((p) => p.tag).join(" · ") ||
-          "카탈로그 후보",
+          item.matched_preferences.map((p) => t(p.tag)).join(" · ") ||
+          t("카탈로그 후보"),
       }));
   const hasForecast = stops.length > 0;
 
@@ -1010,20 +990,19 @@ function CourseStep({
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title="강릉"
+          title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
-            ← 추천 처음으로
-          </button>
+            {t("← 추천 처음으로")}</button>
           <div className="rc-hero-row">
             <div>
               <p className="pd-lbl">
                 {session.plan?.request.dates.join(" · ") ?? day.dateLabel}
               </p>
-              <h1 className="rc-hero-title">선택한 물 코스</h1>
+              <h1 className="rc-hero-title">{t("선택한 물 코스")}</h1>
             </div>
             <div className="rc-hero-score">
               <div className="pd-num rc-hero-score-num">
@@ -1032,7 +1011,7 @@ function CourseStep({
               <GradeChip score={firstScore} glass bare />
             </div>
           </div>
-          <div className="rc-days" role="group" aria-label="날짜 선택">
+          <div className="rc-days" role="group" aria-label={t("날짜 선택")}>
             {days.map((item, index) => (
               <button
                 type="button"
@@ -1041,11 +1020,9 @@ function CourseStep({
                   "rc-day" + (index === dayIndex ? " is-selected" : "")
                 }
                 aria-pressed={index === dayIndex}
-                aria-label={`${item.name} · ${
-                  item.score === null
-                    ? "평가값 없음"
-                    : `${item.score}점 ${gradeOf(item.score).label}`
-                }`}
+                aria-label={t("{day} · {score}", { day: item.name, score: item.score === null
+                    ? t("평가값 없음")
+                    : t("{count}점 {label}", { count: item.score, label: t(gradeOf(item.score).label) }) })}
                 onClick={() => setDayIndex(index)}
               >
                 <div className="rc-day-score">
@@ -1056,16 +1033,14 @@ function CourseStep({
             ))}
           </div>
           <p className="rc-hero-note">
-            상단과 날짜별 점수는 첫 장소 {stops[0]?.name ?? "선택 전"}의 활동 조건 참고값입니다.
-            날짜별 막대는 정오 예보이며, 장소별 점수는 각 일정 시각을 사용합니다.
-            날짜를 바꾸면 해당 날짜의 장소·활동 후보를 새로 조회합니다.{" "}
+            {t("상단과 날짜별 점수는 첫 장소 {name}의 활동 조건 참고값입니다. 날짜별 막대는 정오 예보이며, 장소별 점수는 각 일정 시각을 사용합니다. 날짜를 바꾸면 해당 날짜의 장소·활동 후보를 새로 조회합니다.", { name: stops[0]?.name ?? t("선택 전") })}{" "}
             {conditionScoreText(firstConditions.data)} {firstConditions.error}
           </p>
         </div>
         </header>
       }
     >
-        {preferenceSaved && <p className="pd-note" role="status">취향을 저장했습니다.</p>}
+        {preferenceSaved && <p className="pd-note" role="status">{t("취향을 저장했습니다.")}</p>}
         {!hasForecast ? (
           /* 예보가 없는 날에는 코스를 만들지 않습니다. 없는 근거로 일정을
              지어내지 않고 빈 상태만 보여주며, 공유 · 저장 · 대안 행은
@@ -1075,19 +1050,18 @@ function CourseStep({
               <span className="rc-empty-icon">
                 <GradeIcon gradeKey="unscored" size={28} />
               </span>
-              <div className="rc-empty-title">추천 장소가 없습니다</div>
+              <div className="rc-empty-title">{t("추천 장소가 없습니다")}</div>
               <p className="pd-note" role="status">
                 <StateChip kind="no_data" />{" "}
                 {statusText ||
-                  "선택한 조건에 맞는 후보가 없습니다. 취향이나 날짜를 바꿔 다시 조회해 주세요."}
+                  t("선택한 조건에 맞는 후보가 없습니다. 취향이나 날짜를 바꿔 다시 조회해 주세요.")}
               </p>
               <button
                 type="button"
                 className="pd-secondary rc-empty-cta"
                 onClick={() => setDayIndex(0)}
               >
-                오늘 다시 조회 →
-              </button>
+                {t("오늘 다시 조회 →")}</button>
             </div>
           </>
         ) : (
@@ -1097,12 +1071,8 @@ function CourseStep({
                 session.plan?.request.preferred_tags ??
                 session.recommendation?.request.preferred_tags ??
                 []
-              ).join(" · ") || "선택 취향 없음"}{" "}
-              · {stops.length}곳. 조회{" "}
-              {timeLabel(
-                session.plan?.queried_at ?? session.recommendation?.queried_at,
-              )}{" "}
-              KST. 환경 미확인 조건은 각 후보에서 확인하세요.
+              ).map((tag) => t(tag)).join(" · ") || t("선택 취향 없음")}{" "}
+              {t("· {count}곳. 조회 {time} KST. 환경 미확인 조건은 각 후보에서 확인하세요.", { count: stops.length, time: timeLabel(session.plan?.queried_at ?? session.recommendation?.queried_at) })}
             </p>
 
             <div className="pd-card rc-timeline">
@@ -1118,23 +1088,19 @@ function CourseStep({
                 defaultDate={day.id}
                 disabled={busy}
                 submitLabel={
-                  session.route ? "조건을 바꿔 다시 계산" : "이 후보로 경로 계산"
+                  session.route ? t("조건을 바꿔 다시 계산") : t("이 후보로 경로 계산")
                 }
                 onSubmit={onRoute}
               />
             )}
 
             <div className="pd-card">
-              <div className="pd-card-title">조건이 바뀌면 어떻게 하나요?</div>
+              <div className="pd-card-title">{t("조건이 바뀌면 어떻게 하나요?")}</div>
               <p className="pd-note">
-                다시 조회할 때 최신 환경 근거와 같은 취향을 비교합니다. 장소
-                추천은 안전 판정이 아니며, 새 후보는 확인 후 적용합니다.
-              </p>
+                {t("다시 조회할 때 최신 환경 근거와 같은 취향을 비교합니다. 장소 추천은 안전 판정이 아니며, 새 후보는 확인 후 적용합니다.")}</p>
               {altOpen && (
                 <p className="pd-note">
-                  새 후보를 조회해도 기존 저장 코스는 유지됩니다. 대안 적용 시
-                  서버가 최신 제한과 일정 충돌을 다시 확인합니다.
-                </p>
+                  {t("새 후보를 조회해도 기존 저장 코스는 유지됩니다. 대안 적용 시 서버가 최신 제한과 일정 충돌을 다시 확인합니다.")}</p>
               )}
               <div className="rc-stack">
                 <button
@@ -1143,7 +1109,7 @@ function CourseStep({
                   onClick={() => setAltOpen(!altOpen)}
                   aria-expanded={altOpen}
                 >
-                  {altOpen ? "대안 규칙 닫기" : "대안 규칙 보기 →"}
+                  {altOpen ? t("대안 규칙 닫기") : t("대안 규칙 보기 →")}
                 </button>
                 <button
                   type="button"
@@ -1151,8 +1117,7 @@ function CourseStep({
                   onClick={onRealert}
                   disabled={busy}
                 >
-                  최신 조건으로 대안 조회 →
-                </button>
+                  {t("최신 조건으로 대안 조회 →")}</button>
               </div>
             </div>
 
@@ -1162,8 +1127,7 @@ function CourseStep({
                 href={`#map?view=course${session.plan?.plan_id ? `&plan_id=${session.plan.plan_id}` : ""}`}
               >
                 <Icon name="course" size={16} />
-                지도에서 보기
-              </a>
+                {t("지도에서 보기")}</a>
               <button
                 type="button"
                 className={"pd-primary" + (saved ? " is-done" : "")}
@@ -1171,14 +1135,14 @@ function CourseStep({
                 disabled={busy || saved}
               >
                 <Icon name="save" size={16} />
-                {saved ? "저장됨" : "내 코스에 저장"}
+                {saved ? t("저장됨") : t("내 코스에 저장")}
               </button>
             </div>
             <p className="pd-note rc-note-flush-top" role="status">
               <StateChip kind="live" /> {statusText}{" "}
               {session.route?.route_calculated
-                ? "위 방문 순서는 아래 경로 계산 결과입니다."
-                : "장소 후보 순서는 이동 경로가 아닙니다. 아래에서 출발지와 시각을 넣어 경로를 계산하세요."}
+                ? t("위 방문 순서는 아래 경로 계산 결과입니다.")
+                : t("장소 후보 순서는 이동 경로가 아닙니다. 아래에서 출발지와 시각을 넣어 경로를 계산하세요.")}
             </p>
           </>
         )}
@@ -1189,11 +1153,13 @@ function CourseStep({
 // ── 5. B4 조건 변화 재추천 ────────────────────────────────
 
 function RealertStep({
+  regionTitle,
   proposal,
   onApply,
   onBack,
   busy,
 }: {
+  regionTitle: string;
   proposal: RecommendationResult | null;
   onApply: () => void;
   onBack: () => void;
@@ -1220,32 +1186,29 @@ function RealertStep({
     session.recommendation?.recommendations
       .map((item) => item.name)
       .join(" · ") ||
-    "기존 후보 없음";
+    t("기존 후보 없음");
   return (
     <AppShell
       tab="recommend"
       hero={
         <header className="pd-hero rc-hero">
         <AppHeader
-          title="강릉"
+          title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
-            ← 코스로 돌아가기
-          </button>
+            {t("← 코스로 돌아가기")}</button>
           <p className="pd-lbl rc-hero-lbl">
-            최신 조건 조회 · {timeLabel(proposal?.queried_at)}
+            {t("최신 조건 조회 · ")}{timeLabel(proposal?.queried_at)}
           </p>
           <h1 className="rc-hero-title">
-            새 후보를
-            <br />
-            확인하세요
-          </h1>
+            {t("새 후보를")}<br />
+            {t("확인하세요")}</h1>
           <div className="rc-change">
             <span className="rc-change-metric">
-              {proposal ? dataStatusText(proposal.status) : "조회 중"}
+              {proposal ? dataStatusText(proposal.status) : t("조회 중")}
             </span>
             <span className="rc-change-scores">
               <span className="rc-change-from">{previousScore ?? "–"}</span>
@@ -1255,9 +1218,7 @@ function RealertStep({
             </span>
           </div>
           <p className="rc-hero-note">
-            각 코스 첫 장소의 활동 조건 참고값입니다. 직접 요청한 최신 추천이며,
-            확보한 분야가 다르면 점수를 직접 비교할 수 없습니다.
-          </p>
+            {t("각 코스 첫 장소의 활동 조건 참고값입니다. 직접 요청한 최신 추천이며, 확보한 분야가 다르면 점수를 직접 비교할 수 없습니다.")}</p>
         </div>
         </header>
       }
@@ -1265,22 +1226,22 @@ function RealertStep({
         <div className="pd-card rc-alert">
           <div className="rc-alert-head">
             <Icon name="warning" size={15} />
-            <span>일정 대안 확인</span>
+            <span>{t("일정 대안 확인")}</span>
           </div>
           <div className="rc-swap">
             <div className="rc-swap-col">
-              <div className="rc-swap-when">기존</div>
+              <div className="rc-swap-when">{t("기존")}</div>
               <div className="rc-swap-what">{previous}</div>
               <GradeChip score={previousScore} />
               <p className="pd-note">{conditionScoreText(previousConditions.data)} {previousConditions.error}</p>
             </div>
             <span aria-hidden="true">→</span>
             <div className="rc-swap-col">
-              <div className="rc-swap-when">대안</div>
+              <div className="rc-swap-when">{t("대안")}</div>
               <div className="rc-swap-what">
                 {proposal?.recommendations
                   .map((item) => item.name)
-                  .join(" · ") || "새 후보 없음"}
+                  .join(" · ") || t("새 후보 없음")}
               </div>
               <GradeChip score={nextScore} />
               <p className="pd-note">{conditionScoreText(nextConditions.data)} {nextConditions.error}</p>
@@ -1292,16 +1253,14 @@ function RealertStep({
           </p>
           <div className="rc-actions">
             <button type="button" className="pd-secondary" onClick={onBack} disabled={busy}>
-              그대로 두기
-            </button>
+              {t("그대로 두기")}</button>
             <button
               type="button"
               className="pd-primary"
               onClick={onApply}
               disabled={busy || !proposal?.recommendations.length}
             >
-              대안으로 바꾸기
-            </button>
+              {t("대안으로 바꾸기")}</button>
           </div>
         </div>
     </AppShell>
@@ -1311,7 +1270,11 @@ function RealertStep({
 // ── 화면 ───────────────────────────────────────────────────
 
 function RecommendScreen() {
+  const { locale } = useTravelLanguage();
   const session = useTravelSession();
+  const regions = useResource<RegionCatalog>("regions");
+  const [selectedRegion, setSelectedRegion] = useTravelRegionSelection();
+  const region = selectedRegion ?? session.plan?.request.region ?? session.recommendation?.request.region ?? DEFAULT_PROVINCE;
   const [step, setStep] = useState<Step>(() =>
     session.plan ||
     new URLSearchParams(window.location.hash.split("?")[1]).has("plan_id")
@@ -1369,7 +1332,7 @@ function RecommendScreen() {
     selectionCount(group.id) > group.max_selections,
   );
   const selectionIssue = overLimit
-    ? `${overLimit.label}은 최대 ${overLimit.max_selections}개까지 고를 수 있습니다. 선택한 항목을 눌러 줄여 주세요.`
+    ? t("{label}은 최대 {count}개까지 고를 수 있습니다. 선택한 항목을 눌러 줄여 주세요.", { label: t(overLimit.label), count: overLimit.max_selections })
     : "";
   const removePick = (id: string) => {
     setTags(picked.filter((value) => value !== id));
@@ -1428,9 +1391,9 @@ function RecommendScreen() {
     const chosen = keyword_selection.find(
       (selection) => selection.category === CARD_CATEGORY,
     )?.values as Activity[] | undefined;
-    return {
+    return requestInLanguage({
       dates: [days[index].id],
-      region: "강릉",
+      region,
       place_role: "visit",
       // 저장된 취향과 화면 표기가 같은 이름을 쓰도록 라벨로 싣습니다. 조건은
       // keyword_selection 이 전합니다(서버가 옵션의 tag 를 스스로 붙입니다).
@@ -1439,23 +1402,30 @@ function RecommendScreen() {
       keyword_selection,
       transport: "driving",
       day_trip: true,
-    };
+    }, locale);
   };
-  const { bubbles, draft, setDraft, publish, send, requestRoute, reset, lastTrace } =
+  const { bubbles, draft, setDraft, publish, send, requestRoute, reset, lastTrace, chatRequest, changeRegion } =
     useTravelConcierge({
       opener: OPENER,
       baseRequest: () => requestFor(dayIndex),
       action,
     });
+  const currentRegion = (step === "course" ? session.plan?.request.region ?? session.recommendation?.request.region
+    : step === "realert" ? proposal?.request.region : chatRequest?.region) ?? region;
+  const regionTitle = travelRegionLabel(step === "entry" || step === "taste" ? region : currentRegion, regions.data);
+  const onRegion = (next: string) => {
+    setSelectedRegion(next);
+    changeRegion(next);
+  };
   const recommend = (index = dayIndex, savePreference = false) =>
     void action.run(async (signal) => {
       const baseRequest =
         step === "course"
           ? (session.plan?.request ?? session.recommendation?.request)
           : null;
-      const request = baseRequest
+      const request = requestInLanguage(baseRequest
         ? { ...baseRequest, dates: [days[index].id], day_trip: true }
-        : requestFor(index);
+        : requestFor(index), locale);
       if (savePreference) {
         await saveTaste(request.preferred_tags, signal);
         if (signal.aborted) return;
@@ -1529,10 +1499,10 @@ function RecommendScreen() {
         "travel/recommendations",
         "POST",
         {
-          request:
+          request: requestInLanguage(
             session.plan?.request ??
             session.recommendation?.request ??
-            requestFor(),
+            requestFor(), locale),
           limit: 5,
         },
         signal,
@@ -1569,6 +1539,7 @@ function RecommendScreen() {
     });
   const goEntry = () => {
     if (action.busy) return;
+    setSelectedRegion(currentRegion);
     window.history.replaceState(null, "", "#recommend");
     setStep("entry");
     restartTaste();
@@ -1595,15 +1566,18 @@ function RecommendScreen() {
     action.error ||
     requestedPlan.error ||
     (action.busy
-      ? "서버에 요청 중입니다…"
+      ? t("서버에 요청 중입니다…")
       : session.plan
-        ? `서버 저장 확인 · ${session.plan.status}`
+        ? t("서버 저장 확인 · {status}", { status: dataStatusText(session.plan.status) })
         : (session.recommendation?.clarification ??
           dataStatusText(session.recommendation?.status)));
   return (
     <article className="recommend-page" aria-busy={action.busy}>
           {step === "entry" && (
             <EntryStep
+              region={region}
+              regionTitle={regionTitle}
+              onRegion={onRegion}
               shortcuts={cards.slice(0, 3)}
               picked={selectedIds}
               canPick={canPick}
@@ -1618,6 +1592,8 @@ function RecommendScreen() {
           )}
           {step === "taste" && (
             <TasteStep
+              region={region}
+              onRegion={onRegion}
               phase={tastePhase}
               groupIndex={groupIndex}
               stepNo={tasteStepNo}
@@ -1643,11 +1619,14 @@ function RecommendScreen() {
               onBack={goEntry}
               preferenceSaved={preferenceSaved}
               busy={action.busy}
-              signalError={signalError}
+              signalError={t(signalError)}
             />
           )}
           {step === "chat" && (
             <ChatStep
+              region={currentRegion}
+              regionTitle={regionTitle}
+              onRegion={onRegion}
               bubbles={bubbles}
               draft={draft}
               setDraft={setDraft}
@@ -1655,13 +1634,14 @@ function RecommendScreen() {
               lastTrace={lastTrace}
               onSend={send}
               onRoute={requestRoute}
-              onReset={reset}
+              onReset={() => { setSelectedRegion(currentRegion); reset(); }}
               onBack={goEntry}
             />
           )}
           {step === "course" &&
             (!planId || (!requestedPlan.loading && !requestedPlan.error)) && (
               <CourseStep
+                regionTitle={regionTitle}
                 dayIndex={dayIndex}
                 setDayIndex={(index) => recommend(index)}
                 saved={Boolean(session.plan?.plan_id)}
@@ -1678,6 +1658,7 @@ function RecommendScreen() {
             )}
           {step === "realert" && (
             <RealertStep
+              regionTitle={regionTitle}
               proposal={proposal}
               onApply={apply}
               onBack={() => setStep("course")}
@@ -1695,7 +1676,7 @@ function RecommendScreen() {
           >
             {status ||
               (requestedPlan.loading
-                ? "저장 상세를 불러오는 중입니다."
+                ? t("저장 상세를 불러오는 중입니다.")
                 : profileError)}
           </p>
         )}

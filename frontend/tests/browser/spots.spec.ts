@@ -9,13 +9,13 @@ test("the spots list shows real places and never the invented total", async ({ p
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("#spots");
 
-  const response = await page.request.get("api/data/livecams/preview/places?q=");
-  const places = await response.json();
+  const response = await page.request.get("api/data/places?province=gangwon&page_size=100");
+  const { rows: places, total } = await response.json();
   expect(Array.isArray(places)).toBe(true);
 
-  await expect(page.locator(".sp-hero-title")).toContainText("강릉 명소");
+  await expect(page.locator(".sp-hero-title")).toContainText("강원도 명소");
   // 예전에는 목록이 5건인데 히어로가 «128곳» 이라고 적었습니다.
-  await expect(page.locator(".sp-hero-sub")).toContainText(String(places.length));
+  await expect(page.locator(".sp-hero-sub")).toContainText(String(total));
   await expect(page.locator(".sp-hero-sub")).not.toContainText("128");
   await expect(page.locator(".sp-row")).toHaveCount(places.length);
   if (places.length)
@@ -57,8 +57,8 @@ test("a spot's score is fetched on the detail page and is – rather than 0 when
 
 test("the spots map pins only verified coordinates and scores only the chosen pin", async ({ page }) => {
   await page.goto("#spots?view=map");
-  const response = await page.request.get("api/data/livecams/preview/places?q=");
-  const places: { lat: number | null; lng: number | null }[] = await response.json();
+  const response = await page.request.get("api/data/places?province=gangwon&page_size=100");
+  const { rows: places }: { rows: { lat: number | null; lng: number | null }[] } = await response.json();
   const mappable = places.filter((place) => place.lat !== null && place.lng !== null);
 
   await expect(page.locator(".sp-sheet-head")).toContainText(`${mappable.length}곳`);

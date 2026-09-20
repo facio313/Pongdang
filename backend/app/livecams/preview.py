@@ -17,8 +17,9 @@ from starlette.concurrency import run_in_threadpool
 
 from app.data_reader import DataReader
 from app.ingestion.webcams import WebcamMetadata
-from app.livecams.places import PLACE_SELECT
+from app.livecams.places import PLACE_SELECT, PreviewPlace
 from app.livecams.windy import WindyClient, WindyError, discover, distance_km, normalize
+from app.regions import place_search_predicate
 
 Category = Literal["beach", "coast", "port", "lake", "river"]
 WATER_CATEGORIES = ("beach", "coast", "port", "lake", "river")
@@ -47,16 +48,6 @@ class PreviewRequest(BaseModel):
         ):
             raise ValueError("Place queries do not support catalog options")
         return self
-
-
-class PreviewPlace(BaseModel):
-    id: int
-    name: str
-    place_kind: Literal["beach", "valley"]
-    address: str | None
-    region: str | None
-    lat: float | None
-    lng: float | None
 
 
 class NearbyPlace(BaseModel):
@@ -100,15 +91,15 @@ class PreviewResult(PreviewSnapshot):
 
 
 async def read_preview_places(reader, *, q="", spot_id=None):
+    search, params = place_search_predicate(q, alias="p")
     async with reader.connection() as c:
         return await (
             await c.execute(
                 f"SELECT id,name,place_kind,address,region,lat,lng FROM "
                 f"({PLACE_SELECT}) p WHERE place_kind IS NOT NULL "
                 "AND (%s::bigint IS NULL OR id=%s) "
-                "AND concat_ws(' ',name,address,region) ILIKE %s "
-                "ORDER BY id LIMIT 100",
-                [spot_id, spot_id, f"%{q}%"],
+                "AND " + search + " ORDER BY id LIMIT 100",
+                [spot_id, spot_id, *params],
             )
         ).fetchall()
 
@@ -291,7 +282,12 @@ def create_preview_router(
     reader = DataReader(settings)
 
     @router.get("/places", response_model=list[PreviewPlace])
-    async def places(q: str = Query("", max_length=100)):
+    async def places(
+        q: str = Query("", max_length=100),
+        spot_id: int | None = Query(None, ge=1, le=9223372036854775807),
+    ):
+        if spot_id is not None:
+            return await read_places(reader, q=q, spot_id=spot_id)
         return await read_places(reader, q=q)
 
     @router.post("", response_model=PreviewResult)

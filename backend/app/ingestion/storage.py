@@ -1,6 +1,7 @@
 """Atomic storage of real provider records, with immutable observation revisions."""
 
 import hashlib
+from contextlib import nullcontext
 from datetime import UTC, datetime
 
 from app.config import Settings
@@ -12,10 +13,12 @@ def digest(record):
     return hashlib.sha256(record.model_dump_json().encode()).hexdigest()
 
 
-def store_batch(settings: Settings, batch: SourceBatch) -> int:
+def store_batch(settings: Settings, batch: SourceBatch, *, connection=None) -> int:
     batch = SourceBatch.model_validate(batch.model_dump())
     inserted = 0
-    with connect(settings) as c:
+    # A scoped collector commits its page cursor together with the records.
+    # Caller-owned connections retain commit/rollback ownership.
+    with connect(settings) if connection is None else nullcontext(connection) as c:
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
         stations = {}
 

@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useEffect, useMemo, useState } from "react";
 import { travelJson } from "./travelApi";
 import type { Place, RowPage } from "./productData";
@@ -53,5 +54,5 @@ export function usePlacesById(ids: number[]) {
   );
   const current = result?.key === key ? result : pending;
   const photos = usePlacePhotos(current.rows);
-  return { ...current, rows: photos.rows ?? current.rows, loading: key !== "[]" && result?.key !== key };
+  return { ...current, error: current.error ? t(current.error) : undefined, rows: photos.rows ?? current.rows, loading: key !== "[]" && result?.key !== key };
 }

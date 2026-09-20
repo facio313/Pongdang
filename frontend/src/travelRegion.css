@@ -1,0 +1,23 @@
+.travel-region {
+  margin: 14px 0;
+}
+.travel-region label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--pd-ink-2, #5c789a);
+  font-size: var(--pd-fs-cap, 11px);
+}
+.travel-region select {
+  flex: 1;
+  min-width: 0;
+  max-width: 280px;
+  min-height: var(--pd-touch, 44px);
+  padding: 0 10px;
+  border: 1px solid var(--pd-line, #dae7f5);
+  border-radius: var(--pd-r-ctl, 14px);
+  background: var(--pd-surface, #fff);
+  color: var(--pd-ink, #1b2c3d);
+  font: inherit;
+  font-size: var(--pd-fs-sm, 13px);
+}

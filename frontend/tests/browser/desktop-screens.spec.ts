@@ -89,8 +89,8 @@ test("weekly forecast distinguishes loading, failed reads and missing evidence",
 
 test("desktop map lists real places and scores only the chosen one", async ({ page }) => {
   await page.goto("#map");
-  const response = await page.request.get("api/data/livecams/preview/places?q=");
-  const places: { lat: number | null; lng: number | null }[] = await response.json();
+  const response = await page.request.get("api/data/places?province=gangwon&page_size=100");
+  const { rows: places }: { rows: { lat: number | null; lng: number | null }[] } = await response.json();
   const mappable = places.filter((place) => place.lat !== null && place.lng !== null);
 
   await expect(page.locator(".mk-side-kick")).toContainText(`${mappable.length}곳`);

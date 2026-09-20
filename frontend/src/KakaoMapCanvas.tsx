@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { KakaoMapsLoadError, loadKakaoMaps, type KakaoCustomOverlay, type KakaoMap, type KakaoMapsNamespace } from "./kakaoMaps";
@@ -173,13 +174,13 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
 
   return (
     <>
-      <div className="wim-map-canvas" ref={container} role="region" aria-label="카카오 지도" />
+      <div className="wim-map-canvas" ref={container} role="region" aria-label={t("카카오 지도")} />
       {active && !active.error && overlay}
-      {!active && <div className="wim-map-status" role="status">지도를 불러오는 중입니다.</div>}
+      {!active && <div className="wim-map-status" role="status">{t("지도를 불러오는 중입니다.")}</div>}
       {active?.error && (
         <div className="wim-map-status">
-          <p role="alert">{active.error}</p>
-          <button onClick={() => setAttempt((value) => value + 1)}>지도 다시 불러오기</button>
+          <p role="alert">{t(active.error)}</p>
+          <button onClick={() => setAttempt((value) => value + 1)}>{t("지도 다시 불러오기")}</button>
         </div>
       )}
       {active?.markers.map(({ id, element }) => createPortal(renderMarker(id), element, id))}

@@ -1,3 +1,6 @@
+import { t } from "./i18n.ts";
+import { useMemo } from "react";
+import { useProductPlaceSelection } from "./productPlaceSelection";
 import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
@@ -45,17 +48,29 @@ export function useProductData(mode: "swim" | "best" = "swim") {
   // 마운트마다 새로 잡지 않습니다. 이 값이 조회 경로에 들어가므로, 폭이 바뀌어
   // 레이아웃이 갈릴 때마다 같은 자료를 다른 경로로 다시 묻게 됩니다(sessionNow 주석).
   const now = sessionNow();
-  const catalog = useResource<DefaultPlaceSelection>("water-index/default-place");
-  const photos = usePlacePhotos(catalog.data ? productPlaces(catalog.data.rows).rows : undefined);
-  const places = { ...catalog, data: photos.rows ? { rows: photos.rows, total: photos.rows.length } : undefined };
-  const selected = catalog.data?.place;
-  const place = selected
-    ? photos.rows?.find((item) => item.id === selected.id) ?? productPlaces([selected]).rows[0]
-    : undefined;
-  const displayName = catalog.data?.display_name ?? "강릉 경포대 해수욕장";
-  const selectionMessage = catalog.error ?? (catalog.loading
-    ? "기본 해수욕장의 수집 자료를 확인하고 있습니다."
-    : catalog.data?.message ?? "기본 해수욕장을 조회하지 못했습니다.");
+  const selection = useProductPlaceSelection();
+  const catalog = useResource<DefaultPlaceSelection>(selection.mode === "default" ? "water-index/default-place" : null);
+  const explicit = useResource<ClassifiedWaterPlace[]>(selection.mode === "selected" && selection.spotId !== null
+    ? `livecams/preview/places?spot_id=${selection.spotId}` : null);
+  const selected = selection.mode === "default" ? catalog.data?.place
+    : explicit.data?.find((row) => row.id === selection.spotId);
+  const source = selection.mode === "default" ? catalog : explicit;
+  const selectedRows = useMemo(() => selection.mode === "default" && catalog.data
+    ? productPlaces(catalog.data.rows).rows
+    : selected ? productPlaces([selected]).rows : undefined, [selection.mode, catalog.data, selected]);
+  const photos = usePlacePhotos(selectedRows);
+  const place = selected ? photos.rows?.find((row) => row.id === selected.id) ?? productPlaces([selected]).rows[0] : undefined;
+  const places = { ...source, data: photos.rows ? { rows: photos.rows, total: photos.rows.length } : undefined };
+  const displayName = selected
+    ? selection.mode === "default" ? catalog.data?.display_name ?? selected.name : selected.name
+    : source.loading ? t("장소 조회 중") : t("장소 선택 필요");
+  const selectionMessage = source.error ?? (source.loading
+    ? t("기준 장소의 수집 자료를 확인하고 있습니다.")
+    : selection.mode === "default"
+      ? t(catalog.data?.message ?? "기본 해수욕장을 조회하지 못했습니다.")
+      : selection.spotId === null ? t("장소를 선택해 주세요.")
+      : selected ? t("{place} 한 장소의 관측·예보입니다.", { place: selected.name })
+      : t("선택한 장소를 찾지 못했습니다. 다른 장소를 선택해 주세요."));
   // 훅은 조건부로 부를 수 없으므로 두 쪽을 모두 부르되, 쓰지 않는 쪽은
   // enabled: false 로 끕니다. 호출 수는 그대로여도 조회 횟수는 고른 모드만큼
   // 입니다 -- 홈이 여섯 활동을 보느라 오늘 탭까지 더 조회하게 만들지 않으려는
@@ -81,9 +96,9 @@ export function useProductData(mode: "swim" | "best" = "swim") {
   // 둘은 여기서 하나로 합쳐지지 않습니다. 실패면 실패 문구를 함께 내려보내
   // 히어로가 「불러오지 못했다」로 읽히고, 장소가 없는 것이면 error 없이
   // 끝나 「고를 활동이 없다」로 읽힙니다.
-  const placeSettled = !catalog.loading && !place;
+  const placeSettled = !source.loading && !place;
   const settled = <T extends { loading: boolean; error?: string }>(state: T) =>
-    settledWithoutPlace(state, placeSettled, catalog.error);
+    settledWithoutPlace(state, placeSettled, source.error);
   return {
     now,
     places,
@@ -99,6 +114,7 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     /** 장소가 영영 정해지지 않는 상태. 이 훅 밖에서 장소 id 로 막아 둔 조회가
      *  있으면 `settledWithoutPlace` 에 함께 넘겨야 합니다. */
     placeSettled,
+    placeRequired: selection.mode === "selected" && placeSettled && !source.error,
   };
 }
 export function useTodayData(

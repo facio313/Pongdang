@@ -1,6 +1,8 @@
+import { t } from "./i18n";
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
+import { TravelLanguageNote } from "./TravelLanguageSelector";
 
 /** 본문 흐름을 유지하며 모바일 주요 버튼을 하단 탭 위에 두는 공용 슬롯. */
 export function AppActions({ children }: { children: ReactNode }) {
@@ -45,11 +47,7 @@ export function AppHeader({
  *  데스크탑의 대응물은 pongdangDesktop.tsx 의 FootNote 입니다. */
 export function AppFootNote() {
   return (
-    <footer className="pd-foot">
-      값이 없으면 <b>–</b>로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는
-      물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로
-      다른 값이라 하나로 요약하지 않습니다.
-    </footer>
+    <footer className="pd-foot">{t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</footer>
   );
 }
 
@@ -86,6 +84,7 @@ export function AppShell({
       <div className="pd-app">
         <div className="pd-frame">
           {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
+          {tab === "recommend" && <TravelLanguageNote />}
           {bare ? (
             children
           ) : (

@@ -1,6 +1,8 @@
 import { forbiddenMessage } from "./authMessages.ts";
 import type { Activity } from "./aiApi";
 import type { ModelTraceTurn } from "./aiApi";
+import type { TravelLocale } from "./travelLanguage";
+import { t } from "./i18n.ts";
 
 const CONDITION_LABELS: Record<string, string> = {
   activity_support: "활동 지원 여부",
@@ -15,7 +17,7 @@ const CONDITION_LABELS: Record<string, string> = {
 
 export function unknownConditionsText(conditions: string[]): string {
   return conditions
-    .map((condition) => CONDITION_LABELS[condition] ?? condition)
+    .map((condition) => t(CONDITION_LABELS[condition] ?? condition))
     .join(" · ");
 }
 
@@ -25,7 +27,7 @@ export function placeRoleLabel(role: string): string {
     meal: "식사",
     lodging: "숙박",
   };
-  return labels[role] ?? "용도 미확인";
+  return t(labels[role] ?? "용도 미확인");
 }
 
 export function routeReasonsText(reasons: string[]): string {
@@ -45,7 +47,17 @@ export function routeReasonsText(reasons: string[]): string {
     visit_support_and_total_cost_unverified: "실제 이용 가능 여부와 총비용은 별도 확인이 필요합니다",
     reference_time_matrix_estimate: "요청 출발시각 기준의 예상 경로입니다",
   };
-  return reasons.map(reason => Object.hasOwn(labels, reason) ? labels[reason] : "경로 조건을 확인해 주세요").join(" · ");
+  return reasons.map(reason => t(Object.hasOwn(labels, reason) ? labels[reason] : "경로 조건을 확인해 주세요")).join(" · ");
+}
+
+/** Activity names are application labels; place names and addresses remain
+ *  provider text. Resolve these labels from stable IDs when the UI changes. */
+export function travelActivityLabel(activity: Activity, fallback: string): string {
+  const labels: Partial<Record<Activity, string>> = {
+    relax: "물 보며 쉬기", onsen: "온천", surf: "서핑", swim: "수영",
+    rafting: "래프팅", mudflat: "갯벌",
+  };
+  return t(labels[activity] ?? fallback);
 }
 export interface Preference {
   tags: string[];
@@ -81,6 +93,7 @@ export function originFromPlace(
   };
 }
 export interface TravelRequest {
+  locale?: TravelLocale | "zh-TW";
   keyword_selection?: { category: string; values: string[] }[];
   purpose?: string;
   place_role?: "visit" | "meal" | "lodging" | "any";
@@ -144,9 +157,9 @@ export function exclusionReasonsText(
     .filter((row) => spotIds.includes(row.spot_id))
     .map(
       (row) =>
-        Object.hasOwn(labels, row.reason)
+        t(Object.hasOwn(labels, row.reason)
           ? labels[row.reason]
-          : "서버가 제외 사유를 표시했습니다",
+          : "서버가 제외 사유를 표시했습니다"),
     )
     .filter((text, index, all) => all.indexOf(text) === index)
     .join(" · ");

@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import type { ReactNode } from "react";
 import {
   conditionScoreText,
@@ -42,7 +43,7 @@ export function EvidenceNote({
   const controlled = status === "restricted" || status === "caution";
   const note = (
     <details className="pd-explainer">
-      <summary className="pd-tap">근거 보기</summary>
+      <summary className="pd-tap">{t("근거 보기")}</summary>
       <div className="pd-explainer-body">
         <p>{conditionScoreText(data)}</p>
         <p>{evidenceText(data)}</p>
@@ -63,10 +64,10 @@ export function EvidenceNote({
         {chip && (
           <span className={"pd-state-chip" + (controlled ? " is-alert" : "")}>
             {status === "restricted"
-              ? "공식 제한"
+              ? t("공식 제한")
               : status === "caution"
-                ? "주의 사항 있음"
-                : "안전 판정 아님"}
+                ? t("주의 사항 있음")
+                : t("안전 판정 아님")}
           </span>
         )}
       </p>

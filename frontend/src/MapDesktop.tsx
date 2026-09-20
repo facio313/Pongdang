@@ -1,3 +1,4 @@
+import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
@@ -32,8 +33,9 @@ import {
 import { isInitialLoad } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useConditionSummaries } from "./useConditionSummaries";
-import { useDebounced } from "./useDebounced";
-import { mappablePlaces, useWaterPlaces } from "./useWaterPlaces";
+import { mappablePlaces } from "./useWaterPlaces";
+import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
+import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { usePlacesById } from "./usePlacesById";
 import { spotLink } from "./spotsRoute";
 import "./mapDesktop.css";
@@ -68,7 +70,7 @@ function SpotRow({
   onSelect,
 }: {
   place: Place;
-  summary?: ConditionSummary;
+  summary?: Pick<ConditionSummary, "condition_score" | "water_temperature">;
   loading: boolean;
   selected: boolean;
   onSelect: () => void;
@@ -84,13 +86,13 @@ function SpotRow({
       onClick={onSelect}
     >
       <span className="pd-dk-num mk-spot-score">
-        {loading ? <Skeleton width="1.6em" label="점수 조회 중" /> : (score ?? "–")}
+        {loading ? <Skeleton width="1.6em" label={t("점수 조회 중")} /> : (score ?? "–")}
       </span>
       <span className="mk-spot-body">
         <span className="mk-spot-name">{place.name}</span>
         <span className="mk-spot-grade">
           <GradeIcon gradeKey={grade.key} size={12} />
-          {grade.label}
+          {t(grade.label)}
         </span>
       </span>
       <span className="pd-dk-num mk-spot-temp">
@@ -103,14 +105,14 @@ function SpotRow({
 export function MapDesktop() {
   // 지도 조작 API 는 지도가 준비된 뒤 effect 에서 넘어옵니다.
   const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
-  const [search, setSearch] = useState("");
+  const browser = useWaterPlaceBrowser();
+  const { search, setSearch, places } = browser;
   const [selectedId, setSelectedId] = useState<number | null>(() => {
     const value = Number(
       new URLSearchParams(window.location.hash.split("?")[1]).get("spot_id"),
     );
     return Number.isSafeInteger(value) && value > 0 ? value : null;
   });
-  const places = useWaterPlaces(useDebounced(search));
   const selectedPlace = usePlacesById(selectedId === null ? [] : [selectedId]);
   const allRows = useMemo(
     () => [...new Map(
@@ -135,7 +137,7 @@ export function MapDesktop() {
   // 목록 전체의 점수 · 수온은 **묶음으로 한 번** 조회합니다. 줄마다 부르지
   // 않습니다(useConditionSummaries 의 주석 참고).
   const summaries = useConditionSummaries(
-    useMemo(() => rows.map((place) => place.id), [rows]),
+    useMemo(() => (places.rows ?? []).map((place) => place.id), [places.rows]),
     ACTIVITY,
   );
   // 오른쪽 패널과 아래 근거는 고른 지점 하나만 조회합니다.
@@ -150,7 +152,7 @@ export function MapDesktop() {
         nav={
           <DesktopNav
             active="map"
-            context={`강릉 · ${dateLabel()} · 지점 ${pinned.length}곳`}
+            context={t("{region} · {date} · 지도에 표시된 지점 {count}곳", { region: browser.regionLabel, date: dateLabel(), count: pinned.length })}
           />
         }
         band
@@ -159,8 +161,8 @@ export function MapDesktop() {
       >
         <div className="mk-hero">
           <div className="mk-hero-lead">
-            <div className="pd-dk-kick mk-hero-kick">지도</div>
-            <h1 className="mk-hero-title">어디로 갈지 지도에서 고르기</h1>
+            <div className="pd-dk-kick mk-hero-kick">{t("지도")}</div>
+            <h1 className="mk-hero-title">{t("어디로 갈지 지도에서 고르기")}</h1>
           </div>
         </div>
       </DesktopHero>
@@ -181,26 +183,34 @@ export function MapDesktop() {
                 setSelectedId(null);
               }}
               maxLength={100}
-              placeholder="장소명 · 지역 검색"
-              aria-label="장소명·지역 검색"
+              placeholder={t("장소명 · 지역 검색")}
+              aria-label={t("장소명·지역 검색")}
             />
           </label>
+          <WaterPlaceFilters
+            district={browser.district} kind={browser.kind}
+            onDistrict={(district) => { browser.setDistrict(district); setSelectedId(null); }}
+            onKind={(kind) => { browser.setKind(kind); setSelectedId(null); }}
+          />
           <div className="pd-dk-kick mk-side-kick">
-            지점 {pinned.length}곳 · {activities[ACTIVITY]} 점수
+            {t("지점 {count}곳 · {activity} 점수", { count: pinned.length, activity: t(activities[ACTIVITY]) })}
           </div>
           {selectedId !== null && !selected && (
             <p className="mk-note" role={selectedPlace.error ? "alert" : "status"}>
               {selectedPlace.error ?? (selectedPlace.loading
-                ? "선택한 장소를 조회하고 있습니다."
-                : "선택한 장소를 찾을 수 없습니다.")}
+                ? t("선택한 장소를 조회하고 있습니다.")
+                : t("선택한 장소를 찾을 수 없습니다."))}
             </p>
           )}
           {rows.map((place) => (
             <SpotRow
               key={place.id}
               place={place}
-              summary={summaries.byId.get(place.id)}
-              loading={summaries.loading}
+              summary={place.id === selected?.id ? {
+                condition_score: conditions.data?.condition_score,
+                water_temperature: conditions.data?.metrics.find((metric) => metric.name === "water_temperature"),
+              } : summaries.byId.get(place.id)}
+              loading={place.id === selected?.id ? conditions.loading : summaries.loading}
               selected={place.id === selected?.id}
               onSelect={() => setSelectedId(place.id)}
             />
@@ -208,19 +218,15 @@ export function MapDesktop() {
           {!rows.length && (
             <p className="mk-note" role={places.error ? "alert" : "status"}>
               {places.error ??
-                (places.loading ? "장소를 조회하고 있습니다." : "검색 결과 없음")}
+                (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
             </p>
           )}
-          <p className="mk-note">
-            좌표가 있는 장소만 싣습니다 · 서버가 한 번에 최대 100곳까지
-            내려줍니다.
-            {unmapped > 0 &&
-              ` 좌표가 아직 확인되지 않은 ${unmapped}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.`}
+          <WaterPlacePagination {...places} count={places.rows?.length ?? 0} onPage={(page) => { browser.setPage(page); setSelectedId(null); }} />
+          <p className="mk-note">{t("현재 페이지와 선택한 장소 중 좌표가 있는 곳을 표시합니다.")}{unmapped > 0 &&
+              t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
           </p>
           <div className="mk-alert">
-            <Icon name="warning" size={15} />
-            값이 없는 상태가 안전을 뜻하지 않습니다
-          </div>
+            <Icon name="warning" size={15} />{t("값이 없는 상태가 안전을 뜻하지 않습니다")}</div>
         </div>
 
         <div className="mk-map">
@@ -243,7 +249,7 @@ export function MapDesktop() {
                   className={"mk-pin" + (isSelected ? " is-selected" : "")}
                   data-grade={grade.key}
                   aria-pressed={isSelected}
-                  aria-label={`${place.name} 퐁당 ${score ?? "–"} ${grade.label}`}
+                  aria-label={t("{name} 퐁당 {score} {grade}", { name: place.name, score: score ?? "–", grade: t(grade.label) })}
                   onClick={() => setSelectedId(place.id)}
                 >
                   <span className="pd-dk-num mk-pin-core">{score ?? "–"}</span>
@@ -254,13 +260,11 @@ export function MapDesktop() {
             onReady={setMapApi}
             overlay={
               <>
-                <span className="mk-map-badge">
-                  카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다
-                </span>
+                <span className="mk-map-badge">{t("카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다")}</span>
                 <div className="mk-map-controls">
                   <button
                     type="button"
-                    aria-label="확대"
+                    aria-label={t("확대")}
                     onClick={() => mapApi?.zoomIn()}
                   >
                     <svg
@@ -278,7 +282,7 @@ export function MapDesktop() {
                   </button>
                   <button
                     type="button"
-                    aria-label="축소"
+                    aria-label={t("축소")}
                     onClick={() => mapApi?.zoomOut()}
                   >
                     <svg
@@ -297,7 +301,7 @@ export function MapDesktop() {
                   <button
                     type="button"
                     className="is-accent"
-                    aria-label="현재 위치로 이동"
+                    aria-label={t("현재 위치로 이동")}
                     onClick={() => void mapApi?.locate()}
                   >
                     <svg
@@ -322,32 +326,29 @@ export function MapDesktop() {
             <div className="mk-panel">
               <img
                 src={mascotUrl("swim")}
-                alt={MASCOT_ALT}
+                alt={t(MASCOT_ALT)}
                 width={52}
                 height={52}
               />
               <div className="mk-panel-body">
                 <div className="mk-panel-name">{selected.name}</div>
                 <div className="mk-panel-meta">
-                  {selected.address ?? "주소 없음"} · 수온{" "}
-                  {metricText(conditions.data, "water_temperature")}
+                  {selected.address ?? t("주소 없음")} · {t("수온 {temperature}", { temperature: metricText(conditions.data, "water_temperature") })}
                 </div>
               </div>
               <div className="mk-panel-score" data-grade={selectedGrade.key}>
                 <div className="pd-dk-num mk-panel-score-num">
                   {isInitialLoad(conditions) ? (
-                    <Skeleton width="1.4em" label="점수 조회 중" />
+                    <Skeleton width="1.4em" label={t("점수 조회 중")} />
                   ) : (
                     (selectedScore ?? "–")
                   )}
                 </div>
                 <div className="mk-panel-score-grade">
-                  {selectedGrade.label}
+                  {t(selectedGrade.label)}
                 </div>
               </div>
-              <a className="pd-dk-button mk-panel-add" href="#my-courses">
-                코스에 추가
-              </a>
+              <a className="pd-dk-button mk-panel-add" href="#my-courses">{t("코스에 추가")}</a>
             </div>
           )}
         </div>
@@ -358,13 +359,13 @@ export function MapDesktop() {
           실제 항목을 그립니다. 편의 시설을 내려주는 API 는 없으므로 그 칸은
           없앴습니다 -- 「정보 없음」 아이콘만 남기면 있는 기능처럼 보입니다. */}
       <LabelRow
-        kick="선택 지점"
-        title={`${selected?.name ?? "지점"} · ${activities[ACTIVITY]} 점수 근거`}
+        kick={t("선택 지점")}
+        title={t("{name} · {activity} 점수 근거", { name: selected?.name ?? t("지점"), activity: t(activities[ACTIVITY]) })}
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
         desc={
           selected
-            ? `${scoreTitle(ACTIVITY)}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.`
-            : "지점을 고르면 그 지점의 점수 근거를 조회합니다."
+            ? t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })
+            : t("지점을 고르면 그 지점의 점수 근거를 조회합니다.")
         }
       >
         {selected && (
@@ -380,15 +381,15 @@ export function MapDesktop() {
             <EvidenceNote data={conditions.data} className="mk-note" chip={false} />
             <ScoreExplainer data={conditions.data} />
             <a className="mk-detail-link" href={spotLink(selected)}>
-              {selected.name} 상세 →
+              {t("{name} 상세 →", { name: selected.name })}
             </a>
           </>
         )}
       </LabelRow>
 
       <FootNote
-        missing="편의 시설 · 안전요원 정보 · 조위 시계열"
-        note="마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다."
+        missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
+        note={t("마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
       />
     </DesktopShell>
   );

@@ -93,9 +93,9 @@ test("home and map use actual category-classified beaches when only the address 
   await page.route("**/api/data/water-index/default-place", (route) => route.fulfill({ json: {
     place: selectedPlace, rows: [selectedPlace], display_name: "강릉 경포대 해수욕장", status: "preferred", message: "기본 해수욕장 자료",
   } }));
-  await page.route("**/api/data/livecams/preview/places?**", (route) => route.fulfill({ json: [{
+  await page.route("**/api/data/places?**", (route) => route.fulfill({ json: { rows: [{
     id: 71, name: "경포", place_kind: "beach", region: "", address: "강원특별자치도 강릉시 창해로", lat: 37.8, lng: 128.9,
-  }] }));
+  }], total: 1, page: 1, page_size: 100, has_more: false } }));
   // This is the collected provider's raw type, not the classified product type.
   await page.route("**/api/data/datasets/spots?**", (route) => route.fulfill({ json: { rows: [
     { id: 99, name: "강릉 약국", type: "pharmacy_search_result", region: "강릉" },
@@ -421,7 +421,7 @@ test("empty and unauthenticated data stay explicit", async ({ page }) => {
   await page.route("**/api/data/water-index/default-place", (route) => route.fulfill({ json: {
     place: null, rows: [], display_name: "강릉 경포대 해수욕장", status: "no_places", message: "수집된 해수욕장이 없습니다. 수집기와 해변 자료 연동을 확인해야 합니다.",
   } }));
-  await page.route("**/api/data/livecams/preview/places?**", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/data/places?**", (route) => route.fulfill({ json: { rows: [], total: 0, page: 1, page_size: 100, has_more: false } }));
   await page.route("**/api/data/datasets/spots?**", (route) =>
     route.fulfill({ json: { rows: [], total: 0 } }),
   );
@@ -431,7 +431,9 @@ test("empty and unauthenticated data stay explicit", async ({ page }) => {
   await expect(page.locator(".hm-hero-sentence")).toContainText("활동이 없어요");
   await expect(page.locator(".hm-glance-aside-value")).toHaveText("검사 자료 없음");
   await expect(page.locator(".home-page")).toContainText("점수를 이루는 항목을 읽지 못했습니다");
-  await expect(page.locator(".hm-hero-place")).toContainText("강릉 경포대 해수욕장");
+  // With no selected place, do not invent a Gangneung reference.
+  await expect(page.locator(".hm-hero-place")).toContainText("장소 선택 필요");
+  await expect(page.locator(".hm-hero-place")).not.toContainText("강릉 경포대 해수욕장");
   await expect(page.locator(".home-page")).not.toContainText("장소 확인 중");
   await expect(page.locator(".home-page")).toContainText("수집된 해수욕장이 없습니다");
   await page.route("**/api/data/travel/**", (route) =>

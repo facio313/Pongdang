@@ -46,7 +46,7 @@ try {
  await page.getByText('실제 OpenAI 연결은 질문 전송 시 확인합니다.',{exact:false}).waitFor();
  assert.match(page.url(),/data=data/);
  assert.equal(chatBodies.length,0);
- await page.getByRole('button',{name:'오늘 강릉에서 수영 조건을 확인할 수 있는 곳이 있어?',exact:true}).click();
+ await page.getByRole('button',{name:'오늘 강원도에서 수영 조건을 확인할 수 있는 곳이 있어?',exact:true}).click();
  await page.getByLabel('질문',{exact:true}).press('Control+Enter');
  await page.getByRole('heading',{name:'장소별 조건 비교',exact:true}).waitFor();
  await page.getByText('현재 유효한 수온 자료가 없습니다.',{exact:true}).waitFor();

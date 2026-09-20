@@ -1,4 +1,22 @@
-# 현재 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
+# 현재 작업 · 언어 전환 main 통합 및 운영 배포 완료 · 2026-09-21
+
+- 사용자 요청 완료: 최신 main `a047dce`의 전체 화면 지도·내 코스, 로고·파비콘·푸터를 보존하고 화면 언어 전환을 통합했다. 언어 변경 커밋은 `281f4e5927d36e76fb3b78935bb75e37be571554`이며 원격 main/dev 모두 같은 SHA다.
+- dev CI [35534550705](https://github.com/facio313/Pongdang/actions/runs/35534550705) 전체 성공 후 동일 커밋을 main에 push했다. main CI·운영 배포 [35535120595](https://github.com/facio313/Pongdang/actions/runs/35535120595)도 전체 성공했다.
+- 서버 로그: 2026-09-21 05:27 KST `Deployed Pongdang 281f4e5927d36e76fb3b78935bb75e37be571554`, frontend/backend/db/collector Healthy, `/api/ready`는 `{"status":"ok"}`. 운영 URL은 `https://bonifacio.work/pongdang/`이며 기존 SSO 로그인 화면 연결을 확인했다. 인증 후 운영 UI 직접 클릭은 미검증이다.
+- 로컬 검증: frontend lint/111 unit/type/build, backend Ruff/1,170 tests(로컬 Docker 관련 2 skips), 전체 browser 134개 통과. dev/main CI의 Docker smoke도 모두 성공했다. 별도 `59355/pongdang_test`는 종료했고 기존 5173/8000/51906 확인 환경은 유지했다.
+- 원본 Git 명령의 정체로 별도 `codex/ui-language-release` 체크아웃에서 통합·커밋했다. 경로: `/Users/cksmacbook/.codex/backups/pongdang-language-release-20260921-044626/release-checkout`. 원본에 받아진 커밋의 존재와 조상 관계를 확인해 로컬 main/dev 및 원격 추적 refs도 같은 SHA로 갱신했다. 현재 체크아웃 `fix/finale`과 미커밋 작업 파일은 그대로 보존한다.
+- 강원 지역 확대·필터·마이그레이션은 이번 언어 커밋에서 제외했다. 기존 변경 116개 백업은 위 부모 경로 `working-files/`, 해시 목록은 `manifest.json`, 배포 증거는 `release-verification.json`과 `main-deploy.log`다. `.byeori/`, `output/`, 비공개 환경·SSO·키·실제 DB를 변경하지 않았다.
+- 배포한 구현 상세: [UI-LANGUAGE.md](https://github.com/facio313/Pongdang/blob/281f4e5927d36e76fb3b78935bb75e37be571554/docs/ai/UI-LANGUAGE.md). 기존 강원 확대 기록은 [GANGWON-EXPANSION.md](GANGWON-EXPANSION.md), 최초 로컬 언어 작업 기록은 [UI-LANGUAGE.md](UI-LANGUAGE.md)다.
+
+# 이전 작업 · 화면 전체 언어 전환 · 2026-09-21
+
+- 사용자 후속 요청으로 기존 자료 조회용 토글을 화면 메뉴·버튼·설명 전체에 확장했다. 한국어/영어/중국어 간체/일본어 지원. 제공처·사용자 원문과 기존 대화·저장 코스의 내용은 보존한다.
+- 언어 변경은 같은 화면을 다시 마운트하지 않으며 선택한 장소·입력값·펼친 설명을 유지한다. 새 추천과 여행 안내에는 선택 locale을 적용한다.
+- 브랜치 `fix/finale`, 기존 `.byeori/`와 강원 지역 확장 동시 변경 보존. 이 언어 작업에서 커밋·푸시·배포·운영 DB·.env 변경을 실행하지 않았다.
+- 언어 전환 구현·검증 완료. 상세: [UI-LANGUAGE.md](UI-LANGUAGE.md). 프런트 lint/115 unit/type/build, 전체 browser 134개와 마지막 영향 범위 12개, backend Ruff 및 관련 29개 테스트 통과. 전체 backend 실행·환경 재실행 결과는 상세 문서에 기록했다.
+- 사용자 미리보기 `http://127.0.0.1:5173/pongdang/#spots?spot_id=9` 유지. 실제 화면에서 세 외국어 메뉴·설명·버튼 전환을 확인했고 영어 점수 설명을 펼쳐 두었다. 검사는 별도의 `50139/pongdang_test`에서 수행했으며 해당 검사용 DB는 종료했다. 최종 관련 소스 349개가 검증 snapshot과 일치함을 확인했다.
+
+# 이전 작업 · 브랜치 통합·정리 및 운영 배포 · 2026-09-21
 
 - 사용자 승인: 수정 커밋, 도구 브랜치 통합·삭제, main 머지·push·운영 배포. 유지할 이름: main, dev, feature/connect, feature/today-page, feature/api. .env·SSO·키·DB 스키마 변경 없음.
 - 수정 커밋 68648ca와 main 9e6055f를 dev에 통합한 뒤 새 main 3e5bf9e도 충돌 없이 받았다. 최신 카테고리별 UI/공용 조회/지도 배치 API와 R37/R22/R60 등 검증된 수정 모두 유지한다. report.md 완료 23개는 백업과 바이트 동일하다.

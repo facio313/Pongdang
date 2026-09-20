@@ -7,29 +7,25 @@ import {
 import type { DefaultPlaceSelection } from "./useProductData";
 import { useResource } from "./useResource";
 import { usePlacePhotos } from "./usePlacePhotos";
+import { waterPlacesPath, WATER_PLACE_PAGE_SIZE, type WaterPlacePage, type WaterPlaceQuery } from "./waterPlaceApi";
 
 /** 분류된 물놀이 장소 목록.
  *
- *  `livecams/preview/places` 를 읽습니다. 이름이 라이브캠이지만 이것이 **분류된
- *  장소 목록을 돌려주는 유일한 API** 입니다 -- 서버가 카카오 카테고리와 장소명을
- *  보고 beach · valley 를 판정해 `place_kind` 로 내려줍니다.
+ *  `/places`가 행정구역·분류 필터를 적용한 100행 페이지와 전체 건수를 줍니다.
+ *  서버가 판정한 beach · valley 분류를 `place_kind`로 유지합니다.
  *
  *  `datasets/spots` 를 쓰면 안 됩니다. 그쪽 `type` 은 **수집 종류**(수집기가 쓴
  *  `beach_search_result` · `tourism` 따위)라서 `type === "beach"` 로 걸리지
  *  않습니다. 화면이 쓰는 `type` 은 productPlaces 가 `place_kind` 를 옮겨 담은
  *  것입니다.
  *
- *  검색어가 없으면 기본 장소 선정 결과를 앞에 붙입니다. 그쪽이 근거를 보고
- *  고른 순서라, 아무것도 검색하지 않았을 때 맨 위에 와야 하는 장소입니다.
- *
- *  서버가 100건에서 자릅니다. 그 사실은 화면이 밝혀야 합니다 -- 목록이 전부인
- *  것처럼 보이면 안 됩니다. */
-export function useWaterPlaces(search = "") {
-  const catalog = useResource<ClassifiedWaterPlace[]>(
-    "livecams/preview/places?q=" + encodeURIComponent(search),
-  );
+ *  기본 장소는 현재 페이지에 있을 때만 우선 선택합니다. 기본 장소의 전체 행을
+ *  합치면 페이지·지역 필터를 벗어나고 사진·조건 요약의 100행 상한도 넘습니다. */
+export function useWaterPlaces(search = "", query: WaterPlaceQuery = {}) {
+  const catalog = useResource<WaterPlacePage>(waterPlacesPath(search, query));
   const defaultPlace = useResource<DefaultPlaceSelection>(
-    search ? null : "water-index/default-place",
+    search || query.district || query.kind || (query.page ?? 1) !== 1
+      ? null : "water-index/default-place",
   );
   // 합치기와 걸러내기를 **메모 안에서** 합니다. 예전에는 둘 다 매 렌더에서
   // 새 배열을 만들었고, 그 새 참조가 usePlacePhotos 메모 → 지도 마커 →
@@ -37,35 +33,35 @@ export function useWaterPlaces(search = "") {
   // 지었습니다**. 지도가 다시 지어지며 부모를 또 렌더시켜, 멈추지 않는
   // 렌더 루프가 됐습니다(모바일 MapPage 는 JSON 키로 이걸 우회하고 있었고,
   // 데스크탑 지도에는 그 우회가 없었습니다). 원인은 여기 하나입니다.
-  const rows: Place[] | undefined = useMemo(() => {
-    const data = search
-      ? catalog.data
-      : defaultPlace.data || catalog.data
-        ? [...(defaultPlace.data?.rows ?? []), ...(catalog.data ?? [])]
-        : undefined;
-    // 기본 장소 선정 결과와 검색 목록이 같은 장소를 담을 수 있습니다. 먼저 온
-    // 것(근거로 고른 쪽)을 남깁니다.
-    return data
-      ? productPlaces(data).rows.filter(
-          (place, index, all) =>
-            all.findIndex((item) => item.id === place.id) === index,
-        )
-      : undefined;
-  }, [search, catalog.data, defaultPlace.data]);
-  const merged = search
-    ? catalog
-    : { ...catalog, error: defaultPlace.error ?? catalog.error };
+  const rows: Place[] | undefined = useMemo(
+    () => catalog.data ? productPlaces(catalog.data.rows).rows : undefined,
+    [catalog.data],
+  );
   const photos = usePlacePhotos(rows);
   return {
     rows: photos.rows,
-    total: rows?.length ?? 0,
+    total: catalog.data?.total ?? 0,
+    page: catalog.data?.page ?? query.page ?? 1,
+    pageSize: catalog.data?.page_size ?? WATER_PLACE_PAGE_SIZE,
+    hasMore: catalog.data?.has_more ?? false,
     /** 서버가 근거를 보고 고른 기본 장소. 화면이 처음 무엇을 펼칠지 정할 때
      *  씁니다. 검색 중에는 조회하지 않으므로 undefined 입니다. */
-    defaultPlaceId: defaultPlace.data?.place?.id,
-    loading: merged.loading,
-    previousData: merged.previousData,
-    error: merged.error,
+    defaultPlaceId: rows?.some((place) => place.id === defaultPlace.data?.place?.id)
+      ? defaultPlace.data?.place?.id : undefined,
+    loading: catalog.loading,
+    previousData: catalog.previousData,
+    error: catalog.error,
   };
+}
+
+/** A detail link can point outside the current page or administrative filter. */
+export function useWaterPlace(spotId: number) {
+  const catalog = useResource<ClassifiedWaterPlace[]>(`livecams/preview/places?spot_id=${spotId}`);
+  const place = useMemo(
+    () => catalog.data ? productPlaces(catalog.data).rows.find((row) => row.id === spotId) : undefined,
+    [catalog.data, spotId],
+  );
+  return { ...catalog, place };
 }
 
 /** 지도에 찍을 수 있는 장소만 고릅니다. 좌표가 없는 장소는 핀을 만들지 않고,

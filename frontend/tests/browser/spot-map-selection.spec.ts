@@ -11,8 +11,8 @@ const linkedPlace = {
 };
 
 async function routeMapCatalog(page: Page) {
-  await page.route("**/api/data/livecams/preview/places?**", route =>
-    route.fulfill({ json: [defaultPlace] }));
+  await page.route("**/api/data/places?**", route =>
+    route.fulfill({ json: { rows: [defaultPlace], total: 1, page: 1, page_size: 100, has_more: false } }));
   await page.route("**/api/data/water-index/default-place", route =>
     route.fulfill({ json: {
       place: defaultPlace, rows: [defaultPlace], display_name: defaultPlace.name,

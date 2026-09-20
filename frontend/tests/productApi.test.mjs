@@ -1,7 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calendarDays, conditionPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription } from '../src/productData.ts';
+import { calendarDays, conditionPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription, placeRegionLabel, productPlaces } from '../src/productData.ts';
 import { travelJson, recommendationPlan, keywordSelection, directionLink } from '../src/travelApi.ts';
+
+test('place region display uses verified districts or addresses without changing provider codes', () => {
+  const original = Object.freeze({ region: '51:820', province_code: 'gangwon', district_code: 'goseong', place_kind: 'beach' });
+  const place = productPlaces([original]).rows[0];
+  assert.equal(placeRegionLabel(place), '고성군');
+  assert.equal(place.region, '51:820');
+  assert.equal(original.region, '51:820');
+  assert.equal(placeRegionLabel({ region: '32:2', address: '강원도 고성군 죽왕면' }), '고성군');
+  assert.equal(placeRegionLabel({ region: '51:210', confirmed: { address: '강원특별자치도 속초시 조양동' } }), '속초시');
+});
+
+test('unverified region codes stay unknown while readable source regions remain visible', () => {
+  for (const region of ['51:820', '51:999', '32:2', '51']) {
+    assert.equal(placeRegionLabel({ region }), '지역 미확인');
+  }
+  assert.equal(placeRegionLabel({ region: '51:999', district_code: 'unknown' }), '지역 미확인');
+  assert.equal(placeRegionLabel({ region: '51:999', province_code: 'gangwon' }), '강원도');
+  assert.equal(placeRegionLabel({ region: '부산' }), '부산');
+  assert.equal(placeRegionLabel({ region: '51:820', address: 'Goseong, Gangwon' }), 'Goseong, Gangwon');
+});
 
 test('product dates use KST, including midnight and year boundaries', () => {
   assert.equal(kstDate('2026-12-31T16:00:00Z'), '2027-01-01');
