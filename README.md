@@ -97,8 +97,15 @@ Water Index의 지점 지도와 전체 지도는 실제 카카오 타일·장소
 않는 종합 점수와 안전 판정은 미확인 상태로 표시합니다. 화면별 연결과 검증
 범위는 [프론트–백엔드 연결 점검](docs/frontend-backend-connection.md)을 참고합니다.
 
-`dev`는 통합, `main`은 CI 통과 후 자동 배포입니다. 이 코드의 수정만으로 운영
-배포가 완료되는 것은 아닙니다. `ops/pongdang-deploy`는 SSH 게이트 설치용 소스이고
+`dev`에는 커밋·병합·동기화·푸시·배포하지 않습니다. 작업 브랜치를 `main`에
+직접 통합하고 필요한 CI가 통과한 뒤 자동 배포합니다. 문서만 바뀌면 빌드와
+배포를 생략하며, 프런트/백엔드는 변경된 영역만 검사합니다. 브라우저 검사는
+평소 핵심 8개만 실행하고, 위험한 변경은 독립 DB의 두 작업으로 전체 검사를
+나눕니다. 다른 검사와 병렬 실행하며 타입 검사·빌드는 CI Docker 이미지에서 한 번 수행합니다.
+검사 범위는 마지막으로 성공한 main CI부터 계산하며, 이력을 확인할 수 없거나
+수동 실행하면 전체 검사합니다. 배포 전 최신 main 여부를 확인하며 진행 중인
+운영 배포는 새 검증 작업 때문에 취소하지 않습니다. 상세: [CI 운영](docs/ci.md).
+이 코드의 수정만으로 운영 배포가 완료되는 것은 아닙니다. `ops/pongdang-deploy`는 SSH 게이트 설치용 소스이고
 애플리케이션 배포가 게이트 설치본을 바꾸지는 않습니다.
 
 ## Luna AI에게 물어보기
@@ -139,20 +146,21 @@ SSO 설치 경계는 [AI 컨시어지 구현·운영 문서](docs/ai-concierge.m
 조회는 허용 목록과 읽기 전용 트랜잭션을 사용하며 최대100행으로 제한됩니다.
 주기 수집이 HTTP 요청의 부작용으로 실행되거나 수집 실패를 더미로 대체하지 않습니다.
 
-```bash
-cd frontend
-npm run lint
-npm test
-npm run build
-```
+로컬에서는 iCloud의 원본 위치를 유지하고 수정한 파일만 확인합니다.
 
 ```bash
-cd backend
-# 폐기 가능한 pongdang_test DB 및 전용 테스트 접속환경을 지정
-POSTGRES_DB=pongdang_test uv run pytest
-uv run ruff check .
-uv run ruff format --check .
+python3 ops/verify_local.py frontend/src/HomePage.tsx frontend/src/pongdang.css
 ```
+
+백엔드는 관련 테스트를 지정합니다. 아래 실행 전에 자신이 만든 폐기 가능한
+loopback `pongdang_test`의 접속 변수와 `PONGDANG_TEST_DISPOSABLE=1`을 설정합니다.
+
+```bash
+python3 ops/verify_local.py backend/app/main.py --test backend/tests/test_health.py
+```
+
+전체 검사는 필요한 변경이나 수동 CI에서 실행합니다. 반복 로컬 빌드는 기본 절차가 아닙니다.
+
 
 실제 API를 호출하는 스모크는 수동 검증이며 CI 테스트는 제공처 응답 대역을 사용합니다.
 운영 DB에서 테스트나 더미 시드를 실행하지 않습니다.

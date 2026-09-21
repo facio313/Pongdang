@@ -21,12 +21,13 @@ from app.water_index.sources import EvidenceBundle, StationMapping, register_evi
 
 
 def test_app():
+    frontend_port = int(os.environ.get("PONGDANG_TEST_FRONTEND_PORT", "5177"))
     settings = Settings(
         _env_file=None,
         ai_provider="disabled",
         travel_route_provider="disabled",
         sso_proxy_secret="browser-fixture-server-only-secret-32-characters",
-        sso_allowed_origins="http://127.0.0.1:5177",
+        sso_allowed_origins=f"http://127.0.0.1:{frontend_port}",
     )
     if (
         os.environ.get("PONGDANG_BROWSER_TEST") != "1"
@@ -209,4 +210,8 @@ def test_app():
 
 
 if __name__ == "__main__":
-    uvicorn.run(test_app(), host="127.0.0.1", port=8099)
+    uvicorn.run(
+        test_app(),
+        host="127.0.0.1",
+        port=int(os.environ.get("PONGDANG_TEST_BACKEND_PORT", "8099")),
+    )

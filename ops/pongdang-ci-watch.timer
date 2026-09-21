@@ -1,5 +1,5 @@
 [Unit]
-Description=Check Pongdang main and dev for missing CI every minute
+Description=Check Pongdang main for missing CI every minute
 
 [Timer]
 OnBootSec=30s

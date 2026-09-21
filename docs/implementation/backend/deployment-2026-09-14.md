@@ -1,3 +1,5 @@
+> 2026-09-21 정책 변경: 이 문서의 dev 경유 절차는 과거 기록이다. 현재는 dev를 갱신하지 않고 작업 브랜치를 main에 직접 통합한다. 현재 절차는 [CI 운영](../../ci.md)을 따른다.
+
 # 2026-09-14 운영 배포 기록
 
 기존 Goal의 로컬 구현·검증 완료 뒤 사용자가 커밋·푸시·운영 배포를 명시적으로 요청했다. 이 요청으로 앱의 CI 배포와 명시적 additive migration을 진행한다. 알림/LLM provider 활성화, SSO ingress·host SSH gate 설치, legacy DB/network 변경은 포함하지 않는다.
