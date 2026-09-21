@@ -78,7 +78,9 @@ def test_source_change_during_stream_is_not_blocked_or_published(database):
                 "target_end": now + timedelta(minutes=minute + 1),
             }
         with connect(database) as c:
-            c.execute("UPDATE pongdang_data.spots_waterspot SET name=name")
+            c.execute(
+                "UPDATE pongdang_data.spots_waterspot SET name=name || ' revised'"
+            )
 
     with pytest.raises(ConditionInputsChanged):
         publish_conditions(

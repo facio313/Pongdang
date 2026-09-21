@@ -160,7 +160,7 @@ def test_unchanged_inputs_skip_and_changed_inputs_cannot_publish(database):
         before = c.execute(
             "SELECT count(*) FROM pongdang_data.condition_generation"
         ).fetchone()[0]
-        c.execute("UPDATE pongdang_data.spots_waterspot SET name=name")
+        c.execute("UPDATE pongdang_data.spots_waterspot SET name=name || ' revised'")
     with pytest.raises(RuntimeError, match="CONDITION_INPUT_CHANGED"):
         publish_conditions(
             database,

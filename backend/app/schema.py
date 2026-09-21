@@ -12,10 +12,11 @@ from app.data_reader import CATALOG
 from app.place_details.migrations import migrate_place_details
 from app.place_identity import migrate_place_identity
 from app.travel.migrations import migrate_travel
+from app.water_index.condition_invalidation import migrate_condition_invalidation
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 15
+VERSION = 16
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -68,6 +69,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
@@ -82,6 +84,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (4,):
                 migrate_features(connection)
@@ -95,6 +98,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (5,):
                 migrate_place_provenance(connection)
@@ -107,6 +111,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (6,):
                 migrate_ai_concierge(connection)
@@ -118,6 +123,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (7,):
                 migrate_travel(connection)
@@ -128,6 +134,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (8,):
                 migrate_attachments(connection)
@@ -137,6 +144,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (9,):
                 migrate_regional_collection(connection)
@@ -145,6 +153,7 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (10,):
                 migrate_place_details(connection)
@@ -152,24 +161,32 @@ def initialize(settings: Settings) -> bool:
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (11,):
                 migrate_persistent_catalog(connection)
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (12,):
                 migrate_score_refresh(connection)
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (13,):
                 migrate_place_identity(connection)
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
                 return True
             if row == (14,):
                 migrate_windy_thumbnails(connection)
+                migrate_condition_invalidation(connection)
+                return True
+            if row == (15,):
+                migrate_condition_invalidation(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -235,6 +252,7 @@ def initialize(settings: Settings) -> bool:
         migrate_score_refresh(connection)
         migrate_place_identity(connection)
         migrate_windy_thumbnails(connection)
+        migrate_condition_invalidation(connection)
     return True
 
 
