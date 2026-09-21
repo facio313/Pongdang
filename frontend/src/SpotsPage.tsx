@@ -4,7 +4,7 @@ import { AppHeader, AppShell } from "./AppShell";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
-import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlacePhoto } from "./PlacePhoto";
 import type { PlaceDetails } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";

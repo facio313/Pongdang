@@ -33,7 +33,7 @@ import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
 import { travelActivityLabel } from "./travelApi";
 import type { Recommendation } from "./recommendationApi";
-import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlacePhoto } from "./PlacePhoto";
 import { usePlacePhotos } from "./usePlacePhotos";
 import {
   conditionModeLabel,

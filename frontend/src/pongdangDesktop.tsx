@@ -3,7 +3,7 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
-import { GradeIcon, Icon } from "./pongdangUi";
+import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import { LOGO_ALT, logoUrl } from "./brand";
 import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
@@ -350,6 +350,8 @@ export function FootNote({
    *  않습니다. */
   wave?: boolean;
 }) {
+  // pd-dk-foot-missing 렌더링이 임시 비활성화된 동안만 미사용(cd77ce7).
+  void missing;
   return (
     <footer
       className={

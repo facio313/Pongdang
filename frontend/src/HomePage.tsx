@@ -23,7 +23,7 @@ import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
 import { WaterQualityDetails } from "./WaterQualityDetails";
-import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlacePhoto } from "./PlacePhoto";
 import type { PlacePhoto as Photo } from "./placePhotos";
 import { usePlacePhotos } from "./usePlacePhotos";
 import { HomeDesktop } from "./HomeDesktop";

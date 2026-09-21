@@ -14,7 +14,7 @@ import {
   StateChip,
 } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
-import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlacePhoto } from "./PlacePhoto";
 import type { PlacePhoto as Photo } from "./placePhotos";
 import { usePlacePhotos } from "./usePlacePhotos";
 import { isInitialLoad, useResource } from "./useResource";

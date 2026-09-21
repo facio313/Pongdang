@@ -1,7 +1,7 @@
 import { t } from "./i18n.ts";
 import { useMemo } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
-import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlacePhoto } from "./PlacePhoto";
 import { PlaceDetailInformation } from "./PlaceDetailInformation";
 import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
 import { FirstSwimGuide } from "./FirstSwimGuide";
