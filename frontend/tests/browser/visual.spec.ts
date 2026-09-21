@@ -96,7 +96,7 @@ for (const [name, width] of [
   });
 }
 
-test("풀스크린 지도에서도 값 표기 규칙과 미연동 항목을 읽을 수 있다", async ({ page }) => {
+test("풀스크린 지도에서도 값 표기 규칙과 안전 주의 문구를 읽을 수 있다", async ({ page }) => {
   // 지도 아래 괘선 행에 있던 근거 · 주의 문구를 패널 · 시트 안으로 옮겼습니다.
   // 옮기다 빠뜨리면 화면이 조용히 규칙을 말하지 않게 되므로, 화면마다 **그
   // 화면의 문구**가 살아 있는지 봅니다(네 화면이 서로 다른 말을 합니다 --
@@ -116,11 +116,10 @@ test("풀스크린 지도에서도 값 표기 규칙과 미연동 항목을 읽�
       page.locator("body"),
       `${route} (${width}px) 에서 값 표기 규칙이 사라졌습니다`,
     ).toContainText(phrase);
-    // 미연동 항목 목록도 함께 옮겨졌는지 봅니다(데스크탑만 FootNote 를 씁니다).
+    // main hides the separate missing-items list, but the actual per-screen
+    // explanation must remain readable inside the desktop panel footer.
     if (width === 1440)
-      await expect(page.locator(".pd-dk-foot")).toContainText(
-        "아직 실연동되지 않은 항목",
-      );
+      await expect(page.locator(".pd-dk-foot-note")).toContainText(phrase);
   }
 });
 

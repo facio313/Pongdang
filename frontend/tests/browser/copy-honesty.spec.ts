@@ -36,14 +36,20 @@ test("desktop footnotes reflect connected photos and activity scoring, with read
   await photo.scrollIntoViewIfNeeded();
   await expect(photo).toBeVisible();
   await expect.poll(() => photo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("대표 이미지");
+  const footer = page.locator(".pd-dk-foot");
+  await expect(footer).toContainText("점수는 물놀이 조건 참고값이며 안전 판정이 아닙니다");
+  await expect(footer).not.toContainText("대표 이미지");
   await page.goto("#today");
-  await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("대표 이미지");
+  await expect(footer).toContainText("안전 판정이 아닙니다");
+  await expect(footer).not.toContainText("대표 이미지");
   await page.goto("#recommend");
-  await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("서핑");
-  await expect(page.locator(".pd-dk-foot-missing")).not.toContainText("온천 활동 점수");
+  await expect(footer).toContainText("점수 · 신뢰도 · 안전 판정은 서로 다른 값");
+  await expect(footer).not.toContainText("서핑");
+  await expect(footer).not.toContainText("온천 활동 점수");
   await expect(page.locator(".pd-desktop")).not.toContainText("서핑 · 온천 점수는 수집 항목이 아닙니다");
-  await expect(page.locator(".pd-dk-foot-missing")).toBeVisible();
+  // main intentionally hides the separate missing-items list; its explanatory
+  // footer and safety disclaimer must still be present.
+  await expect(footer.locator(".pd-dk-foot-note")).toBeVisible();
   await expect(page.locator(".pd-state-chip").filter({ hasText: /^(no_data|partial)$/ })).toHaveCount(0);
 });
 

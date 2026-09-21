@@ -61,10 +61,16 @@ test("탭을 갔다 와도 홈이 같은 자료를 다시 묻지 않는다", asy
   await settledHome(page, false);
   const score = await page.locator(".hm-hero-score-num").innerText();
 
+  const placeDetails = page.waitForResponse((response) =>
+    response.url().includes("/api/data/place-details?") && response.ok(),
+  );
   await page.goto("#spots");
   // The region catalog can wait in the read queue after the first network idle.
   // Finish that initial lookup before measuring requests made on home reentry.
   await expect(page.getByRole("combobox", { name: "시군 선택" })).toBeEnabled();
+  // The details read can also sit in the queue past an initial networkidle.
+  // Count home reentry only after the spots page's own response has finished.
+  await (await placeDetails).finished();
   await page.waitForLoadState("networkidle");
   asked.length = 0;
   await page.goto("#home");
