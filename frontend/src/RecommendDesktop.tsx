@@ -40,7 +40,7 @@ import {
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
-import { RouteRequestForm } from "./RouteRequestForm";
+import { RouteCandidatesForm } from "./RouteCandidatesForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import { useTastePreference } from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
@@ -671,7 +671,7 @@ export function RecommendDesktop() {
                 className="pd-dk-button is-quiet"
                 onClick={() => setStep("chat")}
               >
-                {t("대화로 좁히기 →")}</button>
+                {t("AI 대화 이동 →")}</button>
               <button
                 type="button"
                 className="pd-dk-button rd-remake"
@@ -832,7 +832,7 @@ export function RecommendDesktop() {
 
       {step === "chat" && (
         <LabelRow
-          kick={t("대화로 좁히기")}
+          kick={t("AI 대화 이동")}
           title={
             <>
               {t("조건을 말로")}<br />
@@ -997,7 +997,7 @@ export function RecommendDesktop() {
                     {routeReasonsText(session.route?.reason_codes ?? [])}
                   </p>
                 )}
-                <RouteRequestForm
+                <RouteCandidatesForm
                   places={originOptions}
                   candidates={candidates}
                   defaultDate={
@@ -1016,7 +1016,7 @@ export function RecommendDesktop() {
                     className="pd-dk-button is-quiet"
                     onClick={() => setStep("chat")}
                   >
-                    {t("← 대화로 좁히기")}</button>
+                    {t("← AI 대화 이동")}</button>
                   <button
                     type="button"
                     className="pd-dk-button"

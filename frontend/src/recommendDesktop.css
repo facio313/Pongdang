@@ -174,7 +174,7 @@
   cursor: default;
 }
 
-/* ── 2 · 대화로 좁히기 ─────────────────────────────────── */
+/* ── 2 · AI 대화 이동 ─────────────────────────────────── */
 
 .pd-desktop .rd-field {
   display: flex;
@@ -343,35 +343,19 @@
   color: var(--dk-ink-2);
 }
 
-/* 경로 계산 조건 폼(RouteRequestForm). 모바일 전용 --pd-* 토큰(.pd-card 등)을
-   쓰는 공용 컴포넌트라 .pd-desktop 에서는 아무 토큰도 풀리지 않아 완전히
-   맨 스타일이었습니다. 데스크탑은 카드 + 그림자를 쓰지 않으므로(§1 도입부
-   주석) 괘선 박스 하나로만 감싸 같은 화면의 .rd-field 와 같은 어휘를 씁니다. */
+/* 경로 계산 조건 폼(RouteCandidatesForm). 후보 목록(.rd-steps) 바로 아래
+   같은 섹션에 이어지는 내용이라, 별도 카드 박스로 감싸지 않고 같은 괘선
+   구분선 하나만 위에 그어 .rd-steps 와 같은 어휘를 씁니다. */
 .pd-desktop .rt-form {
-  border: 1px solid var(--dk-line);
-  border-radius: var(--dk-r-ctl);
-  background: var(--dk-mist);
-  padding: 16px 18px 18px;
+  border-top: 1px solid var(--dk-rule-weak);
   margin-top: 14px;
-}
-.pd-desktop .rt-form .pd-card-title {
-  font-weight: 700;
-  font-size: 13px;
-}
-.pd-desktop .rt-form .pd-note {
-  font-size: var(--dk-fs-cap);
-  line-height: 1.6;
-  color: var(--dk-ink-2);
-  margin: 6px 0 0;
+  padding-top: 14px;
 }
 .pd-desktop .rt-form .rt-field {
   border: 0;
   padding: 0;
-  margin: 12px 0 0;
+  margin: 0;
   min-width: 0;
-}
-.pd-desktop .rt-form .rt-field:first-of-type {
-  margin-top: 12px;
 }
 .pd-desktop .rt-form .rt-legend {
   font-size: var(--dk-fs-cap);
@@ -382,26 +366,6 @@
 }
 .pd-desktop .rt-form .rt-field:disabled {
   opacity: 0.6;
-}
-.pd-desktop .rt-form .rt-modes {
-  display: flex;
-  gap: 7px;
-}
-.pd-desktop .rt-form .rt-mode {
-  flex: 1;
-  min-height: 38px;
-  font-size: var(--dk-fs-sm);
-  font-weight: 700;
-  border: 1px solid var(--dk-line);
-  border-radius: var(--dk-r-ctl);
-  background: var(--dk-surface);
-  color: var(--dk-ink);
-  cursor: pointer;
-}
-.pd-desktop .rt-form .rt-mode.is-on {
-  background: var(--dk-blue);
-  border-color: var(--dk-blue);
-  color: #fff;
 }
 .pd-desktop .rt-form .rt-row {
   display: flex;

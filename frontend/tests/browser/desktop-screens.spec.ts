@@ -251,7 +251,7 @@ test("desktop recommend chat opens the sanitized model exchange dialog", async (
   await routePreference(page, ["온천"]);
   await page.goto("#recommend");
   // 대화는 한 단계이며, 시작 화면에서 들어갑니다.
-  await page.getByRole("button", { name: /대화로 좁히기/ }).click();
+  await page.getByRole("button", { name: /AI 대화 이동/ }).click();
   await page.getByLabel("컨시어지에게 보낼 내용").fill("차량");
   await page.getByRole("button", { name: "보내기" }).click();
   await page.getByRole("button", { name: "주고받은 기록" }).click();
