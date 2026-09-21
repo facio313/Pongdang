@@ -228,7 +228,7 @@ test("partial refresh is visible as failure and a lost status read resumes the s
   expect(submitted).toBe(1);
 });
 
-test("owner-only notification reads follow thirty minutes and the shared manual completion signal", async ({ page }) => {
+test("owner-only notification reads keep ten minutes and the shared manual completion signal", async ({ page }) => {
   const mocked = await mockCommon(page);
   const notificationReads = () => mocked.reads.filter((path) => path.endsWith("/notifications/subscriptions")).length;
   let finished = false;
@@ -250,7 +250,7 @@ test("owner-only notification reads follow thirty minutes and the shared manual 
   finished = true;
   await page.clock.fastForward(3100);
   await expect.poll(notificationReads).toBe(initialReads + 1);
-  await page.clock.fastForward(1780000);
+  await page.clock.fastForward(580000);
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   expect(notificationReads()).toBe(initialReads + 1);
   await page.clock.fastForward(21100);

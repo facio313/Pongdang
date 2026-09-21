@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { travelJson } from "./travelApi";
 import { t } from "./i18n";
-import { RESOURCE_REFRESH_INTERVAL, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
+import { resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
+
+// New notification events retain their existing cadence, independently of
+// the user's thirty-minute condition/score display refresh preference.
+const NOTIFICATION_REFRESH_INTERVAL = 600000;
 
 // Owner-only notification data stays in this mounted view, outside public caches.
 export function useNotificationResource<T>(path: string | null, revision = 0) {
@@ -27,7 +31,7 @@ export function useNotificationResource<T>(path: string | null, revision = 0) {
   useEffect(() => {
     if (!path) return;
     const update = () => { if (document.visibilityState === "visible") refresh(); };
-    const timer = window.setInterval(update, RESOURCE_REFRESH_INTERVAL);
+    const timer = window.setInterval(update, NOTIFICATION_REFRESH_INTERVAL);
     return () => window.clearInterval(timer);
   }, [path, key, refresh]);
   const current = result?.key === key ? result : undefined;
