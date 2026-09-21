@@ -50,36 +50,49 @@ export function AppHeader({
  *  어느 화면에서나 똑같은 전역 규칙뿐입니다.
  *
  *  데스크탑의 대응물은 pongdangDesktop.tsx 의 FootNote 입니다. */
-export function AppFootNote() {
+export function AppFootNote({
+  wave = true,
+}: {
+  /** 물결 · 흐르는 파도를 그릴지. 본문 맨 아래 전체 폭 푸터에서는 히어로와
+   *  대칭이 되지만, 지도 · 내 코스처럼 바텀시트 안에 들어가는 자리에서는
+   *  굴곡이 잘려 장식 노이즈로만 남고 애니메이션이 계속 돕니다 -- 그때만
+   *  false. 숨기지 않고 **그리지 않습니다**: display:none 은 애니메이션을
+   *  멈추지 않습니다. */
+  wave?: boolean;
+} = {}) {
   return (
-    <footer className="pd-foot">
+    <footer className={"pd-foot" + (wave ? "" : " is-flat")}>
       {/* 히어로가 코발트에서 본문으로 내려오는 물결을, 푸터는 거꾸로 세워
           본문에서 코발트로 되돌립니다. 굴곡은 같은 waveShape.ts 를 쓰고 CSS 가
           scaleY(-1) 로 뒤집습니다 -- 화면 위아래가 같은 물이어야 합니다. */}
-      <div className="pd-foot-anim" aria-hidden="true">
-        <svg
-          className="pd-foot-wave-back"
-          viewBox="0 0 2880 96"
-          preserveAspectRatio="none"
-        >
-          <path d={WAVE_LOOP_PATH} />
-        </svg>
-        <svg
-          className="pd-foot-wave-front"
-          viewBox="0 0 2880 96"
-          preserveAspectRatio="none"
-        >
-          <path d={WAVE_LOOP_PATH} opacity="0.5" />
-        </svg>
-      </div>
-      <svg
-        className="pd-foot-wave"
-        viewBox="0 0 1440 58"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path d={WAVE_PATH} />
-      </svg>
+      {wave && (
+        <>
+          <div className="pd-foot-anim" aria-hidden="true">
+            <svg
+              className="pd-foot-wave-back"
+              viewBox="0 0 2880 96"
+              preserveAspectRatio="none"
+            >
+              <path d={WAVE_LOOP_PATH} />
+            </svg>
+            <svg
+              className="pd-foot-wave-front"
+              viewBox="0 0 2880 96"
+              preserveAspectRatio="none"
+            >
+              <path d={WAVE_LOOP_PATH} opacity="0.5" />
+            </svg>
+          </div>
+          <svg
+            className="pd-foot-wave"
+            viewBox="0 0 1440 58"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path d={WAVE_PATH} />
+          </svg>
+        </>
+      )}
 
       <div className="pd-foot-body">
         {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}

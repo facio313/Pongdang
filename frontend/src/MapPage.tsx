@@ -749,7 +749,7 @@ function MapScreen() {
           {/* 전역 주의 문구입니다. 풀스크린에서는 .pd-body 가 없어 AppShell 이
               그리지 않으므로 시트 끝에 직접 둡니다 -- 자리를 옮겼을 뿐
               생략하지 않습니다. */}
-          <AppFootNote />
+          <AppFootNote wave={false} />
         </MapSheet>
       </AppShell>
     </article>

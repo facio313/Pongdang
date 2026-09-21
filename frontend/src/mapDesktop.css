@@ -90,6 +90,9 @@
   background: var(--dk-alert-bg);
   color: var(--dk-alert);
   padding: 10px 12px;
+  /* 지도 위 패널 안에서 면으로 읽히는 유일한 블록이라, 패널과 같은 예외로
+     컨트롤 radius 를 씁니다 -- 직각이면 패널 모서리와 어긋나 보입니다. */
+  border-radius: var(--dk-r-ctl);
   font-weight: 700;
   font-size: 11px;
   line-height: 1.5;
@@ -214,9 +217,5 @@
   color: var(--dk-deep);
   text-decoration: none;
 }
-/* 패널 안에서는 주의 문구가 마지막 블록입니다. 화면 아래 괘선 행이 아니라
-   패널 끝이므로 위 여백만 두고 좌우 패딩은 패널 것을 씁니다. */
-.pd-desktop .pd-dk-mappanel .pd-dk-foot {
-  margin-top: auto;
-  padding: 18px 0 0;
-}
+/* 패널 안 주의 문구의 공통 규칙은 pongdangDesktop.css 의 무대 쪽에 있습니다 --
+   내 코스 패널도 같은 블록을 쓰는데 이 파일은 지도 화면만 읽습니다. */

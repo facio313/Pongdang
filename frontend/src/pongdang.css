@@ -268,6 +268,14 @@ main:has(.pd-app.is-fullscreen) {
   /* 히어로가 아래 모서리를 둥글게 닫는 것과 대칭입니다. */
   border-radius: var(--pd-r-hero) var(--pd-r-hero) 0 0;
 }
+/* 파도 없이 쓰는 변형(AppFootNote wave={false}) -- 지도 · 내 코스의 시트 안이
+   그렇습니다. 위쪽 76px 은 파도가 서던 자리이므로, 파도를 그리지 않으면 코발트
+   빈 띠로만 남습니다. 아래 모서리도 둥글게 닫습니다 -- 화면 끝에 붙는 푸터와
+   달리 시트 안에서는 네 변이 모두 보입니다. */
+.pd-foot.is-flat {
+  padding-top: 20px;
+  border-radius: var(--pd-r-card);
+}
 .pd-foot b {
   color: var(--pd-on-cobalt);
 }

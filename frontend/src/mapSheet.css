@@ -96,3 +96,11 @@
     calc(var(--pd-touch) + 10px + max(10px, env(safe-area-inset-bottom, 0px)) + 12px)
   );
 }
+
+/* 시트 본문은 flex 열이므로, 마지막에 오는 전역 주의 문구(.pd-foot)가 남은
+   높이에 맞춰 눌려 글이 잘렸습니다 -- 코발트 띠에 로고만 보이고 문장은
+   overflow:hidden 에 먹혔습니다. 스크롤은 시트가 하므로 이 블록은 줄이지
+   않습니다. */
+.pd-sheet-body > .pd-foot {
+  flex: none;
+}

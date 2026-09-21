@@ -50,6 +50,11 @@
   /* 형태. 카드 radius 는 없습니다 -- 데스크탑에 카드가 없기 때문입니다. */
   --dk-r-ctl: 14px;
   --dk-r-pill: 999px;
+  /* 이 한 단계만 예외입니다: 지도 위에 **떠 있는** 패널 전용입니다. 구현
+     가이드가 「카드 · 그림자 금지(지도 위에 떠 있는 패널만 예외)」라고 적은
+     그 예외와 같은 대상입니다 -- 네 변이 모두 지도 타일과 떨어져 있어 직각
+     모서리면 잘린 종이로 읽힙니다. 본문 블록에는 쓰지 않습니다. */
+  --dk-r-panel: 18px;
 
   /* 데스크탑의 유일한 그림자입니다. 지도 위에 떠 있는 것(패널 · 컨트롤 · 핀)만
      씁니다 -- 지도 면과 분리되어야 눌리는 것으로 읽힙니다(구현 가이드 §2).
@@ -388,8 +393,9 @@ main:has(.pd-desktop.is-fullscreen) {
 }
 
 /* 지도 위에 뜨는 밝은 레이어 패널. 근거 · 표 · 폼 · 상태 칩은 전부 여기 들어
-   옵니다(§07). 데스크탑 문법이라 라운드는 없고, 그림자는 지도 위 요소에만
-   허용된 한 단계(--dk-shadow-map)입니다. */
+   옵니다(§07). 그림자는 지도 위 요소에만 허용된 한 단계(--dk-shadow-map)이고,
+   라운드도 같은 예외로 --dk-r-panel 한 단계만 씁니다 -- 지도 위에 떠 있는 면
+   이라 모서리가 타일에 노출됩니다. 본문 블록은 여전히 직각입니다. */
 .pd-dk-mappanel {
   display: flex;
   flex-direction: column;
@@ -401,6 +407,7 @@ main:has(.pd-desktop.is-fullscreen) {
   overscroll-behavior: contain;
   background: var(--dk-surface);
   box-shadow: var(--dk-shadow-map);
+  border-radius: var(--dk-r-panel);
   padding: 22px 20px;
 }
 .pd-dk-mappanel.is-start {
@@ -425,6 +432,8 @@ main:has(.pd-desktop.is-fullscreen) {
   place-items: center;
   color: var(--dk-ink);
   box-shadow: var(--dk-shadow-map);
+  /* 패널과 같은 예외이지만 40px 사각형이므로 한 단계 작은 컨트롤 radius. */
+  border-radius: var(--dk-r-ctl);
 }
 .pd-dk-mapcontrols button.is-accent {
   color: var(--dk-deep);
@@ -440,10 +449,25 @@ main:has(.pd-desktop.is-fullscreen) {
   left: 50%;
   transform: translate(-50%, -50%);
   max-width: min(360px, 60%);
+  /* 이것도 지도 위에 떠 있는 면이므로 컨트롤과 같은 radius 로 맞춥니다.
+     공용 kakaoMap.css 의 10px 은 다른 화면이 쓰므로 여기서만 덮어씁니다. */
+  border-radius: var(--dk-r-ctl);
 }
 
 /* 패널 안 첫 줄. 예전에 지도 면에 떠 있던 뱃지가 여기로 들어옵니다 -- 풀스크린
    에서는 지도 위에 뱃지가 설 자리가 패널과 겹칩니다. */
+/* 패널의 마지막 블록은 전역 주의 문구(FootNote)입니다. 페이지가 스크롤되지
+   않으므로 화면 아래에 둘 자리가 없어 패널 안으로 들어옵니다. 패널 패딩만큼
+   음수 마진으로 넓혀, 패널의 둥근 아래 모서리를 이 코발트 면이 그대로 이어
+   받게 합니다 -- 직각으로 두면 모서리에 흰 삼각이 남습니다. 글줄의 좌우
+   위치는 패널 본문과 같습니다. 파도는 이 안에서 그리지 않으므로(wave={false})
+   파도 자리였던 위쪽 104px 패딩도 쓰지 않습니다. */
+.pd-desktop .pd-dk-mappanel .pd-dk-foot {
+  margin: auto -20px -22px;
+  padding: 18px 20px 22px;
+  border-radius: 0 0 var(--dk-r-panel) var(--dk-r-panel);
+}
+
 .pd-dk-mappanel-badge {
   font-weight: 700;
   font-size: var(--dk-fs-cap);
@@ -562,6 +586,11 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 104px var(--dk-pad) 64px;
   background: var(--dk-cobalt);
   color: var(--dk-onc);
+}
+/* 파도 없이 쓰는 변형(FootNote wave={false}). 위쪽 104px 은 파도가 서던 자리
+   이므로, 파도를 그리지 않으면 코발트 빈 띠로만 남습니다. */
+.pd-dk-foot.is-flat {
+  padding-top: 28px;
 }
 /* 물결 · 파도는 절대배치이므로, 본문은 z-index 로 그 위에 올려 둡니다. */
 .pd-dk-foot-body {
