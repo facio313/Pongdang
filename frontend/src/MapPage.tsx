@@ -165,14 +165,13 @@ function Stage({
         }}
       />
 
-      {/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 -- 공용
-          .pd-hero 규칙(코발트 · 하단 라운드 22 · 히어로 그림자)을 그대로 쓰고
-          자리만 지도 위로 옮깁니다. 반투명 스크림을 새로 만들지 않습니다. */}
+      {/* 지도 위 띠. 공용 .pd-hero 규칙(하단 라운드 22 · 그림자)을 쓰되 지도 ·
+          내 코스 두 화면만 면과 잉크를 반전합니다 -- 흰 면에 코발트 잉크
+          (mapPage.css). 그래서 onCobalt 를 주지 않습니다. */}
       <header className="pd-hero mp-topbar">
         <AppHeader
           title={view === "spots" ? t("지도") : t("코스 지도")}
           time={timeLabel(new Date().toISOString())}
-          onCobalt
         />
       </header>
 
@@ -750,7 +749,7 @@ function MapScreen() {
           {/* 전역 주의 문구입니다. 풀스크린에서는 .pd-body 가 없어 AppShell 이
               그리지 않으므로 시트 끝에 직접 둡니다 -- 자리를 옮겼을 뿐
               생략하지 않습니다. */}
-          <AppFootNote />
+          <AppFootNote wave={false} />
         </MapSheet>
       </AppShell>
     </article>

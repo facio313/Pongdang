@@ -75,6 +75,39 @@
   color: var(--pd-ink-2);
 }
 
+/* 필터 줄은 검색 줄 바로 아래에 이어지는 같은 성격의 컨트롤입니다. 공용
+   .water-place-filters 는 라벨을 위에 얹은 네모 상자라 이 화면에서만 검색
+   알약과 같은 형태로 맞춥니다 -- 높이 · 패딩 · 반경 · 그림자 · 글자 크기를
+   .sp-search 와 같은 값으로 둡니다. 세로 간격은 .pd-body 의 gap(12px) 하나로
+   충분하므로 공용 규칙의 padding: 12px 0 은 지웁니다. */
+.spots-page .water-place-filters {
+  gap: 10px;
+  padding: 0;
+}
+.spots-page .water-place-filters label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--pd-touch);
+  padding: 10px 14px;
+  background: var(--pd-surface);
+  border-radius: var(--pd-r-pill);
+  box-shadow: var(--pd-shadow);
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink-2);
+  white-space: nowrap;
+}
+.spots-page .water-place-filters select {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--pd-ink);
+  font: inherit;
+}
+
 .spots-page .sp-source {
   display: flex;
   align-items: center;

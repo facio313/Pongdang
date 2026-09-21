@@ -50,6 +50,11 @@
   /* 형태. 카드 radius 는 없습니다 -- 데스크탑에 카드가 없기 때문입니다. */
   --dk-r-ctl: 14px;
   --dk-r-pill: 999px;
+  /* 이 한 단계만 예외입니다: 지도 위에 **떠 있는** 패널 전용입니다. 구현
+     가이드가 「카드 · 그림자 금지(지도 위에 떠 있는 패널만 예외)」라고 적은
+     그 예외와 같은 대상입니다 -- 네 변이 모두 지도 타일과 떨어져 있어 직각
+     모서리면 잘린 종이로 읽힙니다. 본문 블록에는 쓰지 않습니다. */
+  --dk-r-panel: 18px;
 
   /* 데스크탑의 유일한 그림자입니다. 지도 위에 떠 있는 것(패널 · 컨트롤 · 핀)만
      씁니다 -- 지도 면과 분리되어야 눌리는 것으로 읽힙니다(구현 가이드 §2).
@@ -154,8 +159,9 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-desktop-menu-root {
   display: contents;
 }
-/* 표지는 이미지 한 장입니다(brand.ts). 원본이 코발트와 같은 파랑이라 이
-   면 위에서는 흰 단색으로 눕히고, 흰 배경 변형에서만 원색으로 돌립니다. */
+/* 표지는 이미지 한 장입니다(brand.ts). 모바일 헤더(.pd-header-mark)와 같은
+   규칙입니다 -- 원본이 코발트와 같은 파랑이지만 흰 단색으로 눕히지 않고
+   원색 그대로 두고, 코발트 띠 위에서만 흰 외곽선으로 대비를 만듭니다. */
 .pd-dk-nav-mark {
   display: flex;
   align-items: center;
@@ -163,9 +169,15 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-dk-nav-mark img {
   display: block;
   width: auto;
-  height: 24px;
+  height: 48px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)
+    drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff);
+}
+/* 흰 면 위(명소 상세 · 지도 · 내 코스)에서는 테두리가 보이지 않으므로 끕니다. */
+.pd-dk-nav.is-on-surface .pd-dk-nav-mark img,
+.pd-dk-nav.is-on-map .pd-dk-nav-mark img {
+  filter: none;
 }
 .pd-dk-nav-links {
   display: flex;
@@ -195,9 +207,6 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 22px var(--dk-pad) 18px;
   border-bottom: 1px solid var(--dk-rule);
 }
-.pd-dk-nav.is-on-surface .pd-dk-nav-mark img {
-  filter: none;
-}
 .pd-dk-nav.is-on-surface .pd-dk-nav-link {
   color: var(--dk-ink-2);
 }
@@ -209,18 +218,34 @@ main:has(.pd-desktop.is-fullscreen) {
   color: var(--dk-ink-2);
 }
 
-/* 풀스크린 지도 위에 얹히는 변형. 이 띠가 그 화면의 **유일한 히어로 레이어**
-   이므로 코발트 면을 스스로 깝니다 -- 지도 타일의 밝기를 예측할 수 없다고 해서
-   반투명 스크림을 새로 만들지 않습니다. 그라디언트는 코발트 히어로 하나뿐이고
-   (디자인 시스템 v2 §07), 그 하나가 여기입니다. 잉크는 다른 코발트 면과 같은
-   --dk-onc 계열이라 대비도 그대로입니다. */
+/* 풀스크린 지도 위에 얹히는 변형. 지도 · 내 코스 두 화면은 다른 탭과 **반전**
+   합니다: 코발트 면 대신 흰 면을 깔고 잉크를 코발트 계열로 돌려, 지도 타일
+   위에서 띠가 스스로 경계가 되게 합니다(그림자로 지도와 분리). 반투명 스크림은
+   여전히 만들지 않습니다 -- 불투명한 흰 면 하나입니다. */
 .pd-dk-nav.is-on-map {
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 5;
   min-height: var(--dk-map-nav-h);
   padding: 22px var(--dk-pad) 20px;
-  background: var(--dk-cobalt);
+  background: var(--dk-surface);
+  box-shadow: var(--dk-shadow-map);
+}
+/* 잉크 세트는 흰 배경 변형(.is-on-surface)과 같습니다. */
+.pd-dk-nav.is-on-map .pd-menu-button {
+  border-color: var(--dk-line);
+  background: var(--dk-mist);
+  color: var(--dk-ink);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-link {
+  color: var(--dk-ink-2);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-link[aria-current="page"] {
+  color: var(--dk-ink);
+  box-shadow: inset 0 -2px 0 var(--dk-blue);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-context {
+  color: var(--dk-ink-2);
 }
 
 /* ── 히어로 ────────────────────────────────────────────────
@@ -338,9 +363,11 @@ main:has(.pd-desktop.is-fullscreen) {
   /* 지도가 뜨기 전에도 흰 구멍이 아니라 물빛 면으로 보이게 합니다. */
   background: #dfe8f2;
 
-  /* 상단 코발트 띠의 높이. 네비와 아래 크롬 레이어가 **같은 값**을 읽습니다 --
-     한쪽을 고치고 다른 쪽을 잊으면 패널이 네비 밑으로 들어갑니다. */
-  --dk-map-nav-h: 68px;
+  /* 상단 띠의 높이. 네비와 아래 크롬 레이어가 **같은 값**을 읽습니다 --
+     한쪽을 고치고 다른 쪽을 잊으면 패널이 네비 밑으로 들어갑니다. 워드마크
+     48px 에 띠 패딩(22 + 20)을 더한 값입니다 -- 내용이 이 값을 넘으면 패널이
+     네비 밑으로 들어갑니다. */
+  --dk-map-nav-h: 90px;
   /* 좌 · 우 패널 폭. 예전 2열 구성(.mk-stage)의 352px 을 그대로 승계합니다. */
   --dk-map-panel-w: 352px;
 }
@@ -366,8 +393,9 @@ main:has(.pd-desktop.is-fullscreen) {
 }
 
 /* 지도 위에 뜨는 밝은 레이어 패널. 근거 · 표 · 폼 · 상태 칩은 전부 여기 들어
-   옵니다(§07). 데스크탑 문법이라 라운드는 없고, 그림자는 지도 위 요소에만
-   허용된 한 단계(--dk-shadow-map)입니다. */
+   옵니다(§07). 그림자는 지도 위 요소에만 허용된 한 단계(--dk-shadow-map)이고,
+   라운드도 같은 예외로 --dk-r-panel 한 단계만 씁니다 -- 지도 위에 떠 있는 면
+   이라 모서리가 타일에 노출됩니다. 본문 블록은 여전히 직각입니다. */
 .pd-dk-mappanel {
   display: flex;
   flex-direction: column;
@@ -379,6 +407,7 @@ main:has(.pd-desktop.is-fullscreen) {
   overscroll-behavior: contain;
   background: var(--dk-surface);
   box-shadow: var(--dk-shadow-map);
+  border-radius: var(--dk-r-panel);
   padding: 22px 20px;
 }
 .pd-dk-mappanel.is-start {
@@ -403,6 +432,8 @@ main:has(.pd-desktop.is-fullscreen) {
   place-items: center;
   color: var(--dk-ink);
   box-shadow: var(--dk-shadow-map);
+  /* 패널과 같은 예외이지만 40px 사각형이므로 한 단계 작은 컨트롤 radius. */
+  border-radius: var(--dk-r-ctl);
 }
 .pd-dk-mapcontrols button.is-accent {
   color: var(--dk-deep);
@@ -418,10 +449,25 @@ main:has(.pd-desktop.is-fullscreen) {
   left: 50%;
   transform: translate(-50%, -50%);
   max-width: min(360px, 60%);
+  /* 이것도 지도 위에 떠 있는 면이므로 컨트롤과 같은 radius 로 맞춥니다.
+     공용 kakaoMap.css 의 10px 은 다른 화면이 쓰므로 여기서만 덮어씁니다. */
+  border-radius: var(--dk-r-ctl);
 }
 
 /* 패널 안 첫 줄. 예전에 지도 면에 떠 있던 뱃지가 여기로 들어옵니다 -- 풀스크린
    에서는 지도 위에 뱃지가 설 자리가 패널과 겹칩니다. */
+/* 패널의 마지막 블록은 전역 주의 문구(FootNote)입니다. 페이지가 스크롤되지
+   않으므로 화면 아래에 둘 자리가 없어 패널 안으로 들어옵니다. 패널 패딩만큼
+   음수 마진으로 넓혀, 패널의 둥근 아래 모서리를 이 코발트 면이 그대로 이어
+   받게 합니다 -- 직각으로 두면 모서리에 흰 삼각이 남습니다. 글줄의 좌우
+   위치는 패널 본문과 같습니다. 파도는 이 안에서 그리지 않으므로(wave={false})
+   파도 자리였던 위쪽 104px 패딩도 쓰지 않습니다. */
+.pd-desktop .pd-dk-mappanel .pd-dk-foot {
+  margin: auto -20px -22px;
+  padding: 18px 20px 22px;
+  border-radius: 0 0 var(--dk-r-panel) var(--dk-r-panel);
+}
+
 .pd-dk-mappanel-badge {
   font-weight: 700;
   font-size: var(--dk-fs-cap);
@@ -540,6 +586,11 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 104px var(--dk-pad) 64px;
   background: var(--dk-cobalt);
   color: var(--dk-onc);
+}
+/* 파도 없이 쓰는 변형(FootNote wave={false}). 위쪽 104px 은 파도가 서던 자리
+   이므로, 파도를 그리지 않으면 코발트 빈 띠로만 남습니다. */
+.pd-dk-foot.is-flat {
+  padding-top: 28px;
 }
 /* 물결 · 파도는 절대배치이므로, 본문은 z-index 로 그 위에 올려 둡니다. */
 .pd-dk-foot-body {

@@ -304,42 +304,57 @@ export function FootNote({
   missing,
   note = DEFAULT_FOOT_NOTE,
   alert = false,
+  wave = true,
 }: {
   /** 실제 미연동 항목이 있는 화면에서만 표시합니다. */
   missing?: string;
   note?: ReactNode;
   /** 경고 바 형태(붉은 바탕 + 삼각 경고). */
   alert?: boolean;
+  /** 물결 · 흐르는 파도를 그릴지. 화면 전체 폭 푸터에서는 히어로와 대칭이
+   *  되지만, 지도 위 패널(352px)처럼 좁은 면 안에서는 굴곡이 잘려 장식
+   *  노이즈로만 남고 애니메이션이 지도 위에서 계속 돕니다 -- 그때만 false.
+   *  숨기지 않고 **그리지 않습니다**: display:none 은 애니메이션을 멈추지
+   *  않습니다. */
+  wave?: boolean;
 }) {
   return (
-    <footer className={"pd-dk-foot" + (alert ? " is-alert" : "")}>
+    <footer
+      className={
+        "pd-dk-foot" + (alert ? " is-alert" : "") + (wave ? "" : " is-flat")
+      }
+    >
       {/* 히어로가 코발트에서 흰 본문으로 내려오는 물결을, 푸터는 거꾸로 세워
           흰 본문에서 코발트로 되돌립니다. 굴곡은 같은 waveShape.ts 를 쓰고
           CSS 가 scaleY(-1) 로 뒤집습니다 -- 위아래가 같은 물이어야 합니다. */}
-      <div className="pd-dk-foot-anim" aria-hidden="true">
-        <svg
-          className="pd-dk-wave-back"
-          viewBox="0 0 2880 96"
-          preserveAspectRatio="none"
-        >
-          <path d={WAVE_LOOP_PATH} fill="#ffffff" />
-        </svg>
-        <svg
-          className="pd-dk-wave-front"
-          viewBox="0 0 2880 96"
-          preserveAspectRatio="none"
-        >
-          <path d={WAVE_LOOP_PATH} fill="#ffffff" opacity="0.5" />
-        </svg>
-      </div>
-      <svg
-        className="pd-dk-foot-wave"
-        viewBox="0 0 1440 58"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path d={WAVE_PATH} fill="#ffffff" />
-      </svg>
+      {wave && (
+        <>
+          <div className="pd-dk-foot-anim" aria-hidden="true">
+            <svg
+              className="pd-dk-wave-back"
+              viewBox="0 0 2880 96"
+              preserveAspectRatio="none"
+            >
+              <path d={WAVE_LOOP_PATH} fill="#ffffff" />
+            </svg>
+            <svg
+              className="pd-dk-wave-front"
+              viewBox="0 0 2880 96"
+              preserveAspectRatio="none"
+            >
+              <path d={WAVE_LOOP_PATH} fill="#ffffff" opacity="0.5" />
+            </svg>
+          </div>
+          <svg
+            className="pd-dk-foot-wave"
+            viewBox="0 0 1440 58"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path d={WAVE_PATH} fill="#ffffff" />
+          </svg>
+        </>
+      )}
 
       <div className="pd-dk-foot-body">
         {/* 제품 이름은 바로 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}

@@ -16,21 +16,31 @@
   background-color: #cddff0;
 }
 
-/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 -- 공용 .pd-hero 의
-   코발트 · 하단 라운드 · 히어로 그림자를 그대로 물려받고 자리와 높이만
-   덮습니다(디자인 시스템 v2 §07 — 히어로는 화면당 하나). */
+/* 지도 위 띠. 공용 .pd-hero 의 하단 라운드 · 그림자는 그대로 물려받되, 이
+   화면(과 지도)만 **면과 잉크를 반전**합니다 -- 코발트 대신 흰 면, 잉크는
+   코발트 계열(mapPage.css 의 .mp-topbar 와 같은 규칙). */
 .my-courses-page .mc-topbar {
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 5;
   min-height: 0;
   padding-bottom: 10px;
+  background: var(--pd-surface);
+}
+.my-courses-page .mc-topbar .pd-header {
+  color: var(--pd-blue-deep);
+}
+/* 손잡이는 코발트 면 전제의 유리 스타일이라 흰 면 위에서는 보이지 않습니다. */
+.my-courses-page .mc-topbar .pd-menu-button {
+  border-color: var(--pd-line);
+  background: var(--pd-mist);
+  color: var(--pd-blue-deep);
 }
 
 /* 핀이 없을 때의 안내. 빈 지도를 성공처럼 보이게 하지 않습니다. */
 .my-courses-page .mc-map-note {
   position: absolute;
-  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 52px);
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 70px);
   left: 16px;
   right: 16px;
   z-index: 4;
