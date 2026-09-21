@@ -46,13 +46,12 @@ test("a spot's score is fetched on the detail page and is – rather than 0 when
     recommendation.choice ? String(recommendation.choice.score) : "–",
   );
 
-  // 서버에 컬럼이 없는 항목은 지어내지 않고 «–» 로 둡니다.
+  // 저장된 상세정보가 없는 상태는 원인에 맞는 문구로 구분합니다.
   const info = page.locator(".sd-info").first();
   await expect(info).toContainText("운영");
-  await expect(info).toContainText("–");
-  await expect(page.locator(".spot-detail")).toContainText("내려주는 API 가 아직 없습니다");
-  // 예시 상수의 소개문·거리는 사라져야 합니다.
-  await expect(page.locator(".spot-detail")).not.toContainText("현재 위치에서");
+  await expect(page.locator(".place-details")).toContainText(/미수집|정보 미제공|상세정보 연결 없음|수집 대상 아님/);
+  await expect(page.locator(".spot-detail")).not.toContainText("내려주는 API 가 아직 없습니다");
+  await expect(page.locator(".place-distance-result")).toContainText("–");
 });
 
 test("the spots map pins only verified coordinates and scores only the chosen pin", async ({ page }) => {

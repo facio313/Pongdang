@@ -71,6 +71,22 @@ def test_production_attachment_storage_is_scoped_and_api_is_read_only():
         config["services"]["collector"]["environment"]["PHOTO_COLLECTION_ENABLED"]
         == "true"
     )
+    thumbnail_root = "/var/lib/pongdang/windy-thumbnails"
+    (thumbnail_mount,) = [
+        mount
+        for mount in config["services"]["backend"]["volumes"]
+        if mount["target"] == thumbnail_root
+    ]
+    assert thumbnail_mount["source"] == "windy_thumbnail_data"
+    assert thumbnail_mount["type"] == "volume"
+    assert not thumbnail_mount.get("read_only", False)
+    assert (
+        config["services"]["backend"]["environment"]["WINDY_THUMBNAIL_ROOT"]
+        == thumbnail_root
+    )
+    assert config["volumes"]["windy_thumbnail_data"]["name"] == (
+        "pongdang-storage-check_windy_thumbnail_data"
+    )
 
 
 def test_dev_bind_replaces_the_volume_without_making_api_storage_writable():

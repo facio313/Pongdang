@@ -174,21 +174,20 @@ test("missing observations use an explicitly labelled forecast and never bypass 
 
 test("forecast date changes display that date's server score and clear unavailable days", async ({ page }) => {
   const targetDates: string[] = [];
-  await page.route("**/api/data/water-index/conditions?**", async (route) => {
+  await page.route("**/api/data/water-index/conditions/series?**", async (route) => {
     const url = new URL(route.request().url());
-    if (url.searchParams.get("mode") !== "forecast") return route.continue();
-    const at = url.searchParams.get("at")!;
-    targetDates.push(at);
+    targetDates.push(...url.searchParams.get("targets")!.split(","));
     const response = await route.fetch();
     const data = await response.json();
-    const kst = new Date(Date.parse(at) + 9 * 3600000).toISOString();
     const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-    const isToday = kst.slice(0, 10) === today;
-    await route.fulfill({ json: { ...data, condition_score: {
-      ...data.condition_score, score: isToday ? 64.2 : null,
-      status: isToday ? "partial" : "unavailable", coverage: isToday ? 0.5 : 0,
-      available_components: isToday ? 2 : 0, total_components: 4,
-    } } });
+    await route.fulfill({ json: { ...data, rows: data.rows.map((row: { at: string; condition_score: object }) => {
+      const isToday = new Date(Date.parse(row.at) + 9 * 3600000).toISOString().slice(0, 10) === today;
+      return { ...row, condition_score: {
+        ...row.condition_score, score: isToday ? 64.2 : null,
+        status: isToday ? "partial" : "unavailable", coverage: isToday ? 0.5 : 0,
+        available_components: isToday ? 2 : 0, total_components: 4,
+      } };
+    }) } });
   });
   await page.goto("#today");
   await expect(page.locator(".td-bar-score").first()).toHaveText("64.2");
@@ -203,9 +202,7 @@ test("forecast date changes display that date's server score and clear unavailab
 });
 
 test("mobile weekly forecast reports failed reads instead of missing scores", async ({ page }) => {
-  await page.route("**/api/data/water-index/conditions?**", (route) => {
-    if (new URL(route.request().url()).searchParams.get("mode") !== "forecast")
-      return route.continue();
+  await page.route("**/api/data/water-index/conditions/series?**", (route) => {
     return route.fulfill({ status: 503, json: { detail: "test read timeout" } });
   });
   await page.goto("#today");
@@ -248,7 +245,7 @@ test("saved course scores use its actual date and never query unsupported histor
   expect(targets).toEqual([]);
 });
 
-test("a current score clears at its source expiry while refreshed evidence is loading", async ({ page }) => {
+test("a current score clears at expiry without a read before the ten-minute interval", async ({ page }) => {
   const now = new Date("2026-09-16T03:00:00Z");
   await page.clock.install({ time: now });
   let requests = 0;
@@ -296,6 +293,8 @@ test("a current score clears at its source expiry while refreshed evidence is lo
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.clock.fastForward(10001);
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  expect(requests).toBe(1);
+  await page.clock.fastForward(590100);
   await expect.poll(() => requests).toBeGreaterThan(1);
   release();
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
@@ -558,7 +557,7 @@ test("favorites and explicit notification settings use owner-scoped APIs", async
       page.getByRole("status").filter({ hasText: "알림 구독을 저장했습니다" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("status").filter({ hasText: "실제 자료 조회 중" }),
+      page.getByRole("status").filter({ hasText: "알림 구독을 조회하고 있습니다." }),
     ).toBeVisible();
   } finally {
     releaseRefresh();

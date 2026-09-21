@@ -5,6 +5,7 @@ import { DevIndexPage } from "./DevIndexPage";
 import { DesktopKitPage } from "./DesktopKitPage";
 import { AiConciergePage } from "./AiConciergePage";
 import { FeatureDataPage } from "./FeatureDataPage";
+import { NotificationsPage } from "./NotificationsPage";
 import { LivecamPreviewPage } from "./LivecamPreviewPage";
 import { featurePages, readRoute, type FeaturePage } from "./featureRoutes";
 import { HomePage } from "./HomePage";
@@ -113,6 +114,8 @@ export default function App() {
           />
         ) : screen.route.page === "livecam" ? (
           <LivecamPreviewPage />
+        ) : screen.route.page === "first-swim" ? (
+          <NotificationsPage />
         ) : Object.hasOwn(featurePages, screen.route.page) ? (
           <FeatureDataPage
             key={JSON.stringify(screen.route)}

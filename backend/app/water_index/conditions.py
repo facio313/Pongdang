@@ -316,6 +316,14 @@ class DisplayMetric(ConditionMetric):
     text_value: str | None = None
 
 
+class ConditionProjection(Record):
+    generation_id: int | None
+    source_revision: int
+    computed_at: AwareDatetime | None
+    refresh_after: AwareDatetime | None
+    status: Literal["ready", "pending"]
+
+
 class ConditionsEnvelope(Record):
     contract_version: Literal["water-conditions.v1"] = CONTRACT
     model: ConditionModel = Field(default_factory=ConditionModel)
@@ -330,6 +338,7 @@ class ConditionsEnvelope(Record):
     restriction_refs: Annotated[tuple[str, ...], Field(max_length=100)]
     environment_score: None = None
     condition_score: ActivityScore | None = None
+    projection: ConditionProjection | None = None
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
     context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
     display_metrics: Annotated[tuple[DisplayMetric, ...], Field(max_length=100)] = ()
@@ -404,6 +413,16 @@ class ConditionSummary(Record):
     condition_score: ActivityScore | None = None
     water_temperature: DisplayMetric | ConditionMetric | None = None
     expires_at: AwareDatetime | None
+
+
+class ConditionSeries(Record):
+    contract_version: Literal["water-conditions-series.v1"] = (
+        "water-conditions-series.v1"
+    )
+    spot_id: int
+    activity: Activity
+    as_of: AwareDatetime
+    rows: Annotated[tuple[ConditionsEnvelope, ...], Field(max_length=32)]
 
 
 class SummaryFailure(Record):

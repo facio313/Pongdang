@@ -8,6 +8,7 @@ import { dataMessages } from "./locales/data.ts";
 import { featureMessages } from "./locales/features.ts";
 import { regionMessages } from "./locales/regions.ts";
 import { errorMessages } from "./locales/errors.ts";
+import { notificationMessages } from "./locales/notifications.ts";
 
 /** English, simplified Chinese, Japanese. Korean source copy is the stable key. */
 export type MessageTranslations = readonly [string, string, string];
@@ -21,6 +22,7 @@ export const messages: Record<string, MessageTranslations> = {
   ...featureMessages,
   ...regionMessages,
   ...errorMessages,
+  ...notificationMessages,
 };
 const languageIndex = { en: 0, "zh-CN": 1, ja: 2 } as const;
 

@@ -35,6 +35,8 @@ def create_router(settings):
         response: Response,
         limit: int = Query(100, ge=1, le=100),
         offset: int = Query(0, ge=0, le=10000),
+        spot_id: int | None = Query(None, ge=1),
+        year: int | None = Query(None, ge=2000, le=2100),
     ):
         response.headers["Cache-Control"] = "private, no-store"
         try:
@@ -42,9 +44,14 @@ def create_router(settings):
                 c.execute("SET TRANSACTION READ ONLY")
                 c.row_factory = dict_row
                 rows = c.execute(
-                    "SELECT * FROM pongdang_data.notification_subscription "
-                    "WHERE owner_subject=%s ORDER BY id LIMIT %s OFFSET %s",
-                    [principal.subject, limit, offset],
+                    "SELECT s.*,p.name AS spot_name FROM "
+                    "pongdang_data.notification_subscription s LEFT JOIN "
+                    "pongdang_data.spots_waterspot p ON p.id=s.spot_id "
+                    "WHERE s.owner_subject=%s "
+                    "AND (%s::bigint IS NULL OR s.spot_id=%s) "
+                    "AND (%s::integer IS NULL OR s.season_year=%s) "
+                    "ORDER BY s.updated_at DESC,s.id LIMIT %s OFFSET %s",
+                    [principal.subject, spot_id, spot_id, year, year, limit, offset],
                 ).fetchall()
             return SubscriptionPage(
                 rows=[subscription_view(row, settings) for row in rows],

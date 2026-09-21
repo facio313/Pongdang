@@ -150,6 +150,49 @@ def client(db):
     return TestClient(app)
 
 
+def test_subscription_place_year_filters_preserve_owner_scope_and_names(db):
+    sub, _ = subscription(db)
+    with client(db) as api:
+        path = (
+            f"/api/data/notifications/subscriptions?spot_id={sub.spot_id}"
+            f"&year={sub.year}&limit=1&offset=0"
+        )
+        response = api.get(path, headers=auth_headers())
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "private, no-store"
+        (row,) = response.json()["rows"]
+        assert row["id"] == sub.id
+        assert row["spot_name"] == "OFFLINE TEST beach"
+        assert api.get(path, headers=auth_headers("other")).json()["rows"] == []
+        assert (
+            api.get(
+                path.replace(f"year={sub.year}", f"year={sub.year + 1}"),
+                headers=auth_headers(),
+            ).json()["rows"]
+            == []
+        )
+        assert (
+            api.get(
+                path.replace("offset=0", "offset=1"), headers=auth_headers()
+            ).json()["rows"]
+            == []
+        )
+        assert (
+            api.get(
+                path.replace(f"spot_id={sub.spot_id}", "spot_id=0"),
+                headers=auth_headers(),
+            ).status_code
+            == 422
+        )
+    with connect(db) as c:
+        assert (
+            c.execute(
+                "SELECT count(*) FROM pongdang_data.notification_evaluation"
+            ).fetchone()[0]
+            == 0
+        )
+
+
 def test_normalized_observation_persisted_event_owner_api_and_readonly_get(db):
     sub, body = subscription(db)
     assert save_subscription(db, OWNER, body).id == sub.id

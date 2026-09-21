@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
+from app import schema
 from app.config import Settings
 from app.livecams.preview import (
     WATER_CATEGORIES,
@@ -16,6 +17,19 @@ from app.livecams.preview import (
     create_preview_router,
 )
 from app.livecams.windy import WindyClient, WindyError
+
+
+@pytest.fixture(autouse=True)
+def catalog_database():
+    settings = Settings()
+    if settings.postgres_db != "pongdang_test":
+        pytest.fail("Requires disposable pongdang_test")
+    schema.initialize(settings)
+    with schema.connect(settings) as connection:
+        connection.execute(
+            "TRUNCATE pongdang_data.windy_catalog_revision, "
+            "pongdang_data.windy_api_budget, pongdang_data.windy_thumbnail"
+        )
 
 
 def config(**updates):
@@ -102,7 +116,7 @@ def app_client(s, read_places=None):
     return TestClient(app)
 
 
-def test_country_preview_works_without_webcam_schema_and_redacts_payloads():
+def test_country_catalog_is_stored_and_redacts_payloads():
     s = service()
     http = app_client(s)
     first = http.post("/api/data/livecams/preview", json={})
@@ -124,9 +138,11 @@ def test_country_preview_works_without_webcam_schema_and_redacts_payloads():
     assert first.json()["shuffle_seed"] == 0
     assert first.json()["matching_status"] == "not_requested"
     assert first.json()["matched_total"] == 0
+    assert first.json()["valid_until"] is None
+    assert first.json()["storage"] == "database"
 
 
-def test_expired_success_is_not_extended_or_returned_after_failure():
+def test_stored_catalog_survives_time_and_failed_explicit_refresh():
     now = [1_800_000_000.0]
     client = Client()
     s = PreviewService(
@@ -135,12 +151,15 @@ def test_expired_success_is_not_extended_or_returned_after_failure():
     first = s.query()
     now[0] += 601
     client.error = WindyError("WINDY_HTTP_503")
+    assert s.query().fetched_at == first.fetched_at
+    assert len(client.calls) == 5
     with pytest.raises(WindyError, match="WINDY_HTTP_503"):
-        s.query()
+        s.query(refresh=True)
     with pytest.raises(WindyError, match="WINDY_BACKOFF"):
-        s.query()
+        s.query(refresh=True)
     assert len(client.calls) == 6
-    assert s.cache[("water",)].valid_until == first.valid_until
+    assert s.query().fetched_at == first.fetched_at
+    assert s.catalog.read().fetched_at == first.fetched_at
 
 
 @pytest.mark.parametrize(
@@ -180,7 +199,10 @@ def test_missing_key_budget_and_inflight_requests_never_call_provider():
         )
         assert not s.client.calls
     s = service()
-    with s.lock:
+    with schema.connect(s.settings) as connection:
+        connection.execute(
+            "SELECT pg_advisory_xact_lock(hashtext('pongdang-windy-catalog'))"
+        )
         assert (
             app_client(s).post("/api/data/livecams/preview", json={}).status_code == 429
         )
@@ -293,14 +315,27 @@ def test_daily_budget_retry_after_tracks_utc_reset_and_no_upstream_call():
     )
     assert app_client(s).post("/api/data/livecams/preview", json={}).status_code == 200
     now[0] += 601
-    response = app_client(s).post("/api/data/livecams/preview", json={})
+    # Normal list reads remain available with the daily budget exhausted.
+    assert app_client(s).post("/api/data/livecams/preview", json={}).status_code == 200
+
+    async def read(_reader, **kwargs):
+        return [place()]
+
+    response = app_client(s, read).post(
+        "/api/data/livecams/preview", json={"spot_id": 7}
+    )
     assert response.status_code == 429
     assert response.json()["detail"] == "WINDY_DAILY_BUDGET"
     assert int(response.headers["retry-after"]) == 1199
     assert len(s.client.calls) == 5
     now[0] += 1199
-    assert app_client(s).post("/api/data/livecams/preview", json={}).status_code == 200
-    assert len(s.client.calls) == 10
+    assert (
+        app_client(s, read)
+        .post("/api/data/livecams/preview", json={"spot_id": 7})
+        .status_code
+        == 200
+    )
+    assert len(s.client.calls) == 6
 
 
 @pytest.mark.parametrize(
@@ -336,6 +371,7 @@ def test_get_and_arbitrary_queries_do_not_trigger_provider():
         {"shuffle_seed": True},
         {"shuffle_seed": 1.5},
         {"shuffle_seed": "1"},
+        {"refresh": True},
     ):
         assert http.post("/api/data/livecams/preview", json=body).status_code == 422
     assert (
@@ -349,19 +385,27 @@ def test_get_and_arbitrary_queries_do_not_trigger_provider():
     assert not s.client.calls
 
 
-def test_country_scope_filters_foreign_records_and_rejects_conflicts_and_secrets():
+def test_country_scope_filters_foreign_records():
     s = service(
         Client(
             [camera(), camera(), camera(webcamId=43, location={"country_code": "JP"})]
         )
     )
     assert len(s.query().rows) == 1
-    for rows, code in [
+
+
+@pytest.mark.parametrize(
+    "rows,code",
+    [
         ([camera(), camera(title="Conflicting")], "WINDY_CONFLICTING_CAMERA"),
         ([camera(title="OFFLINE_SECRET")], "WINDY_PRIVATE_DATA_REJECTED"),
-    ]:
-        with pytest.raises(WindyError, match=code):
-            service(Client(rows)).query()
+    ],
+)
+def test_catalog_rejects_conflicts_and_secrets_before_storage(rows, code):
+    s = service(Client(rows))
+    with pytest.raises(WindyError, match=code):
+        s.query()
+    assert s.catalog.read() is None
 
 
 def test_sample_adapter_has_fixed_country_limit_and_header_only_credentials():
@@ -437,7 +481,7 @@ def test_only_water_categories_survive_including_mixed_port_but_not_airport():
     assert [c.provider_camera_id for c in s.query(place()).rows] == ["5"]
 
 
-def test_catalog_random_pages_and_filters_share_order_cache_and_never_open_db(
+def test_catalog_random_pages_and_filters_share_order_and_never_read_place_db(
     monkeypatch,
 ):
     class Catalog(Client):
@@ -451,7 +495,7 @@ def test_catalog_random_pages_and_filters_share_order_cache_and_never_open_db(
             return dict(total=25, webcams=rows)
 
     def forbidden_connection(*args, **kwargs):
-        raise AssertionError("Random catalog must not connect to the database")
+        raise AssertionError("Random catalog must not query collected places")
 
     monkeypatch.setattr(
         "app.livecams.preview.DataReader.connection", forbidden_connection
@@ -499,7 +543,7 @@ def test_catalog_random_pages_and_filters_share_order_cache_and_never_open_db(
     assert len(s.client.calls) == 5
 
 
-def test_cache_refresh_preserves_same_seed_order_and_provider_metadata():
+def test_only_explicit_catalog_refresh_changes_import_time_and_keeps_seed_order():
     class Catalog(Client):
         def list_page(self, page=1, category=None):
             self.calls.append((page, category))
@@ -518,6 +562,10 @@ def test_cache_refresh_preserves_same_seed_order_and_provider_metadata():
     http = app_client(s)
     first = http.post("/api/data/livecams/preview", json={"shuffle_seed": 5}).json()
     now[0] += 601
+    stored = http.post("/api/data/livecams/preview", json={"shuffle_seed": 5}).json()
+    assert stored["fetched_at"] == first["fetched_at"]
+    assert len(s.client.calls) == 5
+    s.query(refresh=True)
     refreshed = http.post("/api/data/livecams/preview", json={"shuffle_seed": 5}).json()
     assert first["fetched_at"] != refreshed["fetched_at"]
     assert first["rows"] == refreshed["rows"]
@@ -540,6 +588,7 @@ def test_partial_water_fetch_failure_never_caches_incomplete_success():
     with pytest.raises(WindyError, match="WINDY_HTTP_503"):
         s.query()
     assert not s.cache
+    assert s.catalog.read() is None
 
 
 def test_catalog_adapter_sends_bounded_offset_and_approved_category():

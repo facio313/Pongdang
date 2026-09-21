@@ -1,15 +1,18 @@
-"""Separate, restart-safe periodic collector. No HTTP mutation endpoint."""
+"""Restart-safe periodic collector and worker-owned explicit refresh requests."""
 
 import argparse
 import signal
 import threading
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 
 from psycopg.types.json import Jsonb
 
 from app.config import Settings
 from app.ingestion.errors import SourceScopeTooLargeError
 from app.ingestion.http import ProviderError
+from app.ingestion.jobs import scheduled_interval
 from app.ingestion.storage import store_batch
 from app.schema import connect
 
@@ -25,8 +28,9 @@ def registered_jobs(settings):
     from app.ingestion.water import water_jobs
     from app.ingestion.water_tour_extra import water_tour_extra_jobs
     from app.ingestion.weather import weather_jobs
+    from app.place_details.collector import place_detail_jobs
 
-    return (
+    external_jobs = (
         weather_jobs(settings)
         + marine_jobs(settings)
         + water_jobs(settings)
@@ -35,9 +39,38 @@ def registered_jobs(settings):
         + environment_jobs(settings)
         + water_tour_extra_jobs(settings)
         + administrative_jobs(settings)
-        + feature_jobs(settings)
-        + attachment_jobs(settings)
     )
+    jobs = [
+        replace(
+            job,
+            interval_seconds=max(600, job.interval_seconds),
+            external_collection=True,
+        )
+        for job in external_jobs
+    ]
+    # Live-camera checks also contact providers. Internal projections and
+    # heartbeat/notification scheduling retain their separate semantics.
+    features = [
+        replace(
+            job,
+            interval_seconds=max(600, job.interval_seconds),
+            external_collection=True,
+        )
+        if job.name == "livecam_checks"
+        else job
+        for job in feature_jobs(settings)
+    ]
+    jobs += features + [
+        replace(
+            job,
+            interval_seconds=max(600, job.interval_seconds),
+            external_collection=True,
+        )
+        for job in place_detail_jobs(settings) + attachment_jobs(settings)
+    ]
+    return [job for job in jobs if job.name != "condition_projection"] + [
+        job for job in jobs if job.name == "condition_projection"
+    ]
 
 
 def heartbeat(settings, state="running", tasks=None):
@@ -62,6 +95,12 @@ def synchronize_jobs(settings, jobs):
                 "VALUES (%s,%s,%s,now(),0,%s,0,0) "
                 "ON CONFLICT(task_name) DO UPDATE SET "
                 "interval_seconds=EXCLUDED.interval_seconds,"
+                "next_run_at=CASE WHEN collection_job.consecutive_failures=0 "
+                "AND collection_job.finished_at IS NOT NULL "
+                "AND EXCLUDED.interval_seconds>collection_job.interval_seconds "
+                "THEN GREATEST(collection_job.next_run_at,"
+                "collection_job.finished_at+EXCLUDED.interval_seconds*interval "
+                "'1 second') ELSE collection_job.next_run_at END,"
                 "state=CASE WHEN EXCLUDED.state='disabled' THEN 'disabled' "
                 "WHEN collection_job.state='disabled' THEN 'pending' "
                 "ELSE collection_job.state END,last_error=CASE WHEN "
@@ -70,19 +109,23 @@ def synchronize_jobs(settings, jobs):
                 [
                     job.name,
                     "pending" if job.enabled else "disabled",
-                    job.interval_seconds,
+                    scheduled_interval(job),
                     "" if job.enabled else job.disabled_reason,
                 ],
             )
 
 
-def run_due(settings, jobs, *, force=False):
+def run_due(
+    settings, jobs, *, force=False, refresh_id=None, requested_at=None, before_job=None
+):
     """Session advisory locks prevent concurrent workers from duplicating a job."""
     outcomes = []
     synchronize_jobs(settings, jobs)
     for job in jobs:
         if not job.enabled:
             continue
+        if before_job is not None:
+            before_job()
         with connect(settings) as guard:
             guard.autocommit = True
             locked = guard.execute(
@@ -93,13 +136,67 @@ def run_due(settings, jobs, *, force=False):
                 continue
             try:
                 row = guard.execute(
-                    "SELECT next_run_at,consecutive_failures FROM "
+                    "SELECT next_run_at,consecutive_failures,state,started_at,"
+                    "finished_at FROM "
                     "pongdang_data.collection_job "
                     "WHERE task_name=%s",
                     [job.name],
                 ).fetchone()
-                if not force and row[0] and row[0] > datetime.now(UTC):
-                    continue
+                if refresh_id is not None:
+                    from app.refresh.service import TERMINAL_STATES, finish_task
+
+                    task = guard.execute(
+                        "SELECT state FROM pongdang_data.collection_refresh_task "
+                        "WHERE request_id=%s AND task_name=%s",
+                        [refresh_id, job.name],
+                    ).fetchone()
+                    if task is None or task[0] in TERMINAL_STATES:
+                        continue
+                    # A concurrent automatic run can fulfill this request, but
+                    # only if its work started after the requested boundary.
+                    if (
+                        row[2] in TERMINAL_STATES
+                        and row[3] is not None
+                        and row[3] >= requested_at
+                        and row[4] is not None
+                    ):
+                        with connect(settings) as c:
+                            finish_task(c, refresh_id, job.name, row[2], row[4])
+                        outcomes.append(
+                            dict(
+                                job=job.name,
+                                state=row[2],
+                                received=0,
+                                inserted=0,
+                                error="",
+                            )
+                        )
+                        continue
+                    if row[1] and row[0] and row[0] > datetime.now(UTC):
+                        # Manual refresh never cancels provider failure backoff.
+                        with connect(settings) as c:
+                            finish_task(
+                                c, refresh_id, job.name, "failed", datetime.now(UTC)
+                            )
+                        outcomes.append(
+                            dict(
+                                job=job.name,
+                                state="failed",
+                                received=0,
+                                inserted=0,
+                                error="REFRESH_BACKOFF_ACTIVE",
+                            )
+                        )
+                        continue
+                elif not force and row[0] and row[0] > datetime.now(UTC):
+                    if job.name != "condition_projection" or row[1]:
+                        continue
+                    from app.water_index.condition_storage import projection_due
+
+                    # A source change or new target day makes the persisted
+                    # score generation due immediately, without upstream I/O.
+                    if not projection_due(guard):
+                        continue
                 started = datetime.now(UTC)
                 with connect(settings) as c:
                     c.execute(
@@ -108,6 +205,12 @@ def run_due(settings, jobs, *, force=False):
                         "WHERE task_name=%s",
                         [started, job.name],
                     )
+                    if refresh_id is not None:
+                        c.execute(
+                            "UPDATE pongdang_data.collection_refresh_task "
+                            "SET state='running' WHERE request_id=%s AND task_name=%s",
+                            [refresh_id, job.name],
+                        )
                 heartbeat(settings, tasks=[job.name])
                 state, error, received, inserted = "succeeded", "", 0, 0
                 next_run_seconds = None
@@ -130,11 +233,15 @@ def run_due(settings, jobs, *, force=False):
                             len(batch.readings)
                             + len(batch.stations)
                             + len(batch.places)
+                            + len(batch.place_details)
                             + len(batch.warnings)
                         )
                         inserted = store_batch(settings, batch)
                         has_data = bool(
-                            batch.readings or batch.places or batch.warnings
+                            batch.readings
+                            or batch.places
+                            or batch.place_details
+                            or batch.warnings
                         )
                         if batch.catalog_only and batch.stations:
                             has_data = True
@@ -153,13 +260,15 @@ def run_due(settings, jobs, *, force=False):
                 finished = datetime.now(UTC)
                 failures = (int(row[1] or 0) + 1) if state == "failed" else 0
                 delay = (
-                    min(86400, job.interval_seconds * 2 ** min(failures, 6))
+                    min(86400, scheduled_interval(job) * 2 ** min(failures, 6))
                     if failures
                     else next_run_seconds
                     if next_run_seconds is not None
                     and state in {"succeeded", "partial"}
-                    else job.interval_seconds
+                    else scheduled_interval(job)
                 )
+                if job.external_collection or job.fetch is not None:
+                    delay = max(600, delay)
                 next_run = finished + timedelta(seconds=delay)
                 with connect(settings) as c:
                     c.execute(
@@ -190,6 +299,8 @@ def run_due(settings, jobs, *, force=False):
                         "(%s,%s,%s,%s,%s)",
                         [job.name, state, started, finished, error],
                     )
+                    if refresh_id is not None:
+                        finish_task(c, refresh_id, job.name, state, finished)
                 outcomes.append(
                     dict(
                         job=job.name,
@@ -250,16 +361,33 @@ def main():
                 pass  # Next pulse retries; never print connection credentials.
 
     threading.Thread(target=pulse, daemon=True).start()
+    from app.refresh.service import run_pending_refresh
+
+    last_refresh_check = 0.0
+
+    def refresh_if_requested():
+        nonlocal last_refresh_check
+        if monotonic() - last_refresh_check < 1:
+            return
+        last_refresh_check = monotonic()
+        run_pending_refresh(settings, jobs)
+
+    next_due_check = 0.0
     try:
         while not stop.is_set():
             try:
-                run_due(settings, jobs)
+                refresh_if_requested()
+                if monotonic() >= next_due_check:
+                    run_due(settings, jobs, before_job=refresh_if_requested)
+                    next_due_check = monotonic() + settings.collector_poll_seconds
             except Exception:
                 print(
                     "Collector database unavailable; retrying after poll interval",
                     flush=True,
                 )
-            stop.wait(settings.collector_poll_seconds)
+                stop.wait(settings.collector_poll_seconds)
+                continue
+            stop.wait(min(2, settings.collector_poll_seconds))
     finally:
         try:
             heartbeat(settings, state="stopped")

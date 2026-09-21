@@ -16,6 +16,7 @@ from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
 from app.travel import routing
+from app.water_index.condition_producer import produce_conditions
 from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
 
 
@@ -186,6 +187,8 @@ def test_app():
             ],
         ),
     )
+    # Test setup follows the worker path before any read-only HTTP request.
+    produce_conditions(settings)
     routing.KakaoDirections = lambda *_: RoutesFixture()
     app = create_app(settings)
 

@@ -1,4 +1,5 @@
 import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
 import { useState, type ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
@@ -46,6 +47,7 @@ import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { WAVE_LOOP_PATH } from "./waveShape";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
+import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homePage.css";
 
 // Keep the product layout; only server evidence supplies condition values.
@@ -318,13 +320,15 @@ function SpotScroller({
   note,
   link,
   places,
+  firstSwim = false,
   children,
 }: {
   title: string;
-  note: string;
+  note?: string;
   link: { href: string; label: string };
   places: { id: number; name: string; meta: string; photo?: Photo }[];
-  children: ReactNode;
+  firstSwim?: boolean;
+  children?: ReactNode;
 }) {
   return (
     <div className="pd-card">
@@ -334,13 +338,16 @@ function SpotScroller({
           {link.label} →
         </a>
       </div>
-      <p className="pd-note hm-picks-note">{note}</p>
+      {note && <p className="pd-note hm-picks-note">{note}</p>}
       <div className="hm-picks-row">
         {places.map((place) => (
           <div className="hm-pick" key={place.id}>
             <a className="place-photo-link" href={spotLink(place)}>
               <PlacePhoto className="hm-pick-photo" name={place.name} photo={place.photo} />
-              <span className="hm-pick-name">{place.name}</span>
+              <span className={firstSwim ? "first-swim-name-row" : undefined}>
+                <span className="hm-pick-name">{place.name}</span>
+                {firstSwim && <FirstSwimPreview spotId={place.id} />}
+              </span>
               <span className="hm-pick-meta">{place.meta}</span>
             </a>
             <PlacePhotoCredit photo={place.photo} />
@@ -349,7 +356,7 @@ function SpotScroller({
         {/* 점수 칩이 있던 자리입니다. 명소마다 점수를 붙이려면 장소마다 한
             번씩 조회해야 해서, 목록에서는 약속하지 않고 상세에서 읽습니다. */}
       </div>
-      <div className="pd-note hm-picks-foot">{children}</div>
+      {children && <div className="pd-note hm-picks-foot">{children}</div>}
     </div>
   );
 }
@@ -370,7 +377,7 @@ function BeachPicksCard() {
   if (!beaches.length)
     return (
       <div className="pd-card">
-        <div className="pd-card-title">{t("바다가 좋은 오늘 · 해변 명소")}</div>
+        <div className="pd-card-title">{t("해변 명소")} · {t("첫 입수")}</div>
         <p className="pd-note" role={places.error ? "alert" : "status"}>
           <StateChip kind={places.rows ? "no_data" : "partial"} />{" "}
           {places.error ??
@@ -382,13 +389,11 @@ function BeachPicksCard() {
     );
   return (
     <SpotScroller
-      title={t("바다가 좋은 오늘 · 해변 명소")}
-      note={t("서버가 카테고리와 장소명을 보고 해변으로 분류한 곳입니다.")}
+      title={`${t("해변 명소")} · ${t("첫 입수")}`}
       link={{ href: "#spots", label: t("명소 전체") }}
       places={beaches}
-    >
-      <StateChip kind="live" />
-      {t("명소를 고르면 그곳의 퐁당 점수를 조회합니다. 거리 · 운영시간은 아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.")}</SpotScroller>
+      firstSwim
+    />
   );
 }
 
@@ -480,7 +485,7 @@ function LivecamModule() {
   const cameras = (result?.rows ?? []).flatMap(camera => {
     const player = previewPlayerUrl(camera, result!.valid_until, now);
     const href = player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
-    return href ? [{ camera, href, label: player ? t("타임랩스") : t("원본 보기") }] : [];
+    return href ? [{ camera, href, label: player ? t(player === camera.live_player ? "실시간 안내 · 미검증" : "타임랩스") : t("원본 보기") }] : [];
   }).slice(0, 3);
   return (
     <div className="pd-card">
@@ -496,7 +501,8 @@ function LivecamModule() {
       <div className="hm-cam-row">
         {cameras.map(({ camera: cam, href, label }, index) => (
           <a className="hm-cam" href={href} target="_blank" rel="noopener noreferrer" key={cam.provider_camera_id}>
-            <span
+            <WebcamThumbnail
+              camera={cam}
               className="hm-cam-thumb"
               style={{ background: CAM_BACKGROUNDS[index] }}
             />
@@ -509,7 +515,7 @@ function LivecamModule() {
           (loading
             ? t("물 풍경을 고르는 중입니다.")
             : cameras.length
-              ? t("위치와 관계없이 고른 랜덤 물 풍경입니다. 카드를 누르면 해당 카메라가 열립니다. 배경은 영상 썸네일이 아닙니다.")
+              ? t("위치와 관계없이 고른 랜덤 물 풍경입니다. 카드를 누르면 해당 카메라가 열립니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")
               : t("현재 목록에 열 수 있는 물 풍경 카메라가 없습니다."))}{" "}
         {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. ")}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에

@@ -1,10 +1,12 @@
 import { useI18n } from "./i18n";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { loadWebcamCatalog, WebcamPreviewError, type PreviewResult, type WebcamCategory } from './livecamPreviewApi';
+import { resourceRefreshGeneration, subscribeResourceRefresh } from './resourceRefresh';
 
 export function useWebcamCatalog(page: number, category: WebcamCategory | '', shuffleSeed: number) {
   const { t } = useI18n();
-  const key = `${page}:${category}:${shuffleSeed}`;
+  const generation = useSyncExternalStore(subscribeResourceRefresh, resourceRefreshGeneration, resourceRefreshGeneration);
+  const key = `${page}:${category}:${shuffleSeed}:${generation}`;
   const [response, setResponse] = useState<{ key: string; data?: PreviewResult; error?: string | WebcamPreviewError }>();
   const [now, setNow] = useState(Date.now);
   const current = response?.key === key ? response : undefined;
@@ -21,7 +23,7 @@ export function useWebcamCatalog(page: number, category: WebcamCategory | '', sh
     );
     return () => { active = false; };
   }, [key, page, category, shuffleSeed]);
-  const validUntil = current?.data?.valid_until;
+  const validUntil = current?.data?.storage === 'database' ? null : current?.data?.valid_until;
   useEffect(() => {
     if (!validUntil) return;
     const delay = Date.parse(validUntil) - Date.now();

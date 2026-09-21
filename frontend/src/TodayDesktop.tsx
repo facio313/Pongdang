@@ -22,6 +22,7 @@ import {
 } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
+import { NotificationSummary } from "./NotificationSummary";
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
@@ -637,12 +638,12 @@ export function TodayDesktop() {
         </SplitBody>
       </LabelRow>
 
-      {/* 예전에는 「올해 첫 입수 5월 18일 · 작년보다 6일 늦음」과 연도별 막대
-          세 개가 상수였습니다. 관측 이력이 그것을 입증하지 않습니다 -- 모바일은
-          같은 이유로 이미 구독 상태만 보여 주고 있었습니다. 데스크탑에서는
-          그 자리를 없애고 알림 화면으로 보냅니다. */}
+      <section className="td-section" aria-label={t("첫 입수 · 수온 알림")}>
+        <h2>{t("첫 입수 · 수온 알림")}</h2>
+        <NotificationSummary spotId={place?.id} />
+      </section>
       <FootNote
-        missing={t("조위 시계열 · 첫 입수 알림 트리거")}
+        missing={t("조위 시계열")}
         note={t("점수는 물놀이 조건 참고값이며 안전 판정이 아닙니다. 값이 없으면 «–» 로 두며 0 점 · 정상 · 안전으로 치환하지 않습니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
       />
     </DesktopShell>

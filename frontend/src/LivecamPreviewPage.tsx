@@ -5,6 +5,7 @@ import { date } from './data';
 import { previewPlayerUrl, safeWebcamUrl } from './livecamApi';
 import { cameraCategories, newWebcamShuffleSeed, webcamCategories, type WebcamCategory } from './livecamPreviewApi';
 import { useWebcamCatalog } from './useWebcamCatalog';
+import { WebcamThumbnail } from './WebcamThumbnail';
 import './livecamHub.css';
 
 export function LivecamPreviewPage() {
@@ -32,25 +33,30 @@ export function LivecamPreviewPage() {
       <p role="status">{t('{category} · {total}개 · {page}/{pages}페이지 · 이번 페이지 {count}개', { category: t(category ? webcamCategories[category] : '물 관련'), total: result.total, page, pages, count: result.rows.length })}</p>
       <p className="table-note">{t("무작위 순서로 보여드립니다. 분류와 페이지를 바꿔도 순서는 유지되며, 다른 풍경 보기를 누르면 목록을 새로 섞습니다.")}</p>
       {result.truncated && <p className="lc-notice">{t("분류별 첫 25개를 모은 목록입니다. 제공자의 조회 범위를 넘어선 카메라는 포함되지 않았습니다.")}</p>}
-      <p className="table-note">{t("조회")} {date(result.fetched_at)}{result.cached ? t(' · 캐시된 목록') : ''} {t("· 등록 수이며 재생을 확인한 수는 아닙니다.")}</p>
+      <p className="table-note">{t(result.storage === 'database' ? "목록 저장" : "조회")} {date(result.fetched_at)}{result.storage === 'database' ? t(' · 저장된 목록') : result.cached ? t(' · 캐시된 목록') : ''} {t("· 등록 수이며 재생을 확인한 수는 아닙니다.")}</p>
+      <p className="table-note">{t('대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.')}</p>
       {expired && <p role="status">{t("목록 유효기간이 지났습니다. 다른 풍경 보기를 누르면 새 목록의 타임랩스 링크를 사용할 수 있습니다.")}</p>}
       {result.rows.length ? <div className="table-scroll" role="region" aria-label={t("물 풍경 웹캠 목록")} tabIndex={0}><table className="lc-catalog-table">
         <caption>{t("카메라 이름과 제공 자료를 확인하고 열기")}</caption>
-        <thead><tr><th scope="col">{t("카메라")}</th><th scope="col">{t("지역")}</th><th scope="col">{t("제공자 분류")}</th><th scope="col">{t("제공 자료")}</th><th scope="col">{t("보기")}</th><th scope="col">{t("마지막 갱신")}</th></tr></thead>
+        <thead><tr><th scope="col">{t("대표 이미지")}</th><th scope="col">{t("카메라")}</th><th scope="col">{t("지역")}</th><th scope="col">{t("제공자 분류")}</th><th scope="col">{t("제공 자료")}</th><th scope="col">{t("보기")}</th><th scope="col">{t("마지막 갱신")}</th></tr></thead>
         <tbody>{result.rows.map(camera => {
           const player = previewPlayerUrl(camera, result.valid_until, now);
           const original = safeWebcamUrl(camera.public_page, camera.provider_camera_id);
+          const href = player ?? original;
+          const thumbnail = <WebcamThumbnail camera={camera} className="lc-catalog-thumbnail" fallback={t('대표 이미지 없음')} />;
           return <tr key={camera.provider_camera_id}>
+            <td>{href ? <a href={href} target="_blank" rel="noopener noreferrer" aria-label={t('{name} 카메라 열기', { name: camera.title })}>{thumbnail}</a> : thumbnail}
+              {camera.thumbnail_saved_at && <small>{t('이미지 저장')} {date(camera.thumbnail_saved_at)}</small>}</td>
             <td><strong>{camera.title}</strong><br /><small>ID {camera.provider_camera_id}</small></td>
             <td>{[camera.region, camera.city].filter(Boolean).join(' · ') || t('지역 미제공')}</td>
             <td>{cameraCategories(camera.categories)}</td>
             <td>{[camera.timelapse_player && t('타임랩스'), camera.live_player && t('실시간 안내 · 미검증'), camera.photo_available && t('사진')].filter(Boolean).join(' · ') || t('미확인')}</td>
             <td><div className="lc-catalog-links">
-              {player && <a href={player} target="_blank" rel="noopener noreferrer">{t("타임랩스 열기 ↗")}</a>}
-              {original && <a href={original} target="_blank" rel="noopener noreferrer">{t(camera.live_player ? '실시간 원본 · 미검증 ↗' : '원본 페이지 ↗')}</a>}
+              {player && <a href={player} target="_blank" rel="noopener noreferrer">{t(player === camera.live_player ? "실시간 안내 · 미검증 ↗" : "타임랩스 열기 ↗")}</a>}
+              {original && <a href={original} target="_blank" rel="noopener noreferrer">{t('원본 페이지 ↗')}</a>}
               {!player && !original && <span>{t("공개 링크 없음")}</span>}
             </div></td>
-            <td>{date(camera.provider_updated_at)}<br /><small>{t(camera.provider_status === 'active' ? '최근 갱신됨' : camera.provider_status === 'inactive' ? '갱신 중단' : '갱신 상태 미확인')}</small></td>
+            <td>{date(camera.provider_updated_at)}<br /><small>{t(camera.provider_status === 'active' ? '조회 당시 활성' : camera.provider_status === 'inactive' ? '갱신 중단' : '갱신 상태 미확인')}</small></td>
           </tr>;
         })}</tbody>
       </table></div> : <p className="lc-empty">{t("이 분류에 표시할 카메라가 없습니다. 물 관련 전체나 다른 물 분류를 선택해 주세요.")}</p>}

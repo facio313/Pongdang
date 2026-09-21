@@ -9,6 +9,7 @@ export interface Place {
   region: string | null;
   province_code?: string | null;
   district_code?: string | null;
+  alias_ids?: number[];
   lat: number | null;
   lng: number | null;
   type: string | null;
@@ -17,6 +18,9 @@ export interface Place {
 }
 export interface ClassifiedWaterPlace extends Omit<Place, "type" | "catalog_verification"> {
   place_kind: "beach" | "valley";
+}
+export function placeMatchesId(place: Pick<Place, "id" | "alias_ids">, id: number | undefined) {
+  return id !== undefined && (place.id === id || Boolean(place.alias_ids?.includes(id)));
 }
 export function productPlaces(rows: ClassifiedWaterPlace[]): RowPage<Place> {
   return {
@@ -88,6 +92,11 @@ export interface Conditions {
   metrics: Metric[];
   context_metrics?: Metric[];
   display_metrics?: Metric[];
+  projection?: {
+    status: "ready" | "pending";
+    computed_at: string | null;
+    refresh_after: string | null;
+  };
   reason_codes: string[];
 }
 export interface ConditionScore {
@@ -152,6 +161,8 @@ export function scoreCoverageText(data?: Conditions): string {
  *  같은 코드가 화면마다 다른 말로 보이지 않게 하려는 것이므로, 새 사전을
  *  만들지 말고 여기에 추가하세요. */
 export const SCORE_REASONS: Record<string, string> = {
+  condition_projection_pending: "새 데이터를 반영해 점수를 갱신하고 있습니다.",
+  condition_projection_unavailable_for_target: "선택한 시간에 저장된 점수가 없습니다.",
   measurement_not_collected: "아직 수집된 측정값 없음",
   measurement_evidence_unavailable: "측정 시각·출처 근거 없음",
   conflicting_station_measurements: "관측소 간 값 충돌",
@@ -173,6 +184,10 @@ export function conditionScoreText(data?: Conditions) {
   const index = data?.condition_score;
   if (!index) return t("환경 참고점수 자료를 읽지 못했습니다.");
   const score = conditionScore(data);
+  const projectionReason = index.reason_codes.find((reason) =>
+    reason === "condition_projection_pending" || reason === "condition_projection_unavailable_for_target",
+  );
+  if (score === null && projectionReason) return t(SCORE_REASONS[projectionReason]);
   const coverage = Number.isFinite(index.coverage) ? t(" · 근거 확보 {percent}% ({available}/{total}개)", {
     percent: Math.round(index.coverage * 100), available: index.available_components, total: index.total_components,
   }) : "";
@@ -435,6 +450,22 @@ export function conditionPath(
     : // 장소를 아직 모르는 것은 자료가 없는 것과 다릅니다(useResource 의
       // ResourcePath 주석 참고). 「해당 없음」은 부르는 쪽이 null 로 적습니다.
       undefined;
+}
+
+export interface ConditionSeries {
+  spot_id: number;
+  activity: Activity;
+  as_of: string;
+  rows: Conditions[];
+}
+
+/** A day/week chart reads its stored score set in one bounded request. */
+export function conditionSeriesPath(id: number | undefined, activity: Activity, targets: string[]) {
+  if (!id) return undefined;
+  if (!targets.length) return null;
+  return "water-index/conditions/series?" + new URLSearchParams({
+    spot_id: String(id), activity, targets: targets.join(","),
+  });
 }
 /** 목록 한 줄이 쓰는 요약. 전체 봉투(Conditions)에서 서버가 **뽑아낸** 것이며
  *  따로 계산한 값이 아닙니다 -- 목록과 상세가 다른 숫자를 말하면 안 됩니다. */

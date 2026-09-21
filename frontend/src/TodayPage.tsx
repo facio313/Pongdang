@@ -13,6 +13,7 @@ import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import { RecommendationReason } from "./RecommendationReason";
 import { WaterQualityDetails } from "./WaterQualityDetails";
+import { NotificationSummary } from "./NotificationSummary";
 import type { ActivityCondition } from "./useBestActivity";
 import type { Recommendation } from "./recommendationApi";
 import { activities, type Activity } from "./aiApi";
@@ -572,55 +573,16 @@ function TideSection({
 }
 
 function FirstSwimSection({ id }: { id?: number }) {
-  const subscriptions = useResource<{
-    rows: {
-      id: string;
-      spot_id: number;
-      year: number;
-      minimum_temperature_c: number;
-      condition_state: string;
-      last_evaluated_at: string | null;
-    }[];
-  }>("notifications/subscriptions?limit=100&offset=0");
-  const subscription = subscriptions.data?.rows.find(
-    (row) =>
-      row.spot_id === id &&
-      row.year ===
-        Number(
-          new Date()
-            .toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" })
-            .slice(0, 4),
-        ),
-  );
   return (
-    <section>
+    <section aria-label={t("첫 입수 · 수온 알림")}>
       <SectionHead
-        label={t("올해 첫 입수")}
+        label={t("첫 입수 · 수온 알림")}
         suffix="A7"
         href="#first-swim"
         linkLabel={t("내 알림 조회 →")}
       />
       <div className="pd-card">
-        <div className="td-swim">
-          <span className="td-swim-badge">
-            <Icon name="sun" size={20} />
-          </span>
-          <div>
-            <div className="td-swim-date">
-              {subscription ? t("기준 관측 알림") : "–"}
-            </div>
-            <div className="td-swim-sub">
-              {subscription
-                ? t("선택 기준 {temperature}°C · {state} · 최근 평가 {time}", { temperature: subscription.minimum_temperature_c, state: dataStatusText(subscription.condition_state), time: timeLabel(subscription.last_evaluated_at) })
-                : t("이 장소의 올해 알림 구독이 없습니다.")}
-            </div>
-          </div>
-        </div>
-        <p className="pd-note" role={subscriptions.error ? "alert" : "status"}>
-          <StateChip kind={subscription ? "live" : "no_data"} />{" "}
-          {subscriptions.error ??
-            t("개인 구독의 평가 상태입니다. 첫 입수일과 전년 비교는 관측 이력이 입증하지 않아 표시하지 않습니다.")}
-        </p>
+        <NotificationSummary spotId={id} />
       </div>
     </section>
   );

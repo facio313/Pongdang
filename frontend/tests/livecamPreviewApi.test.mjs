@@ -24,6 +24,7 @@ test('failures and malformed results never surface upstream payloads', async () 
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"PRIVATE_SECRET"}', { status: 502 })), error => !error.message.includes('PRIVATE_SECRET'));
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"constructor"}', { status: 502 })), /웹캠 조회에 실패/);
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WINDY_NOT_CONFIGURED"}', { status: 503 })), /연동 미설정/);
+  await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{"detail":"WEBCAM_CATALOG_UNAVAILABLE"}', { status: 503 })), /저장된 웹캠 목록을 불러오지 못했습니다/);
   await assert.rejects(requestWebcamPreview('/', undefined, signal, async () => new Response('{}')), /응답 형식/);
 });
 
@@ -50,13 +51,62 @@ test('SSO expiry and network timeouts explain the action without leaking redirec
   await assert.rejects(requestWebcamPreview('/', undefined, AbortSignal.abort(), async () => { throw new DOMException('PRIVATE', 'AbortError'); }), /요청이 취소/);
 });
 
-test('preview allows only unexpired official timelapse embeds', () => {
+test('preview accepts stored official players while temporary place metadata still expires', () => {
   const camera = { provider_camera_id: '42', timelapse_period: 'day', timelapse_player: 'https://webcams.windy.com/webcams/public/embed/player/42/day' };
   const now = Date.parse('2026-09-15');
+  assert.equal(previewPlayerUrl(camera, null, now), camera.timelapse_player);
   assert.equal(previewPlayerUrl(camera, '2026-09-16', now), camera.timelapse_player);
   for (const expiry of ['2026-09-14', 'unknown']) assert.equal(previewPlayerUrl(camera, expiry, now), null);
   assert.equal(previewPlayerUrl({ ...camera, timelapse_period: 'live', timelapse_player: camera.timelapse_player.replace('/day', '/live') }, '2026-09-16', now), null);
   assert.equal(previewPlayerUrl({ ...camera, timelapse_player: camera.timelapse_player + '?key=secret' }, '2026-09-16', now), null);
+});
+
+test('stored catalogs prefer a safe provider live link without claiming playback verification', () => {
+  const camera = {
+    provider_camera_id: '42',
+    live_player: 'https://webcams.windy.com/webcams/public/embed/player/42/live',
+    timelapse_period: 'day',
+    timelapse_player: 'https://webcams.windy.com/webcams/public/embed/player/42/day',
+  };
+  assert.equal(previewPlayerUrl(camera, null), camera.live_player);
+  for (const live_player of [camera.live_player + '?token=private', camera.live_player.replace('/42/', '/43/'), 'https://evil.test/live']) {
+    assert.equal(previewPlayerUrl({ ...camera, live_player }, null), camera.timelapse_player);
+  }
+  assert.equal(previewPlayerUrl(camera, '2026-01-01', Date.parse('2026-09-15')), null);
+});
+
+test('persistent database catalogs survive remounts after the old ten-minute cache duration', async (context) => {
+  let calls = 0;
+  const result = { contract_version: 'livecams.preview.v1', scope: 'korea_list', rows: [], storage: 'database', fetched_at: '2026-01-01T00:00:00Z', valid_until: null };
+  const fetcher = async () => {
+    calls++;
+    return new Response(JSON.stringify(result));
+  };
+  const first = await loadWebcamCatalog('/stored-catalog/', 1, '', 42, fetcher);
+  const now = Date.now();
+  context.mock.method(Date, 'now', () => now + 11 * 60 * 1000);
+  assert.equal(await loadWebcamCatalog('/stored-catalog/', 1, '', 42, fetcher), first);
+  assert.equal(calls, 1);
+  assert.equal(first.valid_until, null);
+  assert.equal(first.fetched_at, result.fetched_at);
+});
+
+test('temporary catalog compatibility does not reuse expired metadata', async (context) => {
+  let calls = 0;
+  let now = Date.parse('2026-09-15T00:00:00Z');
+  context.mock.method(Date, 'now', () => now);
+  const fetcher = async () => {
+    calls++;
+    return new Response(JSON.stringify({
+      contract_version: 'livecams.preview.v1', rows: [], storage: 'temporary',
+      valid_until: new Date(now + 600000).toISOString(),
+    }));
+  };
+  const first = await loadWebcamCatalog('/temporary-catalog/', 1, '', 42, fetcher);
+  assert.equal(await loadWebcamCatalog('/temporary-catalog/', 1, '', 42, fetcher), first);
+  now += 600001;
+  assert.notEqual(await loadWebcamCatalog('/temporary-catalog/', 1, '', 42, fetcher), first);
+  assert.equal(calls, 2);
 });
 
 test('catalog remounts share one request and do not prefetch subsequent pages', async () => {

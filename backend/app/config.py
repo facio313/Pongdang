@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     collection_radius_m: int = Field(default=20000, ge=100, le=20000)
     tourism_collection_scope: Literal["local", "gangwon"] = "gangwon"
     tourism_pages_per_run: int = Field(default=5, ge=1, le=10)
+    place_detail_collection_enabled: bool = True
+    place_detail_batch_size: int = Field(default=10, ge=1, le=100)
+    # Per TourAPI service and Korean calendar day; catalogue jobs have own quotas.
+    place_detail_daily_budget: int = Field(default=500, ge=0, le=50000)
     aws_stations: str = "516"
     khoa_tide_station_code: str = "DT_0006"
     khoa_buoy_station_code: str = "TW_0089"
@@ -54,6 +58,7 @@ class Settings(BaseSettings):
     attachment_root: Path = Path(__file__).resolve().parents[2] / ".local/attachments"
     photo_collection_enabled: bool = True
     photo_collection_batch_size: int = Field(default=25, ge=1, le=100)
+    # Accepted for old installations; photos now follow stored detail revisions.
     photo_refresh_days: int = Field(default=7, ge=1, le=90)
     photo_max_bytes: int = Field(default=8 * 1024 * 1024, ge=1024, le=16 * 1024 * 1024)
 
@@ -76,6 +81,16 @@ class Settings(BaseSettings):
     windy_webcams_daily_budget: int = Field(default=30, ge=0, le=100)
     windy_webcams_refresh_hours: int = Field(default=24, ge=6, le=168)
     windy_webcams_timeout_seconds: float = Field(default=8, ge=1, le=15)
+    windy_thumbnail_root: Path = (
+        Path(__file__).resolve().parents[2] / ".local/windy-thumbnails"
+    )
+
+    @field_validator("windy_thumbnail_root")
+    @classmethod
+    def absolute_windy_thumbnail_root(cls, value):
+        if not value.is_absolute():
+            raise ValueError("WINDY_THUMBNAIL_ROOT must be an absolute path")
+        return value
 
     @field_validator("windy_webcams_radii_km")
     @classmethod

@@ -1,6 +1,9 @@
 import { t } from "./i18n.ts";
 import { AppHeader, AppShell } from "./AppShell";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlaceDetailInformation } from "./PlaceDetailInformation";
+import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
+import { FirstSwimGuide } from "./FirstSwimGuide";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
@@ -10,6 +13,7 @@ import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
+import { usePlaceDetails } from "./usePlaceDetails";
 import { useWaterPlace } from "./useWaterPlaces";
 import { useSpotActions } from "./useSpotActions";
 import { isInitialLoad } from "./useResource";
@@ -25,8 +29,7 @@ import "./spotsPage.css";
 // 이 화면이 지키는 것:
 //  - 점수 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다.
 //  - 값이 없으면 «–» 이며 0 · 정상 · 안전으로 치환하지 않습니다.
-//  - 서버에 없는 항목(운영 · 개장 기간 · 주차 · 편의시설 · 문의 · 소개)은
-//    지어내지 않고 비운 채 그 사실을 밝힙니다.
+//  - 상세 안내는 수집기가 저장한 값만 읽으며 누락과 수집 실패를 구분합니다.
 
 function InfoRow({ name, value }: { name: string; value: string | null }) {
   return (
@@ -47,6 +50,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   // 그래서 분류 목록에서 먼저 찾고, 거기 없으면(100건 밖) id 조회로 갑니다.
   const catalog = useWaterPlace(spotId);
   const lookup = usePlacesById([spotId]);
+  const details = usePlaceDetails([spotId]);
   const classified = catalog.place;
   const place: Place | undefined = classified
     ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
@@ -143,15 +147,10 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           </div>
         </div>
 
-        {/* 아래 다섯 줄은 모두 서버에 컬럼이 없습니다. 지어내지 않고 비웁니다.
-            travel 카탈로그도 opening_hours 를 None 으로 고정해 내려줍니다. */}
-        <div className="pd-card sd-info">
-          <InfoRow name={t("운영")} value={null} />
-          <InfoRow name={t("개장 기간")} value={null} />
-          <InfoRow name={t("주차")} value={null} />
-          <InfoRow name={t("편의시설")} value={null} />
-          <InfoRow name={t("문의")} value={null} />
-          <p className="pd-note">{t("운영 · 개장 기간 · 주차 · 편의시설 · 문의를 내려주는 API 가 아직 없습니다. 값이 없다는 뜻이며 「없음」이나 「이용 불가」가 아닙니다.")}</p>
+        {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} />}
+
+        <div className="pd-card">
+          <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} />
         </div>
 
         <div className="pd-card">
@@ -174,6 +173,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             !placeLoading && (
               <p className="pd-note">{t("좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를 임의로 만들지 않습니다.")}</p>
             )}
+          <PlaceDistanceInfo place={place} loading={placeLoading} />
         </div>
 
         {place && <>

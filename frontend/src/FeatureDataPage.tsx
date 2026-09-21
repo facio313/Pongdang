@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { activities, displayTime, requestJson, safeSourceUrl, type Activity } from "./aiApi";
 import { contextLink, featurePages, featurePath, type FeaturePage } from "./featureRoutes";
 import { type RowsResult } from "./data";
-import { NotificationSettings } from "./NotificationSettings";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 
 type Envelope = { rows: Record<string, unknown>[]; status?: string; as_of?: string; queried_at?: string; at?: string; total?: number; has_more?: boolean; reason_codes?: string[]; coverage?: unknown };
@@ -86,7 +85,6 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
       {selectedPlace && <p>{t("선택 장소:")} {String(selectedPlace.name)} {t("· 유형:")} {String(selectedPlace.type ?? t("기록 없음"))} {t("· 지역:")} {String(selectedPlace.region ?? t("기록 없음"))}</p>}
       {(places?.total ?? 0) > 100 && <p className="table-note">{t("장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.")}</p>}
     </>}
-    {page === "first-swim" && <NotificationSettings onSaved={() => setRevision(value => value + 1)} />}
     {!periodValid && <p role="alert">{t("시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.")}</p>}
     {periodValid && !path && <p className="ai-notice">{t("실제 장소를 선택하면 자료를 조회합니다.")}</p>}
     {path && !current && <p role="status">{t("실제 자료 조회 중…")}</p>}

@@ -99,7 +99,7 @@ test("추천 조회가 실패하면 데스크탑 홈은 실패라고 적고 수�
     route.fulfill({ status: 503, json: { detail: "unavailable" } }),
   );
   const hourly: string[] = [];
-  await page.route("**/api/data/water-index/conditions?**", (route) => {
+  await page.route("**/api/data/water-index/conditions**", (route) => {
     hourly.push(route.request().url());
     return route.continue();
   });
@@ -116,5 +116,5 @@ test("추천 조회가 실패하면 데스크탑 홈은 실패라고 적고 수�
   await expect(page.locator(".hd-hour")).toHaveCount(4);
   await expect(page.locator(".hd-hour-bar")).toHaveCount(0);
   await expect(page.locator(".hd-hour-score").first()).toHaveText("–");
-  expect(hourly.filter((url) => url.includes("mode=forecast"))).toEqual([]);
+  expect(hourly.filter((url) => url.includes("mode=forecast") || url.includes("conditions/series"))).toEqual([]);
 });

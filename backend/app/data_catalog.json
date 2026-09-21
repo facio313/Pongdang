@@ -1206,5 +1206,218 @@
       "last_error"
     ],
     "time": "finished_at"
+  },
+  {
+    "key": "place-details",
+    "title": "명소 상세정보",
+    "category": "collected",
+    "source": "한국관광공사 TourAPI 상세정보 수집",
+    "description": "기존 장소의 운영·휴무·개장·주차·시설·문의·소개를 저장한 정규화 이력입니다. 원본이 변경되면 이전 자료를 superseded로 보존합니다. 운영 안내는 특정 날짜의 개장·안전 확인이 아닙니다.",
+    "table": "place_detail",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "place_id",
+        "label": "수집 장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "spot_id",
+        "label": "명소 ID",
+        "type": "number"
+      },
+      {
+        "key": "provider",
+        "label": "제공처",
+        "type": "text"
+      },
+      {
+        "key": "source_id",
+        "label": "제공처 장소 ID",
+        "type": "text"
+      },
+      {
+        "key": "content_type",
+        "label": "콘텐츠 유형",
+        "type": "text"
+      },
+      {
+        "key": "name",
+        "label": "명소명",
+        "type": "text"
+      },
+      {
+        "key": "source_created_at",
+        "label": "제공처 등록 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "source_modified_at",
+        "label": "제공처 상세 수정 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "catalog_modified_at",
+        "label": "목록의 제공처 수정 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "availability",
+        "label": "자료 제공 상태",
+        "type": "text"
+      },
+      {
+        "key": "opening_hours",
+        "label": "운영시간",
+        "type": "text"
+      },
+      {
+        "key": "rest_days",
+        "label": "휴무일",
+        "type": "text"
+      },
+      {
+        "key": "opening_period",
+        "label": "개장 기간",
+        "type": "text"
+      },
+      {
+        "key": "opening_date",
+        "label": "개장일",
+        "type": "text"
+      },
+      {
+        "key": "parking",
+        "label": "주차",
+        "type": "text"
+      },
+      {
+        "key": "facilities",
+        "label": "편의시설",
+        "type": "text"
+      },
+      {
+        "key": "contact",
+        "label": "문의",
+        "type": "text"
+      },
+      {
+        "key": "homepage",
+        "label": "홈페이지",
+        "type": "text"
+      },
+      {
+        "key": "overview",
+        "label": "소개",
+        "type": "text"
+      },
+      {
+        "key": "details",
+        "label": "항목별 상세 안내",
+        "type": "json"
+      },
+      {
+        "key": "photo_url",
+        "label": "공개 사진 주소",
+        "type": "text"
+      },
+      {
+        "key": "photo_license",
+        "label": "사진 이용유형",
+        "type": "text"
+      },
+      {
+        "key": "fetched_at",
+        "label": "수집 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "state",
+        "label": "증거 상태",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "provider",
+      "source_id",
+      "name",
+      "content_type",
+      "availability",
+      "opening_hours",
+      "parking",
+      "facilities",
+      "state"
+    ],
+    "time": "fetched_at"
+  },
+  {
+    "key": "place-detail-collection",
+    "title": "명소 상세 수집 상태",
+    "category": "collected",
+    "source": "Pongdang 상세정보 수집기",
+    "description": "장소별 상세정보 최초 수집과 변경 재수집 결과입니다. 성공한 자료 없음도 저장하며, 실패 시 이전 상세정보와 성공 시각을 보존합니다.",
+    "table": "place_detail_collection",
+    "columns": [
+      {
+        "key": "id",
+        "label": "ID",
+        "type": "number"
+      },
+      {
+        "key": "place_id",
+        "label": "수집 장소 ID",
+        "type": "number"
+      },
+      {
+        "key": "state",
+        "label": "수집 결과",
+        "type": "text"
+      },
+      {
+        "key": "catalog_modified_at",
+        "label": "목록의 제공처 수정 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "content_type",
+        "label": "콘텐츠 유형",
+        "type": "text"
+      },
+      {
+        "key": "checked_at",
+        "label": "시도 시각",
+        "type": "datetime"
+      },
+      {
+        "key": "last_success_at",
+        "label": "최근 정상 응답",
+        "type": "datetime"
+      },
+      {
+        "key": "next_attempt_at",
+        "label": "다음 재시도",
+        "type": "datetime"
+      },
+      {
+        "key": "consecutive_failures",
+        "label": "연속 실패",
+        "type": "number"
+      },
+      {
+        "key": "error_code",
+        "label": "오류 코드",
+        "type": "text"
+      }
+    ],
+    "search": [
+      "state",
+      "content_type",
+      "error_code"
+    ],
+    "time": "checked_at"
   }
 ]

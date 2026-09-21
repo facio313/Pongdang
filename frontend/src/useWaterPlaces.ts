@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   productPlaces,
+  placeMatchesId,
   type ClassifiedWaterPlace,
   type Place,
 } from "./productData";
@@ -46,8 +47,7 @@ export function useWaterPlaces(search = "", query: WaterPlaceQuery = {}) {
     hasMore: catalog.data?.has_more ?? false,
     /** 서버가 근거를 보고 고른 기본 장소. 화면이 처음 무엇을 펼칠지 정할 때
      *  씁니다. 검색 중에는 조회하지 않으므로 undefined 입니다. */
-    defaultPlaceId: rows?.some((place) => place.id === defaultPlace.data?.place?.id)
-      ? defaultPlace.data?.place?.id : undefined,
+    defaultPlaceId: rows?.find((place) => placeMatchesId(place, defaultPlace.data?.place?.id))?.id,
     loading: catalog.loading,
     previousData: catalog.previousData,
     error: catalog.error,

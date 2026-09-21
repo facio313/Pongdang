@@ -21,18 +21,22 @@ def store_batch(settings: Settings, batch: SourceBatch, *, connection=None) -> i
     with connect(settings) if connection is None else nullcontext(connection) as c:
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
         stations = {}
+        identity_dirty = bool(batch.places)
 
         def station_id(station):
-            nonlocal inserted
+            nonlocal inserted, identity_dirty
             if station.source_id in stations:
                 return stations[station.source_id]
             previous = c.execute(
-                "SELECT id,spot_id FROM pongdang_data.collection_station "
+                "SELECT id,spot_id,kind FROM pongdang_data.collection_station "
                 "WHERE provider=%s AND source_id=%s",
                 [batch.provider, station.source_id],
             ).fetchone()
+            identity_dirty |= station.kind in {"beach", "valley"} or bool(
+                previous and previous[2] in {"beach", "valley"}
+            )
             if previous:
-                sid, spot = previous
+                sid, spot, _ = previous
                 c.execute(
                     "UPDATE pongdang_data.spots_waterspot SET "
                     "name=%s,region=%s,type=%s,"
@@ -292,6 +296,10 @@ def store_batch(settings: Settings, batch: SourceBatch, *, connection=None) -> i
                     ],
                 )
                 inserted += 1
+        if batch.place_details:
+            from app.place_details.storage import persist_details
+
+            inserted += persist_details(c, batch)
         for warning in batch.warnings:
             row = c.execute(
                 "INSERT INTO pongdang_data.collection_warning "
@@ -316,4 +324,8 @@ def store_batch(settings: Settings, batch: SourceBatch, *, connection=None) -> i
                 ],
             ).fetchone()
             inserted += int(row is not None)
+        if identity_dirty:
+            from app.place_identity import reconcile_place_identities
+
+            reconcile_place_identities(c)
     return inserted

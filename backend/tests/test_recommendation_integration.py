@@ -19,6 +19,7 @@ from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
+from app.water_index.condition_producer import produce_conditions
 from app.water_index.recommendation import IMMERSION_WATER_C, TIDE_MARGIN_MINUTES
 from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
 
@@ -240,6 +241,8 @@ def codes(view):
 def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
     spots = places(db)
     map_station(db, spots["0"], readings(db, water=24.0, air=27.0))
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["0"])
     assert view["contract_version"] == "water-recommendation.v1"
@@ -268,6 +271,8 @@ def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):
     spots = places(db)
     map_station(db, spots["0"], readings(db, water=IMMERSION_WATER_C - 6, air=8.0))
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["0"])
     assert "water_too_cold_for_immersion" in codes(view)
@@ -288,6 +293,8 @@ def test_the_tide_window_defers_the_sea_and_offers_a_real_valley(db):
     station_id = readings(db, water=24.0, air=27.0)
     map_station(db, spots["0"], station_id)
     map_station(db, spots["0"], tide_events(db, minutes_to_low=20), name="tide")
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["0"])
     assert view["tide"]["phase"] == "near_low"
@@ -307,6 +314,8 @@ def test_a_tide_far_from_its_extremes_only_says_which_way_the_water_goes(db):
     spots = places(db)
     map_station(db, spots["0"], readings(db, water=24.0, air=27.0))
     map_station(db, spots["0"], tide_events(db, minutes_to_low=200), name="tide")
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["0"])
     assert view["tide"]["phase"] == "falling"
@@ -316,6 +325,8 @@ def test_a_tide_far_from_its_extremes_only_says_which_way_the_water_goes(db):
 
 def test_an_inland_place_reads_no_tide_and_never_invents_one(db):
     spots = places(db)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["1"])
     assert view["place_kind"] == "valley"
@@ -375,6 +386,8 @@ def test_an_empty_observation_falls_back_to_the_published_forecast(db):
         ).fetchone()[0]
     project_forecasts(db)
     map_station(db, spots["0"], forecast_station, name="forecast")
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(db)
     with TestClient(create_app(db)) as client:
         view = recommendation(client, spots["0"])
     swim = next(item for item in view["conditions"] if item["activity"] == "swim")

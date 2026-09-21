@@ -10,6 +10,7 @@ from app.ingestion.models import Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
+from app.water_index.condition_producer import produce_conditions
 from app.water_index.models import SafetyEvidence, SupportEvidence
 from app.water_index.sources import (
     AuthorityRecord,
@@ -142,6 +143,8 @@ def metric(view, name):
 def test_six_activity_selection_and_condition_scores_read_real_storage(database):
     store_batch(database, source())
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     before = counts(database)
     with TestClient(create_app(database)) as client:
         response = client.get(BASE + "/activities")
@@ -207,6 +210,8 @@ def test_latest_missing_revision_never_falls_back_and_historical_cutoff_survives
     original = source()
     store_batch(database, original)
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         before = conditions(client, spot)
         cutoff = before["as_of"]
@@ -216,6 +221,7 @@ def test_latest_missing_revision_never_falls_back_and_historical_cutoff_survives
             values=[Value(name="air_temperature", missing=True, unit="degC")],
         )
         store_batch(database, replacement)
+        produce_conditions(database)
         after = conditions(client, spot)
         assert metric(after, "air_temperature")["status"] == "missing"
         assert metric(after, "air_temperature")["value"] is None
@@ -246,6 +252,8 @@ def test_omitted_metric_correction_does_not_reuse_an_older_source_reading(databa
     )
     store_batch(database, current)
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         assert metric(conditions(client, spot), "air_temperature")["value"] == 24
         store_batch(
@@ -315,6 +323,8 @@ def test_conflicting_same_time_records_are_unavailable(database):
             ),
         )
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
         air = metric(view, "air_temperature")
@@ -346,6 +356,8 @@ def test_stale_or_unknown_unit_cannot_produce_a_score(database, failure):
         ),
     )
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
         assert metric(view, "air_temperature")["status"] == failure
@@ -378,6 +390,8 @@ def test_mapping_activity_correction_respects_historical_knowledge(database):
         valid_until=original.readings[0].valid_until + timedelta(hours=1),
     )
     register_evidence(database, EvidenceBundle(mappings=[mapping]))
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         before = conditions(client, 9301)
         cutoff = before["as_of"]
@@ -471,6 +485,8 @@ def test_sea_temperature_is_neither_bath_nor_river_temperature(database):
         ),
     )
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         bath = conditions(client, spot, "onsen")
         assert "bath_water_temperature" in bath["missing_metrics"]
@@ -498,6 +514,8 @@ def test_river_measurements_keep_flow_unit_and_do_not_derive_from_level(database
         ),
     )
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, "rafting")
         assert metric(view, "river_flow")["value"] == 80
@@ -583,6 +601,8 @@ def test_weekly_forecasts_remain_readable_with_accumulated_issue_history(databas
         ),
     )
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         for day in range(7):
             target = now + timedelta(days=day, hours=12)
@@ -613,6 +633,8 @@ def test_provider_activity_product_cannot_be_scored_as_another_activity(database
         ),
     )
     sid, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         surf = score(
             client,
@@ -662,6 +684,8 @@ def test_summary_rows_agree_with_the_single_spot_reading(database):
         ),
     )
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
         rows = summary(client, [spot])["rows"]
@@ -682,6 +706,8 @@ def test_summary_reports_unreadable_spots_instead_of_dropping_them(database):
     store_batch(database, source())
     _, spot = station(database)
     missing = spot + 9999
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         payload = summary(client, [spot, missing])
         assert [row["spot_id"] for row in payload["rows"]] == [spot]
@@ -740,6 +766,8 @@ def test_summary_reads_many_spots_on_one_connection(database):
             ).fetchall()
         ]
     assert len(spots) >= 2
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     before = counts(database)
     with TestClient(create_app(database)) as client:
         payload = summary(client, spots)

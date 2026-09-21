@@ -10,6 +10,7 @@ import {
 import { Icon, StateChip } from "./pongdangUi";
 import { LOGO_ALT, logoUrl } from "./brand";
 import { TravelLanguageSelector } from "./TravelLanguageSelector";
+import { useDataRefresh } from "./useDataRefresh";
 import "./sideMenu.css";
 
 /** 사이드 메뉴(탭 밖) 항목입니다. 탭바가 담는 여행 흐름(오늘 · 추천 · 지도 ·
@@ -57,6 +58,14 @@ export function SideMenuButton() {
 }
 
 function SideMenuPanel({ onClose }: { onClose: () => void }) {
+  const refresh = useDataRefresh();
+  const refreshMessage = refresh.error ?? (refresh.pending
+    ? "최신 자료와 점수를 갱신하고 있습니다."
+    : refresh.job?.status === "succeeded" ? "최신 자료와 점수를 갱신했습니다."
+    : refresh.job?.status === "partial" ? "일부 자료 또는 점수를 갱신하지 못했습니다. 다시 시도해 주세요."
+    : refresh.job?.status === "failed" ? "새로고침하지 못했습니다. 잠시 후 다시 시도해 주세요."
+    : "10분마다 자동 갱신합니다.");
+  const refreshFailed = !!refresh.error || ["partial", "failed"].includes(refresh.job?.status ?? "");
   const panel = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   // onClose 는 호출부가 인라인 화살표로 넘깁니다. 그대로 의존성에 넣으면 렌더
@@ -92,7 +101,11 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
+      if (!Array.from(focusable).some((element) => element === document.activeElement)) {
+        // The refresh button can become disabled while it owns focus.
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -174,6 +187,23 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
           )}
         </nav>
         <p className="pd-menu-note">{t("개인 코스·즐겨찾기·알림은 본인의 SSO 세션을 사용합니다. 추천 취향은 추천 탭의 취향 단계에서 바꿉니다.")}</p>
+        <div className="pd-menu-refresh">
+          <button
+            type="button"
+            className="pd-menu-item pd-menu-refresh-button"
+            disabled={refresh.pending}
+            onClick={() => { void refresh.refresh(); }}
+            aria-describedby="pd-menu-refresh-status"
+          >
+            <svg className={refresh.pending ? "is-refreshing" : undefined} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7" />
+            </svg>
+            {t(refresh.pending ? "새로고침 중…" : refresh.canResume ? "상태 다시 확인" : "새로고침")}
+          </button>
+          <p id="pd-menu-refresh-status" className={"pd-menu-refresh-status" + (refreshFailed ? " is-error" : "")} role="status" aria-live="polite">
+            {t(refreshMessage)}
+          </p>
+        </div>
       </div>
     </>
   );

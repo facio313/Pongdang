@@ -12,3 +12,11 @@ class Job:
     enabled: bool = True
     process: Callable[[], dict] | None = None
     disabled_reason: str = "KEY_NOT_CONFIGURED"
+    external_collection: bool = False
+
+
+def scheduled_interval(job: Job) -> int:
+    """External collection runs at most every ten minutes automatically."""
+    if job.external_collection or job.fetch is not None:
+        return max(600, job.interval_seconds)
+    return job.interval_seconds

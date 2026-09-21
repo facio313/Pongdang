@@ -1,11 +1,26 @@
-# 현재 작업 · 강원도 확대 main 통합 및 운영 배포 · 2026-09-21
+# 현재 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
 
-- 사용자 승인: 최신 GitHub main 반영, 기존 강원도 확장 병합·충돌 해결, dev 검증 후 main push 및 운영 배포.
-- 기준 main `281f4e5`, 확장 원본 `4dd1938`. 28개 파일의 충돌을 확인했고 최신 로고·푸터·전체 화면 지도·내 코스·다국어 UI를 보존하면서 지역/장소 선택을 결합했다.
-- 실제 수집 DB가 아닌 별도 `55469/pongdang_test`에서 통합 검증을 진행한다. 운영 DB는 기존 배포 initialize의 추가형 v9 → v10 마이그레이션으로만 갱신한다.
-- iCloud Git 객체 읽기 지연을 피하려 별도 `/Users/cksmacbook/.cache/pongdang-gangwon-release-20260921`에서 작업한다. 원본 작업의 패치와 커밋 tree/SHA가 정확히 일치함을 검증했다. 백업: `/Users/cksmacbook/.codex/backups/pongdang-gangwon-release-20260921-053525`.
-- 구현과 범위 제한: [GANGWON-EXPANSION.md](GANGWON-EXPANSION.md). 관광·장소 검색은 강원도 전체, 실시간 관측·안전 근거의 공간 범위는 제공처별로 제한된다.
-- 통합 후 로컬 frontend lint/123 unit/type/build, backend Ruff/1,266 tests 통과(로컬 Docker 미설치 2 skip). 전체 browser 140개 중 139개 통과 후 최신 main 지도 요소명으로 테스트 선택자 1개를 정정했고 해당 지역/페이지 회귀 4개가 모두 통과했다. 제품 코드의 미해결 실패 없음. 다음 단계는 dev CI → 동일 커밋 main CI 및 자동 배포 확인이다.
+- 요청: 기존 명소의 운영·개장·주차·시설·문의·소개를 보강해 DB에 저장하고, 신규 장소 및 제공처 수정일 변경 시에만 상세 API를 호출한다. 화면은 읽기 전용 DB 조회. 거리 값은 출발점 좌표에 따른 직선거리로 계산한다.
+- 구현: TourAPI 공통/소개/반복정보 수집, 추가형 v11 저장, 최대 100개 DB 조회 API, 데이터 목록, 모바일/데스크톱 및 여행 조회 연결 완료. 기존 행 최초 보강·신규 행·원본 수정 시만 요청하며 자료 없음도 기억한다. 사진의 7일 재조회와 같은 좌표의 행정구역 빈 응답 재조회를 제거했다. 상세: [PLACE-DETAILS.md](PLACE-DETAILS.md).
+- 제약: 기존 사용자 CURRENT.md 기록과 .byeori/, .playwright-cli/, output/ 보존. 커밋·푸시·운영 배포 승인 없음. 테스트는 새 disposable pongdang_test에서만 수행한다. 기존 확인 서버·DB와 운영 DB는 테스트 대상으로 사용하지 않는다.
+- 확인: 주소/좌표/장소목록은 이미 DB 조회. 사진은 DB+파일 저장이나 collector의 정기 재요청이 있었음. 날씨·교통·Windy livecam preview는 동적 자료로 기존 의미 유지.
+- 최종 검증: Node 24 frontend lint/136 unit/type/build, 명소 브라우저 7개 항목 통과. 고정한 소스 복사본의 backend 1,355개 통과(전체 1,354개 + 복사본 누락 증빙 CSV 보충 후 해당 1개 재검증), Docker 부재 2 skips. 최신 작업 폴더 Ruff check/format 207개 및 git diff --check 통과. 동시 편집 중 실행의 실패, 브라우저 세션 종료 1건과 동일 코드 재검증 경위는 상세 문서에 구분해 기록했다.
+- 실제 응답: 현재 로컬 목록 162곳 중 TourAPI 직접 원본 146곳 확인. 가진해변 실제 detail API에서 운영 09:00~18:00, 주차 가능, 화장실 있음, 추가 11개 항목을 확인했다. 이 실호출은 읽기 검증이며 실제 확인 DB/운영 DB에 전체 목록 보강을 실행한 것은 아니다. 배포 후 collector가 기존 미수집 행을 한도 안에서 보강한다.
+- 동시 작업: 별도 세션에서 livecam 저장·점수 projection/갱신·알림·장소 중복 정리와 후속 v12~v14 스키마를 수정 중이다. 해당 변경은 보존하며 이 작업의 구현이나 전체 통과 결과로 주장하지 않는다.
+- 정리: 이 작업의 49418 검증 DB 종료. 기존 5173/8000/51906 확인 환경과 사용자 변경은 유지했다. 소스 구현·관련 검증 완료이며 운영 반영은 아직 실행하지 않았다.
+
+# 이전 작업 · 강원도 확대 main 통합 및 운영 배포 완료 · 2026-09-21
+
+- 사용자 요청 완료: 최신 운영 main `281f4e5`와 강원도 확대를 통합했다. 28개 파일 충돌을 해결하며 최신 로고·파비콘·푸터·전체 화면 지도/내 코스·다국어 UI를 보존했다. 기존 main의 레이아웃 CSS를 바꾸지 않고 지역·장소 선택을 연결했다.
+- 배포 커밋: `ebf073a1d345cd7e4034fae22e8fc8867d74a48a`. dev CI [35536916016](https://github.com/facio313/Pongdang/actions/runs/35536916016) 성공 후 동일 커밋을 main에 push했으며 main CI·배포 [35537506824](https://github.com/facio313/Pongdang/actions/runs/35537506824)도 모두 성공했다.
+- 운영 로그: 2026-09-21 06:14:20 KST `Deployed Pongdang ebf073a1d345cd7e4034fae22e8fc8867d74a48a`. 추가형 스키마 초기화 성공, frontend/backend/db/collector 모두 Healthy, `/api/ready`는 `{"status":"ok"}`.
+- 실제 브라우저로 `https://bonifacio.work/pongdang/` → 기존 Authelia SSO 로그인 화면 연결을 확인했다. 비인증 Python HTTP 요청은 Cloudflare 1010으로 차단되므로 운영 UI 장애 근거로 취급하지 않는다. 인증 후 운영 UI 직접 조작은 미실행이다.
+- 검증: frontend lint/123 unit/type/build, backend Ruff 및 CI 1,268개, browser 140개 모두 통과. dev/main의 Docker smoke도 모두 통과했다. 로컬 backend는 1,266 passed/2 Docker skips. 지도 선택자 정정 후 지역·페이지 회귀 4개를 통과했고 최종 CI에서 전체 browser를 다시 통과했다.
+- 원본 `fix/finale`, 로컬 main/dev 및 origin/main/dev가 모두 배포 SHA다. iCloud mmap 시간 초과로 중단된 원본 파일 갱신은 동일 해시의 검증 체크아웃 객체를 명령 실행 동안만 사용해 완료했다. Git 설정·비공개 환경·개인 파일을 변경하지 않았다.
+- 소스/이력 백업과 검증 증거: `/Users/cksmacbook/.codex/backups/pongdang-gangwon-release-20260921-053525/`의 Git bundles, `release-verification.json`, `main-ci-result.json`, `main-deploy.log`. 통합 체크아웃은 `/Users/cksmacbook/.cache/pongdang-gangwon-release-20260921`이다.
+- 기존 로컬 미리보기 `http://127.0.0.1:5173/pongdang/`도 배포 커밋의 frontend 161개 파일로 갱신·해시 검증했다. 비공개 설정과 backend 8000/실제 확인 DB 51906은 유지했다. 검사용 55469 DB와 임시 5179 서버·브라우저는 종료했다.
+- 범위와 한계: 기본 검색·추천/관광 수집은 강원도 18개 시군으로 확장했다. 실시간 관측·안전 근거는 제공처별 기존 공간 범위의 제한을 유지하고, 미확인 값은 unknown/null로 둔다. 상세: [GANGWON-EXPANSION.md](GANGWON-EXPANSION.md).
+- 이 완료 기록은 배포 후 작성한 로컬 인수인계 메모이며 미커밋 상태다. 배포된 제품 소스와 로컬 제품 소스에는 차이가 없다. 요청 범위의 미완료 작업 없음.
 
 # 이전 작업 · 언어 전환 main 통합 및 운영 배포 완료 · 2026-09-21
 

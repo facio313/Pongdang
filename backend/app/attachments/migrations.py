@@ -53,3 +53,20 @@ def migrate_attachments(c):
     for table in ("attachment", "place_attachment", "attachment_collection"):
         c.execute(f"REVOKE ALL ON pongdang_data.{table} FROM PUBLIC")
     c.execute("UPDATE pongdang_data.schema_version SET version=9 WHERE id=1")
+
+
+def migrate_photo_detail_cache(c):
+    """Photos follow stored detail revisions instead of a recurring provider read."""
+    c.execute(
+        "ALTER TABLE pongdang_data.attachment_collection "
+        "ALTER COLUMN next_attempt_at DROP NOT NULL"
+    )
+    c.execute(
+        "ALTER TABLE pongdang_data.attachment_collection "
+        "ADD COLUMN IF NOT EXISTS source_detail_id bigint "
+        "REFERENCES pongdang_data.place_detail(id)"
+    )
+    c.execute(
+        "UPDATE pongdang_data.attachment_collection SET next_attempt_at=NULL "
+        "WHERE state<>'failed'"
+    )

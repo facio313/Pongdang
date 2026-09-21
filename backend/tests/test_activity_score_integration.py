@@ -12,6 +12,7 @@ from app.ingestion.storage import store_batch
 from app.ingestion.weather import grid_coordinates
 from app.main import create_app
 from app.schema import connect
+from app.water_index.condition_producer import produce_conditions
 
 
 def test_forecast_maximum_display_preserves_statistic_and_unknown_issue(database):
@@ -29,6 +30,8 @@ def test_forecast_maximum_display_preserves_statistic_and_unknown_issue(database
         ),
     )
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, mode="forecast")
     displayed = {m["name"]: m for m in view["display_metrics"]}
@@ -64,6 +67,8 @@ def test_kma_categorical_rainfall_reaches_display_without_numeric_invention(
         ),
     )
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, mode="forecast")
     displayed = next(m for m in view["display_metrics"] if m["name"] == "precipitation")
@@ -112,6 +117,8 @@ def test_invalid_precipitation_text_is_not_promoted_to_display(database, change)
         )
         store_batch(database, batch.model_copy(update={"readings": [other]}))
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         assert conditions(client, spot, mode="forecast")["display_metrics"] == []
 
@@ -168,6 +175,8 @@ def test_latest_kma_publication_replaces_previous_issue_without_hiding_missing(
             ),
         )
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, mode="forecast")
     assert len(view["metrics"][0]["evidence"]) == 1
@@ -188,6 +197,8 @@ def test_catalog_place_get_returns_context_score_without_registering_mapping(dat
     _, station_spot = station(database)
     spot = catalog_place(database, latitude=37.501)
     assert spot != station_spot
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     before = counts(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
@@ -219,6 +230,8 @@ def test_unknown_coordinates_never_count_as_zero_distance_and_radius_is_bounded(
         c.execute(
             "UPDATE pongdang_data.collection_station SET latitude=NULL,longitude=NULL"
         )
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
         assert (
@@ -229,6 +242,7 @@ def test_unknown_coordinates_never_count_as_zero_distance_and_radius_is_bounded(
                 "UPDATE pongdang_data.collection_station "
                 "SET latitude=38.5,longitude=129"
             )
+        produce_conditions(database)
         view = conditions(client, spot)
         assert view["context_metrics"] == []
 
@@ -248,6 +262,8 @@ def test_exact_kma_grid_context_works_without_fabricating_station_coordinates(da
             "UPDATE pongdang_data.collection_station SET latitude=NULL,longitude=NULL"
         )
     spot = catalog_place(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, mode="forecast")
         assert view["condition_score"]["score"] == 25
@@ -268,6 +284,8 @@ def test_khoa_skill_forecast_preserves_unknown_issue_and_identical_variants(data
     for skill in ("beginner", "intermediate", "advanced"):
         store_batch(database, source(source_id=skill, **kwargs))
     _, spot = station(database)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, "surf", mode="forecast")
         assert view["metrics"][0]["status"] == "conflict"
@@ -300,6 +318,8 @@ def test_irrelevant_activity_and_mode_stations_do_not_consume_context_limit(data
         ),
     )
     spot = catalog_place(database, latitude=37.501)
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot, "surf", mode="forecast")
         assert view["condition_score"]["score"] == 25
@@ -335,6 +355,8 @@ def test_direct_place_get_fills_absent_wave_and_rain_from_context(database):
             values=[Value(name="precipitation", numeric_value=0, unit="mm/1h")],
         ),
     )
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     before = counts(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
@@ -373,6 +395,8 @@ def test_stale_direct_wave_is_not_hidden_by_fresh_context(database):
             values=[Value(name="wave_height", numeric_value=0.4, unit="m")],
         ),
     )
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         view = conditions(client, spot)
     assert view["metrics"][0]["status"] == "stale"

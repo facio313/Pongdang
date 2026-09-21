@@ -6,6 +6,7 @@ from collections import defaultdict
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import (
@@ -29,6 +30,7 @@ from app.water_index.conditions import (
     ActivityCatalog,
     ConditionMetric,
     ConditionsEnvelope,
+    ConditionSeries,
     ConditionSummaries,
     Criterion,
     DisplayMetric,
@@ -76,6 +78,16 @@ class ConditionQuery(BaseModel):
         if self.mode == "observation" and at > as_of:
             raise ValueError("Observations cannot evaluate a future target")
         return at, as_of
+
+
+def is_historical_query(q, now: datetime) -> bool:
+    """Keep explicit observations and forecasts before today on the raw path."""
+    day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return q.as_of is not None or (
+        q.at is not None and (q.mode == "observation" or q.at < day_start)
+    )
 
 
 #: 한 요청이 요약할 수 있는 지점 수. 지점마다 관측소 연결과 관측 선별 질의가
@@ -139,6 +151,29 @@ class ScoreRequest(ConditionQuery):
     def valid_selection(self):
         validate_criteria(self.activity, self.criteria)
         return self
+
+
+class SeriesQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    spot_id: int = Field(gt=0)
+    activity: Activity
+    targets: str = Field(min_length=1, max_length=4096)
+
+    _id = field_validator("spot_id", mode="before")(ConditionQuery.integer_id.__func__)
+
+    def queries(self):
+        targets = self.targets.split(",")
+        if not 1 <= len(targets) <= 32 or len(set(targets)) != len(targets):
+            raise ValueError("One to 32 distinct forecast targets are required")
+        return [
+            ConditionQuery(
+                spot_id=self.spot_id,
+                activity=self.activity,
+                mode="forecast",
+                at=target,
+            )
+            for target in targets
+        ]
 
 
 ALIASES = {"sea_water_temperature": "water_temperature"}
@@ -352,6 +387,11 @@ async def read_authority(c, q, at, as_of):
     ).fetchall()
     if len(rows) > 100:
         raise HTTPException(422, "response_scope_too_large")
+    return authority_conditions(rows, q, at, as_of)
+
+
+def authority_conditions(rows, q, at, as_of):
+    """Interpret selected authority evidence for both live and worker reads."""
     support, restrictions, warnings = set(), [], []
     for row in rows:
         record = AuthorityRecord.model_validate(row["payload"])
@@ -504,6 +544,25 @@ async def read_conditions(
         if len(rows) > 100:
             raise HTTPException(422, "response_scope_too_large")
         support, safety, restrictions, reasons = await read_authority(c, q, at, as_of)
+    return assemble_conditions(
+        place=place,
+        links=links,
+        rows=rows,
+        q=q,
+        at=at,
+        as_of=as_of,
+        allowed=allowed,
+        requested=requested,
+        authority=(support, safety, restrictions, reasons),
+    )
+
+
+def assemble_conditions(
+    *, place, links, rows, q, at, as_of, allowed, requested, authority
+):
+    """Build the public result from selected inputs without any database reads."""
+    support, safety, restrictions, reasons = authority
+    reasons = list(reasons)
     groups = defaultdict(list)
     for row in rows:
         groups[(row["station_id"], ALIASES.get(row["name"], row["name"]))].append(row)
@@ -622,6 +681,11 @@ def score_request_schema():
 
 
 def create_condition_router(settings):
+    from app.water_index.condition_storage import (
+        read_condition_set,
+        read_projected_conditions,
+    )
+
     router = APIRouter(
         prefix="/api/data/water-index",
         tags=["water-index-conditions"],
@@ -643,14 +707,19 @@ def create_condition_router(settings):
             return error_response(
                 422, "invalid_request", "중복 조회 조건은 허용하지 않습니다."
             )
+        now = datetime.now(UTC)
         try:
-            q.times(datetime.now(UTC))
+            q.times(now)
         except ValueError:
             return error_response(
                 422, "invalid_request", "조회 시각이 올바르지 않습니다."
             )
         try:
-            return await read_conditions(reader, q)
+            # Historical targets and knowledge cutoffs retain the bounded raw
+            # query. Normal product reads use only worker-published results.
+            if is_historical_query(q, now):
+                return await read_conditions(reader, q, now=now)
+            return await read_projected_conditions(reader, q, now=now)
         except ValueError, KeyError:
             return error_response(
                 503, "condition_data_unavailable", "조건 자료를 제공할 수 없습니다."
@@ -658,17 +727,7 @@ def create_condition_router(settings):
 
     @router.get("/conditions/summary", response_model=ConditionSummaries)
     async def conditions_summary(request: Request, q: Annotated[SummaryQuery, Query()]):
-        """목록 한 화면분의 점수 · 수온을 한 요청으로.
-
-        예전에는 화면이 지점마다 /conditions 를 불렀습니다 -- 지도에 들어가면
-        그것만으로 100건이 나갔고, 네 개뿐인 연결 슬롯을 서로 빼앗아 상당수가
-        503 으로 돌아왔습니다. 여기서는 연결을 **한 번** 열어 그 위에서 지점을
-        차례로 읽습니다.
-
-        지점 목록을 station_links 에 한꺼번에 넘기지는 않습니다. 그쪽은 링크
-        총합 100건에서 422 를 내므로, 지점이 몇 곳만 돼도 목록 전체가 통째로
-        실패합니다. 지점별로 읽고 실패는 그 지점만 unavailable 로 내립니다.
-        """
+        """Read a screen's published scores with one SELECT, without recalculation."""
         if len(request.query_params) != len(request.query_params.multi_items()):
             return error_response(
                 422, "invalid_request", "중복 조회 조건은 허용하지 않습니다."
@@ -682,32 +741,61 @@ def create_condition_router(settings):
                 422, "invalid_request", "조회할 지점과 시각을 확인해 주세요."
             )
         rows, unavailable = [], []
-        async with reader.connection() as c:
-            for spot_id in ids:
-                try:
-                    rows.append(
-                        summarize_conditions(
+        if q.as_of is not None:
+            results = []
+            async with reader.connection() as c:
+                for spot_id in ids:
+                    try:
+                        results.append(
                             await read_conditions(
                                 reader, q.query(spot_id), now=now, connection=c
                             )
                         )
-                    )
-                except HTTPException as error:
-                    unavailable.append(
-                        SummaryFailure(spot_id=spot_id, reason=str(error.detail))
-                    )
-                except ValueError, KeyError:
-                    unavailable.append(
-                        SummaryFailure(
-                            spot_id=spot_id, reason="condition_data_unavailable"
-                        )
-                    )
+                    except HTTPException as error:
+                        results.append(error)
+        else:
+            results = await read_condition_set(
+                reader, [q.query(spot_id) for spot_id in ids], now=now
+            )
+        for spot_id, result in zip(ids, results, strict=True):
+            if isinstance(result, HTTPException):
+                unavailable.append(
+                    SummaryFailure(spot_id=spot_id, reason=str(result.detail))
+                )
+            else:
+                rows.append(summarize_conditions(result))
         return ConditionSummaries(
             activity=q.activity,
             as_of=as_of,
             rows=tuple(rows),
             unavailable=tuple(unavailable),
         )
+
+    @router.get("/conditions/series", response_model=ConditionSeries)
+    async def conditions_series(request: Request, q: Annotated[SeriesQuery, Query()]):
+        if len(request.query_params) != len(request.query_params.multi_items()):
+            return error_response(
+                422, "invalid_request", "중복 조회 조건은 허용하지 않습니다."
+            )
+        now = datetime.now(UTC)
+        try:
+            queries = q.queries()
+            for query in queries:
+                query.times(now)
+        except ValueError:
+            return error_response(422, "invalid_request", "조회 시각을 확인해 주세요.")
+        try:
+            rows = await read_condition_set(reader, queries, now=now)
+            for row in rows:
+                if isinstance(row, HTTPException):
+                    raise row
+            return ConditionSeries(
+                spot_id=q.spot_id, activity=q.activity, as_of=now, rows=tuple(rows)
+            )
+        except ValueError, KeyError:
+            return error_response(
+                503, "condition_data_unavailable", "조건 자료를 제공할 수 없습니다."
+            )
 
     @router.post(
         "/condition-score",

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calendarDays, conditionPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription, placeRegionLabel, productPlaces } from '../src/productData.ts';
+import { calendarDays, conditionPath, conditionSeriesPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription, placeRegionLabel, productPlaces } from '../src/productData.ts';
 import { travelJson, recommendationPlan, keywordSelection, directionLink } from '../src/travelApi.ts';
 
 test('place region display uses verified districts or addresses without changing provider codes', () => {
@@ -31,6 +31,17 @@ test('product dates use KST, including midnight and year boundaries', () => {
   // 페인트가 묻지도 않은 것을 「자료 없음」으로 그립니다.
   assert.equal(conditionPath(undefined), undefined);
   assert.match(conditionPath(7), /spot_id=7&activity=swim&mode=observation/);
+});
+test('calendar and hourly targets travel together in one stored-score query', () => {
+  const targets = calendarDays('2026-09-21T03:00:00Z', 7).map(day => day.at);
+  const path = conditionSeriesPath(7, 'surf', targets);
+  const query = new URL(path, 'https://example.test/').searchParams;
+  assert.equal(query.get('spot_id'), '7');
+  assert.equal(query.get('activity'), 'surf');
+  assert.deepEqual(query.get('targets').split(','), targets);
+  assert.equal(query.has('at'), false);
+  assert.equal(conditionSeriesPath(undefined, 'surf', targets), undefined);
+  assert.equal(conditionSeriesPath(7, 'surf', []), null);
 });
 test('missing, conflicting, and stale observations never become zero or another station’s value', () => {
   const value = { name: 'water_temperature', status: 'available', value: 0, unit: '°C' };

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { travelJson } from "./travelApi";
 import { queueResourceRead } from "./resourceQueue";
 import { useI18n } from "./i18n";
+import { RESOURCE_REFRESH_INTERVAL, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
 
 /** 「아직 한 번도 보여준 적 없는 첫 조회」인지.
  *
@@ -40,10 +41,8 @@ export type ResourcePath = string | null | undefined;
  *  말하는 사실은 그대로인데 네트워크만 다시 때린 것입니다.
  *
  *  기억하는 것은 **성공한 응답뿐**입니다. 실패는 다시 물어볼 수 있어야 하므로
- *  남기지 않습니다. 그리고 이 기억은 **만료 판정을 대신하지 않습니다** --
- *  근거의 유효기간은 지금처럼 `conditionScoreExpiry` 가 보고 revision 을 올려
- *  키를 바꾸므로(useRecommendation · useConditions), 만료된 근거가 여기서
- *  되살아나는 일은 없습니다. */
+ *  남기지 않습니다. 근거 만료는 useExpiry가 화면에서 즉시 반영합니다.
+ *  만료 표시와 자동 재조회 주기는 독립적입니다. */
 interface CacheEntry {
   data: unknown;
   /** 응답을 받은 시각. TTL 이 지나면 화면은 그대로 둔 채 조용히 다시 읽습니다. */
@@ -54,7 +53,7 @@ const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<{ data?: unknown; error?: string }>>();
 /** 이 시간이 지나면 같은 키라도 한 번 더 읽습니다. 폭 전환 · 탭 왕복은 이보다
  *  훨씬 짧아 요청이 나가지 않고, 오래 열어 둔 탭으로 돌아오면 갱신됩니다. */
-const CACHE_TTL = 60000;
+const CACHE_TTL = RESOURCE_REFRESH_INTERVAL;
 /** 기억은 무한정 쌓이지 않습니다. 오래 안 쓴 것부터 버립니다.
  *
  *  지도 한 화면이 장소 목록 · 사진 · 조건 요약 · 고른 지점 조건을 한꺼번에
@@ -76,7 +75,7 @@ function remember(key: string, data: unknown) {
  *  사라져도 취소되지 않습니다** -- 예전에는 폭 전환 중에 진행 중이던 요청이
  *  `controller.abort()` 로 죽고, 새 레이아웃이 같은 것을 처음부터 다시
  *  물었습니다. */
-function readResource(key: string, path: string) {
+function readResource(key: string, path: string, generation: number) {
   const shared = inflight.get(key);
   if (shared) return shared;
   const signal = AbortSignal.timeout(20000);
@@ -85,7 +84,8 @@ function readResource(key: string, path: string) {
       const data = await queueResourceRead(signal, () =>
         travelJson<unknown>(import.meta.env.BASE_URL, path, "GET", undefined, signal),
       );
-      remember(key, data);
+      // A read started before a manual refresh cannot repopulate its new cache.
+      if (generation === resourceRefreshGeneration()) remember(key, data);
       return { data };
     } catch (error) {
       return {
@@ -106,27 +106,37 @@ function readResource(key: string, path: string) {
 export function useResource<T>(path: ResourcePath, revision = 0) {
   const { t } = useI18n();
   const origin = "data";
-  const key = `${origin}:${path}:${revision}`;
+  const generation = useSyncExternalStore(subscribeResourceRefresh, resourceRefreshGeneration, resourceRefreshGeneration);
+  const resourceKey = `${origin}:${path}:${revision}`;
+  const key = `${resourceKey}:${generation}`;
   const [result, setResult] = useState<{
     key: string;
+    resourceKey: string;
     data?: T;
     error?: string;
   }>();
   useEffect(() => {
     if (path == null) return;
-    const entry = cache.get(key);
-    // 신선한 기억이 있으면 묻지 않습니다. 오래된 기억은 화면에 그대로 둔 채
-    // (아래 hit) 뒤에서 조용히 갱신합니다 -- 이미 보여준 값을 스켈레톤으로
-    // 되돌리면 아는 것을 모르는 것처럼 그리는 셈입니다.
-    if (entry && Date.now() - entry.at < CACHE_TTL) return;
     let alive = true;
-    void readResource(key, path).then((next) => {
-      if (alive) setResult({ key, ...(next as { data?: T; error?: string }) });
-    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = async () => {
+      const entry = cache.get(key);
+      const next = entry && Date.now() - entry.at < CACHE_TTL
+        ? await Promise.resolve({ data: entry.data, error: undefined })
+        : await readResource(key, path, generation);
+      if (!alive) return;
+      setResult({ key, resourceKey, ...(next as { data?: T; error?: string }) });
+      const refreshed = cache.get(key);
+      timer = setTimeout(() => { void refresh(); }, !next.error && refreshed
+        ? Math.max(1, CACHE_TTL - (Date.now() - refreshed.at))
+        : CACHE_TTL);
+    };
+    void refresh();
     return () => {
       alive = false;
+      clearTimeout(timer);
     };
-  }, [path, key, origin]);
+  }, [path, key, resourceKey, generation]);
   // 기억에 있는 값은 **첫 프레임부터** 보여줍니다. 리마운트했다는 것은 화면을
   // 다시 그렸다는 뜻이지 사실을 잊었다는 뜻이 아닙니다.
   const hit =
@@ -134,7 +144,9 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
       ? result
       : cache.has(key)
         ? { key, data: cache.get(key)!.data as T, error: undefined }
-        : undefined;
+        // A manual refresh keeps the same screen and current selection visible.
+        // A different path/revision must not borrow another query's result.
+        : result?.resourceKey === resourceKey ? result : undefined;
   return path === undefined
     ? // 대상 미정. 요청은 나가지 않지만 화면에는 「조회 중」입니다.
       { loading: true, data: undefined, previousData: undefined, error: undefined }

@@ -55,26 +55,23 @@ test("desktop baseline keeps the provider mode and distinguishes a failed read f
   await expect(page.locator(".td-hero-tiles")).not.toContainText("조회 실패");
 });
 
-test("desktop weekly forecasts show errors, missing evidence and partial coverage independently", async ({ page }) => {
-  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+test("desktop weekly forecasts preserve each stored date's missing evidence and partial coverage", async ({ page }) => {
   const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
   await routeRecommendation(page, { activity: "swim", score: 73 });
-  await page.route("**/api/data/water-index/conditions?**", route => {
+  await page.route("**/api/data/water-index/conditions/series?**", route => {
     const query = new URL(route.request().url()).searchParams;
-    if (query.get("mode") !== "forecast") return route.continue();
-    const at = query.get("at")!;
-    const date = new Date(at).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
-    if (date === today) return route.fulfill({ status: 503, json: { detail: "fixture failure" } });
     const conditions = conditionsFixture({ activity: "swim", score: 74 });
-    return route.fulfill({ json: {
-      ...conditions, mode: "forecast", at,
-      condition_score: date === tomorrow ? conditions.condition_score
-        : { ...conditions.condition_score, status: "unavailable", score: null, coverage: 0, available_components: 0 },
+    return route.fulfill({ json: { spot_id: 1, activity: "swim", as_of: new Date().toISOString(), rows:
+      query.get("targets")!.split(",").map((at) => ({
+        ...conditions, mode: "forecast", at,
+        condition_score: new Date(at).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }) === tomorrow ? conditions.condition_score
+          : { ...conditions.condition_score, status: "unavailable", score: null, coverage: 0, available_components: 0 },
+      })),
     } });
   });
   await page.goto("#today");
   const week = page.getByRole("region", { name: "이번 주 예보" });
-  await expect(week.locator(".td-day-grade").first()).toHaveText("조회 실패");
+  await expect(week.locator(".td-day-grade").first()).toHaveText("평가값 없음");
   await expect(week.locator(".td-day-score").nth(1)).toHaveText("74");
   await expect(week.locator(".td-day").nth(1).locator(".td-score-coverage")).toHaveText("부분 점수 · 근거 2/4 (50%)");
   await expect(week.locator(".td-day-score").nth(2)).toHaveText("–");

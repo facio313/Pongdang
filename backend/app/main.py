@@ -16,7 +16,9 @@ from app.livecams.places import create_places_router
 from app.livecams.preview import create_preview_router
 from app.livecams.service import create_livecam_router
 from app.notifications.api import create_router as create_notifications_router
+from app.place_details.api import create_place_details_router
 from app.quality.api import create_router as create_quality_router
+from app.refresh.api import create_router as create_refresh_router
 from app.tides.api import create_tides_router
 from app.travel.api import create_router as create_travel_router
 from app.twin.api import create_twin_router
@@ -65,8 +67,10 @@ def create_app(
         return {"status": "ok"}
 
     app.include_router(create_data_router(settings))
+    app.include_router(create_refresh_router(settings))
     app.include_router(create_places_router(settings))
     app.include_router(create_attachment_router(settings))
+    app.include_router(create_place_details_router(settings))
     app.include_router(create_water_index_router(settings))
     app.include_router(create_condition_router(settings))
     app.include_router(create_default_place_router(settings))

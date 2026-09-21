@@ -1,0 +1,275 @@
+"""Worker-published condition sets. Product reads never calculate a score."""
+
+from contextlib import nullcontext
+from datetime import UTC, datetime, timedelta
+
+from fastapi import HTTPException
+from psycopg import sql
+from psycopg.types.json import Jsonb
+
+from app.water_index.activity_score import ActivityScore
+from app.water_index.conditions import (
+    ACTIVITIES,
+    ConditionProjection,
+    ConditionsEnvelope,
+)
+
+MODEL_VERSION = "1.0.0"
+REFRESH_SECONDS = 600
+RETAIN_GENERATIONS = 2
+
+
+def migrate_conditions(connection):
+    """Add result storage and transactional invalidation; preserve all evidence."""
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS pongdang_data.condition_source_revision ("
+        "id integer PRIMARY KEY CHECK(id=1), revision bigint NOT NULL DEFAULT 0)"
+    )
+    connection.execute(
+        "INSERT INTO pongdang_data.condition_source_revision(id) VALUES(1) "
+        "ON CONFLICT DO NOTHING"
+    )
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS pongdang_data.condition_generation ("
+        "id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "
+        "source_revision bigint NOT NULL, model_version text NOT NULL, "
+        "computed_at timestamptz NOT NULL, published_at timestamptz NOT NULL "
+        "DEFAULT clock_timestamp(), record_count integer NOT NULL, "
+        "UNIQUE(source_revision,model_version,computed_at))"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS condition_generation_revision_idx ON "
+        "pongdang_data.condition_generation(source_revision,model_version,id DESC)"
+    )
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS pongdang_data.condition_snapshot ("
+        "generation_id bigint NOT NULL REFERENCES "
+        "pongdang_data.condition_generation(id), "
+        "spot_id bigint NOT NULL REFERENCES pongdang_data.spots_waterspot(id), "
+        "activity text NOT NULL, mode text NOT NULL "
+        "CHECK(mode IN ('observation','forecast')), "
+        "target_start timestamptz NOT NULL,target_end timestamptz NOT NULL, "
+        "payload jsonb NOT NULL,CHECK(target_end>target_start), "
+        "PRIMARY KEY(generation_id,spot_id,activity,mode,target_start))"
+    )
+    connection.execute(
+        "CREATE OR REPLACE FUNCTION pongdang_data.invalidate_condition_projection() "
+        "RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN "
+        "UPDATE pongdang_data.condition_source_revision SET revision=revision+1 "
+        "WHERE id=1; RETURN NULL; END $$"
+    )
+    for table in (
+        "conditions_observationsnapshot",
+        "conditions_observationmetric",
+        "collection_station",
+        "spots_waterspot",
+        "water_index_station_mapping",
+        "water_index_authority_evidence",
+    ):
+        connection.execute(
+            sql.SQL(
+                "CREATE OR REPLACE TRIGGER condition_projection_changed "
+                "AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON {} "
+                "FOR EACH STATEMENT EXECUTE FUNCTION "
+                "pongdang_data.invalidate_condition_projection()"
+            ).format(sql.Identifier("pongdang_data", table))
+        )
+
+
+def projection_revision(connection):
+    row = connection.execute(
+        "SELECT revision FROM pongdang_data.condition_source_revision WHERE id=1"
+    ).fetchone()
+    return row["revision"] if isinstance(row, dict) else row[0]
+
+
+def projection_is_current(connection, source_revision, day_start):
+    row = connection.execute(
+        "SELECT EXISTS(SELECT 1 FROM pongdang_data.condition_generation "
+        "WHERE source_revision=%s AND model_version=%s AND computed_at>=%s) AS ready",
+        [source_revision, MODEL_VERSION, day_start],
+    ).fetchone()
+    return row["ready"] if isinstance(row, dict) else row[0]
+
+
+def projection_due(connection):
+    row = connection.execute(
+        "SELECT NOT EXISTS(SELECT 1 FROM pongdang_data.condition_generation g "
+        "JOIN pongdang_data.condition_source_revision r "
+        "ON r.id=1 AND g.source_revision=r.revision WHERE g.model_version=%s "
+        "AND g.computed_at >= date_trunc('day',now() AT TIME ZONE 'Asia/Seoul') "
+        "AT TIME ZONE 'Asia/Seoul') AS due",
+        [MODEL_VERSION],
+    ).fetchone()
+    return row["due"] if isinstance(row, dict) else row[0]
+
+
+def publish_conditions(settings, *, records, computed_at, source_revision):
+    """Publish a complete generation atomically, only for the inputs we read."""
+    from app.schema import connect
+
+    if computed_at > datetime.now(UTC):
+        raise ValueError("Condition calculation cannot use future knowledge")
+    with connect(settings) as c:
+        current = c.execute(
+            "SELECT revision FROM pongdang_data.condition_source_revision "
+            "WHERE id=1 FOR SHARE"
+        ).fetchone()[0]
+        if current != source_revision:
+            raise RuntimeError("CONDITION_INPUT_CHANGED")
+        generation = c.execute(
+            "INSERT INTO pongdang_data.condition_generation "
+            "(source_revision,model_version,computed_at,record_count) "
+            "VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING id",
+            [source_revision, MODEL_VERSION, computed_at, len(records)],
+        ).fetchone()
+        if generation is None:
+            return 0
+        with c.cursor() as cursor:
+            cursor.executemany(
+                "INSERT INTO pongdang_data.condition_snapshot "
+                "(generation_id,spot_id,activity,mode,target_start,target_end,payload) "
+                "VALUES(%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    (
+                        generation[0],
+                        record["spot_id"],
+                        record["activity"],
+                        record["mode"],
+                        record["target_start"],
+                        record["target_end"],
+                        Jsonb(record["payload"]),
+                    )
+                    for record in records
+                ),
+            )
+        # Derived display sets are replaceable caches. Retain the current and
+        # preceding complete sets; source evidence and generation metadata remain
+        # intact, and explicit historical calculations read that source history.
+        c.execute(
+            "DELETE FROM pongdang_data.condition_snapshot WHERE generation_id NOT IN "
+            "(SELECT id FROM pongdang_data.condition_generation "
+            "ORDER BY id DESC LIMIT %s)",
+            [RETAIN_GENERATIONS],
+        )
+    return len(records)
+
+
+def _unavailable(q, at, as_of, row):
+    reason = (
+        "condition_projection_pending"
+        if row["generation_id"] is None
+        else "condition_projection_unavailable_for_target"
+    )
+    definition = ACTIVITIES[q.activity]
+    return ConditionsEnvelope(
+        spot_id=q.spot_id,
+        place_name=row["name"],
+        activity=q.activity,
+        mode=q.mode,
+        at=at,
+        as_of=as_of,
+        support_status="unknown",
+        safety_status="unknown",
+        restriction_refs=(),
+        metrics=(),
+        context_metrics=(),
+        missing_metrics=tuple(m.name for m in definition.metrics),
+        required_evidence=definition.required_evidence,
+        reason_codes=(reason,),
+        condition_score=ActivityScore(
+            status="unavailable",
+            score=None,
+            coverage=0.0,
+            available_components=0,
+            total_components=len(definition.metrics),
+            components=(),
+            reason_codes=(reason, "not_a_safety_score"),
+            sources=(),
+        ),
+    )
+
+
+async def read_condition_set(reader, queries, *, now=None, connection=None):
+    """One SELECT for bounded places/activities/targets in one consistent set.
+
+    The revision guard also invalidates saved results immediately after a missing
+    correction, a new restriction or a changed station mapping is committed.
+    There is deliberately no calculation or write on a cache miss.
+    """
+    if not queries or len(queries) > 200:
+        raise ValueError("A condition set must contain 1 to 200 queries")
+    now = now or datetime.now(UTC)
+    wanted = []
+    for index, q in enumerate(queries):
+        at, as_of = q.times(now)
+        wanted.append(
+            dict(
+                ordinal=index,
+                spot_id=q.spot_id,
+                activity=q.activity,
+                mode=q.mode,
+                at=at.isoformat(),
+                as_of=as_of.isoformat(),
+            )
+        )
+    async with (
+        nullcontext(connection) if connection is not None else reader.connection()
+    ) as c:
+        rows = await (
+            await c.execute(
+                "WITH wanted AS (SELECT * FROM jsonb_to_recordset(%s::jsonb) AS q("
+                "ordinal int,spot_id bigint,activity text,mode text,at timestamptz,"
+                "as_of timestamptz)), revision AS (SELECT revision FROM "
+                "pongdang_data.condition_source_revision WHERE id=1) "
+                "SELECT q.ordinal,p.id AS place_id,p.name,r.revision,g.id AS "
+                "generation_id,g.computed_at,s.payload FROM wanted q "
+                "CROSS JOIN revision r LEFT JOIN pongdang_data.spots_waterspot p "
+                "ON p.id=q.spot_id LEFT JOIN LATERAL (SELECT id,computed_at FROM "
+                "pongdang_data.condition_generation WHERE source_revision=r.revision "
+                "AND model_version=%s AND computed_at<=q.as_of "
+                "ORDER BY id DESC LIMIT 1) g ON true "
+                "LEFT JOIN LATERAL (SELECT payload FROM "
+                "pongdang_data.condition_snapshot WHERE generation_id=g.id "
+                "AND spot_id=q.spot_id AND activity=q.activity AND mode=q.mode "
+                "AND target_start<=q.at AND target_end>q.at "
+                "ORDER BY target_start DESC LIMIT 1) s ON true ORDER BY q.ordinal",
+                [Jsonb(wanted), MODEL_VERSION],
+            )
+        ).fetchall()
+    result = []
+    for row, q in zip(rows, queries, strict=True):
+        if row["place_id"] is None:
+            result.append(HTTPException(404, "place_not_found"))
+            continue
+        at, as_of = q.times(now)
+        if row["payload"] is None:
+            envelope = _unavailable(q, at, as_of, row)
+        else:
+            envelope = ConditionsEnvelope.model_validate(
+                {**row["payload"], "at": at, "as_of": as_of}
+            )
+        computed_at = row["computed_at"]
+        result.append(
+            envelope.model_copy(
+                update={
+                    "projection": ConditionProjection(
+                        generation_id=row["generation_id"],
+                        source_revision=row["revision"],
+                        computed_at=computed_at,
+                        refresh_after=computed_at + timedelta(seconds=REFRESH_SECONDS)
+                        if computed_at
+                        else None,
+                        status="ready" if row["payload"] else "pending",
+                    )
+                }
+            )
+        )
+    return result
+
+
+async def read_projected_conditions(reader, q, *, now=None, connection=None):
+    result = (await read_condition_set(reader, [q], now=now, connection=connection))[0]
+    if isinstance(result, HTTPException):
+        raise result
+    return result

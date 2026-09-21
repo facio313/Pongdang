@@ -1,4 +1,5 @@
 import { t } from "./i18n.ts";
+import { resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh.ts";
 export type PreviewPlace = { id: number; name: string; place_kind: 'beach' | 'valley'; address: string | null; region: string | null; lat: number | null; lng: number | null };
 export type PreviewCamera = {
   provider_camera_id: string; title: string; country_code: string | null;
@@ -7,6 +8,7 @@ export type PreviewCamera = {
   provider_updated_at: string | null; public_page: string | null;
   live_player: string | null; timelapse_player: string | null;
   timelapse_period: string | null; photo_available: boolean;
+  thumbnail_url: string | null; thumbnail_saved_at: string | null;
   distance_km: number | null; relationship: 'nearby' | 'unknown'; playback_verified: false;
   nearby_place: { id: number; name: string; place_kind: 'beach' | 'valley'; distance_km: number } | null;
 };
@@ -14,7 +16,7 @@ export type PreviewResult = {
   contract_version: 'livecams.preview.v1'; scope: 'korea_list' | 'place';
   place: PreviewPlace | null; rows: PreviewCamera[]; total: number;
   truncated: boolean; radius_km: number | null;
-  fetched_at: string; valid_until: string; cached: boolean;
+  fetched_at: string; storage: 'database' | 'temporary'; valid_until: string | null; cached: boolean;
   page: number; page_size: number; has_more: boolean; category: string | null;
   matched_total: number; matching_status: 'available' | 'unavailable' | 'not_requested';
   ordering?: 'random' | null; shuffle_seed?: number | null;
@@ -42,6 +44,7 @@ const errors: Record<string, string> = {
   WEBCAM_REQUEST_IN_PROGRESS: '다른 웹캠 조회가 진행 중입니다. 잠시 후 다시 시도해 주세요.',
   WEBCAM_COORDINATES_MISSING: '좌표 없음 · 이 장소의 주변 카메라를 검색할 수 없습니다.',
   WEBCAM_PLACE_NOT_FOUND: '선택한 해수욕장·계곡을 찾을 수 없습니다.',
+  WEBCAM_CATALOG_UNAVAILABLE: '저장된 웹캠 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 };
 /** Keep structured app copy so an already-visible error follows language changes. */
 export class WebcamPreviewError extends Error {
@@ -117,23 +120,23 @@ export function shuffleWebcams(): number {
   sessionSeed = newWebcamShuffleSeed(sessionSeed);
   return sessionSeed;
 }
-/** 아직 유효기간이 남은 목록. **응답이 스스로 말하는 valid_until 까지만**
- *  기억합니다 -- 그 시각이 지나면 타임랩스 링크가 죽으므로 화면이 「다른 풍경
- *  보기」를 요구해야 하고(useWebcamCatalog 의 expired), 그 전까지는 같은 시드로
- *  같은 것을 다시 받을 이유가 없습니다. 화면을 다시 마운트했다는 것은 창 폭이
- *  바뀌었거나 탭을 갔다 왔다는 뜻이지 목록이 낡았다는 뜻이 아닙니다. */
+/** DB에 저장된 목록은 자동으로 만료되지 않습니다. 같은 필터와 셔플은
+ *  이 브라우저 세션에서도 재사용합니다. 임시 조회 결과만 메타데이터의
+ *  valid_until을 따릅니다. 공식 플레이어 URL 자체의 만료 시각은 아닙니다. */
 const catalogMemory = new Map<string, PreviewResult>();
+subscribeResourceRefresh(() => catalogMemory.clear());
 export function loadWebcamCatalog(base: string, page: number, category: WebcamCategory | '', shuffleSeed = 0, fetcher: typeof fetch = fetch): Promise<PreviewResult> {
-  const key = JSON.stringify([base, page, category, shuffleSeed]);
+  const key = JSON.stringify([base, page, category, shuffleSeed, resourceRefreshGeneration()]);
   const known = catalogMemory.get(key);
-  if (known && Date.parse(known.valid_until) > Date.now()) return Promise.resolve(known);
+  if (known && ((known.storage === 'database' && known.valid_until === null)
+    || (known.valid_until !== null && Date.parse(known.valid_until) > Date.now()))) return Promise.resolve(known);
   let pending = pendingCatalog.get(key);
   if (!pending) {
     // Navigating from Home can ask for another shuffle while the five-provider
     // lookup is still running. Queue different catalog requests so this browser
     // does not hit the backend's single-lookup lock; exact requests still share.
     const previous = [...pendingCatalog.values()].at(-1);
-    const request = () => requestPreview(base, { page, shuffle_seed: shuffleSeed, ...(category ? { category } : {}) }, AbortSignal.timeout(100000), fetcher);
+    const request = () => requestPreview(base, { page, shuffle_seed: shuffleSeed, ...(category ? { category } : {}) }, AbortSignal.timeout(180000), fetcher);
     pending = (previous ? previous.catch(() => undefined).then(request) : request())
       .then(result => { catalogMemory.set(key, result); return result; })
       .finally(() => { pendingCatalog.delete(key); });

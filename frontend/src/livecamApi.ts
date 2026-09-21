@@ -63,8 +63,21 @@ export function playableUrl(camera: WatchCamera, option: PlaybackOption, now = D
 }
 export function cameraKey(camera: WatchCamera) { return `${camera.spot_id}:${camera.camera_key}:${camera.revision_id}`; }
 
-export function previewPlayerUrl(camera: { provider_camera_id: string; timelapse_period: string | null; timelapse_player: string | null }, validUntil: string, now = Date.now()): string | null {
-  if (!Number.isFinite(Date.parse(validUntil)) || Date.parse(validUntil) <= now || !camera.timelapse_period || camera.timelapse_period === 'live') return null;
+// Stored thumbnails are served only through this app's read-only endpoint.
+export function storedWebcamThumbnailUrl(base: string, camera: { provider_camera_id: string; thumbnail_url?: string | null }): string | undefined {
+  if (!/^[1-9][0-9]{0,19}$/.test(camera.provider_camera_id)) return undefined;
+  if (!/^\/(?:[a-zA-Z0-9._~-]+\/)*$/.test(base) || base.split('/').some(part => part === '.' || part === '..')) return undefined;
+  const path = `/api/data/livecams/thumbnails/${camera.provider_camera_id}`;
+  return camera.thumbnail_url === path ? `${base.replace(/\/$/, '')}${path}` : undefined;
+}
+
+export function previewPlayerUrl(camera: { provider_camera_id: string; live_player?: string | null; timelapse_period: string | null; timelapse_player: string | null }, validUntil: string | null, now = Date.now()): string | null {
+  // A stored catalog has no expiry. Temporary place metadata still expires;
+  // neither case asserts that the provider's player is currently reachable.
+  if (validUntil !== null && (!Number.isFinite(Date.parse(validUntil)) || Date.parse(validUntil) <= now)) return null;
+  const live = safeWebcamUrl(camera.live_player ?? null, camera.provider_camera_id, 'live');
+  if (live) return live;
+  if (!camera.timelapse_period || camera.timelapse_period === 'live') return null;
   return safeWebcamUrl(camera.timelapse_player, camera.provider_camera_id, camera.timelapse_period);
 }
 

@@ -8,7 +8,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 from app.data_reader import DataReader
@@ -18,7 +18,12 @@ from app.tides.context import mark_context, nearby_tide_station
 from app.tides.service import tide_event
 from app.travel.catalog import ROLE_CODES, VISIT_KINDS
 from app.water_index.api import WaterIndexRoute, error_response
-from app.water_index.condition_api import ConditionQuery, read_conditions
+from app.water_index.condition_api import (
+    ConditionQuery,
+    is_historical_query,
+    read_conditions,
+)
+from app.water_index.condition_storage import read_condition_set
 from app.water_index.conditions import ConditionsEnvelope
 from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity, Record
 from app.water_index.recommendation import (
@@ -271,14 +276,30 @@ def _alternative(kind, row) -> Alternative:
     )
 
 
-async def read_activity(reader, q: RecommendationQuery, activity: Activity, now):
+async def read_activity(
+    reader, q: RecommendationQuery, activity: Activity, now, *, stored=None
+):
     """관측으로 점수가 나오지 않으면 같은 시각의 예보로 한 번 더 읽습니다.
 
     화면(useConditions)이 하던 물러서기를 서버로 옮긴 것입니다. 활동마다 두
     번씩 왕복하던 것을 한 응답에 담기 위한 것이며, 규칙은 그대로입니다 --
     공식 제한·활동 미지원·계산 보류는 예보로 우회하지 않습니다.
     """
-    evidence = await read_conditions(reader, q.for_activity(activity), now=now)
+    if stored is None and not is_historical_query(q, now):
+        queries = [q.for_activity(activity)]
+        if q.mode == "observation" and q.at is None:
+            queries.append(
+                queries[0].model_copy(update={"mode": "forecast", "at": now})
+            )
+        stored = await read_condition_set(reader, queries, now=now)
+        for result in stored:
+            if isinstance(result, HTTPException):
+                raise result
+    evidence = (
+        stored[0]
+        if stored is not None
+        else await read_conditions(reader, q.for_activity(activity), now=now)
+    )
     score = evidence.condition_score
     if (
         q.mode == "forecast"
@@ -290,12 +311,16 @@ async def read_activity(reader, q: RecommendationQuery, activity: Activity, now)
         or evidence.support_status == "unsupported"
     ):
         return evidence
-    forecast = await read_conditions(
-        reader,
-        q.for_activity(activity).model_copy(
-            update={"mode": "forecast", "at": evidence.at}
-        ),
-        now=now,
+    forecast = (
+        stored[1]
+        if stored is not None
+        else await read_conditions(
+            reader,
+            q.for_activity(activity).model_copy(
+                update={"mode": "forecast", "at": evidence.at}
+            ),
+            now=now,
+        )
     )
     # 예보로 점수가 나오거나 근거가 더 많을 때만 바꿉니다. 빈 예보로 관측
     # 근거를 덮지 않습니다.
@@ -308,12 +333,42 @@ async def read_activity(reader, q: RecommendationQuery, activity: Activity, now)
     )
 
 
+async def read_activities(reader, q, now, *, fallback=True):
+    activities = RECOMMENDED_ACTIVITIES
+    if is_historical_query(q, now):
+        return {
+            activity: await read_activity(reader, q, activity, now)
+            for activity in activities
+        }
+    queries = [q.for_activity(activity) for activity in activities]
+    needs_fallback = fallback and q.mode == "observation" and q.at is None
+    if needs_fallback:
+        queries += [
+            query.model_copy(update={"mode": "forecast", "at": now})
+            for query in queries[:]
+        ]
+    rows = await read_condition_set(reader, queries, now=now)
+    for row in rows:
+        if isinstance(row, HTTPException):
+            raise row
+    if not needs_fallback:
+        return dict(zip(activities, rows, strict=True))
+    return {
+        activity: await read_activity(
+            reader,
+            q,
+            activity,
+            now,
+            stored=(rows[index], rows[index + len(activities)]),
+        )
+        for index, activity in enumerate(activities)
+    }
+
+
 async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
     now = now or datetime.now(UTC)
     at, as_of = q.times(now)
-    envelopes = {}
-    for activity in RECOMMENDED_ACTIVITIES:
-        envelopes[activity] = await read_activity(reader, q, activity, now)
+    envelopes = await read_activities(reader, q, now)
     first = envelopes[RECOMMENDED_ACTIVITIES[0]]
 
     async with reader.connection() as c:
@@ -382,11 +437,7 @@ async def read_recommendation_choice(reader, spot_id, q, now) -> Choice | None:
     """대안 장소의 선택만 계산합니다. 조석·재귀 대안은 보지 않습니다 --
     한 번의 조회가 장소를 타고 번지지 않게 하려는 것입니다."""
     nested = RecommendationQuery(spot_id=spot_id, mode=q.mode, at=q.at, as_of=q.as_of)
-    envelopes = {}
-    for activity in RECOMMENDED_ACTIVITIES:
-        envelopes[activity] = await read_conditions(
-            reader, nested.for_activity(activity), now=now
-        )
+    envelopes = await read_activities(reader, nested, now, fallback=False)
     return decide(envelopes).choice
 
 

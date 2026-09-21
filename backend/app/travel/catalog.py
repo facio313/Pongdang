@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.ai.tools import PLACE_COLUMNS, PLACE_JOIN, ToolSession, _safe_url
 from app.data_reader import DataReader
+from app.place_details.api import read_place_details
 from app.regions import district_group_expression, place_search_predicate, region_query
 from app.travel.models import Evidence
 from app.water_index.sources import AuthorityRecord
@@ -115,7 +116,7 @@ def place_view(row, now):
         "catalog_role": catalog_role(row),
         "evidence": evidence,
         "catalog_verified_at": row.get("catalog_verified_at"),
-        "opening_hours": None,
+        "opening_hours": row.get("stored_opening_hours"),
         "reservation_required": None,
         "price": None,
     }
@@ -125,6 +126,23 @@ class Catalog:
     def __init__(self, settings, now, *, reader=None):
         self.settings, self.now = settings, now
         self.reader = reader or DataReader(settings)
+
+    async def _with_stored_details(self, connection, rows):
+        by_id = {row["spot_id"]: row for row in rows}
+        ids = list(by_id)
+        for offset in range(0, len(ids), 100):
+            details = await read_place_details(connection, ids[offset : offset + 100])
+            for detail in details:
+                if (
+                    detail["status"] == "available"
+                    and detail["fetched_at"] is not None
+                    and detail["fetched_at"] <= self.now
+                ):
+                    # Provider prose is informational; it does not establish an
+                    # official operating window for a requested travel date.
+                    by_id[detail["spot_id"]]["stored_opening_hours"] = detail[
+                        "opening_hours"
+                    ]
 
     async def languages(self):
         async with self.reader.connection() as c:
@@ -245,6 +263,7 @@ class Catalog:
                         )
                     ).fetchall()
                 )
+            await self._with_stored_details(c, rows)
         return [place_view(r, self.now) for r in rows], {
             "region_query": region or None,
             "locale": request.locale,
@@ -303,6 +322,7 @@ class Catalog:
                         )
                     ).fetchall()
                 )
+            await self._with_stored_details(c, rows)
         if set(ids) != {r["spot_id"] for r in rows}:
             raise HTTPException(404, "travel_place_not_found")
         return {r["spot_id"]: place_view(r, self.now) for r in rows}

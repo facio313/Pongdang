@@ -2,6 +2,12 @@ import { t } from "./i18n.ts";
 import { useMemo } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import { PlaceDetailInformation } from "./PlaceDetailInformation";
+import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
+import { FirstSwimGuide } from "./FirstSwimGuide";
+import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
+import type { PlaceDetails } from "./placeDetails";
+import { usePlaceDetails } from "./usePlaceDetails";
 import { gradeOf } from "./groupAGrade";
 import {
   DesktopHero,
@@ -25,7 +31,7 @@ import { isInitialLoad } from "./useResource";
 import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline } from "./recommendationText";
-import { dateLabel, placeRegionLabel, type Place } from "./productData";
+import { dateLabel, placeMatchesId, placeRegionLabel, type Place } from "./productData";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { useSpotActions } from "./useSpotActions";
@@ -49,7 +55,7 @@ const KIND_LABEL: Record<string, string> = { beach: "해변", valley: "계곡" }
 const kindLabel = (place: Place) =>
   (place.type && KIND_LABEL[place.type]) ?? "분류 미확인";
 
-function ListRow({ place }: { place: Place }) {
+function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
     <div className="sk-row">
       <a className="place-photo-link" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })}>
@@ -61,6 +67,7 @@ function ListRow({ place }: { place: Place }) {
           <span className="sk-row-category">{t(kindLabel(place))}</span>
         </div>
         <p className="sk-row-summary">{place.address ?? t("주소 없음")}</p>
+        {detail?.opening_hours && <p className="sk-row-hours">{t("운영")} · {detail.opening_hours}</p>}
         <PlacePhotoCredit photo={place.photo} />
         <div className="sk-row-meta">
           <span>
@@ -91,6 +98,7 @@ function SpotsListDesktop() {
   const browser = useWaterPlaceBrowser();
   const { search, setSearch, places } = browser;
   const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
+  const details = usePlaceDetails(rows.map((place) => place.id));
   const kinds = useMemo(() => {
     const counts = new Map<string, number>();
     for (const place of places.rows ?? [])
@@ -165,12 +173,12 @@ function SpotsListDesktop() {
                   <span className="pd-dk-num sk-count-num">{count}</span>
                 </span>
               ))}
-            </span>{t("리뷰 평점은 쓰지 않습니다. 거리 · 운영시간은 아직 내려주는 API 가 없어 비워 둡니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.")}</>
+            </span>{t("운영 안내와 대표 사진은 수집해 저장한 정보가 있는 장소에 표시합니다. 장소를 고르면 상세정보와 물놀이 조건을 확인할 수 있습니다.")}</>
         }
       >
         <div className="sk-list">
           {rows.map((place) => (
-            <ListRow key={place.id} place={place} />
+            <ListRow key={place.id} place={place} detail={details.byId.get(place.id)} />
           ))}
           {!rows.length && (
             <p className="sk-note" role={places.error ? "alert" : "status"}>
@@ -179,11 +187,11 @@ function SpotsListDesktop() {
             </p>
           )}
           <WaterPlacePagination {...places} count={rows.length} onPage={browser.setPage} />
+          {details.error && <p className="sk-note" role="alert">{t("저장된 상세정보를 불러오지 못했습니다.")} {details.error}</p>}
         </div>
       </LabelRow>
 
       <FootNote
-        missing={t("운영시간 · 편의시설 · 현재 위치 거리 계산")}
         note={t("퐁당 점수는 물놀이 조건 점수이며 명소의 품질 평가가 아닙니다. 목록에는 점수를 싣지 않습니다 -- 장소마다 따로 조회해야 하므로 상세에서 읽습니다. 리뷰 평점은 수집하지 않습니다.")}
       />
     </DesktopShell>
@@ -195,6 +203,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   // 수집 종류라 분류로 쓸 수 없습니다(useWaterPlaces 주석).
   const catalog = useWaterPlaces("");
   const lookup = usePlacesById([spotId]);
+  const details = usePlaceDetails([spotId]);
   const classified = useWaterPlace(spotId).place;
   const place: Place | undefined = useMemo(() => classified
     ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
@@ -219,13 +228,15 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
       })),
     [pinned],
   );
-  // 「주변 명소」는 거리순이었는데 장소 간 거리를 주는 API 가 없습니다. 같은
-  // 분류의 다른 장소를 이름순으로 보여 주고, 거리라고 부르지 않습니다.
+  // 이미 읽은 목록 안에서 저장 좌표로 계산합니다. 길찾기 API를 호출하지 않습니다.
   const sameKind = sortPlaces(
     (catalog.rows ?? []).filter(
-      (item) => item.id !== spotId && item.type === place?.type,
+      (item) => !placeMatchesId(item, spotId) && item.type === place?.type,
     ),
-  ).slice(0, 5);
+  ).map((item) => ({ item, distance: placeDistanceKm(place, item) }))
+    .sort((a, b) => a.distance === null ? (b.distance === null ? 0 : 1)
+      : b.distance === null ? -1 : a.distance - b.distance)
+    .slice(0, 5);
 
   return (
     <DesktopShell>
@@ -311,16 +322,9 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             </div>
           </div>
 
-          {/* 아래 다섯 줄은 서버에 컬럼이 없습니다. 지어내지 않고 비웁니다. */}
-          <div className="sk-detail-table">
-            {["운영", "개장 기간", "주차", "편의시설", "문의"].map((name) => (
-              <div className="sk-detail-tr" key={name}>
-                <span className="sk-detail-th">{t(name)}</span>
-                <span className="sk-detail-td is-empty">–</span>
-              </div>
-            ))}
-          </div>
-          <p className="sk-note sk-detail-summary">{t("운영 · 개장 기간 · 주차 · 편의시설 · 문의 · 소개를 내려주는 API 가 아직 없습니다. 값이 없다는 뜻이며 「없음」이나 「이용 불가」가 아닙니다.")}</p>
+          {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} desktop />}
+          <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} desktop />
+          <PlaceDistanceInfo place={place} loading={placeLoading} />
 
           {place && <>
             <div className="sk-detail-actions">
@@ -360,11 +364,11 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             )}
           </div>
           <div>
-            <div className="pd-dk-kick">{t("같은 분류의 장소 · 이름순")}</div>
-            {sameKind.map((item) => (
+            <div className="pd-dk-kick">{t(hasPlaceCoordinates(place) ? "같은 분류의 장소 · 직선거리순" : "같은 분류의 장소 · 이름순")}</div>
+            {sameKind.map(({ item, distance }) => (
               <a className="sk-nearby" href={spotLink(item)} key={item.id}>
-                <span className="pd-dk-num sk-nearby-score" data-grade="unscored">
-                  –
+                <span className="pd-dk-num sk-nearby-distance">
+                  {distanceLabel(distance)}
                 </span>
                 <span className="sk-nearby-body">
                   <span className="sk-nearby-name">{item.name}</span>
@@ -377,15 +381,12 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
             {!sameKind.length && (
               <p className="sk-note">{t("같은 분류의 다른 장소가 목록에 없습니다.")}</p>
             )}
-            {/* 예전에는 「여기 거리는 현재 위치가 아니라 이 명소에서의
-                거리입니다」라고 적혀 있었지만, 장소 간 거리를 주는 API 가
-                없습니다. 거리라고 부르지 않습니다. */}
-            <p className="sk-note sk-nearby-note">{t("장소 사이 거리를 내려주는 API 가 없어 이름순으로 둡니다. 점수는 각 장소 상세에서 조회합니다.")}</p>
+            <p className="sk-note sk-nearby-note">{t("현재 목록의 같은 분류 장소를 표시합니다. 거리는 이 명소의 좌표를 기준으로 계산한 직선거리입니다.")}</p>
           </div>
         </SplitBody>
       </LabelRow>
 
-      <FootNote missing={t("운영시간 · 편의시설 · 장소 간 거리")} />
+      <FootNote />
     </DesktopShell>
   );
 }

@@ -17,19 +17,17 @@ function deferred() {
 }
 
 async function scoredForecasts(page: Page) {
-  await page.route("**/api/data/water-index/conditions?**", async (route) => {
-    const query = new URL(route.request().url()).searchParams;
-    if (query.get("mode") !== "forecast") return route.continue();
+  await page.route("**/api/data/water-index/conditions/series?**", async (route) => {
     const response = await route.fetch();
     const data = await response.json();
     await route.fulfill({ response, json: {
       ...data,
-      condition_score: {
+      rows: data.rows.map((row: object) => ({ ...row, condition_score: {
         label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1",
         methodology: "fixture", status: "partial", score: 64.2, coverage: 0.5,
         available_components: 2, total_components: 4,
         components: [], sources: [], reason_codes: [],
-      },
+      } })),
     } });
   });
 }
@@ -115,8 +113,7 @@ test("a successful empty raw list does not deny an existing date score", async (
 
 test("score loading and score failures remain separate from a successful empty raw list", async ({ page }) => {
   const release = deferred();
-  await page.route("**/api/data/water-index/conditions?**", async (route) => {
-    if (new URL(route.request().url()).searchParams.get("mode") !== "forecast") return route.continue();
+  await page.route("**/api/data/water-index/conditions/series?**", async (route) => {
     await release.promise;
     await route.fulfill({ status: 503, json: { detail: "fixture failure" } });
   });

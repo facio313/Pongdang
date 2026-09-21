@@ -1,4 +1,4 @@
-"""Explicit on-demand Windy reads; temporary cache only, no schema or DB writes."""
+"""Stored Windy catalog, with bounded first import and compatible spot previews."""
 
 import hashlib
 import logging
@@ -11,13 +11,16 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 from urllib.parse import urlsplit
 
+import psycopg
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 from starlette.concurrency import run_in_threadpool
 
 from app.data_reader import DataReader
 from app.ingestion.webcams import WebcamMetadata
-from app.livecams.places import PLACE_SELECT, PreviewPlace
+from app.livecams.catalog import CatalogSnapshot, CatalogStore
+from app.livecams.places import PLACE_SELECT, PreviewPlace, place_catalog_cte
+from app.livecams.thumbnails import source_image
 from app.livecams.windy import WindyClient, WindyError, discover, distance_km, normalize
 from app.regions import place_search_predicate
 
@@ -62,6 +65,8 @@ class PreviewCamera(WebcamMetadata):
     relationship: Literal["nearby", "unknown"] = "unknown"
     playback_verified: Literal[False] = False
     nearby_place: NearbyPlace | None = None
+    thumbnail_url: str | None = None
+    thumbnail_saved_at: AwareDatetime | None = None
 
 
 class PreviewSnapshot(BaseModel):
@@ -74,7 +79,9 @@ class PreviewSnapshot(BaseModel):
     truncated: bool
     radius_km: float | None
     fetched_at: AwareDatetime
-    valid_until: AwareDatetime
+    # Metadata stored in the catalog has no playback/observation validity claim.
+    valid_until: AwareDatetime | None
+    storage: Literal["database", "temporary"] = "temporary"
     cached: bool = False
 
 
@@ -93,6 +100,17 @@ class PreviewResult(PreviewSnapshot):
 async def read_preview_places(reader, *, q="", spot_id=None):
     search, params = place_search_predicate(q, alias="p")
     async with reader.connection() as c:
+        if spot_id is None:
+            return await (
+                await c.execute(
+                    place_catalog_cte("WHERE place_kind IS NOT NULL AND " + search)
+                    + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng "
+                    "FROM classified p JOIN matched m ON m.id=p.id "
+                    "ORDER BY p.id LIMIT 100",
+                    params,
+                )
+            ).fetchall()
+        # Old bookmarks and saved selections retain their original source ID.
         return await (
             await c.execute(
                 f"SELECT id,name,place_kind,address,region,lat,lng FROM "
@@ -138,53 +156,104 @@ def catalog_page(snapshot, *, page=1, category=None, shuffle_seed=0):
 
 
 class PreviewService:
-    """Single-process preview limits; restarts clear cache, counters and backoff."""
+    """Persistent catalog and shared admission; only spot previews expire locally."""
 
-    def __init__(self, settings, *, client=None, clock=time.time, sleep=time.sleep):
+    def __init__(
+        self, settings, *, client=None, catalog=None, clock=time.time, sleep=time.sleep
+    ):
         self.settings = settings
         self.client = client or WindyClient(settings)
-        self.clock, self.sleep = clock, sleep
+        self.clock = clock
+        self.catalog = catalog or CatalogStore(settings, clock=clock, sleep=sleep)
         self.lock = threading.Lock()
         self.cache = OrderedDict()
-        self.day, self.calls, self.last_call, self.blocked_until = None, 0, None, 0
-        self.blocked_reason = None
 
     def reserve(self):
-        now = self.clock()
-        day = datetime.fromtimestamp(now, UTC).date()
-        if self.day != day:
-            self.day, self.calls = day, 0
-        if now < self.blocked_until:
-            raise WindyError(
-                "WINDY_BACKOFF",
-                math.ceil(self.blocked_until - now),
-                cause_code=self.blocked_reason,
-            )
-        if self.calls >= self.settings.windy_webcams_daily_budget:
-            midnight = datetime.combine(
-                day + timedelta(days=1), datetime.min.time(), UTC
-            )
-            raise WindyError(
-                "WINDY_DAILY_BUDGET", math.ceil(midnight.timestamp() - now)
-            )
-        if self.last_call is not None:
-            self.sleep(max(0, 2 - (now - self.last_call)))
-        self.calls += 1
-        self.last_call = self.clock()
+        self.catalog.reserve()
 
-    def query(self, place=None):
+    def query(self, place=None, *, refresh=False):
+        try:
+            if place is not None:
+                return self.query_place(place)
+            snapshot, cached = self.catalog.get_or_fetch(
+                self.fetch_catalog, refresh=refresh
+            )
+            thumbnails = self.catalog.thumbnails.metadata(
+                [row.provider_camera_id for row in snapshot.rows]
+            )
+            return PreviewSnapshot(
+                scope="korea_list",
+                rows=[
+                    PreviewCamera(
+                        **row.model_dump(),
+                        **thumbnails.get(row.provider_camera_id, {}),
+                    )
+                    for row in snapshot.rows
+                ],
+                total=len(snapshot.rows),
+                truncated=snapshot.truncated,
+                radius_km=None,
+                fetched_at=snapshot.fetched_at,
+                valid_until=None,
+                storage="database",
+                cached=cached,
+            )
+        except psycopg.Error:
+            raise HTTPException(503, "WEBCAM_CATALOG_UNAVAILABLE") from None
+
+    def fetch_catalog(self):
+        self.require_key()
+        seen = {}
+        thumbnail_sources = {}
+        truncated = False
+        for category in WATER_CATEGORIES:
+            self.reserve()
+            data = self.client.list_page(1, category)
+            truncated |= data["total"] > len(data["webcams"])
+            for row in data["webcams"]:
+                camera = normalize(row)
+                if camera.country_code != "KR" or not water_camera(camera):
+                    continue
+                old = seen.setdefault(camera.provider_camera_id, camera)
+                if old != camera:
+                    raise WindyError("WINDY_CONFLICTING_CAMERA")
+                source = source_image(
+                    row,
+                    camera.provider_camera_id,
+                    secret=self.settings.windy_webcams_api_key.get_secret_value(),
+                )
+                if source:
+                    thumbnail_sources.setdefault(camera.provider_camera_id, source)
+        result = CatalogSnapshot(
+            rows=list(seen.values()),
+            fetched_at=datetime.fromtimestamp(self.clock(), UTC),
+            truncated=truncated,
+            thumbnail_sources=thumbnail_sources,
+        )
+        self.reject_secret(result)
+        return result
+
+    def require_key(self):
         if not self.settings.windy_webcams_api_key.get_secret_value():
             raise WindyError("WINDY_NOT_CONFIGURED", 86400)
-        if place and not all(
+
+    def reject_secret(self, result):
+        key = self.settings.windy_webcams_api_key.get_secret_value()
+        if key and key in result.model_dump_json():
+            raise WindyError("WINDY_PRIVATE_DATA_REJECTED")
+
+    def query_place(self, place):
+        self.require_key()
+        if not all(
             isinstance(place[k], (int, float))
             and math.isfinite(place[k])
             and lo <= place[k] <= hi
             for k, lo, hi in (("lat", -90, 90), ("lng", -180, 180))
         ):
             raise HTTPException(422, "WEBCAM_COORDINATES_MISSING")
-        if place and (place["lat"], place["lng"]) == (0, 0):
+        if (place["lat"], place["lng"]) == (0, 0):
             raise HTTPException(422, "WEBCAM_COORDINATES_MISSING")
-        key = (place["id"], place["lat"], place["lng"]) if place else ("water",)
+        key = (place["id"], place["lat"], place["lng"])
         if not self.lock.acquire(blocking=False):
             raise HTTPException(429, "WEBCAM_REQUEST_IN_PROGRESS", {"Retry-After": "2"})
         try:
@@ -192,44 +261,23 @@ class PreviewService:
             if cached and cached.valid_until.timestamp() > self.clock():
                 self.cache.move_to_end(key)
                 return cached.model_copy(update={"cached": True})
-            if place:
-                batch = discover(
-                    self.settings,
-                    place,
-                    client=self.client,
-                    reserve=self.reserve,
-                    accept=water_camera,
-                )
-                cameras = batch.webcams
-                search = batch.webcam_searches[0]
-                truncated, radius = search.truncated, search.radius_km
-            else:
-                seen = {}
-                truncated = False
-                for category in WATER_CATEGORIES:
-                    self.reserve()
-                    data = self.client.list_page(1, category)
-                    truncated |= data["total"] > len(data["webcams"])
-                    for row in data["webcams"]:
-                        camera = normalize(row)
-                        if camera.country_code != "KR" or not water_camera(camera):
-                            continue
-                        old = seen.setdefault(camera.provider_camera_id, camera)
-                        if old != camera:
-                            raise WindyError("WINDY_CONFLICTING_CAMERA")
-                cameras = list(seen.values())
-                radius = None
+            batch = discover(
+                self.settings,
+                place,
+                client=self.client,
+                reserve=self.reserve,
+                accept=water_camera,
+            )
+            cameras = batch.webcams
+            search = batch.webcam_searches[0]
+            truncated, radius = search.truncated, search.radius_km
             now = datetime.fromtimestamp(self.clock(), UTC)
             rows = []
             for camera in cameras:
                 if not water_camera(camera):
                     continue
                 distance = None
-                if (
-                    place
-                    and camera.latitude is not None
-                    and camera.longitude is not None
-                ):
+                if camera.latitude is not None and camera.longitude is not None:
                     distance = distance_km(
                         place["lat"], place["lng"], camera.latitude, camera.longitude
                     )
@@ -243,7 +291,7 @@ class PreviewService:
                     )
                 )
             result = PreviewSnapshot(
-                scope="place" if place else "korea_list",
+                scope="place",
                 place=place,
                 rows=rows,
                 total=len(rows),
@@ -252,20 +300,14 @@ class PreviewService:
                 fetched_at=now,
                 valid_until=now + timedelta(minutes=10),
             )
-            if (
-                self.settings.windy_webcams_api_key.get_secret_value()
-                in result.model_dump_json()
-            ):
-                raise WindyError("WINDY_PRIVATE_DATA_REJECTED")
+            self.reject_secret(result)
             self.cache[key] = result
             self.cache.move_to_end(key)
             while len(self.cache) > 32:
                 self.cache.popitem(last=False)
             return result
         except WindyError as exc:
-            if exc.code not in {"WINDY_BACKOFF", "WINDY_DAILY_BUDGET"}:
-                self.blocked_until = self.clock() + exc.retry_seconds
-                self.blocked_reason = exc.code
+            self.catalog.record_failure(exc)
             raise
         finally:
             self.lock.release()
@@ -277,11 +319,18 @@ def create_preview_router(
     service=None,
     read_places=read_preview_places,
 ):
-    router = APIRouter(prefix="/api/data/livecams/preview", tags=["livecam preview"])
+    router = APIRouter(prefix="/api/data/livecams", tags=["livecam preview"])
     service = service or PreviewService(settings)
     reader = DataReader(settings)
 
-    @router.get("/places", response_model=list[PreviewPlace])
+    @router.get("/thumbnails/{camera_id}")
+    def thumbnail(camera_id: str):
+        try:
+            return service.catalog.thumbnails.response(camera_id)
+        except psycopg.Error:
+            raise HTTPException(503, "WEBCAM_CATALOG_UNAVAILABLE") from None
+
+    @router.get("/preview/places", response_model=list[PreviewPlace])
     async def places(
         q: str = Query("", max_length=100),
         spot_id: int | None = Query(None, ge=1, le=9223372036854775807),
@@ -290,7 +339,7 @@ def create_preview_router(
             return await read_places(reader, q=q, spot_id=spot_id)
         return await read_places(reader, q=q)
 
-    @router.post("", response_model=PreviewResult)
+    @router.post("/preview", response_model=PreviewResult)
     async def preview(body: PreviewRequest, request: Request, response: Response):
         if request.headers.get("content-type", "").split(";")[0] != "application/json":
             raise HTTPException(415, "JSON_REQUIRED")

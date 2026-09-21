@@ -9,6 +9,7 @@ from test_condition_score_integration import database as database
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect
+from app.water_index.condition_producer import produce_conditions
 
 
 def beach(settings, name, *, stale=False, missing=False):
@@ -49,6 +50,8 @@ def beach(settings, name, *, stale=False, missing=False):
 
 def test_gyeongpo_without_region_or_place_catalog_is_selected_with_forecast(database):
     spot = beach(database, "경포")
+    # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
+    produce_conditions(database)
     before = counts(database)
     with TestClient(create_app(database)) as client:
         assert (
@@ -74,6 +77,7 @@ def test_gyeongpo_without_region_or_place_catalog_is_selected_with_forecast(data
 def test_stale_gyeongpo_falls_back_to_beach_with_current_data(database):
     beach(database, "경포", stale=True)
     fallback = beach(database, "해운대해수욕장")
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         result = client.get("/api/data/water-index/default-place").json()
         assert result["status"] == "fallback"
@@ -84,6 +88,7 @@ def test_stale_gyeongpo_falls_back_to_beach_with_current_data(database):
 def test_unavailable_numeric_evidence_does_not_win_over_valid_other_beach(database):
     beach(database, "경포", missing=True)
     fallback = beach(database, "대천해수욕장")
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         result = client.get("/api/data/water-index/default-place").json()
         assert result["status"] == "fallback" and result["place"]["id"] == fallback
@@ -103,6 +108,7 @@ def test_empty_database_returns_explicit_no_data_without_inventing_a_place(datab
 def test_all_stale_keeps_preferred_name_but_does_not_claim_available_data(database):
     spot = beach(database, "경포", stale=True)
     beach(database, "해운대해수욕장", stale=True)
+    produce_conditions(database)
     with TestClient(create_app(database)) as client:
         result = client.get("/api/data/water-index/default-place").json()
         assert result["status"] == "no_current_data"

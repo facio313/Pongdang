@@ -1,0 +1,30 @@
+.place-details dl { margin: 0; }
+.place-details dd { margin: 0; }
+.place-details .sd-info-name,
+.place-details .sk-detail-th { flex: 0 0 7em; word-break: keep-all; overflow-wrap: anywhere; }
+.place-details .sd-info-value,
+.place-details .sk-detail-td {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.place-details-copy { padding: 0 16px 14px; }
+.pd-desktop .place-details-copy { padding: 0; }
+.place-details-heading { margin: 16px 0 8px; font-size: 14px; }
+.place-details-overview {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.place-details-extra { margin-top: 16px; }
+.place-details-extra summary { cursor: pointer; font-size: 13px; font-weight: 700; }
+.place-details-source { overflow-wrap: anywhere; }
+.place-distance { padding-top: 12px; }
+.place-distance-result { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; }
+.place-distance-button { margin-top: 8px; padding: 9px 12px; font-size: 12px; }
+.sp-row .sp-row-hours { margin-top: 4px; font-size: 11px; color: var(--pd-ink-2); overflow-wrap: anywhere; }
+.sk-row .sk-row-hours { margin: 6px 0 0; font-size: 12px; color: var(--dk-ink-2); overflow-wrap: anywhere; }
+.pd-desktop .sk-nearby-distance { min-width: 62px; text-align: right; font-size: 13px; }

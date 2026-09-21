@@ -1,13 +1,16 @@
 import type { Activity } from "./aiApi";
 import {
-  conditionPath,
+  conditionSeriesPath,
   conditionScore,
+  conditionScoreExpiry,
   kstDate,
   type Conditions,
+  type ConditionSeries,
 } from "./productData";
 import { useResource } from "./useResource";
+import { useExpiry } from "./useExpiry";
 
-/** 조회할 시각. 훅은 조건부로 부를 수 없어 개수가 고정이어야 합니다.
+/** 조회할 시각.
  *
  *  모바일의 HourlyConditions 표와 같은 네 시각입니다. 데스크탑 시안은 막대
  *  아홉 개였지만, 같은 날 같은 장소를 두 화면이 서로 다른 시각으로 보여 주면
@@ -35,19 +38,16 @@ export function useHourlyScores(
   activity?: Activity,
 ): HourlyScore[] {
   const day = kstDate(now);
-  const path = (hour: string) =>
-    activity ? conditionPath(id, activity, `${day}T${hour}:00:00+09:00`) : null;
-  const results = [
-    useResource<Conditions>(path(HOURS[0])),
-    useResource<Conditions>(path(HOURS[1])),
-    useResource<Conditions>(path(HOURS[2])),
-    useResource<Conditions>(path(HOURS[3])),
-  ];
-  return HOURS.map((hour, index) => ({
-    hour,
-    score: conditionScore(results[index].data),
-    data: results[index].data,
-    loading: results[index].loading,
-    error: results[index].error,
-  }));
+  const targets = HOURS.map((hour) => `${day}T${hour}:00:00+09:00`);
+  const result = useResource<ConditionSeries>(activity ? conditionSeriesPath(id, activity, targets) : null);
+  const rows = new Map(result.data?.rows.map((row) => [Date.parse(row.at), row]));
+  const values = targets.map((target) => rows.get(Date.parse(target)));
+  const expiries = values.map(conditionScoreExpiry);
+  const expiredUntil = useExpiry(expiries);
+  return HOURS.map((hour, index) => {
+    const expiry = expiries[index];
+    const expired = expiry !== undefined && expiredUntil !== undefined && expiry <= expiredUntil;
+    const data = expired ? undefined : values[index];
+    return { hour, score: conditionScore(data), data, loading: result.loading, error: result.error };
+  });
 }

@@ -42,6 +42,7 @@ class SubscriptionInput(BaseModel):
 class SubscriptionView(BaseModel):
     id: str
     spot_id: int
+    spot_name: str | None = None
     year: int
     timezone: str
     minimum_temperature_c: float

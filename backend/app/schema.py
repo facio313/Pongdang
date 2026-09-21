@@ -9,11 +9,13 @@ from psycopg import sql
 from app.attachments.migrations import migrate_attachments
 from app.config import Settings
 from app.data_reader import CATALOG
+from app.place_details.migrations import migrate_place_details
+from app.place_identity import migrate_place_identity
 from app.travel.migrations import migrate_travel
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 10
+VERSION = 15
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -61,6 +63,11 @@ def initialize(settings: Settings) -> bool:
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (3,):
                 migrate_water_index(connection)
@@ -70,6 +77,11 @@ def initialize(settings: Settings) -> bool:
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (4,):
                 migrate_features(connection)
@@ -78,6 +90,11 @@ def initialize(settings: Settings) -> bool:
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (5,):
                 migrate_place_provenance(connection)
@@ -85,24 +102,74 @@ def initialize(settings: Settings) -> bool:
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (6,):
                 migrate_ai_concierge(connection)
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (7,):
                 migrate_travel(connection)
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (8,):
                 migrate_attachments(connection)
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
                 return True
             if row == (9,):
                 migrate_regional_collection(connection)
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
+                return True
+            if row == (10,):
+                migrate_place_details(connection)
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
+                return True
+            if row == (11,):
+                migrate_persistent_catalog(connection)
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
+                return True
+            if row == (12,):
+                migrate_score_refresh(connection)
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
+                return True
+            if row == (13,):
+                migrate_place_identity(connection)
+                migrate_windy_thumbnails(connection)
+                return True
+            if row == (14,):
+                migrate_windy_thumbnails(connection)
                 return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
@@ -110,6 +177,9 @@ def initialize(settings: Settings) -> bool:
         connection.execute("CREATE SCHEMA pongdang_data")
         connection.execute("REVOKE ALL ON SCHEMA pongdang_data FROM PUBLIC")
         for dataset in CATALOG:
+            if dataset["table"] in {"place_detail", "place_detail_collection"}:
+                # These have domain constraints and are created explicitly in v11.
+                continue
             columns = []
             for column in dataset["columns"]:
                 name = column["key"]
@@ -160,7 +230,38 @@ def initialize(settings: Settings) -> bool:
         migrate_travel(connection)
         migrate_attachments(connection)
         migrate_regional_collection(connection)
+        migrate_place_details(connection)
+        migrate_persistent_catalog(connection)
+        migrate_score_refresh(connection)
+        migrate_place_identity(connection)
+        migrate_windy_thumbnails(connection)
     return True
+
+
+def migrate_windy_thumbnails(connection):
+    """Explicit v14 -> v15: image attempt metadata; never download in migration."""
+    from app.livecams.thumbnails import migrate_thumbnails
+
+    migrate_thumbnails(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=15 WHERE id=1")
+
+
+def migrate_score_refresh(connection):
+    """Explicit v12 -> v13: published condition sets and manual collection queue."""
+    from app.refresh.migrations import migrate_refresh
+    from app.water_index.condition_storage import migrate_conditions
+
+    migrate_conditions(connection)
+    migrate_refresh(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=13 WHERE id=1")
+
+
+def migrate_persistent_catalog(connection):
+    """Explicit v11 -> v12: persist Windy metadata without fetching images/media."""
+    from app.livecams.catalog import migrate_windy_catalog
+
+    migrate_windy_catalog(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=12 WHERE id=1")
 
 
 def migrate_regional_collection(connection):
@@ -297,27 +398,46 @@ def remove_demo(settings: Settings) -> bool:
         return present
 
 
+def reconcile_places(settings: Settings) -> int:
+    """Apply only catalogue identity metadata, preserving unrelated migrations."""
+    from app.place_identity import initialize_place_identity
+
+    with connect(settings) as connection:
+        connection.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-schema'))")
+        row = connection.execute(
+            "SELECT version FROM pongdang_data.schema_version WHERE id=1"
+        ).fetchone()
+        if row is None or not 10 <= row[0] <= VERSION:
+            raise ValueError("Place reconciliation requires an initialized v10+ schema")
+        return initialize_place_identity(connection)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--initialize", action="store_true")
     parser.add_argument("--remove-demo", action="store_true")
+    parser.add_argument("--reconcile-places", action="store_true")
     args = parser.parse_args()
-    if not (args.initialize or args.remove_demo):
-        parser.error("Specify --initialize or --remove-demo")
+    if not (args.initialize or args.remove_demo or args.reconcile_places):
+        parser.error("Specify --initialize, --remove-demo or --reconcile-places")
     try:
         settings = Settings()
         created = initialize(settings) if args.initialize else False
         if args.remove_demo:
             remove_demo(settings)
+        aliases = reconcile_places(settings) if args.reconcile_places else None
     except Exception:
         raise SystemExit(
             "Pongdang schema initialization failed; no partial changes committed"
         ) from None
-    print(
-        "Pongdang schema initialized"
-        if created
-        else "Pongdang schema already initialized"
-    )
+    if aliases is not None:
+        print(f"Pongdang place aliases reconciled: {aliases}")
+    else:
+        print(
+            "Pongdang schema initialized"
+            if created
+            else "Pongdang schema already initialized"
+        )
 
 
 if __name__ == "__main__":

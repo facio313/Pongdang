@@ -7,8 +7,13 @@ test("home uses the selected fallback beach ID, name and conditions consistently
     place: beach, rows: [beach], display_name: beach.name, status: "fallback", message: "경포 자료가 부족하여 다른 해수욕장의 수집 자료를 표시합니다.",
   } }));
   const ids: number[] = [];
+  page.on("request", request => {
+    const url = new URL(request.url());
+    if (/\/water-index\/conditions(?:\/series)?$/.test(url.pathname)) {
+      ids.push(Number(url.searchParams.get("spot_id")));
+    }
+  });
   await page.route("**/api/data/water-index/conditions?**", route => {
-    ids.push(Number(new URL(route.request().url()).searchParams.get("spot_id")));
     return route.fulfill({ json: {
       spot_id: 987, place_name: beach.name, activity: "swim", mode: "observation", at: new Date().toISOString(),
       metrics: [], context_metrics: [], safety_status: "unknown", support_status: "unknown", reason_codes: [],

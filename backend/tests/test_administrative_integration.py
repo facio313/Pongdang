@@ -75,9 +75,10 @@ def test_only_empty_address_region_water_places_receive_separate_evidence(databa
     assert collect_place_regions(database, client=Client())["received"] == 0
 
 
-def test_unknown_response_stores_no_assignment(database):
-    add_place(database)
-    assert collect_place_regions(database, client=Client(response())) == {
+@pytest.mark.parametrize("payload", [response(), response(legal("1111010100"))])
+def test_unknown_response_is_cached_without_assigning_a_region(database, payload):
+    identity = add_place(database)
+    assert collect_place_regions(database, client=Client(payload)) == {
         "state": "no_data",
         "received": 1,
         "inserted": 0,
@@ -90,6 +91,64 @@ def test_unknown_response_stores_no_assignment(database):
             ).fetchone()[0]
             == 0
         )
+        assert connection.execute(
+            "SELECT spot_id,latitude,longitude,state,provider,source_url "
+            "FROM pongdang_data.collection_place_region_attempt"
+        ).fetchall() == [
+            (identity, 37.8, 128.9, "no_data", "KAKAO_LOCAL_REGIONS", ENDPOINT)
+        ]
+        connection.execute(
+            "UPDATE pongdang_data.collection_place_region_attempt "
+            "SET fetched_at=now()-interval '365 days'"
+        )
+    assert collect_place_regions(database, client=Client())["received"] == 0
+
+
+def test_unknown_region_cache_follows_coordinates_and_preserves_prior_empty_result(
+    database,
+):
+    identity = add_place(database)
+    client = Client(response(), response())
+    collect_place_regions(database, client=client)
+    with connect(database) as connection:
+        connection.execute(
+            "UPDATE pongdang_data.spots_waterspot SET lat=37.7 WHERE id=%s", [identity]
+        )
+    assert collect_place_regions(database, client=client)["received"] == 1
+    assert len(client.calls) == 2
+    assert collect_place_regions(database, client=Client())["received"] == 0
+    with connect(database) as connection:
+        connection.execute(
+            "UPDATE pongdang_data.spots_waterspot SET lat=37.8 WHERE id=%s", [identity]
+        )
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM pongdang_data.collection_place_region_attempt"
+            ).fetchone()[0]
+            == 2
+        )
+    assert collect_place_regions(database, client=Client())["received"] == 0
+
+
+def test_provider_failure_never_becomes_a_successful_empty_region_cache(database):
+    add_place(database)
+    add_place(database)
+    client = Client(response(), ProviderError("HTTP_503"))
+    with pytest.raises(ProviderError, match="HTTP_503"):
+        collect_place_regions(database, client=client)
+    with connect(database) as connection:
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM pongdang_data.collection_place_region_attempt"
+            ).fetchone()[0]
+            == 0
+        )
+    assert (
+        collect_place_regions(database, client=Client(response(), response()))[
+            "received"
+        ]
+        == 2
+    )
 
 
 def test_second_provider_failure_does_not_commit_first_assignment(database):
@@ -110,7 +169,10 @@ def test_second_provider_failure_does_not_commit_first_assignment(database):
 @pytest.mark.parametrize(
     "change", ["lat=37.7", "address='새 원천 주소'", "region='51:110'"]
 )
-def test_changed_source_while_resolving_is_not_counted_as_inserted(database, change):
+@pytest.mark.parametrize("payload", [response(legal()), response()])
+def test_changed_source_while_resolving_is_not_counted_as_inserted(
+    database, change, payload
+):
     identity = add_place(database)
 
     def mutate_source():
@@ -120,13 +182,19 @@ def test_changed_source_while_resolving_is_not_counted_as_inserted(database, cha
                 [identity],
             )
 
-    client = Client(response(legal()), callback=mutate_source)
+    client = Client(payload, callback=mutate_source)
     result = collect_place_regions(database, client=client)
     assert result["inserted"] == 0 and result["state"] == "no_data"
     with connect(database) as connection:
         assert (
             connection.execute(
                 "SELECT count(*) FROM pongdang_data.collection_place_region"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            connection.execute(
+                "SELECT count(*) FROM pongdang_data.collection_place_region_attempt"
             ).fetchone()[0]
             == 0
         )

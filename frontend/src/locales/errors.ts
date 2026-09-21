@@ -251,6 +251,11 @@ export const errorMessages: Record<string, MessageTranslations> = {
     "请检查登录状态或访问权限。重新登录后再打开摄像头列表。",
     "ログインまたはアクセス権限をご確認ください。再度ログインしてからウェブカメラ一覧を開いてください。"
   ],
+  "저장된 웹캠 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.": [
+    "The saved webcam list could not be loaded. Please try again shortly.",
+    "无法加载已保存的摄像头列表。请稍后重试。",
+    "保存されたウェブカメラ一覧を読み込めませんでした。しばらくしてから再試行してください。",
+  ],
   "웹캠 조회에 실패했습니다. 잠시 후 다시 시도해 주세요.": [
     "The webcam request failed. Please try again shortly.",
     "摄像头查询失败。请稍后重试。",

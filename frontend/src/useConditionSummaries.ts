@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Activity } from "./aiApi";
 import {
   conditionSummaryPath,
-  summariesExpiry,
   SUMMARY_BATCH_MAX,
   type ConditionSummaries,
   type ConditionSummary,
 } from "./productData";
-import { REFRESH_MAX, REFRESH_MIN } from "./useConditions";
 import { useResource } from "./useResource";
+import { useExpiry } from "./useExpiry";
 
 /** 한 번에 물을 수 있는 묶음 수. 25 × 4 = 100 으로, 서버가 한 번에 내려주는
  *  장소 수와 맞춥니다. 훅은 조건부로 부를 수 없어 **고정된 슬롯**을 두고,
@@ -45,13 +44,12 @@ export function useConditionSummaries(
     );
   }, [key, activity]);
 
-  const [revision, setRevision] = useState(0);
   // 슬롯 수는 상수이므로 훅 호출 순서가 흔들리지 않습니다. SUMMARY_CHUNKS 를
   // 바꾸면 이 줄도 함께 바꿔야 합니다 -- 훅은 반복문으로 부를 수 없습니다.
-  const a = useResource<ConditionSummaries>(paths[0], revision);
-  const b = useResource<ConditionSummaries>(paths[1], revision);
-  const c = useResource<ConditionSummaries>(paths[2], revision);
-  const d = useResource<ConditionSummaries>(paths[3], revision);
+  const a = useResource<ConditionSummaries>(paths[0]);
+  const b = useResource<ConditionSummaries>(paths[1]);
+  const c = useResource<ConditionSummaries>(paths[2]);
+  const d = useResource<ConditionSummaries>(paths[3]);
   const chunks = [a, b, c, d];
   // useResource 는 렌더마다 새 객체를 돌려주므로 **담긴 자료**를 의존성으로
   // 씁니다. 객체를 그대로 쓰면 아래 메모가 매 렌더 깨집니다.
@@ -62,28 +60,16 @@ export function useConditionSummaries(
       [dataA, dataB, dataC, dataD].flatMap((chunk) => chunk?.rows ?? []),
     [dataA, dataB, dataC, dataD],
   );
-  const expiresAt = summariesExpiry(rows);
-
-  useEffect(() => {
-    if (!rows.length) return;
-    // useConditions 와 **같은 하한**을 씁니다. 하한이 없으면 이미 만료된
-    // 근거를 서버가 그대로 내려주는 상황에서 왕복 속도로 무한 재조회합니다.
-    const delay =
-      expiresAt === undefined
-        ? REFRESH_MAX
-        : Math.min(REFRESH_MAX, expiresAt - Date.now());
-    const timer = window.setTimeout(
-      () => setRevision(Date.now()),
-      Math.max(REFRESH_MIN, delay),
-    );
-    return () => window.clearTimeout(timer);
-  }, [rows.length, expiresAt, revision]);
+  const expiredUntil = useExpiry(rows.map((row) => row.expires_at ? Date.parse(row.expires_at) : undefined));
 
   const byId = useMemo(() => {
     const map = new Map<number, ConditionSummary>();
-    for (const row of rows) map.set(row.spot_id, row);
+    for (const row of rows) {
+      const expired = row.expires_at && expiredUntil !== undefined && Date.parse(row.expires_at) <= expiredUntil;
+      map.set(row.spot_id, expired ? { ...row, condition_score: null, water_temperature: null } : row);
+    }
     return map;
-  }, [rows]);
+  }, [rows, expiredUntil]);
   const unavailable = useMemo(
     () =>
       new Map(

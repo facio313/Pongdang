@@ -3,7 +3,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.data_reader import DataReader
 from app.regions import (
@@ -20,7 +20,7 @@ from app.regions import (
 # The original IDs, types, names, addresses and coordinates stay untouched.
 PLACE_SELECT = (
     """
-SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,
+SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,
  r.province_code AS verified_province_code,r.district_code AS verified_district_code,
  CASE WHEN s.type IN ('beach','valley') THEN s.type
  WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
@@ -51,6 +51,7 @@ class PreviewPlace(BaseModel):
 class CatalogPlace(PreviewPlace):
     province_code: ProvinceCode | None = None
     district_code: DistrictCode | None = None
+    alias_ids: list[int] = Field(default_factory=list)
 
 
 class PlacePage(BaseModel):
@@ -59,6 +60,18 @@ class PlacePage(BaseModel):
     page: int
     page_size: int
     has_more: bool
+
+
+def place_catalog_cte(where):
+    # Match all source spellings/addresses first, then deduplicate before the
+    # count and LIMIT/OFFSET. A search for an alias still returns its place.
+    return (
+        f"WITH classified AS ({PLACE_SELECT}), matched AS ("
+        "SELECT DISTINCT coalesce(a.canonical_spot_id,p.id) AS id "
+        "FROM classified p LEFT JOIN pongdang_data.place_alias a ON a.spot_id=p.id "
+        + where
+        + ") "
+    )
 
 
 async def read_places_page(
@@ -81,23 +94,25 @@ async def read_places_page(
             raise ValueError("Unknown place kind")
         where += " AND place_kind=%s"
         params.append(kind)
-    source = f" FROM ({PLACE_SELECT}) p "
+    catalogue = place_catalog_cte(where)
     async with reader.connection() as connection:
         total = (
             await (
                 await connection.execute(
-                    "SELECT count(*) AS total" + source + where, params
+                    catalogue + "SELECT count(*) AS total FROM matched", params
                 )
             ).fetchone()
         )["total"]
         rows = await (
             await connection.execute(
-                "SELECT id,name,place_kind,address,region,lat,lng,"
-                "verified_province_code AS province_code,"
-                "verified_district_code AS district_code"
-                + source
-                + where
-                + " ORDER BY name,id LIMIT %s OFFSET %s",
+                catalogue
+                + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
+                "p.verified_province_code AS province_code,"
+                "p.verified_district_code AS district_code,"
+                "ARRAY(SELECT a.spot_id FROM pongdang_data.place_alias a "
+                "WHERE a.canonical_spot_id=p.id ORDER BY a.spot_id) AS alias_ids "
+                "FROM classified p JOIN matched m ON m.id=p.id "
+                "ORDER BY p.name,p.id LIMIT %s OFFSET %s",
                 [*params, page_size, (page - 1) * page_size],
             )
         ).fetchall()

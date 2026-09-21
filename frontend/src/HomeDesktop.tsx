@@ -1,4 +1,5 @@
 import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
 import { useState } from "react";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
@@ -53,6 +54,7 @@ import { useTravelSession } from "./travelSession";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
+import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homeDesktop.css";
 
 // 데스크탑 홈(핸드오프 18a)입니다. 모바일 홈과 **같은 라우트(#home)**이며
@@ -302,9 +304,9 @@ function BeachCard({ place }: { place: Place }) {
     <div className="hd-beach">
       <a className="place-photo-link" href={spotLink(place)}>
         <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} />
-        <span className="hd-beach-head">
+        <span className="hd-beach-head first-swim-name-row">
           <b className="hd-beach-name">{place.name}</b>
-          <span className="hd-beach-category">{t("해변")}</span>
+          <FirstSwimPreview spotId={place.id} />
         </span>
         <span className="hd-beach-foot">
           <span className="hd-beach-operating">
@@ -354,7 +356,7 @@ export function HomeDesktop() {
       const href =
         player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
       return href
-        ? [{ camera, href, label: player ? t("타임랩스") : t("원본 보기") }]
+        ? [{ camera, href, label: player ? t(player === camera.live_player ? "실시간 안내 · 미검증" : "타임랩스") : t("원본 보기") }]
         : [];
     })
     .slice(0, 3);
@@ -406,11 +408,10 @@ export function HomeDesktop() {
         kick={t("바다가 좋은 오늘")}
         title={
           <>
-            {t("해변 명소")}<br />
+            {t("해변 명소")} · {t("첫 입수")}<br />
             {t("바로 이어가기")}</>
         }
         chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
-        desc={t("명소 페이지로 가서 더 많은 강원도 명소를 둘러보세요.")}
         link={{ href: "#spots", label: t("명소 탭 전체 보기") }}
       >
         <div className="hd-beaches">
@@ -426,8 +427,6 @@ export function HomeDesktop() {
                 : t("수집된 해변이 아직 없습니다."))}
           </p>
         )}
-        <p className="hd-row-note">
-          {t("명소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영시간은 아직 내려주는 API 가 없습니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다. 리뷰 평점은 쓰지 않습니다.")}</p>
       </LabelRow>
 
       {/* 예전에는 「서핑과 온천을 고르셨습니다」가 늘 떠 있었고 칩 네 개 중
@@ -616,8 +615,7 @@ export function HomeDesktop() {
         desc={t("지금 이 순간의 바다, 그 풍경을 직접 느껴보세요")}
         link={{ href: "#livecam", label: t("전체 화면으로") }}
       >
-        {/* 모바일 홈에는 재추첨이 있는데 이 화면에는 없었습니다. 목록 유효기간이
-            지나면 원본 페이지로 물러서는데, 그때 할 수 있는 일이 이것뿐입니다. */}
+        {/* 저장된 목록 안에서 다른 카메라를 고릅니다. */}
         <button
           type="button"
           className="pd-dk-button is-pill hd-cams-reshuffle"
@@ -634,23 +632,15 @@ export function HomeDesktop() {
               rel="noopener noreferrer"
               key={camera.provider_camera_id}
             >
-              <div className="pd-dk-slot hd-cam-frame">
-                {/* 영상 썸네일을 내려주는 API 가 없습니다. 점선만 있는 칸은
-                    무엇이 들어올 자리인지 말하지 않으므로 표지 마스코트를
-                    둡니다 -- 옆에 카메라 이름이 이미 있어 alt 는 비웁니다. */}
-                <img
-                  className="hd-cam-mascot"
-                  src={mascotUrl("livecam")}
-                  alt=""
-                  width={84}
-                  height={84}
-                />
+              <WebcamThumbnail camera={camera} className="pd-dk-slot hd-cam-frame" fallback={<>
+                <img className="hd-cam-mascot" src={mascotUrl("livecam")} alt="" width={84} height={84} />
                 {camera.title}
+              </>}>
                 <span className="hd-cam-live">
                   <span className="hd-cam-dot" />
                   {label}
                 </span>
-              </div>
+              </WebcamThumbnail>
               <div className="hd-cam-head">
                 <b>{camera.title}</b>
                 <span className="hd-cam-place">{label}</span>
@@ -677,7 +667,7 @@ export function HomeDesktop() {
         </div>
         <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
           {webcams.error ??
-            t("장소와 관계없이 무작위로 선택된 물 풍경이며, 배경은 영상 썸네일이 아닙니다.")}{" "}
+            t("장소와 관계없이 무작위로 선택된 물 풍경입니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")}{" "}
           {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
               적는데 이 화면은 말없이 링크만 바꿨습니다. */}
           {webcams.expired &&
@@ -689,7 +679,7 @@ export function HomeDesktop() {
       {/* 시간대별 예보와 코스는 이제 연동됐으므로 목록에서 뺐습니다. 남은
           것만 적습니다 -- 다 고친 뒤에도 미연동이라고 적어 두면 그것도
           거짓말입니다. */}
-      <FootNote missing={t("운영시간 · 장소까지의 거리 · 첫 입수 알림 트리거")} />
+      <FootNote missing={t("운영시간 · 장소까지의 거리")} />
     </DesktopShell>
   );
 }

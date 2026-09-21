@@ -305,8 +305,8 @@ export function FootNote({
   note = DEFAULT_FOOT_NOTE,
   alert = false,
 }: {
-  /** 「아직 실연동되지 않은 항목 — …」 뒤에 붙는 목록. */
-  missing: string;
+  /** 실제 미연동 항목이 있는 화면에서만 표시합니다. */
+  missing?: string;
   note?: ReactNode;
   /** 경고 바 형태(붉은 바탕 + 삼각 경고). */
   alert?: boolean;
@@ -344,9 +344,9 @@ export function FootNote({
       <div className="pd-dk-foot-body">
         {/* 제품 이름은 바로 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
         <img className="pd-dk-foot-brand" src={logoUrl()} alt="" aria-hidden />
-        <div className="pd-dk-foot-missing">
+        {missing && <div className="pd-dk-foot-missing">
           {alert && <Icon name="warning" size={14} />}{t("아직 실연동되지 않은 항목 — {items}", { items: t(missing) })}
-        </div>
+        </div>}
         <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>
       </div>
     </footer>

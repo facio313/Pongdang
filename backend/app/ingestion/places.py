@@ -7,6 +7,7 @@ from app.config import Settings
 from app.ingestion.http import Client, ProviderError
 from app.ingestion.jobs import Job
 from app.ingestion.models import Place, SourceBatch
+from app.ingestion.water_tour_extra import tourism_place
 
 
 def kakao_places(settings: Settings, client=None) -> SourceBatch:
@@ -55,6 +56,7 @@ def kakao_places(settings: Settings, client=None) -> SourceBatch:
 
 def tourism_places(settings: Settings, client=None) -> SourceBatch:
     client = client or Client()
+    fetched = datetime.now(UTC)
     places = {}
     for page in range(1, 6):
         data = client.get_json(
@@ -82,26 +84,14 @@ def tourism_places(settings: Settings, client=None) -> SourceBatch:
         except KeyError, TypeError, ValueError:
             raise ProviderError("INVALID_TOURISM_RESPONSE") from None
         for row in rows:
-            if not row.get("mapx") or not row.get("mapy"):
-                continue
-            longitude, latitude = float(row["mapx"]), float(row["mapy"])
-            if not (longitude and latitude):
-                continue  # Skip missing-coordinate placeholders.
-            source_id = str(row["contentid"])
-            places[source_id] = Place(
-                source_id=source_id,
-                name=row["title"],
-                kind="tourism",
-                latitude=latitude,
-                longitude=longitude,
-                address=" ".join(filter(None, [row.get("addr1"), row.get("addr2")])),
-                category=str(row.get("contenttypeid", "")),
-            )
+            place = tourism_place(row, fetched)
+            if place is not None:
+                places[place.source_id] = place
         if page * 100 >= total or not rows:
             break
     return SourceBatch(
         provider="TOURAPI_KOREAN",
-        fetched_at=datetime.now(UTC),
+        fetched_at=fetched,
         places=list(places.values()),
         coverage="bounded" if page * 100 < total else "complete",
     )

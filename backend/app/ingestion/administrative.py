@@ -27,6 +27,22 @@ def migrate_place_regions(connection):
     )
 
 
+def migrate_place_region_attempts(connection):
+    """A successful empty coordinate lookup is durable evidence too."""
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS pongdang_data.collection_place_region_attempt ("
+        "spot_id bigint NOT NULL REFERENCES pongdang_data.spots_waterspot(id),"
+        "latitude double precision NOT NULL,longitude double precision NOT NULL,"
+        "state text NOT NULL CHECK(state='no_data'),"
+        "provider text NOT NULL,source_url text NOT NULL,"
+        "fetched_at timestamptz NOT NULL,"
+        "PRIMARY KEY(spot_id,latitude,longitude))"
+    )
+    connection.execute(
+        "REVOKE ALL ON pongdang_data.collection_place_region_attempt FROM PUBLIC"
+    )
+
+
 def resolve_region(settings, latitude, longitude, *, client=None):
     """Use a returned legal-district code; never guess from nearby place names."""
     from app.regions import administrative_codes
@@ -67,23 +83,40 @@ def collect_place_regions(settings, *, client=None, limit=25):
         raise ValueError("Invalid region collection limit")
     with connect(settings) as c, c.cursor(row_factory=dict_row) as cursor:
         rows = cursor.execute(
-            f"WITH places AS ({PLACE_SELECT}) SELECT id,lat,lng FROM places "
-            "WHERE place_kind IS NOT NULL AND lat IS NOT NULL AND lng IS NOT NULL "
-            "AND verified_province_code IS NULL "
-            "AND coalesce(address,'')='' AND coalesce(region,'')='' "
-            "ORDER BY id LIMIT %s",
+            f"WITH places AS ({PLACE_SELECT}) SELECT p.id,p.lat,p.lng FROM places p "
+            "WHERE p.place_kind IS NOT NULL AND p.lat IS NOT NULL "
+            "AND p.lng IS NOT NULL AND p.verified_province_code IS NULL "
+            "AND coalesce(p.address,'')='' AND coalesce(p.region,'')='' "
+            "AND NOT EXISTS (SELECT 1 "
+            "FROM pongdang_data.collection_place_region_attempt a "
+            "WHERE a.spot_id=p.id AND a.latitude=p.lat AND a.longitude=p.lng) "
+            "ORDER BY p.id LIMIT %s",
             [limit],
         ).fetchall()
-    verified = []
+    resolved = []
     for row in rows:
         result = resolve_region(settings, row["lat"], row["lng"], client=client)
-        if result:
-            area, code = result
-            verified.append((row, area, code))
+        resolved.append((row, result))
     now = datetime.now(UTC)
     inserted = 0
+    # Retain the batch's all-or-nothing semantics. Failed lookups never become
+    # successful empty cache entries or bypass the worker's failure backoff.
     with connect(settings) as c:
-        for row, area, code in verified:
+        c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
+        for row, result in resolved:
+            if not result:
+                c.execute(
+                    "INSERT INTO pongdang_data.collection_place_region_attempt "
+                    "(spot_id,latitude,longitude,state,provider,source_url,fetched_at) "
+                    "SELECT id,lat,lng,'no_data','KAKAO_LOCAL_REGIONS',%s,%s "
+                    "FROM pongdang_data.spots_waterspot WHERE id=%s AND lat=%s "
+                    "AND lng=%s AND coalesce(address,'')='' "
+                    "AND coalesce(region,'')='' "
+                    "ON CONFLICT(spot_id,latitude,longitude) DO NOTHING",
+                    [ENDPOINT, now, row["id"], row["lat"], row["lng"]],
+                )
+                continue
+            area, code = result
             inserted += c.execute(
                 "INSERT INTO pongdang_data.collection_place_region "
                 "(spot_id,province_code,district_code,provider,provider_region_code,"
@@ -108,6 +141,10 @@ def collect_place_regions(settings, *, client=None, limit=25):
                     row["lng"],
                 ],
             ).rowcount
+        if inserted:
+            from app.place_identity import reconcile_place_identities
+
+            reconcile_place_identities(c)
     return {
         "state": "succeeded" if inserted else "no_data",
         "received": len(rows),

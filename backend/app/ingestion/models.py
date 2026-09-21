@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from pydantic import AwareDatetime, Field, model_validator
 
 from app.ingestion import Code, Record, Text
+from app.place_details.models import PlaceDetail
 
 
 class Station(Record):
@@ -87,6 +88,7 @@ class SourceBatch(Record):
     stations: list[Station] = Field(default_factory=list, max_length=5000)
     readings: list[Reading] = Field(default_factory=list, max_length=5000)
     places: list[Place] = Field(default_factory=list, max_length=5000)
+    place_details: list[PlaceDetail] = Field(default_factory=list, max_length=100)
     warnings: list[Warning] = Field(default_factory=list, max_length=1000)
 
     @model_validator(mode="after")
@@ -97,6 +99,16 @@ class SourceBatch(Record):
             raise ValueError("Fetch time cannot be in the future")
         identities = {}
         station_metadata = {}
+        details = {}
+        for detail in self.place_details:
+            old = details.setdefault(detail.source_id, detail)
+            if old != detail:
+                raise ValueError("Conflicting place details in one batch")
+            if any(
+                stamp and stamp > self.fetched_at
+                for stamp in (detail.source_created_at, detail.source_modified_at)
+            ):
+                raise ValueError("Place source time cannot postdate its fetch time")
         for station in [*self.stations, *(r.station for r in self.readings)]:
             old = station_metadata.setdefault(station.source_id, station)
             if old != station:

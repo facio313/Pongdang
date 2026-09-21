@@ -5,6 +5,8 @@ import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
+import type { PlaceDetails } from "./placeDetails";
+import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
@@ -16,6 +18,7 @@ import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { readSpotsRoute, sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsPage.css";
+import "./placeDetails.css";
 
 // 명소 탭입니다. 핸드오프 모바일 20a(목록) · 20c(지도)를 그립니다. 상세(20b)는
 // SpotDetailPage.tsx 에 있고 같은 `#spots` 해시의 spot_id 로 들어갑니다.
@@ -28,9 +31,7 @@ import "./spotsPage.css";
 // 점수 · 거리 · 운영시간이 전부 지어낸 값이었고, 「예시 데이터」 칩을 달아도
 // 화면에 적힌 「72점 · 1.2km · 10:00–21:00」은 읽는 사람에게 사실로 남았습니다.
 //
-// 이제 목록은 서버가 분류한 실제 장소입니다(useWaterPlaces). 서버에 없는 것은
-// 지어내지 않고 자리를 비웁니다 -- 거리 · 운영시간 · 소개는 주는 API 가
-// 없습니다.
+// 목록은 서버가 분류한 실제 장소이며 운영 안내는 저장된 상세정보를 묶어 읽습니다.
 
 /** 서버가 유도하는 분류는 beach · valley 둘뿐입니다(place_kind). 예전의 다섯
  *  갈래(해변 · 온천 · 카페 · 문화 · 서핑)는 서버에 대응하는 값이 없어, 고르면
@@ -130,7 +131,7 @@ function ListSearch({
   );
 }
 
-function SpotRow({ place }: { place: Place }) {
+function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
     <div className="sp-row">
       <a className="place-photo-link" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })}>
@@ -146,6 +147,7 @@ function SpotRow({ place }: { place: Place }) {
             약속하지 않고 무엇을 눌러야 보이는지만 밝힙니다. */}
         <span className="sp-row-where">{placeRegionLabel(place)}</span>
         <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
+        {detail?.opening_hours && <span className="sp-row-hours">{t("운영")} · {detail.opening_hours}</span>}
         <PlacePhotoCredit photo={place.photo} />
       </span>
     </div>
@@ -156,6 +158,7 @@ function SpotsList() {
   const browser = useWaterPlaceBrowser();
   const { search, setSearch, places } = browser;
   const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
+  const details = usePlaceDetails(rows.map((place) => place.id));
   return (
     <article className="spots-page">
       <AppShell
@@ -167,7 +170,7 @@ function SpotsList() {
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
           {rows.map((place) => (
-            <SpotRow key={place.id} place={place} />
+            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} />
           ))}
           {!rows.length && (
             <p className="pd-note" role={places.error ? "alert" : "status"}>
@@ -182,8 +185,9 @@ function SpotsList() {
         {/* 「값이 없으면 –…」 같은 전역 규칙은 화면 바닥의 AppFootNote 가 한 번
             말합니다. 여기는 이 목록에만 해당하는 것을 남깁니다. */}
         <p className="pd-note">
-          {t("장소를 고르면 그곳의 퐁당 점수를 조회합니다. 목록에 점수를 함께 싣지 않는 것은 장소마다 한 번씩 조회해야 하기 때문입니다. 거리 · 운영 시간 · 소개는 아직 내려주는 API 가 없어 비워 둡니다. 대표 사진은 수집된 사진이 있는 장소에 표시합니다.")}
+          {t("운영 안내와 대표 사진은 수집해 저장한 정보가 있는 장소에 표시합니다. 장소를 고르면 상세정보와 물놀이 조건을 확인할 수 있습니다.")}
         </p>
+        {details.error && <p className="pd-note" role="alert">{t("저장된 상세정보를 불러오지 못했습니다.")} {details.error}</p>}
       </AppShell>
     </article>
   );

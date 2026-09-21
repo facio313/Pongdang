@@ -1,0 +1,14 @@
+.notifications-page section { margin-top: 2rem; }
+.notifications-page table { min-width: 760px; }
+.notifications-page th { white-space: nowrap; }
+.notification-heading, .notification-actions, .notification-pages { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.notification-heading { justify-content: space-between; }
+.notification-pages { margin-top: .75rem; }
+.notification-actions button { white-space: nowrap; }
+.notification-evidence { min-width: 15rem; max-width: 34rem; white-space: normal; }
+.notification-evidence ul { padding-left: 1.2rem; }
+.notification-evidence li { margin: .35rem 0; }
+.notification-summary { padding: 1rem; }
+.notification-summary p { margin: .6rem 0; }
+.notification-summary button { margin-right: .75rem; }
+.notification-summary a { text-decoration: underline; }

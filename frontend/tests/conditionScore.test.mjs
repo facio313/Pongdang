@@ -136,3 +136,11 @@ test('current score expiry follows its evaluated station evidence, excluding unu
   assert.equal(conditionScoreExpiry(undefined), undefined);
   assert.equal(conditionScoreExpiry({ ...data, condition_score: { components: [] } }), undefined);
 });
+
+test('stored-score refresh hints do not replace evidence validity and pending states keep their explanation', () => {
+  const refreshAfter = '2026-09-21T03:10:00Z';
+  assert.equal(conditionScoreExpiry({ metrics: [], projection: { status: 'ready', refresh_after: refreshAfter } }), undefined);
+  assert.equal(conditionScoreExpiry({ metrics: [], projection: { status: 'pending', refresh_after: refreshAfter } }), undefined);
+  assert.equal(conditionScoreText({ condition_score: { ...index, score: null, status: 'unavailable', reason_codes: ['condition_projection_pending'] } }), '새 데이터를 반영해 점수를 갱신하고 있습니다.');
+  assert.equal(conditionScoreText({ condition_score: { ...index, score: null, status: 'unavailable', reason_codes: ['condition_projection_unavailable_for_target'] } }), '선택한 시간에 저장된 점수가 없습니다.');
+});

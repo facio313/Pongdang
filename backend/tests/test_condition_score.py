@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.main import create_app
 from app.water_index import condition_api as api
+from app.water_index import condition_storage
 from app.water_index.conditions import (
     ACTIVITIES,
     METRICS,
@@ -272,10 +273,11 @@ def test_every_activity_metric_reaches_matching_with_its_own_unit(activity, name
 
 @pytest.fixture
 def client(monkeypatch):
-    async def read(reader, q):
+    async def read(reader, q, *, now=None):
         return envelope(q.activity, at=q.at or NOW, as_of=q.as_of or NOW)
 
     monkeypatch.setattr(api, "read_conditions", read)
+    monkeypatch.setattr(condition_storage, "read_projected_conditions", read)
     return TestClient(
         create_app(Settings(_env_file=None, postgres_password="test-only"))
     )
@@ -290,6 +292,24 @@ def body():
         as_of=NOW.isoformat(),
         criteria=[criterion().model_dump()],
     )
+
+
+@pytest.mark.parametrize(
+    "mode,at,as_of,historical",
+    [
+        ("observation", None, None, False),
+        ("observation", NOW - timedelta(minutes=10), None, True),
+        ("forecast", datetime(2026, 1, 1, 14, 59, 59, tzinfo=UTC), None, True),
+        ("forecast", datetime(2026, 1, 1, 15, tzinfo=UTC), None, False),
+        ("forecast", NOW, None, False),
+        ("forecast", NOW, NOW, True),
+    ],
+)
+def test_historical_target_routing_uses_kst_day_boundary(mode, at, as_of, historical):
+    query = api.ConditionQuery(
+        spot_id=1, activity="swim", mode=mode, at=at, as_of=as_of
+    )
+    assert api.is_historical_query(query, NOW) is historical
 
 
 def test_http_catalog_calculation_no_store_and_openapi(client):

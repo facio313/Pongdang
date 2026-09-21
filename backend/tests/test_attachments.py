@@ -78,6 +78,20 @@ def provider_row(**kwargs):
     }
 
 
+def stored_place(**kwargs):
+    return {
+        **PLACE,
+        "source_id": "1234",
+        "source_detail_id": 1,
+        "photo_name": "경포해변",
+        "photo_url": URL,
+        "photo_license": "Type1",
+        "source_modified_at": None,
+        "match_method": "provider_id",
+        **kwargs,
+    }
+
+
 class JsonClient:
     def __init__(self, *responses):
         self.responses = iter(responses)
@@ -245,93 +259,87 @@ def test_storage_key_cannot_escape_root_or_follow_outside_symlink(tmp_path):
         file_path(root, "ab/" + "a" * 64 + ".png")
 
 
-def test_provider_match_requires_equivalent_name_and_nearby_coordinates(tmp_path):
-    client = JsonClient(
-        [
-            provider_row(contentid="1", title="경포해변 식당"),
-            provider_row(contentid="2", mapy="38.805"),
-            provider_row(contentid="3", mapx="nan"),
-            provider_row(contentid="4"),
-        ]
+@pytest.mark.parametrize("match_method", ["provider_id", "name_and_coordinates"])
+def test_saved_common_photo_needs_no_provider_metadata_call(tmp_path, match_method):
+    client = JsonClient()
+    photo, state, method = TourPhotos(settings(tmp_path), client).find(
+        stored_place(match_method=match_method)
     )
-    photo, state, method = TourPhotos(settings(tmp_path), client).find(PLACE)
-    assert (state, method) == ("available", "name_and_coordinates")
-    assert photo["source_record_id"] == "4"
+    assert (state, method) == ("available", match_method)
+    assert photo["source_record_id"] == "1234"
     assert photo["source_url"] == URL
-    assert photo["original_url"].startswith("http:")
+    assert photo["original_url"] == URL
     assert photo["source_modified_at"] is None
-    assert client.calls[0][1]["numOfRows"] == 20
-    assert client.calls[0][1]["pageNo"] == 1
+    assert client.calls == []
 
 
-@pytest.mark.parametrize(
-    ("rows", "state"),
-    [([], "no_match"), ([provider_row(), provider_row(contentid="5678")], "ambiguous")],
-)
-def test_no_or_ambiguous_match_does_not_guess_a_photo(tmp_path, rows, state):
-    assert TourPhotos(settings(tmp_path), JsonClient(rows)).find(PLACE) == (
+def test_unmatched_place_does_not_search_the_provider(tmp_path):
+    client = JsonClient()
+    assert TourPhotos(settings(tmp_path), client).find(PLACE) == (
         None,
-        state,
-        "name_and_coordinates",
+        "no_match",
+        "provider_id",
     )
+    assert client.calls == []
 
 
 @pytest.mark.parametrize("license_code", ["Type2", "Type4", "", None])
 def test_restricted_or_unknown_license_does_not_return_photo(tmp_path, license_code):
-    result = TourPhotos(
-        settings(tmp_path), JsonClient([provider_row(cpyrhtDivCd=license_code)])
-    ).find(PLACE)
-    assert result == (None, "restricted", "name_and_coordinates")
+    client = JsonClient()
+    result = TourPhotos(settings(tmp_path), client).find(
+        stored_place(photo_license=license_code)
+    )
+    assert result == (None, "restricted", "provider_id")
+    assert client.calls == []
 
 
 def test_detail_fallback_preserves_type3_and_provider_time(tmp_path):
     client = JsonClient(
-        [provider_row(firstimage="", modifiedtime="20200102030405")],
         [
             {"contentid": "1234", "originimgurl": URL, "cpyrhtDivCd": "Type4"},
             {"contentid": "1234", "originimgurl": URL, "cpyrhtDivCd": "Type3"},
         ],
     )
+    modified = datetime(2020, 1, 1, 18, 4, 5, tzinfo=UTC)
     photo, state, method = TourPhotos(settings(tmp_path), client).find(
-        {**PLACE, "source_id": "1234"}
+        stored_place(photo_url="", source_modified_at=modified)
     )
     assert (state, method, photo["license"]) == ("available", "provider_id", "Type3")
-    assert photo["source_modified_at"].astimezone(UTC) == datetime(
-        2020, 1, 1, 18, 4, 5, tzinfo=UTC
-    )
+    assert photo["source_modified_at"] == modified
     assert "공공누리 3유형" in photo["attribution"]
     assert [url.rsplit("/", 1)[1] for url, _ in client.calls] == [
-        "detailCommon2",
         "detailImage2",
     ]
-    assert client.calls[1][1]["numOfRows"] == 10
+    assert client.calls[0][1]["numOfRows"] == 10
+    assert client.calls[0][1]["pageNo"] == 1
 
 
 def test_missing_images_remain_explicit(tmp_path):
-    client = JsonClient([provider_row(firstimage="")], [])
-    assert TourPhotos(settings(tmp_path), client).find(PLACE) == (
+    client = JsonClient([])
+    assert TourPhotos(settings(tmp_path), client).find(stored_place(photo_url="")) == (
         None,
         "no_image",
-        "name_and_coordinates",
+        "provider_id",
     )
 
 
 def test_provider_identity_mismatch_and_oversized_rows_fail(tmp_path):
     provider = TourPhotos(settings(tmp_path), JsonClient([provider_row(contentid="9")]))
     with pytest.raises(ProviderError, match="PHOTO_ID_MISMATCH"):
-        provider.find({**PLACE, "source_id": "1234"})
-    provider = TourPhotos(settings(tmp_path), JsonClient([provider_row()] * 21))
+        provider.find(stored_place(photo_url=""))
+    provider = TourPhotos(settings(tmp_path), JsonClient([provider_row()] * 11))
     with pytest.raises(ProviderError, match="INVALID_PHOTO_RESPONSE"):
-        provider.find(PLACE)
+        provider.find(stored_place(photo_url=""))
 
 
-@pytest.mark.parametrize("value", ["not-a-date", "29990101000000"])
+@pytest.mark.parametrize(
+    "value",
+    ["not-a-date", datetime(2020, 1, 1), datetime(2999, 1, 1, tzinfo=UTC)],
+)
 def test_unknown_source_timestamp_is_not_invented(tmp_path, value):
-    provider = TourPhotos(
-        settings(tmp_path), JsonClient([provider_row(modifiedtime=value)])
-    )
+    provider = TourPhotos(settings(tmp_path), JsonClient())
     with pytest.raises(ProviderError, match="PHOTO_SOURCE_TIME"):
-        provider.find(PLACE)
+        provider.find(stored_place(source_modified_at=value))
 
 
 def test_invalid_matching_coordinates_are_not_accepted():

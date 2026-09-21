@@ -1,0 +1,57 @@
+.first-swim-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.home-page .first-swim-name-row { margin-top: 7px; }
+.home-page .first-swim-name-row > .hm-pick-name { margin-top: 0; min-width: 0; overflow-wrap: anywhere; }
+.first-swim-preview {
+  display: inline;
+  flex: none;
+  white-space: nowrap;
+  color: var(--pd-blue-deep);
+  font-size: var(--pd-fs-cap);
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+.pd-desktop .first-swim-preview { color: var(--dk-deep); font-size: var(--dk-fs-cap); }
+.first-swim-observation { margin: 12px 0 20px; }
+.first-swim-observation > p { margin: 0 0 8px; }
+
+.first-swim-guide {
+  scroll-margin-top: 96px;
+  line-height: 1.7;
+  min-width: 0;
+}
+.first-swim-heading { display: flex; align-items: center; gap: 8px; }
+.first-swim-heading > svg { color: var(--pd-blue-deep); flex: none; }
+.pd-desktop .first-swim-heading > svg { color: var(--dk-deep); }
+.first-swim-guide.is-desktop {
+  border-top: 1px solid var(--dk-rule-weak);
+  margin: 24px 0;
+  padding-top: 20px;
+}
+.first-swim-guide h2 { margin: 0; }
+.first-swim-guide h3 { margin: 20px 0 8px; }
+.first-swim-intro { margin: 8px 0 16px; }
+.first-swim-explanation { margin: 0; font-size: var(--pd-fs-sm); }
+.pd-desktop .first-swim-explanation { font-size: var(--dk-fs-sm); }
+.first-swim-explanation > div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pd-line);
+}
+.pd-desktop .first-swim-explanation > div { border-color: var(--dk-line); }
+.first-swim-explanation dt { font-weight: 700; color: var(--pd-ink-2); }
+.pd-desktop .first-swim-explanation dt { color: var(--dk-ink-2); }
+.first-swim-explanation dd { margin: 0; }
+.first-swim-guide .notification-summary { padding: 0; }
+.first-swim-guide .notification-evidence { min-width: 0; }
+.first-swim-guide .notification-summary-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.first-swim-guide .notification-summary-actions button { margin: 0; }
+.first-swim-guide .notification-summary-actions a { text-decoration: none; }
+@media (max-width: 480px) {
+  .first-swim-explanation > div { grid-template-columns: 1fr; gap: 4px; }
+}

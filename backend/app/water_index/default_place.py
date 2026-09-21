@@ -8,7 +8,8 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.data_reader import DataReader
 from app.livecams.places import PLACE_SELECT
 from app.livecams.preview import PreviewPlace
-from app.water_index.condition_api import ConditionQuery, read_conditions
+from app.water_index.condition_api import ConditionQuery
+from app.water_index.condition_storage import read_condition_set
 
 PREFERRED_NAME = "강릉 경포대 해수욕장"
 
@@ -50,14 +51,17 @@ async def select_default_place(reader):
     selected = candidates[0] if candidates else None
     status = "no_current_data" if selected else "no_places"
     checked = 0
-    for candidate in candidates:
+    queries = [
+        ConditionQuery(spot_id=candidate["id"], activity="swim", mode=mode)
+        for candidate in candidates
+        for mode in ("observation", "forecast")
+    ]
+    conditions = await read_condition_set(reader, queries, now=now) if queries else []
+    for index, candidate in enumerate(candidates):
         checked += 1
-        for mode in ("observation", "forecast"):
-            evidence = await read_conditions(
-                reader,
-                ConditionQuery(spot_id=candidate["id"], activity="swim", mode=mode),
-                now=now,
-            )
+        for evidence in conditions[index * 2 : index * 2 + 2]:
+            if isinstance(evidence, HTTPException):
+                raise evidence
             if evidence.condition_score.status == "blocked":
                 # A known restriction is not missing data. Preserve it for the
                 # preferred beach instead of hiding it behind another place.

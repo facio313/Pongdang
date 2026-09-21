@@ -1,17 +1,21 @@
 """Attachment persistence and reads against a disposable pongdang_test database."""
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
-from test_attachments import PNG, URL, JsonClient, png, provider_row
+from test_attachments import PNG, URL, JsonClient, png
 
 from app.attachments.collector import TourPhotos, collect_photos, due_places, persist
 from app.attachments.files import file_path
+from app.attachments.migrations import migrate_photo_detail_cache
 from app.config import Settings
 from app.ingestion.http import ProviderError
 from app.main import create_app
+from app.place_details.models import PlaceDetail
+from app.place_details.storage import persist_details
 from app.schema import connect, initialize
 
 BASE = "/api/data/attachments"
@@ -33,14 +37,61 @@ def database(tmp_path):
         c.execute("DROP SCHEMA pongdang_data CASCADE")
 
 
-def add_place(settings, identity=1, kind="beach"):
+def add_place(settings, identity=1, kind="beach", *, detail=True):
+    # A non-water fixture must not also satisfy TourAPI's beach name/category rule.
+    name = "일반 관광시설" if kind == "other" else "경포해수욕장"
     with connect(settings) as c:
         c.execute(
             "INSERT INTO pongdang_data.spots_waterspot(id,name,type,lat,lng) "
-            "VALUES (%s,'경포해수욕장',%s,37.805,128.909)",
-            [identity, kind],
+            "VALUES (%s,%s,%s,37.805,128.909)",
+            [identity, name, kind],
         )
-    return {"id": identity, "name": "경포해수욕장", "lat": 37.805, "lng": 128.909}
+    place = {"id": identity, "name": name, "lat": 37.805, "lng": 128.909}
+    return save_detail(settings, place) if detail else place
+
+
+def save_detail(settings, place, **changes):
+    now = datetime.now(UTC)
+    source_id = str(1233 + place["id"])
+    detail = PlaceDetail(
+        **{
+            "source_id": source_id,
+            "content_type": "12",
+            "name": "경포해변",
+            "photo_url": URL,
+            "photo_license": "Type1",
+            **changes,
+        }
+    )
+    with connect(settings) as c:
+        place_id = c.execute(
+            "INSERT INTO pongdang_data.collection_place "
+            "(provider,source_id,name,kind,latitude,longitude,address,region,"
+            "category,source_url,spot_id,fetched_at) VALUES "
+            "('TOURAPI_KOREAN',%s,%s,'tourism',37.805,128.909,'','','12','',%s,%s) "
+            "ON CONFLICT(provider,source_id) DO UPDATE SET name=EXCLUDED.name "
+            "RETURNING id",
+            [source_id, place["name"], place["id"], now],
+        ).fetchone()[0]
+        persist_details(
+            c,
+            SimpleNamespace(
+                provider="TOURAPI_KOREAN", fetched_at=now, place_details=[detail]
+            ),
+        )
+        detail_id = c.execute(
+            "SELECT id FROM pongdang_data.place_detail "
+            "WHERE place_id=%s AND state='active'",
+            [place_id],
+        ).fetchone()[0]
+        c.execute(
+            "INSERT INTO pongdang_data.place_detail_link "
+            "(spot_id,place_id,match_method,linked_at) "
+            "VALUES (%s,%s,'provider_id',%s) ON CONFLICT(spot_id) "
+            "DO UPDATE SET place_id=EXCLUDED.place_id,linked_at=EXCLUDED.linked_at",
+            [place["id"], place_id, now],
+        )
+    return {**place, "source_detail_id": detail_id}
 
 
 def photo():
@@ -81,7 +132,7 @@ def make_due(settings):
         )
 
 
-def test_collect_downloads_real_bytes_and_deduplicates_on_refresh(database):
+def test_collect_downloads_once_and_reuses_existing_file_on_explicit_refresh(database):
     add_place(database)
     calls = []
 
@@ -90,7 +141,7 @@ def test_collect_downloads_real_bytes_and_deduplicates_on_refresh(database):
         return PNG, "image/png", "png"
 
     def provider():
-        return TourPhotos(database, JsonClient([provider_row()]))
+        return TourPhotos(database, JsonClient())
 
     result = collect_photos(database, provider=provider(), fetch_image=image)
     assert result == {"received": 1, "inserted": 1, "state": "succeeded", "error": ""}
@@ -117,6 +168,174 @@ def test_collect_downloads_real_bytes_and_deduplicates_on_refresh(database):
         (fetched_at,)
     ]
     assert len(list(database.attachment_root.rglob("*.png"))) == 1
+    assert len(calls) == 1
+    assert fetch(
+        database, "SELECT next_attempt_at FROM pongdang_data.attachment_collection"
+    ) == [(None,)]
+
+
+def test_elapsed_time_does_not_refresh_a_completed_photo(database):
+    add_place(database)
+    client = JsonClient()
+    calls = []
+
+    def image(*args):
+        calls.append(args)
+        return PNG, "image/png", "png"
+
+    provider = TourPhotos(database, client)
+    collect_photos(database, provider=provider, fetch_image=image)
+    with connect(database) as c:
+        c.execute(
+            "UPDATE pongdang_data.attachment_collection "
+            "SET checked_at=now()-interval '365 days',"
+            "last_success_at=now()-interval '365 days'"
+        )
+    assert (
+        collect_photos(database, provider=provider, fetch_image=image)["received"] == 0
+    )
+    assert len(calls) == 1
+    assert client.calls == []
+
+
+def test_existing_photo_is_adopted_after_cache_migration_without_download(database):
+    place = add_place(database)
+    save(database, place)
+    with connect(database) as c:
+        c.execute(
+            "UPDATE pongdang_data.attachment_collection SET source_detail_id=NULL,"
+            "next_attempt_at=now()+interval '7 days'"
+        )
+        migrate_photo_detail_cache(c)
+
+    def unexpected_download(*args):
+        pytest.fail("The unchanged stored photo must be reused")
+
+    result = collect_photos(database, fetch_image=unexpected_download)
+    assert result["received"] == 1 and result["inserted"] == 0
+    assert fetch(
+        database,
+        "SELECT source_detail_id,next_attempt_at "
+        "FROM pongdang_data.attachment_collection",
+    ) == [(place["source_detail_id"], None)]
+
+
+def test_new_detail_revision_reuses_unchanged_photo_and_downloads_changed_photo(
+    database,
+):
+    place = add_place(database)
+    calls = []
+
+    def image(*args):
+        calls.append(args)
+        return PNG, "image/png", "png"
+
+    collect_photos(database, fetch_image=image)
+    updated = save_detail(database, place, parking="무료 주차장")
+    assert updated["source_detail_id"] != place["source_detail_id"]
+    assert collect_photos(database, fetch_image=image)["inserted"] == 0
+    assert len(calls) == 1
+    assert fetch(
+        database, "SELECT source_detail_id FROM pongdang_data.attachment_collection"
+    ) == [(updated["source_detail_id"],)]
+    changed_url = URL.replace("123411", "123412")
+    save_detail(database, place, photo_url=changed_url)
+    assert collect_photos(database, fetch_image=image)["inserted"] == 1
+    assert [call[0] for call in calls] == [URL, changed_url]
+    assert fetch(
+        database, "SELECT status FROM pongdang_data.attachment ORDER BY id"
+    ) == [("superseded",), ("active",)]
+
+
+def test_missing_photo_result_is_remembered_until_detail_changes(database):
+    place = add_place(database)
+    save_detail(database, place, photo_url=None)
+    client = JsonClient([])
+    provider = TourPhotos(database, client)
+    assert collect_photos(database, provider=provider)["state"] == "no_data"
+    assert collect_photos(database, provider=provider)["received"] == 0
+    assert len(client.calls) == 1
+    assert fetch(
+        database,
+        "SELECT state,next_attempt_at FROM pongdang_data.attachment_collection",
+    ) == [("no_image", None)]
+    save_detail(database, place, parking="주차장 있음", photo_url=None)
+    assert (
+        collect_photos(database, provider=TourPhotos(database, JsonClient([])))[
+            "received"
+        ]
+        == 1
+    )
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_shared_detail_uses_one_fallback_lookup_including_empty_result(
+    database, monkeypatch, empty
+):
+    first, second = add_place(database), add_place(database, 2, detail=False)
+    save_detail(database, first, photo_url=None)
+    with connect(database) as c:
+        c.execute(
+            "INSERT INTO pongdang_data.place_detail_link "
+            "(spot_id,place_id,match_method,linked_at) "
+            "SELECT %s,place_id,'name_and_coordinates',now() "
+            "FROM pongdang_data.place_detail_link WHERE spot_id=%s",
+            [second["id"], first["id"]],
+        )
+    client = JsonClient(
+        []
+        if empty
+        else [{"contentid": "1234", "originimgurl": URL, "cpyrhtDivCd": "Type1"}]
+    )
+    provider = TourPhotos(database, client)
+    monkeypatch.setattr("app.attachments.collector.TourPhotos", lambda _: provider)
+    calls = []
+
+    def image(*args):
+        calls.append(args)
+        return PNG, "image/png", "png"
+
+    result = collect_photos(database, fetch_image=image)
+    assert result["received"] == 2
+    assert len(client.calls) == 1
+    assert len(calls) == (0 if empty else 1)
+    assert collect_photos(database, fetch_image=image)["received"] == 0
+
+
+def test_unlinked_place_waits_without_provider_calls_then_uses_new_saved_link(database):
+    place = add_place(database, detail=False)
+    client = JsonClient()
+    provider = TourPhotos(database, client)
+    assert collect_photos(database, provider=provider)["received"] == 0
+    save_detail(database, place)
+    assert (
+        collect_photos(
+            database,
+            provider=provider,
+            fetch_image=lambda *args: (PNG, "image/png", "png"),
+        )["inserted"]
+        == 1
+    )
+    assert client.calls == []
+
+
+def test_missing_or_damaged_file_is_downloaded_again_when_reconciliation_is_due(
+    database,
+):
+    place = add_place(database)
+    save(database, place)
+    key = fetch(database, "SELECT storage_key FROM pongdang_data.attachment")[0][0]
+    file_path(database.attachment_root, key).write_bytes(b"broken" + PNG[6:])
+    save_detail(database, place, parking="주차장 있음")
+    calls = []
+
+    def image(*args):
+        calls.append(args)
+        return PNG, "image/png", "png"
+
+    collect_photos(database, fetch_image=image)
+    assert len(calls) == 1
+    assert file_path(database.attachment_root, key).read_bytes() == PNG
 
 
 def test_revisions_preserve_prior_evidence_and_update_confirmed_links(database):
@@ -211,7 +430,7 @@ def test_confirmed_missing_or_restricted_photo_removes_link_but_preserves_eviden
         "FROM pongdang_data.attachment_collection",
     )[0]
     assert checked_state == state
-    assert due - checked == timedelta(days=database.photo_refresh_days)
+    assert due is None
     with TestClient(create_app(database)) as client:
         assert client.get(BASE, params={"spot_ids": "1"}).json() == {"items": []}
         assert client.get(BASE + "/1/file").status_code == 404
@@ -219,7 +438,7 @@ def test_confirmed_missing_or_restricted_photo_removes_link_but_preserves_eviden
 
 def test_storage_failure_has_no_success_record_or_metadata(database, monkeypatch):
     add_place(database)
-    provider = TourPhotos(database, JsonClient([provider_row()]))
+    provider = TourPhotos(database, JsonClient())
 
     def broken_store(*args):
         raise OSError("private storage path")
@@ -239,7 +458,7 @@ def test_storage_failure_has_no_success_record_or_metadata(database, monkeypatch
 def test_due_selection_is_bounded_and_only_water_places(database):
     for identity, kind in ((1, "beach"), (2, "valley"), (3, "beach"), (4, "other")):
         add_place(database, identity, kind)
-    save(database, {"id": 1})
+    save(database, due_places(database)[0])
     limited = database.model_copy(update={"photo_collection_batch_size": 1})
     assert [row["id"] for row in due_places(limited)] == [2]
     assert [row["id"] for row in due_places(database)] == [2, 3]
@@ -293,7 +512,7 @@ def test_missing_or_truncated_stored_file_returns_404(database):
 
 
 def test_additive_v8_migration_preserves_existing_places_and_is_idempotent(database):
-    add_place(database)
+    add_place(database, detail=False)
     with connect(database) as c:
         c.execute("DROP TABLE pongdang_data.place_attachment")
         c.execute("DROP TABLE pongdang_data.attachment_collection")

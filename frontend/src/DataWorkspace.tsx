@@ -60,7 +60,7 @@ export function DataWorkspace({ page }: { page: "data" | "info" }) {
         <button
           disabled={summary.loading}
           onClick={() => setRevision((value) => value + 1)}
-        >{t("전체 새로고침")}</button>
+        >{t("조회 다시하기")}</button>
       </div>
       {summary.error && (
         <p role="alert">

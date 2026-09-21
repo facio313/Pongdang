@@ -1,0 +1,13 @@
+# 공통 점수 저장과 10분 갱신 · 2026-09-21
+
+- 요청: 공통 활동 점수는 worker에서 미리 계산해 DB에 저장하고 화면에서 묶음 조회. 자동 데이터 갱신은 10분, 왼쪽 사이드 메뉴 아래 수동 새로고침은 외부 재수집과 점수 재계산 완료 후 화면 갱신.
+- 현재 브랜치 fix/finale, 기준 ebf073a. 병행 중인 장소 상세·사진·Windy 저장 및 알림 변경을 보존한다. CURRENT.md는 다른 작업이 사용하므로 본 작업은 여기 기록한다.
+- 구현 완료: 조건 결과를 worker에서 세대 단위로 원자적으로 게시한다. 원자료/제한/매핑 변경 시 이전 세대는 즉시 무효화된다. 공통 조건·목록·활동·일별/시간별 점수는 묶음당 1회 SELECT로 조회하며, 미계산 자료를 HTTP에서 즉석 계산하거나 쓰지 않는다. 기존 계산식과 결측·출처·관측/예보 의미를 유지한다. 명시적 as_of, 관측 at, KST 오늘 이전 예보 at 및 사용자 지정 기준 계산은 기존 읽기 전용 경로를 유지한다. 현재 조회와 오늘 이후 예보는 저장 결과를 사용한다.
+- 저장량과 기간: 파생 점수 결과는 최신 2개 세대만 보관한다. 계산 세대 메타데이터와 원래 수집 증거 이력은 삭제하지 않는다. 원자료가 동일하면 불필요한 재계산을 건너뛰며, 새로운 KST 날짜에는 예보 기간을 다시 만든다. 기존 31일 조회 계약을 보존하도록 예보 계산의 끝은 KST 당일 시작+32일이다. 실제 제공처 근거가 없는 구간이나 만료 후 점수는 만들지 않는다.
+- 갱신: 프런트 공통 조회·개인 알림 조회는 600초 간격. 만료 시 화면의 점수만 숨기고 추가 API 호출은 하지 않는다. 외부 수집 작업과 continuation도 최소 600초이며 기존의 더 긴 수집 주기는 유지한다. heartbeat와 알림 발송 등 내부 작업의 주기는 별개다.
+- 수동 갱신: SSO 인증된 POST /api/data/refresh가 공유 DB 큐에 등록되고, worker가 동적 외부 자료 수집 → 예보 투영 → 수질/품질 처리 → 공통 점수 계산 순으로 실행한다. 동시 요청은 합치며, 제공처 실패 backoff를 우회하지 않는다. 왼쪽 메뉴 맨 아래 버튼은 완료/부분 실패를 표시하고 완료된 요청의 결과로 공통 조회를 무효화한다. 메뉴를 닫거나 이동해도 진행 상태와 작성 중인 입력을 유지한다. 정적 장소·사진·Windy 목록 수집은 각자의 주기를 유지한다.
+- 마이그레이션: 병행 작업 v11 장소 상세와 v12 Windy 저장 뒤 v13으로 조건 결과·수동 갱신 큐를 추가했다. 이후 병행 작업의 v14 장소 중복 정리도 보존한다. 초기화는 app.schema 명시 실행만 한다.
+- 주요 파일: backend/app/water_index/condition_storage.py, condition_producer.py, condition_api.py; backend/app/refresh/; backend/app/ingestion/worker.py; frontend/src/useResource.ts, useDataRefresh.ts, sideMenu.tsx, useConditionDays.ts, useHourlyScores.ts. 작업 상세는 SCORE-REFRESH-BACKEND.md와 SCORE-REFRESH-FRONTEND.md도 참고한다.
+- 실제 검증 완료: 백엔드 전체 1,346 passed / 2 skipped. 이후 31일 예보·저장·무효화·만료·단일 SELECT·series·보관 한도 관련 12개 통과, 마지막 과거 조회·조건·추천 통합 41개 통과(38.72초, 로그 /tmp/pongdang-historical-refresh-pytest.log). 중단된 검사의 최종 출력은 집계하지 않고 관련 검사만 재실행했다. Ruff 전체 및 마지막 변경 파일별 검사와 관련 diff check 통과. 프런트 lint / 전체 unit 136개 / TypeScript+Vite build 통과, 마지막 알림 훅 변경 후 lint/build 및 새로고침 브라우저 총 6개 통과. 기존 browser 159개는 첫 실행 154개 통과 후 실패 5개만 계약 fixture 수정/안정된 소스로 재실행하여 모두 통과했다. 점수·ID·저장 결과 기대값은 유지했고, 재현되는 미해결 실패는 없다. 기존 Vite chunk 크기 경고와 테스트 라이브러리 deprecation 경고가 있다.
+- 검증 환경: 폐기형 PostgreSQL 18 pongdang_test 3개 /tmp/pongdang-scores-5hdlhxwx 아래 root 51652, refresh 51654, producer 51656. 외부 키를 비우고 임시 DB만 사용했다. iCloud 파일 대기 때문에 캐시의 Python/Node24 런타임과 /tmp pycache를 사용했고 프런트는 파일 해시를 대조한 캐시 복사본에서 검사했다. 브라우저는 가짜 제공처 응답/로컬 계약 서버만 사용했다. 검증 종료 후 이 DB 3개와 임시 웹 서버는 모두 종료했다.
+- 운영 외부 API의 실제 수집과 대규모 데이터 처리 시간은 검증하지 않았다. 커밋·푸시·운영 배포·운영 초기화 없음. 배포 시 기존 명시적 초기화 절차로 DB를 올리고 backend/collector/frontend를 함께 반영해야 한다.

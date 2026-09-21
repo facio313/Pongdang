@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mediaLabels, relationLabels, searchLabels, safeWebcamUrl, playableUrl, publicCameraPage } from '../src/livecamApi.ts';
+import { mediaLabels, relationLabels, searchLabels, safeWebcamUrl, playableUrl, publicCameraPage, storedWebcamThumbnailUrl } from '../src/livecamApi.ts';
 
 const player = 'https://webcams.windy.com/webcams/public//player?webcamId=1&playerType=day';
 const camera = { camera_key: 'windy:1', provider_camera_id: '1', public_page: 'https://webcams.windy.com/webcams/1', valid_until: '2030-01-01T00:00:00Z' };
 const option = { media_kind: 'timelapse', playback_method: 'iframe', url: player, verified: false, valid_until: null, connection_status: 'unverifiable' };
+test('stored webcam thumbnails preserve the deployment base and accept only exact local camera paths', () => {
+  const camera = { provider_camera_id: '42', thumbnail_url: '/api/data/livecams/thumbnails/42' };
+  assert.equal(storedWebcamThumbnailUrl('/pongdang/', camera), '/pongdang/api/data/livecams/thumbnails/42');
+  assert.equal(storedWebcamThumbnailUrl('/', camera), camera.thumbnail_url);
+  for (const thumbnail_url of [null, undefined, 'https://images.windy.com/42.jpg', '//windy.com/42.jpg', '/api/data/livecams/thumbnails/43', '/api/data/livecams/thumbnails/42?token=secret', '/api/data/livecams/thumbnails/42#fragment', '/api/data/livecams/thumbnails/%34%32', '/api/data/livecams/thumbnails/../42', '/api/data/livecams/thumbnails/42/file', 'data:image/png;base64,AAAA']) {
+    assert.equal(storedWebcamThumbnailUrl('/pongdang/', { ...camera, thumbnail_url }), undefined);
+  }
+  for (const provider_camera_id of ['0', '042', '../42', '42/extra', 'x']) assert.equal(storedWebcamThumbnailUrl('/pongdang/', { ...camera, provider_camera_id }), undefined);
+  for (const base of ['https://evil.test/', '//evil.test/', '/../', '/%2e%2e/', '/pongdang/?x=1']) assert.equal(storedWebcamThumbnailUrl(base, camera), undefined);
+});
 test('exact Windy public and player URL policy excludes tokens, spoofed hosts and other IDs', () => {
   assert.equal(safeWebcamUrl(camera.public_page, '1'), camera.public_page);
   assert.equal(safeWebcamUrl(player, '1', 'day'), player);
