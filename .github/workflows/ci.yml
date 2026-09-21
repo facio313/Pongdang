@@ -26,6 +26,7 @@ jobs:
       smoke: ${{ steps.select.outputs.smoke }}
       profile: ${{ steps.select.outputs.profile }}
       backend_tests: ${{ steps.select.outputs.backend_tests }}
+      backend_shards: ${{ steps.select.outputs.backend_shards }}
       browser_shards: ${{ steps.select.outputs.browser_shards }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -66,8 +67,12 @@ jobs:
   backend:
     needs: [scope]
     if: needs.scope.outputs.backend == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.scope.outputs.backend_shards) }}
     concurrency:
-      group: pongdang-backend-${{ github.ref }}
+      group: pongdang-backend-${{ matrix.shard }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -83,7 +88,9 @@ jobs:
           --health-cmd "pg_isready -U pongdang -d pongdang_test"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
+      PONGDANG_TEST_DISPOSABLE: "1"
       POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
       POSTGRES_DB: pongdang_test
       POSTGRES_USER: pongdang
       POSTGRES_PASSWORD: ci-only-password
@@ -105,16 +112,10 @@ jobs:
       - name: Run the selected backend tests
         env:
           BACKEND_TESTS: ${{ needs.scope.outputs.backend_tests }}
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          import subprocess
-          subprocess.run(
-              ["uv", "run", "--frozen", "pytest", *json.loads(os.environ["BACKEND_TESTS"])],
-              check=True,
-          )
-          PY
+        run: >-
+          uv run --frozen python ../ops/backend_shard.py
+          --index ${{ matrix.shard }} --count ${{ strategy.job-total }}
+          --durations=15
 
   browser:
     needs: [scope]

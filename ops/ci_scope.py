@@ -144,6 +144,7 @@ def main():
     )
     output += f"profile={mode}\n"
     output += f"backend_tests={json.dumps(targets)}\n"
+    output += f"backend_shards={json.dumps([1, 2, 3] if mode == 'full' else [1])}\n"
     output += f"browser_shards={json.dumps([1, 2] if mode == 'full' else [1])}\n"
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as target:
         target.write(output)

@@ -146,6 +146,36 @@ class ScopeTests(unittest.TestCase):
             ):
                 ci_scope.main()
             self.assertEqual(output.read_text().count("=true"), 4)
+            self.assertIn("backend_shards=[1, 2, 3]", output.read_text())
+
+    def test_fast_backend_selection_uses_one_shard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            event = Path(directory) / "event.json"
+            output = Path(directory) / "output"
+            event.write_text("{}")
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "GITHUB_REF": "refs/heads/main",
+                        "GITHUB_HEAD_REF": "",
+                        "GITHUB_EVENT_NAME": "push",
+                        "GITHUB_EVENT_PATH": str(event),
+                        "GITHUB_OUTPUT": str(output),
+                        "GITHUB_REPOSITORY": "owner/repo",
+                    },
+                ),
+                patch.object(
+                    ci_scope,
+                    "changed_paths",
+                    return_value=[
+                        "backend/tests/test_weather.py",
+                    ],
+                ),
+            ):
+                ci_scope.main()
+            self.assertIn("backend_shards=[1]\n", output.read_text())
+            self.assertIn("tests/test_weather.py", output.read_text())
 
     def test_dev_is_rejected_even_for_manual_dispatch(self):
         for ref, head_ref in [("refs/heads/dev", ""), ("refs/pull/1/merge", "dev")]:
