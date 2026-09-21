@@ -35,7 +35,6 @@ def catalog_database():
 def config(**updates):
     return Settings(
         _env_file=None,
-        postgres_password="test-only",
         windy_webcams_api_key=updates.pop("windy_webcams_api_key", "OFFLINE_SECRET"),
         **updates,
     )
