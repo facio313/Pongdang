@@ -46,6 +46,8 @@ async function mockCommon(page: Page, expiry = 3600000) {
     else if (path.endsWith("/water-index/conditions")) data = condition;
     else if (path.endsWith("/quality/grade")) data = { status: "no_data", grade: null, measurements: [], reason_codes: [] };
     else if (path.endsWith("/regions")) data = { provinces: [] };
+    else if (path.endsWith("/travel/preferences")) data = { preference: { tags: [] }, revision: 0 };
+    else if (path.endsWith("/travel/keywords")) data = { categories: [] };
     else if (path.endsWith("/places")) data = { rows: [place], total: 1, page: 1, page_size: 100, has_more: false };
     await route.fulfill({ json: data });
   });

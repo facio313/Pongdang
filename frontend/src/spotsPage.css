@@ -556,11 +556,11 @@
   display: flex;
   gap: 8px;
 }
-.spot-detail .sd-add {
+.pd-app .spot-detail .sd-add {
   flex: 1;
   min-height: 46px;
 }
-.spot-detail .sd-save {
+.pd-app .spot-detail .sd-save {
   width: 46px;
   flex: none;
   min-height: 46px;
