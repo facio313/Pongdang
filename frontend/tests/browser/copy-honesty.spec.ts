@@ -59,7 +59,7 @@ test("desktop recommendation evidence explains the returned status in Korean", a
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   expect((await response.json()).status).toBe("partial");
-  await page.getByRole("button", { name: "← 대화로 좁히기", exact: true }).click();
+  await page.getByRole("button", { name: "← AI 대화 이동", exact: true }).click();
   const evidence = page.locator(".rd-answer .pd-ai-basis");
   await expect(evidence).toContainText("상태 일부 자료");
   await expect(evidence).not.toContainText(/\b(no_data|partial|unavailable|evaluated)\b/);

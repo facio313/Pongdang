@@ -5,9 +5,9 @@
 - CI: main push/PR만, dev 수동/PR 차단. 마지막 성공한 main push CI 이후 변경을 비교한다. 평소 UI는 기존 browser 핵심 8개(@smoke), backend 표시 문구/테스트 변경은 관련 테스트+core. 인증·DB·수집·점수·공용 API·인프라·미분류·수동은 전체 관련 검사를 유지하며 전체 browser는 독립 DB 2 shards. 이전 테스트 167개와 실패 시 배포 차단은 유지한다.
 - 빌드: frontend job의 중복 production build 제거, Docker 이미지에서 typecheck+Vite build. frontend/backend별 GHA v2 layer cache, npm/uv cache mount. 기본 Docker health/readiness/초기화/collector 확인 유지; 초기화 반복/볼륨 재생성 검사는 full에서 실행. 운영은 기존 SHA/health/readiness와 실패 복구 유지, 서버 아키텍처/환경 인자에 맞춰 기존 서버 빌드 유지. CI 산출물의 운영 직접 재사용은 구현하지 않았다.
 - 지침: ~/.codex/AGENTS.md, cks-gitflow 및 cks-platform-ops 지침(관련 참조 포함), 프로젝트 AGENTS/README/docs/ci.md 갱신. 일상 작업에 all-worktree audit/전체 로컬 검증을 강제하지 않는다.
-- 실제 검증: scope/local 안전 조건 단위 테스트 20개, Ruff/ESLint, actionlint 1.7.12, 두 스킬 validator 통과. 새 로컬 명령으로 frontend 139 단위+증분 typecheck 5.3초, backend 관련 133 테스트+Ruff 13.7초(테스트 자체 12.54초). 브라우저 mobile/desktop 핵심 8개 실제 통과 17.8초. 변경 전 지침/파일 백업을 보존했다.
+- 실제 검증: scope/local 안전 조건 단위 테스트 21개 (Python 3.12 문법 호환 회귀 포함), Ruff/ESLint, actionlint 1.7.12, 두 스킬 validator 통과. 새 로컬 명령으로 frontend 139 단위+증분 typecheck 5.3초, backend 관련 133 테스트+Ruff 13.7초(테스트 자체 12.54초). 브라우저 mobile/desktop 핵심 8개 실제 통과 17.8초. 변경 전 지침/파일 백업을 보존했다.
 - 검증 환경/한계: 같은 소스의 기존 ~/.cache/pongdang-all-release-20260921-131615 검증 복사본을 재사용, 원본 iCloud 파일을 비교 후 반영했다. 기존 임시 PG 디렉터리는 없어 새 disposable DB 49289/별도 browser 5181·8098을 사용하고 검증 후 종료했다. Docker CLI 부재로 새 이미지 빌드/컨테이너 검사는 로컬 미실행. 새 Actions/운영 배포는 미실행이며 위 시간은 로컬 검증 복사본 실측이다. 평소 CI 2~5분은 목표일 뿐 보장하지 않는다.
-- 반영 상태: 원본에 변경 저장, 이번 요청에서 커밋·push·배포·dev refs 갱신 없음. workflow는 승인된 main 반영 뒤 활성화된다. ci-watch/timer는 설치용 템플릿만 변경했고 운영 호스트 설치본은 별도 적용이 필요하다.
+- 반영 상태: 사용자에게 main 커밋·push·CI·자동배포 승인을 받았다. 작업 커밋 d6d532c에 최신 main 249718f를 통합했다. CURRENT 충돌은 양쪽 기록을 보존했으며 제품 코드는 자동 통합됐다. Python 3.12 호환성 및 관련 21개 테스트/actionlint 통과. main push 후 CI/배포 확인을 진행한다. dev refs는 갱신하지 않는다. ci-watch/timer는 설치용 템플릿만 변경했고 운영 호스트 설치본은 별도 적용이 필요하다.
 - 관련: docs/ci.md, .github/workflows/ci.yml, ops/ci_scope.py, ops/verify_local.py. 검증 복사본 branch codex/main-only-ci, 백업 ~/.cache/pongdang-main-only-ci-backup. 다음 승인된 릴리스에서는 최신 main 통합 후 새 CI 자체(full, 배포 구성 변경)를 한 번 확인한다.
 
 # 이전 작업 · 전체 변경 통합 및 운영 배포 완료 · 2026-09-21
@@ -19,6 +19,15 @@
 - 중간 실패 해결: 웹캠 테스트의 고정 DB 비밀번호 제거(실제 비밀번호 인증 DB에서 재현 후 66개 통과), CI backend 작업 10분 제한을 20분으로 조정, 최신 공용 버튼 스타일과 상세 버튼 폭 충돌 수정 및 새 홈 취향 API fixture 보완(실패 7개 재현 후 관련 browser 19개 통과). 검사를 삭제하거나 우회하지 않았다.
 - 통합 체크아웃: /Users/cksmacbook/.cache/pongdang-all-release-20260921-131615. 증거·백업: 같은 경로에 -evidence 접미사를 붙인 디렉터리. 원본 iCloud Git mmap 시간 초과는 파일 비교와 별도 객체 디렉터리로 대응했고 Git 기록을 보존했다. 원본 제품 파일과 로컬 fix/finale·main·dev·origin/main·origin/dev를 배포 SHA로 동기화했다. 상세 상태는 release-state.json에 기록했다.
 - 이 배포 결과 기록은 배포 후 작성한 로컬 인수인계 메모다.
+
+# 동시 작업 · 백엔드 운영 복구 · 2026-09-21
+
+- 사용자 요청: 점수·시간별 지표·수온·명소 상세가 정상 운영되도록 조치. 프론트 수정 금지. 커밋·운영 배포 승인 완료. 사용자 지시에 따라 dev 검증은 생략하고 main CI·자동배포만 진행한다.
+- 운영 기준 `0f824a9`, 별도 체크아웃 `/home/cks/.local/share/pongdang-repair.lIgOzy/repo`, 브랜치 `fix/backend-operational-recovery`.
+- 새 계산 SQL timeout, 예보 범위 초과, 수온의 불필요한 파생 조회, 명소 초기 수집 지연을 수정했다. 실제 자료를 복제한 격리 `pongdang_test`에서 추가로 발견한 게시 GC timeout과 평가 장기 실행도 bounded 처리로 보완했다. 운영 DB에는 테스트를 실행하지 않는다.
+- 검증: 로컬 backend 전체 1,416개 통과(후속 변경은 관련 회귀 별도 검증), frontend lint/139 tests/build 통과. 최종 main CI가 통합 소스 전체를 다시 검증한다. 원자료 SELECT 약2초, 예보2,184건 투영, 수온12동시요청200, 평가2batch 28+33그룹 commit, condition GC108,490행 삭제·rollback 복원 통과. 최종 condition107,312건/204.95초/peak242MiB 게시 및40ms readback도 성공했다. main 통합·배포를 진행한다.
+- 작업 중 원격 main에 별도 frontend 변경 `c8b4c75`가 추가됐다. 해당 변경을 보존하고 최신 main 위에 백엔드 수정만 통합한다.
+- 세부 상태/완료 조건: [BACKEND-OPERATIONAL-RECOVERY.md](BACKEND-OPERATIONAL-RECOVERY.md). 기존 작업 기록은 아래에 보존한다.
 
 # 이전 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
 

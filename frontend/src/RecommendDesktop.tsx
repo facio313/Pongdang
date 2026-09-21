@@ -40,7 +40,7 @@ import {
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
-import { RouteRequestForm } from "./RouteRequestForm";
+import { RouteCandidatesForm } from "./RouteCandidatesForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import { useTastePreference } from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
@@ -493,6 +493,22 @@ export function RecommendDesktop() {
     setTasteVisited(false);
     setStep("taste");
   };
+
+  // 완전 초기화. 「취향 바꾸기」는 지금 고른 취향을 그대로 두고 다시 고치는
+  // 자리로 이어 갑니다. 이 함수는 그와 달리 지역·취향·후보·경로·저장 알림을
+  // 전부 비우고 맨 처음 화면으로 돌아갑니다.
+  const resetAll = () => {
+    action.cancel();
+    candidateAction.cancel();
+    clearSavedNotice();
+    setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
+    setSelectedRegion(DEFAULT_PROVINCE);
+    setPicked({});
+    reset();
+    setTasteIndex(0);
+    setTasteVisited(false);
+    setStep("taste");
+  };
   // 흐름은 아래로 쌓입니다. 대화만 그 자리를 대신 차지합니다 -- 취향을 고르는
   // 자리가 아니라 다른 일이기 때문입니다.
   const inFlow = step !== null && step !== "chat";
@@ -598,6 +614,19 @@ export function RecommendDesktop() {
       </DesktopHero>
       <TravelLanguageNote />
 
+      {step !== null && (
+        <div className="rd-row-foot">
+          <span className="rd-note" />
+          <button
+            type="button"
+            className="pd-dk-button is-quiet"
+            disabled={mutationBusy}
+            onClick={resetAll}
+          >
+            {t("초기화")}</button>
+        </div>
+      )}
+
       {candidateAction.busy && (
         <div className="rd-row-foot">
           <span role="status">{t("후보를 조회하고 있습니다…")}</span>
@@ -642,7 +671,7 @@ export function RecommendDesktop() {
                 className="pd-dk-button is-quiet"
                 onClick={() => setStep("chat")}
               >
-                {t("대화로 좁히기 →")}</button>
+                {t("AI 대화 이동 →")}</button>
               <button
                 type="button"
                 className="pd-dk-button rd-remake"
@@ -803,7 +832,7 @@ export function RecommendDesktop() {
 
       {step === "chat" && (
         <LabelRow
-          kick={t("대화로 좁히기")}
+          kick={t("AI 대화 이동")}
           title={
             <>
               {t("조건을 말로")}<br />
@@ -939,7 +968,6 @@ export function RecommendDesktop() {
                 }
               />
             }
-            desc={t("활동 조건 점수는 장소별 근거와 활동 지원 여부에 따라 달라지며 안전 판정이 아닙니다. 경로 시각은 출발 기준 교통 자료의 예상값입니다.")}
           >
             {recommendation?.recommendations.length || savedStops.length ? (
               <>
@@ -969,7 +997,7 @@ export function RecommendDesktop() {
                     {routeReasonsText(session.route?.reason_codes ?? [])}
                   </p>
                 )}
-                <RouteRequestForm
+                <RouteCandidatesForm
                   places={originOptions}
                   candidates={candidates}
                   defaultDate={
@@ -988,7 +1016,7 @@ export function RecommendDesktop() {
                     className="pd-dk-button is-quiet"
                     onClick={() => setStep("chat")}
                   >
-                    {t("← 대화로 좁히기")}</button>
+                    {t("← AI 대화 이동")}</button>
                   <button
                     type="button"
                     className="pd-dk-button"
@@ -1065,54 +1093,59 @@ export function RecommendDesktop() {
             )}
           </LabelRow>
 
-          <LabelRow
-            kick={t("지도")}
-            title={
-              calculated ? t("경로 {count}구간", { count: paths.length }) : t("후보 {count}곳", { count: markers.length })
-            }
-            desc={t("좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다.")}
-          >
-            <div className="rd-map">
-              {markers.length ? (
-                <KakaoMapCanvas
-                  markers={markers}
-                  paths={paths}
-                  selectedId={null}
-                  renderMarker={(id) => {
-                    if (id === "origin")
-                      return <span className="rd-pin is-origin">{t("출발")}</span>;
-                    const index = ordered.findIndex(
-                      (place) => place.id === Number(id),
-                    );
-                    return index === -1 ? null : (
-                      <span className="pd-dk-num rd-pin">{index + 1}</span>
-                    );
-                  }}
-                />
-              ) : (
-                <p className="rd-note">
-                  {t("지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해 주세요.")}</p>
-              )}
-            </div>
-            <div className="rd-legend">
-              {ordered.map((place, index) => (
-                <span className="rd-legend-item" key={`${place.id}:${index}`}>
-                  <span className="pd-dk-num rd-legend-no">{index + 1}</span>
-                  {place.name}
-                </span>
-              ))}
-              {unmappable > 0 && (
-                <span className="rd-note rd-legend-note">
-                  {t("좌표가 없는 {count}곳은 지도에 찍지 않습니다.", { count: unmappable })}
-                </span>
-              )}
-              {calculated && paths.length < calculated.legs.length && (
-                <span className="rd-note rd-legend-note">
-                  {t("도로 선을 받은 구간 {count}/{total}개만 그립니다.", { count: paths.length, total: calculated.legs.length })}
-                </span>
-              )}
-            </div>
-          </LabelRow>
+          {/* 후보 조회가 실패한 동안에는 지도 자리를 그리지 않습니다. 실패한
+              조회의 낡은 마커·경로를 지도에 남겨 두면 실패를 성공처럼
+              보이게 합니다. */}
+          {!candidateAction.error && (
+            <LabelRow
+              kick={t("지도")}
+              title={
+                calculated ? t("경로 {count}구간", { count: paths.length }) : t("후보 {count}곳", { count: markers.length })
+              }
+              desc={t("좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다.")}
+            >
+              <div className="rd-map">
+                {markers.length ? (
+                  <KakaoMapCanvas
+                    markers={markers}
+                    paths={paths}
+                    selectedId={null}
+                    renderMarker={(id) => {
+                      if (id === "origin")
+                        return <span className="rd-pin is-origin">{t("출발")}</span>;
+                      const index = ordered.findIndex(
+                        (place) => place.id === Number(id),
+                      );
+                      return index === -1 ? null : (
+                        <span className="pd-dk-num rd-pin">{index + 1}</span>
+                      );
+                    }}
+                  />
+                ) : (
+                  <p className="rd-note">
+                    {t("지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해 주세요.")}</p>
+                )}
+              </div>
+              <div className="rd-legend">
+                {ordered.map((place, index) => (
+                  <span className="rd-legend-item" key={`${place.id}:${index}`}>
+                    <span className="pd-dk-num rd-legend-no">{index + 1}</span>
+                    {place.name}
+                  </span>
+                ))}
+                {unmappable > 0 && (
+                  <span className="rd-note rd-legend-note">
+                    {t("좌표가 없는 {count}곳은 지도에 찍지 않습니다.", { count: unmappable })}
+                  </span>
+                )}
+                {calculated && paths.length < calculated.legs.length && (
+                  <span className="rd-note rd-legend-note">
+                    {t("도로 선을 받은 구간 {count}/{total}개만 그립니다.", { count: paths.length, total: calculated.legs.length })}
+                  </span>
+                )}
+              </div>
+            </LabelRow>
+          )}
         </div>
       )}
 

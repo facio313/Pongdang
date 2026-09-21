@@ -51,6 +51,8 @@ def put(
     until=None,
     mode="observation",
     kind="weather_station",
+    latitude=37.5,
+    longitude=129,
 ):
     store_batch(
         settings,
@@ -64,8 +66,8 @@ def put(
                         source_id=station,
                         name=f"Fixture {station}",
                         kind=kind,
-                        latitude=37.5,
-                        longitude=129,
+                        latitude=latitude,
+                        longitude=longitude,
                     ),
                     observed_at=observed,
                     issued_at=issued,
@@ -175,6 +177,167 @@ def test_bulk_selection_preserves_missing_revisions_conflicts_units_and_context(
                     m for m in result.metrics if m.name == "air_temperature"
                 )
                 assert air_metric.status == "missing"
+
+
+@pytest.mark.parametrize(
+    ("previous_state", "same_fetch", "ambiguous"),
+    [("current", False, True), ("superseded", False, False), ("current", True, False)],
+)
+def test_bulk_revision_conflict_aggregation_matches_raw_reader(
+    database, previous_state, same_fetch, ambiguous
+):
+    base = datetime.now(UTC) - timedelta(hours=1)
+    for minute, temperature in ((0, 20), (1, 22)):
+        put(
+            database,
+            observed=base,
+            fetched=base + timedelta(minutes=minute),
+            values=[
+                Value(name="air_temperature", numeric_value=temperature, unit="degC")
+            ],
+        )
+    sid, spot = ids(database, "fixture-aws")
+    # Reproduce an older revision that was not superseded. An active revision
+    # fetched at the exact same time is not an earlier conflicting revision.
+    with connect(database) as c:
+        c.execute(
+            "UPDATE pongdang_data.conditions_observationsnapshot "
+            "SET state=%s,fetched_at=%s WHERE station_id=%s "
+            "AND id=(SELECT min(id) FROM "
+            "pongdang_data.conditions_observationsnapshot WHERE station_id=%s)",
+            [
+                previous_state,
+                base + timedelta(minutes=1) if same_fetch else base,
+                sid,
+                sid,
+            ],
+        )
+    now = datetime.now(UTC)
+    loaded, _, _ = inputs(database, now)
+    assert {row["revision_ambiguous"] for row in loaded.rows[(sid, "observation")]} == {
+        ambiguous
+    }
+    assert_parity(
+        database,
+        loaded,
+        ConditionQuery(spot_id=spot, activity="relax", mode="observation"),
+        now,
+        now,
+    )
+
+
+@pytest.mark.parametrize("second_latitude", [37.54, 37.5])
+def test_shared_envelopes_preserve_place_distances_nearest_ties_and_expiry(
+    database, monkeypatch, second_latitude
+):
+    import app.water_index.condition_producer as producer
+
+    base = datetime.now(UTC) - timedelta(hours=1)
+    for name, latitude, temperature in (
+        ("fixture-west", 37.5, 22),
+        ("fixture-east", second_latitude, 28),
+    ):
+        put(
+            database,
+            station=name,
+            observed=base,
+            fetched=base,
+            latitude=latitude,
+            values=[
+                Value(name="air_temperature", numeric_value=temperature, unit="degC")
+            ],
+        )
+    with connect(database) as c:
+        spots = [
+            c.execute(
+                "INSERT INTO pongdang_data.spots_waterspot "
+                "(name,type,lat,lng,catalog_verified_at) "
+                "VALUES(%s,'beach',%s,129,%s) RETURNING id",
+                [f"Disposable nearby place {index}", latitude, base],
+            ).fetchone()[0]
+            for index, latitude in enumerate((37.505, 37.51, 37.535, 37.505))
+        ]
+    register_evidence(
+        database,
+        EvidenceBundle(
+            authorities=[
+                AuthorityRecord(
+                    evidence_id="fixture-nearby-restriction",
+                    source_url="https://www.weather.go.kr/fixture",
+                    reviewed_by="Fixture review",
+                    evidence=SafetyEvidence(
+                        evidence_ref="fixture-nearby-restriction-ref",
+                        spot_id=spots[-1],
+                        activity="relax",
+                        provider="fixture-official",
+                        provider_record_id="fixture-nearby-restriction",
+                        authority="Fixture authority",
+                        fetched_at=base,
+                        issued_at=base,
+                        valid_from=base,
+                        valid_until=base + timedelta(hours=4),
+                        authoritative=True,
+                        source_status="active",
+                        state="current",
+                        scope="Disposable nearby place restriction",
+                        effect="restricted",
+                        check_id="fixture-check",
+                        rule_id="fixture-rule",
+                    ),
+                )
+            ]
+        ),
+    )
+    now = datetime.now(UTC)
+    loaded, _, _ = inputs(database, now)
+    calls = 0
+    assemble = producer.assemble_conditions
+
+    def counted(**kwargs):
+        nonlocal calls
+        calls += 1
+        return assemble(**kwargs)
+
+    monkeypatch.setattr(producer, "assemble_conditions", counted)
+    results = []
+    first_payload = None
+    for spot in spots:
+        results.append(
+            assert_parity(
+                database,
+                loaded,
+                ConditionQuery(spot_id=spot, activity="relax", mode="observation"),
+                now,
+                now,
+            )
+        )
+        if first_payload is None:
+            first_payload = results[0].model_dump()
+    assert results[0].model_dump() == first_payload
+    # The first two places share source selection but have different distances.
+    # The third reverses nearest station order unless both stations coincide.
+    assert calls == (3 if second_latitude == 37.54 else 2)
+    assert results[0].context_metrics[0].distance_km != (
+        results[1].context_metrics[0].distance_km
+    )
+    assert [result.spot_id for result in results] == spots
+    assert results[-1].safety_status == "restricted"
+    assert results[-1].condition_score.status == "blocked"
+    if second_latitude == 37.54:
+        assert results[0].display_metrics[0].station_id != (
+            results[2].display_metrics[0].station_id
+        )
+    else:
+        assert all(result.condition_score.score is None for result in results)
+    for spot in spots:
+        expired = assert_parity(
+            database,
+            loaded,
+            ConditionQuery(spot_id=spot, activity="relax", mode="observation"),
+            base + timedelta(hours=4),
+            base + timedelta(hours=4),
+        )
+        assert expired.condition_score.score is None
 
 
 def test_forecast_intervals_match_arbitrary_targets_and_latest_kma_issue(database):

@@ -9,7 +9,7 @@ def feature_jobs(settings):
     from app.notifications.delivery import run_notifications
     from app.quality.service import run_quality_job
     from app.water_index.condition_producer import produce_conditions
-    from app.water_index.producer import produce_assessments
+    from app.water_index.producer import produce_assessment_batch
 
     def projection(function):
         count = function(settings)
@@ -36,7 +36,7 @@ def feature_jobs(settings):
         Job(
             "water_index_evaluation",
             600,
-            process=lambda: projection(produce_assessments),
+            process=lambda: produce_assessment_batch(settings),
         ),
         Job("livecam_checks", 600, process=lambda: run_checks(settings)),
         Job("condition_notifications", 60, process=lambda: run_notifications(settings)),

@@ -1707,6 +1707,23 @@ function RecommendScreen() {
     restartTaste();
     reset();
   };
+  /** 완전 초기화. 「추천 처음으로」는 지금 고른 취향과 조회한 후보를 그대로
+   *  둔 채 화면만 앞으로 돌립니다. 이 함수는 그와 달리 지역·태그·후보·경로·
+   *  저장 알림을 전부 비우고 맨 처음 화면으로 돌아갑니다. */
+  const resetAll = () => {
+    if (action.busy) return;
+    setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
+    setSelectedRegion(DEFAULT_PROVINCE);
+    setTags([]);
+    setProposal(null);
+    setAltOpen(false);
+    setDayIndex(0);
+    window.history.replaceState(null, "", "#recommend");
+    setMode("flow");
+    setCourseOpen(false);
+    restartTaste();
+    reset();
+  };
   /** 취향 수집을 첫 덩어리부터 다시. 카드 진행과 좋아요도 함께 되돌립니다 --
    *  「다시 고르기」가 태그만 되돌리고 카드는 끝난 채로 두면, 아무 카드도 없는
    *  요약만 남습니다. */
@@ -1807,6 +1824,15 @@ function RecommendScreen() {
       hero={<div className="rc-hero-slot">{hero}</div>}
     >
       <article className="recommend-page" aria-busy={action.busy}>
+          <div className="rc-stack">
+            <button
+              type="button"
+              className="pd-secondary"
+              onClick={resetAll}
+              disabled={action.busy}
+            >
+              {t("초기화")}</button>
+          </div>
           {mode === "flow" && (
             <>
               <EntryBody

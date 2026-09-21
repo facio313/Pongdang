@@ -174,7 +174,7 @@
   cursor: default;
 }
 
-/* ── 2 · 대화로 좁히기 ─────────────────────────────────── */
+/* ── 2 · AI 대화 이동 ─────────────────────────────────── */
 
 .pd-desktop .rd-field {
   display: flex;
@@ -196,7 +196,7 @@
 }
 .pd-desktop .rd-send {
   font-size: 12px;
-  padding: 10px 16px;
+  padding: 10px 112px;
   border-radius: 10px;
   background: var(--dk-blue);
 }
@@ -341,6 +341,94 @@
 .pd-desktop .rd-step-link.is-empty {
   font-weight: 400;
   color: var(--dk-ink-2);
+}
+
+/* 경로 계산 조건 폼(RouteCandidatesForm). 후보 목록(.rd-steps) 바로 아래
+   같은 섹션에 이어지는 내용이라, 별도 카드 박스로 감싸지 않고 같은 괘선
+   구분선 하나만 위에 그어 .rd-steps 와 같은 어휘를 씁니다. */
+.pd-desktop .rt-form {
+  border-top: 1px solid var(--dk-rule-weak);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+.pd-desktop .rt-form .rt-field {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.pd-desktop .rt-form .rt-legend {
+  font-size: var(--dk-fs-cap);
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  padding: 0;
+  margin-bottom: 6px;
+}
+.pd-desktop .rt-form .rt-field:disabled {
+  opacity: 0.6;
+}
+.pd-desktop .rt-form .rt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.pd-desktop .rt-form .rt-row-name {
+  flex: none;
+  width: 44px;
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rt-form .rt-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--dk-fs-sm);
+  color: var(--dk-ink);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+}
+.pd-desktop .rt-form .rt-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-desktop .rt-form .rt-candidate {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.pd-desktop .rt-form .rt-candidate-name {
+  font-size: var(--dk-fs-sm);
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pd-desktop .rt-form .rt-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: var(--dk-fs-sm);
+  border-radius: var(--dk-r-ctl);
+  background: var(--dk-blue);
+  color: #fff;
+  cursor: pointer;
+}
+.pd-desktop .rt-form .rt-submit:disabled {
+  background: var(--dk-ink-2);
+  cursor: default;
+}
+.pd-desktop .rt-form .rt-problem {
+  color: var(--dk-alert);
 }
 
 /* ── 4 · 지도 ──────────────────────────────────────────── */

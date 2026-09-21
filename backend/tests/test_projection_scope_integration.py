@@ -40,6 +40,7 @@ def save_source(
     modes=("forecast", "observation"),
     provider="TEST_SCOPE",
     version="1",
+    forecast_value=None,
 ):
     start = start or now - timedelta(minutes=1)
     end = end or now + timedelta(hours=1)
@@ -59,7 +60,12 @@ def save_source(
                 valid_until=end,
                 spatial_scope="Isolated test station point",
                 values=[
-                    Value(name="wave_height", unit="m", mode=mode)
+                    Value(
+                        name="wave_height",
+                        unit="m",
+                        mode=mode,
+                        numeric_value=forecast_value,
+                    )
                     if mode == "forecast"
                     else Value(
                         name="water_temperature",
@@ -158,6 +164,73 @@ def test_current_scope_excludes_exact_expiry_without_changing_evidence(db):
         assert c.execute(
             "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
         ).fetchone() == (3,)
+
+
+def test_issue_cycle_history_is_bounded_after_latest_missing_revision(db):
+    now = datetime.now(UTC)
+    start, end = now + timedelta(hours=1), now + timedelta(hours=2)
+    original = save_source(
+        db,
+        now,
+        source_id="first-issue",
+        start=start,
+        end=end,
+        provider="kma_short_forecast",
+        modes=("forecast",),
+        forecast_value=1.2,
+    )
+    assert project_forecasts(db, now=now) == 1
+    copy_sources(db, original, 5000)
+    correction = save_source(
+        db,
+        now,
+        source_id="latest-issue-missing",
+        start=start,
+        end=end,
+        provider="kma_short_forecast",
+        modes=("forecast",),
+    )
+    with connect(db) as c:
+        sources = read_normalized(c, now, forecast_only=True, current_only=True)
+        assert [s["snapshot"]["id"] for s in sources] == [correction]
+    assert project_forecasts(db, now=now) == 1
+    assert project_forecasts(db, now=now) == 0
+    with connect(db) as c:
+        rows = c.execute(
+            "SELECT payload FROM pongdang_data.forecast_revision ORDER BY revision_id"
+        ).fetchall()
+        assert len(rows) == 2
+        assert rows[0][0]["inputs"][0]["numeric_value"] == 1.2
+        assert rows[1][0]["inputs"][0]["numeric_value"] is None
+        assert rows[1][0]["inputs"][0]["state"] == "missing"
+        assert c.execute(
+            "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
+        ).fetchone() == (5002,)
+
+
+def test_expired_forecast_history_does_not_block_current_projection(db):
+    now = datetime.now(UTC)
+    original = save_source(
+        db,
+        now - timedelta(hours=2),
+        source_id="expired-history",
+        modes=("forecast",),
+        forecast_value=1.2,
+    )
+    assert project_forecasts(db, now=now - timedelta(hours=2)) == 1
+    copy_sources(db, original, 5000)
+    current = save_source(db, now, source_id="current", modes=("forecast",))
+    assert project_forecasts(db, now=now) == 1
+    assert project_forecasts(db, now=now) == 0
+    with connect(db) as c:
+        rows = c.execute(
+            "SELECT payload FROM pongdang_data.forecast_revision ORDER BY revision_id"
+        ).fetchall()
+        assert len(rows) == 2
+        assert [r[0]["snapshot_id"] for r in rows] == [original, current]
+        assert c.execute(
+            "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
+        ).fetchone() == (5002,)
 
 
 @pytest.mark.parametrize("projection", ["forecast", "assessment"])

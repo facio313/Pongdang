@@ -1,7 +1,10 @@
 """Worker-published condition sets. Product reads never calculate a score."""
 
+import json
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
+from functools import partial
+from itertools import batched
 
 from fastapi import HTTPException
 from psycopg import sql
@@ -17,6 +20,16 @@ from app.water_index.conditions import (
 MODEL_VERSION = "1.0.0"
 REFRESH_SECONDS = 600
 RETAIN_GENERATIONS = 2
+# These payloads contain substantial Korean descriptions and source evidence.
+# Send their UTF-8 JSON directly instead of expanding every character to \\uXXXX.
+_payload_json = partial(json.dumps, ensure_ascii=False, separators=(",", ":"))
+
+
+class ConditionInputsChanged(RuntimeError):
+    """A newer source commit requires rebuilding before publication."""
+
+    def __init__(self):
+        super().__init__("CONDITION_INPUT_CHANGED")
 
 
 def migrate_conditions(connection):
@@ -104,6 +117,28 @@ def projection_due(connection):
     return row["due"] if isinstance(row, dict) else row[0]
 
 
+def _prune_generations(connection):
+    cutoff = connection.execute(
+        "SELECT id FROM pongdang_data.condition_generation "
+        "ORDER BY id DESC OFFSET %s LIMIT 1",
+        [RETAIN_GENERATIONS - 1],
+    ).fetchone()
+    if cutoff is None:
+        return
+    # A generation contains more than 100,000 large JSONB rows in production.
+    # Bound each deletion statement, not the surrounding atomic transaction.
+    while True:
+        deleted = connection.execute(
+            "WITH obsolete AS (SELECT ctid FROM pongdang_data.condition_snapshot "
+            "WHERE generation_id<%s LIMIT 2000) "
+            "DELETE FROM pongdang_data.condition_snapshot s USING obsolete o "
+            "WHERE s.ctid=o.ctid",
+            [cutoff[0]],
+        ).rowcount
+        if deleted < 2000:
+            return
+
+
 def publish_conditions(settings, *, records, computed_at, source_revision):
     """Publish a complete generation atomically, only for the inputs we read."""
     from app.schema import connect
@@ -112,47 +147,63 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
         raise ValueError("Condition calculation cannot use future knowledge")
     with connect(settings) as c:
         current = c.execute(
-            "SELECT revision FROM pongdang_data.condition_source_revision "
-            "WHERE id=1 FOR SHARE"
+            "SELECT revision FROM pongdang_data.condition_source_revision WHERE id=1"
         ).fetchone()[0]
         if current != source_revision:
-            raise RuntimeError("CONDITION_INPUT_CHANGED")
+            raise ConditionInputsChanged
         generation = c.execute(
             "INSERT INTO pongdang_data.condition_generation "
             "(source_revision,model_version,computed_at,record_count) "
             "VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING id",
-            [source_revision, MODEL_VERSION, computed_at, len(records)],
+            [source_revision, MODEL_VERSION, computed_at, 0],
         ).fetchone()
         if generation is None:
             return 0
-        with c.cursor() as cursor:
-            cursor.executemany(
-                "INSERT INTO pongdang_data.condition_snapshot "
-                "(generation_id,spot_id,activity,mode,target_start,target_end,payload) "
-                "VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                (
-                    (
-                        generation[0],
-                        record["spot_id"],
-                        record["activity"],
-                        record["mode"],
-                        record["target_start"],
-                        record["target_end"],
-                        Jsonb(record["payload"]),
+        count = 0
+        # Materialize only one small batch before opening COPY: Python scoring
+        # must not consume the database statement timeout while COPY is open.
+        for batch in batched(records, 500, strict=False):
+            with (
+                c.cursor() as cursor,
+                cursor.copy(
+                    "COPY pongdang_data.condition_snapshot "
+                    "(generation_id,spot_id,activity,mode,"
+                    "target_start,target_end,payload) "
+                    "FROM STDIN"
+                ) as copy,
+            ):
+                for record in batch:
+                    copy.write_row(
+                        (
+                            generation[0],
+                            record["spot_id"],
+                            record["activity"],
+                            record["mode"],
+                            record["target_start"],
+                            record["target_end"],
+                            Jsonb(record["payload"], dumps=_payload_json),
+                        )
                     )
-                    for record in records
-                ),
-            )
+                    count += 1
         # Derived display sets are replaceable caches. Retain the current and
         # preceding complete sets; source evidence and generation metadata remain
         # intact, and explicit historical calculations read that source history.
+        _prune_generations(c)
         c.execute(
-            "DELETE FROM pongdang_data.condition_snapshot WHERE generation_id NOT IN "
-            "(SELECT id FROM pongdang_data.condition_generation "
-            "ORDER BY id DESC LIMIT %s)",
-            [RETAIN_GENERATIONS],
+            "UPDATE pongdang_data.condition_generation "
+            "SET record_count=%s,published_at=clock_timestamp() WHERE id=%s",
+            [count, generation[0]],
         )
-    return len(records)
+        # Computing, copying and removing old generations must not block source
+        # commits. Lock only for the final publication check; a changed input
+        # rolls back this entire transaction, including generation cleanup.
+        current = c.execute(
+            "SELECT revision FROM pongdang_data.condition_source_revision "
+            "WHERE id=1 FOR SHARE"
+        ).fetchone()[0]
+        if current != source_revision:
+            raise ConditionInputsChanged
+    return count
 
 
 def _unavailable(q, at, as_of, row):

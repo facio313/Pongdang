@@ -113,6 +113,35 @@ def test_historical_metrics_survive_catalog_refresh_without_future_metadata(data
         assert client.get("/api/data/water-twin?page=1&page=2").status_code == 422
 
 
+def test_temperature_does_not_depend_on_derived_projection_reads(database, monkeypatch):
+    observed = datetime.now(UTC) - timedelta(minutes=30)
+    store_batch(database, batch(fetched_at=datetime.now(UTC), observed_at=observed))
+    spot = station_spot(database)
+
+    async def unavailable(*args, **kwargs):
+        raise AssertionError("Temperature must not read assessment/forecast layers")
+
+    monkeypatch.setattr("app.twin.api.domain_layers", unavailable)
+    with TestClient(create_app(database)) as client:
+        response = client.get("/api/data/water-temperature", params={"spot_id": spot})
+        assert response.status_code == 200, response.text
+        place = response.json()["rows"][0]
+        assert place["layers"][0]["numeric_value"] == 17.4
+        assert place["layers"][0]["status"] == "observation"
+        assert place["assessment"] == {
+            "status": "not_requested",
+            "reason_codes": ["temperature_only_view"],
+            "rows": [],
+        }
+        assert place["forecast"] == {
+            "status": "not_requested",
+            "horizon_start_at": None,
+            "horizon_end_at": None,
+            "rows": [],
+        }
+        assert place["safety_status"] == "unknown" and place["score"] is None
+
+
 def test_twin_reads_actual_a1_and_a2_outputs_for_exact_same_context(database):
     now = datetime.now(UTC)
     target = now + timedelta(hours=1)

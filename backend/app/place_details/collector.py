@@ -1,6 +1,8 @@
 """Incremental backfill: missing/revised sources only, with durable retry/quota."""
 
 from datetime import UTC, datetime, timedelta
+from math import ceil
+from time import monotonic
 from zoneinfo import ZoneInfo
 
 from psycopg.rows import dict_row
@@ -9,6 +11,7 @@ from app.attachments.collector import distance
 from app.ingestion.http import ProviderError
 from app.ingestion.jobs import Job
 from app.ingestion.storage import store_batch
+from app.livecams.places import PLACE_SELECT
 from app.place_details.provider import (
     SERVICES,
     SUPPORTED_TYPES,
@@ -18,6 +21,8 @@ from app.place_details.provider import (
 from app.schema import connect
 
 KST = ZoneInfo("Asia/Seoul")
+# Finish the current bounded provider fetch, then yield to weather/score jobs.
+MAX_BATCH_SECONDS = 60
 
 
 def providers(settings):
@@ -127,6 +132,12 @@ def due_places(settings, now, *, check_budget=True):
     with connect(settings) as c, c.cursor(row_factory=dict_row) as cursor:
         return cursor.execute(
             f"""
+            WITH priority_places AS (
+              SELECT DISTINCT l.place_id FROM ({PLACE_SELECT}) w
+              JOIN pongdang_data.place_detail_link l ON l.spot_id=w.id
+              LEFT JOIN pongdang_data.place_alias alias ON alias.spot_id=w.id
+              WHERE w.place_kind IS NOT NULL AND alias.spot_id IS NULL
+            )
             SELECT p.* FROM pongdang_data.collection_place p
             LEFT JOIN pongdang_data.place_detail_collection a ON a.place_id=p.id
             LEFT JOIN pongdang_data.place_detail_budget b
@@ -137,7 +148,8 @@ def due_places(settings, now, *, check_budget=True):
                 OR a.content_type IS DISTINCT FROM p.category
                 OR a.next_attempt_at<=%s)
               {"AND coalesce(b.calls,0)+3<=%s" if check_budget else ""}
-            ORDER BY (p.provider='TOURAPI_KOREAN'
+            ORDER BY (p.id IN (SELECT place_id FROM priority_places)) DESC,
+              (p.provider='TOURAPI_KOREAN'
                 AND p.name ~ '(해수욕장|해변|계곡)$') DESC,
               a.checked_at NULLS FIRST,p.id
             LIMIT %s
@@ -226,7 +238,14 @@ def collect_details(settings, *, provider=None, clock=None):
     )
     link_places(settings)
     received = inserted = failed = 0
+    started = monotonic()
+    exhausted_services = set()
     for place in due_places(settings, clock()):
+        if monotonic() - started >= MAX_BATCH_SECONDS:
+            break
+        service = SERVICES[place["provider"]]
+        if service in exhausted_services:
+            continue
         # Also protects direct CLI calls, without holding a network transaction.
         with connect(settings) as guard:
             guard.autocommit = True
@@ -263,28 +282,42 @@ def collect_details(settings, *, provider=None, clock=None):
                             clock(),
                         )
                 except ProviderError as exc:
+                    if exc.code == "DETAIL_DAILY_BUDGET_EXHAUSTED":
+                        # Quota is a scheduling boundary, not failed evidence.
+                        # Other language services retain their own daily quota.
+                        received -= 1
+                        exhausted_services.add(service)
+                        continue
                     failed += 1
                     with connect(settings) as c:
                         record_attempt(c, place, "failed", clock(), exc.code)
             finally:
                 guard.execute("SELECT pg_advisory_unlock(hashtext(%s))", [lock])
-    budget_wait = not due_places(settings, clock()) and bool(
-        due_places(settings, clock(), check_budget=False)
-    )
-    return dict(
+    now = clock()
+    pending = bool(due_places(settings, now, check_budget=False))
+    budget_wait = pending and not due_places(settings, now)
+    result = dict(
         received=received,
         inserted=inserted,
         state="failed"
         if failed and failed == received
         else "partial"
-        if failed or budget_wait
+        if failed or pending
         else "succeeded",
         error="DETAIL_COLLECTION_FAILED"
         if failed
         else "DETAIL_DAILY_BUDGET_EXHAUSTED"
         if budget_wait
+        else "DETAIL_BACKFILL_PENDING"
+        if pending
         else "",
     )
+    if budget_wait:
+        tomorrow = now.astimezone(KST).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        result["next_run_seconds"] = max(600, ceil((tomorrow - now).total_seconds()))
+    return result
 
 
 def place_detail_jobs(settings):

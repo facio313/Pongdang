@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     tourism_collection_scope: Literal["local", "gangwon"] = "gangwon"
     tourism_pages_per_run: int = Field(default=5, ge=1, le=10)
     place_detail_collection_enabled: bool = True
-    place_detail_batch_size: int = Field(default=10, ge=1, le=100)
+    place_detail_batch_size: int = Field(default=50, ge=1, le=100)
     # Per TourAPI service and Korean calendar day; catalogue jobs have own quotas.
     place_detail_daily_budget: int = Field(default=500, ge=0, le=50000)
     aws_stations: str = "516"

@@ -6,7 +6,7 @@ uses indexed in-memory evidence, without a query per place/activity/hour.
 """
 
 from bisect import bisect_right
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from datetime import UTC, datetime, timedelta
 from math import asin, cos, degrees, radians, sin, sqrt
 from zoneinfo import ZoneInfo
@@ -40,6 +40,7 @@ CONTEXT_PROVIDERS = {
     *PRODUCT_ACTIVITIES,
 }
 MAX_RECORDS = 1_000_000
+MAX_ENVELOPE_CACHE = 2048
 
 
 def _bounded(cursor, query, params, limit):
@@ -120,7 +121,12 @@ def _load_inputs(c, now, start, end):
             "WITH known AS (SELECT *,COALESCE(source_record_id,provider_record_id) "
             "AS source_key FROM pongdang_data.conditions_observationsnapshot "
             "WHERE fetched_at<=%s AND (issued_at IS NULL OR issued_at<=%s)), "
-            "revisions AS (SELECT DISTINCT ON (station_id,provider,source_key) * "
+            # Aggregate revision conflicts once per source identity. A correlated
+            # EXISTS against `known` scans the materialized collection repeatedly
+            # for every metric, making a modest live history exceed the timeout.
+            "revisions AS (SELECT DISTINCT ON (station_id,provider,source_key) *, "
+            "min(fetched_at) FILTER (WHERE state<>'superseded') OVER "
+            "(PARTITION BY station_id,provider,source_key) AS first_active_fetch "
             "FROM known ORDER BY station_id,provider,source_key,"
             "fetched_at DESC,id DESC), "
             "slots AS (SELECT DISTINCT s.station_id,s.provider,s.source_key,"
@@ -135,10 +141,8 @@ def _load_inputs(c, now, start, end):
             "COALESCE(m.observed_at,s.observed_at) AS observed_at,"
             "COALESCE(m.observed_at,s.observed_at) AS valid_from,"
             "COALESCE(m.fetched_at,s.fetched_at) AS fetched_at,m.valid_until,"
-            "EXISTS (SELECT 1 FROM known active WHERE "
-            "active.station_id=s.station_id AND active.provider=s.provider "
-            "AND active.source_key=s.source_key AND active.state<>'superseded' "
-            "AND active.fetched_at<s.fetched_at) AS revision_ambiguous,"
+            "COALESCE(s.first_active_fetch<s.fetched_at,false) "
+            "AS revision_ambiguous,"
             "dense_rank() OVER (PARTITION BY s.station_id,k.name,k.mode,"
             "COALESCE(m.observed_at,s.observed_at) ORDER BY CASE WHEN "
             "k.mode='forecast' AND s.provider IN "
@@ -187,6 +191,7 @@ class ProjectionInputs:
         self.rows = defaultdict(list)
         self.targets = {}
         self.nearby = {}
+        self.envelopes = OrderedDict()
         for station in stations:
             self.direct[station["spot_id"]].append(station["id"])
         for mapping in mappings:
@@ -418,7 +423,14 @@ class ProjectionInputs:
         ]
         if len(authorities) > 100:
             raise HTTPException(422, "response_scope_too_large")
-        return assemble_conditions(
+        authority = authority_conditions(authorities, q, at, as_of)
+        key = None
+        if q.as_of is None:
+            key = self._envelope_key(q, at, as_of, links, rows, authority)
+            if cached := self.envelopes.get(key):
+                self.envelopes.move_to_end(key)
+                return self._place_envelope(cached, place, q, at, as_of, links)
+        result = assemble_conditions(
             place=place,
             links=links,
             rows=rows,
@@ -427,11 +439,93 @@ class ProjectionInputs:
             as_of=as_of,
             allowed=allowed,
             requested=requested,
-            authority=authority_conditions(authorities, q, at, as_of),
+            authority=authority,
+        )
+        if key is not None:
+            self.envelopes[key] = result
+            if len(self.envelopes) > MAX_ENVELOPE_CACHE:
+                self.envelopes.popitem(last=False)
+        return result
+
+    @staticmethod
+    def _envelope_key(q, at, as_of, links, rows, authority):
+        # Nearby places often use the same observations and forecast grid.
+        # Distance affects selection only through ordering and exact ties;
+        # retain both here, and restore each place's real distances on a hit.
+        # Exact target/cutoff times keep expiry and knowledge boundaries intact.
+        used = {row["station_id"] for row in rows}
+        links = [link for link in links if link["station_id"] in used]
+        distances = sorted(
+            {
+                link["distance_km"]
+                for link in links
+                if link.get("distance_km") is not None
+            }
+        )
+        ranks = {distance: index for index, distance in enumerate(distances)}
+        return (
+            q.activity,
+            q.mode,
+            at,
+            as_of,
+            tuple((r["snapshot_id"], r["metric_id"], r["name"]) for r in rows),
+            (authority[0], authority[1], tuple(authority[2]), tuple(authority[3])),
+            tuple(
+                (
+                    link["station_id"],
+                    link["name"],
+                    link["kind"],
+                    link["relation"],
+                    (
+                        link["mapping"]["mapping_id"],
+                        link["mapping"]["spatial_scope"],
+                    )
+                    if link["mapping"]
+                    else None,
+                    ranks.get(link.get("distance_km")),
+                    link.get("context_scope"),
+                )
+                for link in sorted(links, key=lambda link: link["station_id"])
+            ),
+        )
+
+    @staticmethod
+    def _place_envelope(cached, place, q, at, as_of, links):
+        distances = {link["station_id"]: link.get("distance_km") for link in links}
+
+        def located(item):
+            distance = distances.get(item.station_id)
+            return (
+                item
+                if item.distance_km == distance
+                else item.model_copy(update={"distance_km": distance})
+            )
+
+        return cached.model_copy(
+            update={
+                "spot_id": q.spot_id,
+                "place_name": place["name"],
+                "at": at,
+                "as_of": as_of,
+                "metrics": tuple(located(m) for m in cached.metrics),
+                "context_metrics": tuple(located(m) for m in cached.context_metrics),
+                "display_metrics": tuple(located(m) for m in cached.display_metrics),
+                "condition_score": cached.condition_score.model_copy(
+                    update={
+                        "components": tuple(
+                            located(c) for c in cached.condition_score.components
+                        )
+                    }
+                ),
+            }
         )
 
     def records(self, now, start, end):
-        result = []
+        return list(self.iter_records(now, start, end))
+
+    def iter_records(self, now, start, end):
+        """Yield complete intervals without retaining every large JSON payload."""
+        count = 0
         for place in self.places:
             for activity in ACTIVITIES:
                 for mode in ("observation", "forecast"):
@@ -463,6 +557,8 @@ class ProjectionInputs:
                         if previous is not None and content == previous_content:
                             previous["target_end"] = finish
                             continue
+                        if previous is not None:
+                            yield previous
                         previous = {
                             "spot_id": place["id"],
                             "activity": activity,
@@ -472,10 +568,11 @@ class ProjectionInputs:
                             "payload": payload,
                         }
                         previous_content = content
-                        result.append(previous)
-                        if len(result) > MAX_RECORDS:
+                        count += 1
+                        if count > MAX_RECORDS:
                             raise SourceScopeTooLargeError
-        return result
+                    if previous is not None:
+                        yield previous
 
 
 def produce_conditions(settings, *, now=None):
@@ -499,7 +596,7 @@ def produce_conditions(settings, *, now=None):
         # public 31-day target window even for a query near the end of the day.
         end = start + timedelta(days=32)
         inputs = _load_inputs(c, now, start, end)
-    records = inputs.records(now, start, end)
+    records = inputs.iter_records(now, start, end)
     return publish_conditions(
         settings, records=records, computed_at=now, source_revision=source_revision
     )

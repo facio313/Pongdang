@@ -399,9 +399,25 @@ async def spatial_view(reader, q, *, temperature_only=False):
             related = [r for r in links if r["spot_id"] == place["spot_id"]]
             ids = {r["station_id"] for r in related}
             metrics = [r for r in values if r["station_id"] in ids]
-            assessment, forecast = await domain_layers(
-                c, place["spot_id"], q, at, as_of
-            )
+            if temperature_only:
+                # A temperature read has no dependency on assessment or forecast
+                # projections. Keep their envelope fields, but distinguish an
+                # unrequested layer from a claim that no such evidence exists.
+                assessment = {
+                    "status": "not_requested",
+                    "reason_codes": ["temperature_only_view"],
+                    "rows": [],
+                }
+                forecast = {
+                    "status": "not_requested",
+                    "horizon_start_at": None,
+                    "horizon_end_at": None,
+                    "rows": [],
+                }
+            else:
+                assessment, forecast = await domain_layers(
+                    c, place["spot_id"], q, at, as_of
+                )
             total_derived_rows += len(assessment["rows"]) + len(forecast["rows"])
             if total_derived_rows > 100:
                 raise HTTPException(
