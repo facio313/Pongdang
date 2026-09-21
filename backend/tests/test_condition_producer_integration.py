@@ -14,7 +14,7 @@ from app.ingestion.weather import grid_coordinates
 from app.schema import connect, initialize
 from app.water_index.condition_api import ConditionQuery, read_conditions
 from app.water_index.condition_producer import KST, _load_inputs, produce_conditions
-from app.water_index.condition_storage import migrate_conditions, read_condition_set
+from app.water_index.condition_storage import read_condition_set
 from app.water_index.conditions import ACTIVITIES, ConditionsEnvelope
 from app.water_index.models import SafetyEvidence
 from app.water_index.sources import (
@@ -31,8 +31,6 @@ def database():
     if settings.postgres_db != "pongdang_test":
         pytest.fail("Condition projection requires disposable pongdang_test")
     initialize(settings)
-    with connect(settings) as c:
-        migrate_conditions(c)
     yield settings
     with connect(settings) as c:
         c.execute("DROP SCHEMA pongdang_data CASCADE")

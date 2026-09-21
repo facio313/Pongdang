@@ -16,8 +16,9 @@ export function retainsDisplayData(path: string) {
   return retainsConditionData(path) || isPlaceRead(path);
 }
 
-function blocked(data: { safety_status?: string; support_status?: string; condition_score?: { status: string } | null }) {
-  return data.safety_status === "restricted" || data.support_status === "unsupported" || data.condition_score?.status === "blocked";
+function blocked(data: { safety_status?: string; support_status?: string; condition_score?: { status: string } | null; retention_allowed?: boolean; projection?: { retention_allowed?: boolean } }) {
+  return data.retention_allowed === false || data.projection?.retention_allowed === false ||
+    data.safety_status === "restricted" || data.support_status === "unsupported" || data.condition_score?.status === "blocked";
 }
 
 function availableMetrics(data: Conditions) {

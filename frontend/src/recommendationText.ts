@@ -194,6 +194,11 @@ const SEA: Activity[] = ["swim", "surf"];
 
 /** 지금 물때. 극값 전후면 그 사실과 대안을, 아니면 오르내림만 말합니다. */
 export function tideLine(rec?: Recommendation): ReasonLine | null {
+  if (find(rec, "tide_lookup_unavailable"))
+    return {
+      code: "tide_lookup_unavailable",
+      text: t("간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다."),
+    };
   const tide = rec?.tide;
   const choice = rec?.choice;
   if (!tide || tide.status !== "available") return null;

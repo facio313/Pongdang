@@ -210,16 +210,20 @@ async def select_forecasts(
     ):
         nx, ny = grid_coordinates(place["lat"], place["lng"])
         grid_id = f"kma-grid-{nx}-{ny}"
+    # Resolve reviewed mappings once. A correlated lookup of the base mapping
+    # table for every forecast revision inflated planner cost enough to trigger
+    # expensive JIT compilation, timing out even when no mapping existed.
     query = (
-        "WITH latest AS (SELECT DISTINCT ON (f.source_key) f.* "
+        "WITH mappings AS MATERIALIZED (SELECT m.* FROM "
+        "pongdang_data.water_index_station_mapping m WHERE m.spot_id=%(spot)s "
+        "AND m.available_at<=%(as_of)s AND m.payload->'activities' ? %(activity)s "
+        "AND NOT EXISTS (SELECT 1 FROM pongdang_data.water_index_station_mapping n "
+        "WHERE n.supersedes_id=m.mapping_id AND n.available_at<=%(as_of)s)), "
+        "latest AS (SELECT DISTINCT ON (f.source_key) f.* "
         "FROM pongdang_data.forecast_revision f WHERE f.available_at<=%(as_of)s "
         "AND (f.spot_id=%(spot)s OR EXISTS (SELECT 1 FROM "
-        "pongdang_data.water_index_station_mapping m WHERE m.spot_id=%(spot)s "
-        "AND m.station_id=f.station_id AND m.available_at<=%(as_of)s "
-        "AND m.valid_from<=f.target_start_at AND m.valid_until>=f.target_end_at "
-        "AND m.payload->'activities' ? %(activity)s "
-        "AND NOT EXISTS (SELECT 1 FROM pongdang_data.water_index_station_mapping n "
-        "WHERE n.supersedes_id=m.mapping_id AND n.available_at<=%(as_of)s)) "
+        "mappings m WHERE m.station_id=f.station_id "
+        "AND m.valid_from<=f.target_start_at AND m.valid_until>=f.target_end_at) "
         "OR (f.provider IN ('kma_short_forecast','kma_ultra_forecast') "
         "AND EXISTS (SELECT 1 FROM pongdang_data.collection_station st "
         "WHERE st.id=f.station_id AND st.kind='weather_forecast_grid' "
@@ -263,13 +267,10 @@ async def select_forecasts(
     selected = await (
         await connection.execute(
             query + "SELECT latest.*,CASE WHEN spot_id=%(spot)s THEN NULL ELSE "
-            "(SELECT m.mapping_id FROM pongdang_data.water_index_station_mapping m "
-            "WHERE m.spot_id=%(spot)s AND m.station_id=latest.station_id "
-            "AND m.available_at<=%(as_of)s AND m.valid_from<=latest.target_start_at "
+            "(SELECT m.mapping_id FROM mappings m "
+            "WHERE m.station_id=latest.station_id "
+            "AND m.valid_from<=latest.target_start_at "
             "AND m.valid_until>=latest.target_end_at "
-            "AND m.payload->'activities' ? %(activity)s AND NOT EXISTS "
-            "(SELECT 1 FROM pongdang_data.water_index_station_mapping n "
-            "WHERE n.supersedes_id=m.mapping_id AND n.available_at<=%(as_of)s) "
             "ORDER BY m.available_at DESC,m.mapping_id DESC LIMIT 1) "
             "END AS mapping_evidence_ref FROM effective latest "
             "WHERE target_start_at<%(until)s "

@@ -55,7 +55,10 @@ export function RecommendationReason({
   const detail = variant === "detail";
   const choice = detail ? undefined : choiceReason(data);
   const rejection = lead ? undefined : rejectionReason(data);
-  const tide = lead ? undefined : tideLine(data);
+  const tideInfo = tideLine(data);
+  // Optional lookup failures are part of the result's limits, not detail that
+  // the home summary may omit while showing a usable score.
+  const tide = lead && tideInfo?.code !== "tide_lookup_unavailable" ? undefined : tideInfo;
   const groups = lead ? [] : alternativeGroups(data);
   const root =
     "pd-why" +

@@ -244,9 +244,9 @@ def _unavailable(q, at, as_of, row):
 async def read_condition_set(reader, queries, *, now=None, connection=None):
     """One SELECT for bounded places/activities/targets in one consistent set.
 
-    The revision guard also invalidates saved results immediately after a missing
-    correction, a new restriction or a changed station mapping is committed.
-    There is deliberately no calculation or write on a cache miss.
+    New observations may reuse the last complete, still-valid publication while
+    the worker refreshes it. Corrections, restrictions and mapping changes revoke
+    older evidence immediately. No calculation or write happens on a cache miss.
     """
     if not queries or len(queries) > 200:
         raise ValueError("A condition set must contain 1 to 200 queries")
@@ -271,13 +271,17 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
             await c.execute(
                 "WITH wanted AS (SELECT * FROM jsonb_to_recordset(%s::jsonb) AS q("
                 "ordinal int,spot_id bigint,activity text,mode text,at timestamptz,"
-                "as_of timestamptz)), revision AS (SELECT revision FROM "
+                "as_of timestamptz)), revision AS (SELECT revision,"
+                "invalidated_revision FROM "
                 "pongdang_data.condition_source_revision WHERE id=1) "
-                "SELECT q.ordinal,p.id AS place_id,p.name,r.revision,g.id AS "
+                "SELECT q.ordinal,p.id AS place_id,p.name,r.revision,"
+                "r.invalidated_revision,g.source_revision,g.id AS "
                 "generation_id,g.computed_at,s.payload FROM wanted q "
                 "CROSS JOIN revision r LEFT JOIN pongdang_data.spots_waterspot p "
-                "ON p.id=q.spot_id LEFT JOIN LATERAL (SELECT id,computed_at FROM "
-                "pongdang_data.condition_generation WHERE source_revision=r.revision "
+                "ON p.id=q.spot_id LEFT JOIN LATERAL (SELECT id,computed_at,"
+                "source_revision FROM pongdang_data.condition_generation "
+                "WHERE source_revision>=r.invalidated_revision "
+                "AND source_revision<=r.revision "
                 "AND model_version=%s AND computed_at<=q.as_of "
                 "ORDER BY id DESC LIMIT 1) g ON true "
                 "LEFT JOIN LATERAL (SELECT payload FROM "
@@ -301,18 +305,31 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
                 {**row["payload"], "at": at, "as_of": as_of}
             )
         computed_at = row["computed_at"]
+        refreshing = bool(row["payload"] and row["source_revision"] != row["revision"])
         result.append(
             envelope.model_copy(
                 update={
+                    "retained": refreshing,
                     "projection": ConditionProjection(
                         generation_id=row["generation_id"],
-                        source_revision=row["revision"],
+                        source_revision=row["source_revision"]
+                        if row["generation_id"] is not None
+                        else row["revision"],
+                        latest_source_revision=row["revision"],
                         computed_at=computed_at,
                         refresh_after=computed_at + timedelta(seconds=REFRESH_SECONDS)
                         if computed_at
                         else None,
-                        status="ready" if row["payload"] else "pending",
-                    )
+                        status="refreshing"
+                        if refreshing
+                        else "ready"
+                        if row["payload"]
+                        else "pending",
+                        retention_allowed=(
+                            row["generation_id"] is not None
+                            or row["invalidated_revision"] == 0
+                        ),
+                    ),
                 }
             )
         )

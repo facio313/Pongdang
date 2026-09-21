@@ -5,10 +5,12 @@
 """
 
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from psycopg.errors import QueryCanceled
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 from app.data_reader import DataReader
@@ -50,6 +52,8 @@ ALTERNATIVES_PER_KIND = 2
 #: 말할 수 있으므로 과거 쪽으로도 넉넉히 봅니다.
 TIDE_LOOKBACK = timedelta(hours=12)
 TIDE_LOOKAHEAD = timedelta(hours=24)
+TIDE_LOOKUP_TIMEOUT = 2.0
+logger = logging.getLogger(__name__)
 
 #: 카카오 카테고리와 TourAPI 콘텐츠 유형. `app/travel/catalog.py` 의 분류와
 #: 같은 근거를 씁니다 -- 새 분류 체계를 만들지 않습니다.
@@ -380,8 +384,17 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
             )
         ).fetchone()
         tide = None
+        tide_unavailable = False
         if place and place["place_kind"] == "beach":
-            tide = await read_tide(c, q.spot_id, at, as_of)
+            try:
+                # A canceled statement aborts its transaction. Roll back only
+                # the optional tide lookup so conditions and alternatives can
+                # still be returned from the same read-only snapshot.
+                async with c.transaction(), asyncio.timeout(TIDE_LOOKUP_TIMEOUT):
+                    tide = await read_tide(c, q.spot_id, at, as_of)
+            except QueryCanceled, TimeoutError:
+                tide_unavailable = True
+                logger.warning("Tide lookup timed out for spot_id=%s", q.spot_id)
 
         decision = decide(
             envelopes,
@@ -416,6 +429,9 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
             )
         break
 
+    unavailable_reason = (
+        (Reason(code="tide_lookup_unavailable"),) if tide_unavailable else ()
+    )
     return Recommendation(
         spot_id=q.spot_id,
         place_name=first.place_name,
@@ -425,11 +441,12 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
         mode=q.mode,
         choice=decision.choice,
         ranked=decision.ranked,
-        reasons=decision.reasons,
+        reasons=decision.reasons + unavailable_reason,
         tide=tide,
         alternatives=tuple(alternatives),
         conditions=tuple(envelopes[a] for a in RECOMMENDED_ACTIVITIES),
-        reason_codes=decision.reason_codes,
+        reason_codes=decision.reason_codes
+        + (("tide_lookup_unavailable",) if tide_unavailable else ()),
     )
 
 

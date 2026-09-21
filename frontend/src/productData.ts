@@ -95,7 +95,8 @@ export interface Conditions {
   context_metrics?: Metric[];
   display_metrics?: Metric[];
   projection?: {
-    status: "ready" | "pending";
+    status: "ready" | "refreshing" | "pending";
+    retention_allowed?: boolean;
     computed_at: string | null;
     refresh_after: string | null;
   };
@@ -161,7 +162,7 @@ export function scoreCoverageText(data?: Conditions): string {
 }
 
 export function conditionRetentionText(data?: Conditions) {
-  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.at) }) : "";
+  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.projection?.computed_at ?? data.at) }) : "";
 }
 
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
@@ -479,6 +480,7 @@ export function conditionSeriesPath(id: number | undefined, activity: Activity, 
  *  따로 계산한 값이 아닙니다 -- 목록과 상세가 다른 숫자를 말하면 안 됩니다. */
 export interface ConditionSummary {
   retained?: boolean;
+  retention_allowed?: boolean;
   spot_id: number;
   place_name: string | null;
   support_status: string;

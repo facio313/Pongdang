@@ -98,6 +98,7 @@ def test_missing_correction_invalidates_old_scores_before_worker_runs(database):
         pending = client.get(BASE + "/conditions", params=query(spot)).json()
         assert pending["condition_score"]["score"] is None
         assert pending["projection"]["status"] == "pending"
+        assert pending["projection"]["retention_allowed"] is False
         produce_conditions(database)
         replacement = client.get(BASE + "/conditions", params=query(spot)).json()
         assert replacement["condition_score"]["score"] is None
@@ -106,6 +107,59 @@ def test_missing_correction_invalidates_old_scores_before_worker_runs(database):
             replacement["projection"]["generation_id"]
             != first["projection"]["generation_id"]
         )
+
+
+def test_new_observations_keep_published_scores_for_cold_clients_until_replaced(
+    database,
+):
+    now = datetime.now(UTC)
+    store_batch(
+        database,
+        source(source_id="earlier", observed_at=now - timedelta(minutes=10)),
+    )
+    _, spot = station(database)
+    assert produce_conditions(database) > 0
+    params = query(spot)
+    with TestClient(create_app(database)) as client:
+        first = client.get(BASE + "/conditions", params=params).json()
+    store_batch(
+        database,
+        source(
+            source_id="new-observation",
+            observed_at=now - timedelta(minutes=1),
+            values=[Value(name="air_temperature", numeric_value=28, unit="degC")],
+        ),
+    )
+    # A new client has no browser cache. The API must supply the old complete
+    # result, its real calculation time and explicit refresh state itself.
+    with TestClient(create_app(database)) as client:
+        pending = client.get(BASE + "/conditions", params=params).json()
+        assert pending["condition_score"] == first["condition_score"]
+        assert pending["retained"] is True
+        projection = pending["projection"]
+        assert projection["status"] == "refreshing"
+        assert projection["generation_id"] == first["projection"]["generation_id"]
+        assert projection["computed_at"] == first["projection"]["computed_at"]
+        assert projection["source_revision"] < projection["latest_source_revision"]
+        assert projection["retention_allowed"] is True
+        summary = client.get(
+            BASE + "/conditions/summary",
+            params={"spot_ids": str(spot), "activity": "swim"},
+        ).json()["rows"][0]
+        assert summary["condition_score"] == first["condition_score"]
+        assert summary["retained"] is True
+        recommendation = client.get(
+            BASE + "/recommendation", params={"spot_id": spot}
+        ).json()
+        swim = next(c for c in recommendation["conditions"] if c["activity"] == "swim")
+        assert swim["retained"] is True
+        assert swim["condition_score"] == first["condition_score"]
+        assert produce_conditions(database) > 0
+        current = client.get(BASE + "/conditions", params=params).json()
+        assert current["projection"]["status"] == "ready"
+        assert current["retained"] is False
+        assert current["projection"]["generation_id"] != projection["generation_id"]
+        assert current["condition_score"]["score"] != first["condition_score"]["score"]
 
 
 def test_one_select_reads_multiple_activities_and_reports_missing_place(database):

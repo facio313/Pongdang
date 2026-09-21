@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { routeRecommendation } from "./recommendation";
 
 const NOW = new Date("2026-09-21T03:00:00Z");
 const place = { id: 1, name: "갱신 테스트 해변", place_kind: "beach", region: "강릉시", address: "강원도 강릉시", lat: 37.8, lng: 128.9 };
@@ -89,6 +90,55 @@ test("a failed automatic refresh retains the score and waits another thirty minu
 });
 
 for (const width of [390, 1440]) {
+  test(`${width}px cold home keeps scores and explicitly reports a failed optional tide lookup`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockCommon(page);
+    await routeRecommendation(page, { activity: "swim", score: 75 }, {
+      conditions: [conditions(75, "2026-09-22T03:00:00Z")],
+      reasons: [{ code: "tide_lookup_unavailable" }],
+      reason_codes: ["tide_lookup_unavailable"],
+    });
+    const hero = page.locator(width === 390 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    await page.goto("#home");
+    await expect(hero).toHaveText("75");
+    await expect(page.getByText("간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.").first()).toBeVisible();
+    await page.reload();
+    await expect(hero).toHaveText("75");
+  });
+
+  test(`${width}px cold reload shows the server's last publication and honors evidence revocation`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockCommon(page);
+    const computedAt = "2026-09-21T02:55:00Z";
+    const condition = {
+      ...conditions(75, "2026-09-22T03:00:00Z"), retained: true,
+      projection: { status: "refreshing", computed_at: computedAt, retention_allowed: true },
+    };
+    await routeRecommendation(page, { activity: "swim", score: 75 }, { conditions: [condition] });
+    const hero = page.locator(width === 390 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    await page.goto("#home");
+    await expect(hero).toHaveText("75");
+    await expect(page.locator(".pd-retained-note").first()).toContainText("11:55");
+    await page.reload();
+    await expect(hero).toHaveText("75");
+    await expect(page.locator(".pd-retained-note").first()).toContainText("11:55");
+
+    await routeRecommendation(page, { activity: "swim", score: 55 }, { conditions: [{
+      ...conditions(55, "2026-09-22T03:00:00Z"), retained: false,
+      projection: { status: "ready", computed_at: NOW.toISOString(), retention_allowed: true },
+    }] });
+    await page.clock.fastForward(1800100);
+    await expect(hero).toHaveText("55");
+    await expect(page.locator(".hd-hero .pd-retained-note, .hm-hero .pd-retained-note")).toHaveCount(0);
+
+    await routeRecommendation(page, null, { conditions: [{
+      ...conditions(null, "2026-09-22T03:00:00Z"),
+      projection: { status: "pending", computed_at: null, retention_allowed: false },
+    }] });
+    await page.clock.fastForward(1800100);
+    await expect(hero).toHaveText("–");
+  });
+
   test(`${width}px home hides header refresh and menu refresh preserves scores on empty updates and a failed place read`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await mockCommon(page);

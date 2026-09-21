@@ -319,9 +319,11 @@ class DisplayMetric(ConditionMetric):
 class ConditionProjection(Record):
     generation_id: int | None
     source_revision: int
+    latest_source_revision: int | None = None
     computed_at: AwareDatetime | None
     refresh_after: AwareDatetime | None
-    status: Literal["ready", "pending"]
+    status: Literal["ready", "refreshing", "pending"]
+    retention_allowed: bool = True
 
 
 class ConditionsEnvelope(Record):
@@ -339,6 +341,7 @@ class ConditionsEnvelope(Record):
     environment_score: None = None
     condition_score: ActivityScore | None = None
     projection: ConditionProjection | None = None
+    retained: bool = False
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
     context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
     display_metrics: Annotated[tuple[DisplayMetric, ...], Field(max_length=100)] = ()
@@ -411,6 +414,8 @@ class ConditionSummary(Record):
     support_status: Literal["supported", "unsupported", "unknown"]
     safety_status: Literal["restricted", "caution", "unknown"]
     condition_score: ActivityScore | None = None
+    retained: bool = False
+    retention_allowed: bool = True
     water_temperature: DisplayMetric | ConditionMetric | None = None
     expires_at: AwareDatetime | None
 
@@ -466,6 +471,10 @@ def summarize_conditions(envelope: ConditionsEnvelope) -> ConditionSummary:
         support_status=envelope.support_status,
         safety_status=envelope.safety_status,
         condition_score=envelope.condition_score,
+        retained=envelope.retained,
+        retention_allowed=(
+            envelope.projection.retention_allowed if envelope.projection else True
+        ),
         water_temperature=shown,
         expires_at=summary_expiry(envelope),
     )

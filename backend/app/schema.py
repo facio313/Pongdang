@@ -16,7 +16,7 @@ from app.water_index.condition_invalidation import migrate_condition_invalidatio
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 16
+VERSION = 17
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -186,6 +186,9 @@ def initialize(settings: Settings) -> bool:
                 migrate_condition_invalidation(connection)
                 return True
             if row == (15,):
+                migrate_condition_invalidation(connection)
+                return True
+            if row == (16,):
                 migrate_condition_invalidation(connection)
                 return True
             if row != (VERSION,):

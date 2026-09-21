@@ -1,12 +1,14 @@
 """Real PostgreSQL18 source->projection->assessment->HTTP tests, disposable only."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.forecast.storage import project_forecasts
+from app.data_reader import DataReader
+from app.forecast.storage import project_forecasts, select_forecasts
 from app.ingestion.models import Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
@@ -97,6 +99,45 @@ def params(spot, start, end):
         "profile_id": "general",
         "page_size": 100,
     }
+
+
+def test_tide_lookup_stays_bounded_with_unrelated_forecast_history(db):
+    now = datetime.now(UTC)
+    at = now + timedelta(hours=2)
+    store_batch(db, batch(at=at, fetched=now - timedelta(seconds=1)))
+    spot, _ = ids(db)
+    assert project_forecasts(db) == 1
+    with connect(db) as c:
+        # Reproduce accumulated history and an empty, not-yet-analyzed mapping
+        # table. The former per-row mapping plan paid large JIT startup costs.
+        c.execute(
+            "INSERT INTO pongdang_data.forecast_revision "
+            "(source_key,spot_id,station_id,provider,target_start_at,target_end_at,"
+            "fetched_at,payload,digest) SELECT f.source_key||'-fixture-'||n,"
+            "f.spot_id,f.station_id,'fixture_unrelated',f.target_start_at,"
+            "f.target_end_at,f.fetched_at,"
+            "jsonb_set(f.payload,'{provider}','\"fixture_unrelated\"'),"
+            "f.digest||n FROM pongdang_data.forecast_revision f "
+            "CROSS JOIN generate_series(1,20000) n"
+        )
+        c.execute("ANALYZE pongdang_data.forecast_revision")
+
+    async def read():
+        async with DataReader(db).connection() as c:
+            await c.execute("SET LOCAL statement_timeout=1000")
+            return await select_forecasts(
+                c,
+                spot_id=spot,
+                as_of=datetime.now(UTC),
+                from_at=at - timedelta(minutes=1),
+                until_at=at + timedelta(minutes=2),
+                provider="khoa_tide_extrema",
+            )
+
+    result = asyncio.run(read())
+    assert result["status"] == "available"
+    assert result["total"] == 1
+    assert result["rows"][0]["inputs"][0]["numeric_value"] == 34.0
 
 
 def test_real_storage_publication_correction_and_readonly_http(db):

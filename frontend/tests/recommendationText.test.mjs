@@ -82,6 +82,16 @@ const tide = (changes = {}) => ({
   ...changes,
 });
 
+test('a failed tide lookup is explicit without erasing the available score', () => {
+  const rec = recommendation({ reasons: [reason('tide_lookup_unavailable')] });
+  assert.equal(rec.choice.score, 82);
+  assert.deepEqual(tideLine(rec), {
+    code: 'tide_lookup_unavailable',
+    text: '간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.',
+  });
+  assert.equal(tideLine(recommendation()), null);
+});
+
 test('a chosen activity with no server reason gets no invented sentence', () => {
   // 모르는 것을 「좋아서」로 바꾸면 근거가 아니라 넘겨짚기가 됩니다.
   assert.equal(choiceReason(recommendation()), null);

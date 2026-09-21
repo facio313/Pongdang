@@ -138,11 +138,47 @@ def test_new_restriction_immediately_hides_old_score(database):
         )
         pending = client.get("/api/data/water-index/conditions", params=params).json()
         assert pending["projection"]["status"] == "pending"
+        assert pending["projection"]["retention_allowed"] is False
         assert pending["condition_score"]["score"] is None
         assert produce_conditions(database) > 0
         blocked = client.get("/api/data/water-index/conditions", params=params).json()
         assert blocked["safety_status"] == "restricted"
         assert blocked["condition_score"]["score"] is None
+
+
+def test_v16_upgrade_does_not_revive_previously_invalidated_scores(database):
+    store_batch(database, source())
+    _, spot = station(database)
+    assert produce_conditions(database) > 0
+    with connect(database) as c:
+        migrate_conditions(c)
+        c.execute(
+            "ALTER TABLE pongdang_data.condition_source_revision "
+            "DROP COLUMN invalidated_revision"
+        )
+        c.execute(
+            "UPDATE pongdang_data.conditions_observationmetric "
+            "SET numeric_value=NULL,is_missing=true,state='missing'"
+        )
+        revision = projection_revision(c)
+        c.execute("UPDATE pongdang_data.schema_version SET version=16")
+    assert initialize(database)
+    assert not initialize(database)
+    with connect(database) as c:
+        assert c.execute(
+            "SELECT revision,invalidated_revision FROM "
+            "pongdang_data.condition_source_revision"
+        ).fetchone() == (revision, revision)
+        assert c.execute(
+            "SELECT count(*) FROM pongdang_data.condition_generation"
+        ).fetchone() == (1,)
+    with TestClient(create_app(database)) as client:
+        pending = client.get(
+            "/api/data/water-index/conditions",
+            params={"spot_id": spot, "activity": "swim", "mode": "observation"},
+        ).json()
+        assert pending["condition_score"]["score"] is None
+        assert pending["projection"]["retention_allowed"] is False
 
 
 def test_v15_upgrade_preserves_records_and_published_generation(database):
@@ -238,12 +274,19 @@ def test_empty_writes_and_identical_updates_do_not_invalidate(database, table):
         assert projection_revision(c) == revision
 
 
+@pytest.mark.parametrize(
+    "locked_table", ["spots_waterspot", "condition_source_revision"]
+)
 def test_migration_waits_for_readers_without_blocking_other_reads(
-    database, monkeypatch
+    database, monkeypatch, locked_table
 ):
     waits = []
     with connect(database) as reader, connect(database) as migration:
-        reader.execute("SELECT 1 FROM pongdang_data.spots_waterspot LIMIT 1")
+        reader.execute(
+            sql.SQL("SELECT 1 FROM {} LIMIT 1").format(
+                sql.Identifier("pongdang_data", locked_table)
+            )
+        )
 
         def finish_reader(delay):
             waits.append(delay)

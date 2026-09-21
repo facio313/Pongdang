@@ -38,6 +38,18 @@ test('restrictions and different places or activities are never hidden by retent
   }
 });
 
+test('server-revoked evidence cannot be restored from detail, summary or recommendation cache', () => {
+  const previous = condition();
+  const revoked = { ...condition(null, []), projection: { status: 'pending', retention_allowed: false } };
+  assert.equal(retainConditions(previous, revoked), revoked);
+  const summary = { ...condition(null, []), retention_allowed: false };
+  assert.equal(retainConditionData('water-index/conditions/summary?spot_ids=7',
+    { rows: [previous] }, { rows: [summary] }).rows[0], summary);
+  const recommendation = { choice: null, conditions: [revoked] };
+  assert.equal(retainConditionData('water-index/recommendation?spot_id=7',
+    { choice: { activity: 'swim', score: 80 }, conditions: [previous] }, recommendation), recommendation);
+});
+
 test('series keep missing targets and merge by target time, never by position', () => {
   const path = 'water-index/conditions/series?spot_id=7&targets=a,b';
   const first = { ...condition(), mode: 'forecast' };

@@ -18,6 +18,7 @@ export function useConditions(
     enabled ? conditionPath(id, activity, at) : null,
   );
   const needsForecast = !at && primary.data && conditionScore(primary.data) === null &&
+    primary.data.projection?.retention_allowed !== false &&
     primary.data.condition_score?.status !== "blocked" &&
     primary.data.safety_status !== "restricted" && primary.data.support_status !== "unsupported";
   // The server resolves an omitted target to request time. This stable current

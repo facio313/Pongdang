@@ -19,7 +19,10 @@ def _lock_inputs(connection):
     # Ensure transaction() below is a savepoint even for a fresh connection.
     connection.execute("SELECT 1")
     deadline = monotonic() + 300
-    statement = sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE NOWAIT").format(
+    statement = sql.SQL(
+        "LOCK TABLE {}, pongdang_data.condition_source_revision "
+        "IN ACCESS EXCLUSIVE MODE NOWAIT"
+    ).format(
         sql.SQL(", ").join(
             sql.Identifier("pongdang_data", table) for table, _ in INPUT_TABLES
         )
@@ -38,8 +41,18 @@ def _lock_inputs(connection):
 
 
 def migrate_condition_invalidation(connection):
-    """Replace v15 statement triggers without changing source data or scores."""
+    """Separate new observations from changes that revoke published evidence."""
     _lock_inputs(connection)
+    connection.execute(
+        "ALTER TABLE pongdang_data.condition_source_revision "
+        "ADD COLUMN IF NOT EXISTS invalidated_revision bigint NOT NULL DEFAULT 0"
+    )
+    # Pre-migration changes were not classified. Do not revive an older result
+    # whose evidence may already have been corrected or restricted.
+    connection.execute(
+        "UPDATE pongdang_data.condition_source_revision "
+        "SET invalidated_revision=revision WHERE id=1"
+    )
     connection.execute("""
         CREATE OR REPLACE FUNCTION pongdang_data.condition_input_content(
             content jsonb, refresh_fields text[], cutoff timestamptz
@@ -78,7 +91,15 @@ def migrate_condition_invalidation(connection):
             END IF;
             IF changed THEN
                 UPDATE pongdang_data.condition_source_revision
-                SET revision=revision+1 WHERE id=1;
+                SET revision=revision+1,
+                    invalidated_revision=CASE
+                        WHEN TG_OP <> 'INSERT' OR TG_TABLE_NAME IN (
+                            'water_index_station_mapping',
+                            'water_index_authority_evidence'
+                        ) THEN revision+1
+                        ELSE invalidated_revision
+                    END
+                WHERE id=1;
             END IF;
             RETURN NULL;
         END $$
@@ -109,4 +130,4 @@ def migrate_condition_invalidation(connection):
                     sql.SQL(",").join(map(sql.Literal, refresh_fields)),
                 )
             )
-    connection.execute("UPDATE pongdang_data.schema_version SET version=16 WHERE id=1")
+    connection.execute("UPDATE pongdang_data.schema_version SET version=17 WHERE id=1")

@@ -8,6 +8,7 @@
 일회용 pongdang_test 에서만 돕니다.
 """
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -19,6 +20,7 @@ from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
+from app.water_index import recommendation_api
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.recommendation import IMMERSION_WATER_C, TIDE_MARGIN_MINUTES
 from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
@@ -332,6 +334,42 @@ def test_an_inland_place_reads_no_tide_and_never_invents_one(db):
     assert view["place_kind"] == "valley"
     assert view["tide"] is None
     assert "tide_phase_product_rule" not in codes(view)
+
+
+@pytest.mark.parametrize("failure", ["statement_timeout", "lookup_budget"])
+def test_tide_timeout_preserves_conditions_and_rolls_back_only_optional_lookup(
+    db, monkeypatch, failure
+):
+    spots = places(db)
+    map_station(db, spots["0"], readings(db, water=16.0, air=27.0))
+    produce_conditions(db)
+
+    async def timeout(c, *_args):
+        if failure == "statement_timeout":
+            await c.execute("SET LOCAL statement_timeout=10")
+            await c.execute("SELECT pg_sleep(1)")
+        else:
+            await asyncio.sleep(1)
+
+    monkeypatch.setattr(recommendation_api, "read_tide", timeout)
+    monkeypatch.setattr(recommendation_api, "TIDE_LOOKUP_TIMEOUT", 0.1)
+    with TestClient(create_app(db)) as client:
+        view = recommendation(client, spots["0"])
+    assert view["tide"] is None
+    assert "tide_lookup_unavailable" in codes(view)
+    assert "tide_lookup_unavailable" in view["reason_codes"]
+    assert view["choice"]["score"] is not None
+    assert "tide_phase_product_rule" not in codes(view)
+    # A failed optional lookup must neither fabricate water safety nor leave
+    # the transaction aborted for the subsequent real alternative queries.
+    assert "water_too_cold_for_immersion" in codes(view)
+    assert "onsen" in kinds(view) and "meal" in kinds(view)
+    assert all(
+        row["dropped"] for row in view["ranked"] if row["activity"] in {"swim", "surf"}
+    )
+    assert any(
+        row["condition_score"]["score"] is not None for row in view["conditions"]
+    )
 
 
 def test_an_empty_observation_falls_back_to_the_published_forecast(db):
