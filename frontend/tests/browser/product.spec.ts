@@ -245,14 +245,14 @@ test("saved course scores use its actual date and never query unsupported histor
   expect(targets).toEqual([]);
 });
 
-test("a current score clears at expiry without a read before the ten-minute interval", async ({ page }) => {
+test("a current score survives expiry and an insufficient thirty-minute refresh", async ({ page }) => {
   const now = new Date("2026-09-16T03:00:00Z");
   await page.clock.install({ time: now });
   let requests = 0;
   let release!: () => void;
   const refresh = new Promise<void>((resolve) => { release = resolve; });
-  // 만료는 추천 응답이 싣고 온 근거의 유효기간으로 잽니다. 두 번째 조회는
-  // 붙잡아 두어, 갱신을 기다리는 동안 지난 점수가 남지 않는지 봅니다.
+  // Keep the second read pending, then return insufficient evidence. Neither
+  // expiry nor the degraded response may erase the last displayed score.
   const evidence = {
     provider: "TEST", observed_at: now.toISOString(), issued_at: null,
     fetched_at: now.toISOString(), valid_until: new Date(now.getTime() + 10000).toISOString(),
@@ -292,14 +292,17 @@ test("a current score clears at expiry without a read before the ten-minute inte
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.clock.fastForward(10001);
-  await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   expect(requests).toBe(1);
-  await page.clock.fastForward(590100);
+  await page.clock.fastForward(1790100);
   await expect.poll(() => requests).toBeGreaterThan(1);
   release();
-  await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
-  await expect(page.locator(".td-hero-note")).toContainText("계산에 필요한 근거 부족");
+  await expect(page.locator(".td-hero-note")).toContainText("이전 값 유지");
+  await expect(page.locator(".td-hero-note")).toContainText("참고 점수 75");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: test.info().outputPath("retained-today.png") });
 });
 
 test("preference → recommendation → persisted plan → selected plan detail", { tag: "@smoke" }, async ({

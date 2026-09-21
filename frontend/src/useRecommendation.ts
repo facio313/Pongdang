@@ -30,12 +30,10 @@ export function useRecommendation(id?: number, at?: string, enabled = true) {
   const state = useResource<Recommendation>(
     enabled ? recommendationPath(id, at) : null,
   );
-  // The ranking depends on every compared activity, not only the chosen one.
   const expiries = state.data?.conditions.map(conditionScoreExpiry)
     .filter((value): value is number => value !== undefined) ?? [];
-  const expired = useExpired(expiries.length ? Math.min(...expiries) : undefined);
-  // 만료된 값을 화면에 남기지 않습니다. 모르는 것을 지난 값으로 채우는 것과
-  // 같기 때문입니다.
-  if (expired) return { ...state, data: undefined, loading: false };
-  return state;
+  const expired = useExpired(!at && expiries.length ? Math.min(...expiries) : undefined);
+  return expired && state.data
+    ? { ...state, data: { ...state.data, conditions: state.data.conditions.map(c => ({ ...c, retained: true })) } }
+    : state;
 }

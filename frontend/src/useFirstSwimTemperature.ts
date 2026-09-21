@@ -23,7 +23,8 @@ interface TemperatureStation {
   mapping: { valid_from: string; valid_until: string } | null;
 }
 
-interface TemperaturePage {
+export interface TemperaturePage {
+  retained?: boolean;
   rows: {
     spot_id: number;
     stations: TemperatureStation[];
@@ -47,7 +48,6 @@ export function useFirstSwimTemperature(spotId: number) {
   const observationExpiry = observation?.valid_until ? Date.parse(observation.valid_until) : undefined;
   const mappingExpiry = station?.mapping ? Date.parse(station.mapping.valid_until) : undefined;
   const expired = useExpired(observationExpiry);
-  const mappingExpired = useExpired(mappingExpiry);
 
   let state: "loading" | "error" | "missing" | "stale" | "available" = "missing";
   let reason = "사용할 수 있는 실제 수온 관측이 없습니다.";
@@ -57,21 +57,22 @@ export function useFirstSwimTemperature(spotId: number) {
   else if (observation && !station) reason = "이 장소를 대표하는 수온 관측소 연결이 없거나 모호합니다.";
   else if (observation && station) {
     if (station.relation === "representative_station" && (!station.mapping ||
-      !Number.isFinite(mappingExpiry) || mappingExpired ||
+      !Number.isFinite(mappingExpiry) ||
       !(Date.parse(observation.observed_at) >= Date.parse(station.mapping.valid_from)) ||
       !(Date.parse(observation.observed_at) < Date.parse(station.mapping.valid_until)))) {
       reason = "관측 시각이 관측소 연결의 유효기간 밖입니다.";
-    } else if (observation.status === "stale" || expired) {
-      state = "stale";
-      reason = "수온 관측의 유효기간이 지났습니다.";
     } else if (observation.is_missing || observation.numeric_value === null || !Number.isFinite(observation.numeric_value)) {
       reason = "관측 자료에 수온 값이 없습니다.";
     } else if (!["degC", "°C"].includes(observation.unit ?? "")) {
       reason = "수온 단위를 비교할 수 없습니다.";
+    } else if ((observation.status === "stale" || expired || resource.data?.retained) &&
+      ["observation", "stale"].includes(observation.status) && Number.isFinite(observationExpiry)) {
+      state = "stale";
+      reason = "갱신 자료 부족 · 이전 값 유지";
     } else if (observation.status === "observation" && Number.isFinite(observationExpiry)) {
       state = "available";
     }
   }
-  const value = state === "available" ? observation?.numeric_value : undefined;
+  const value = state === "available" || state === "stale" ? observation?.numeric_value : undefined;
   return { state, reason, value, observation, station, error: resource.error };
 }

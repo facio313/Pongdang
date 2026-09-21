@@ -26,6 +26,9 @@ async function refresh() {
   // If status polling failed, resume the known job instead of collecting twice.
   let job = state.job && !refreshFinished(state.job) ? state.job : undefined;
   publish({ pending: true, job });
+  // Show the newest already-published data immediately, then read again after
+  // the requested collection/calculation completes. Retention prevents gaps.
+  invalidateResources();
   const stopAt = Date.now() + 10 * 60000;
   try {
     job = job

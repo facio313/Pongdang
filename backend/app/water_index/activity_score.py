@@ -347,17 +347,22 @@ def select_metric(metrics: list[ConditionMetric], evidence: ConditionsEnvelope):
     """
     if not metrics:
         return None, None, ("measurement_not_collected",)
+    # Meteorological grid and marine-station timestamps describe different
+    # products. Choose the established weather source before ranking revisions;
+    # a newer, expired buoy reading must not suppress valid KMA air/wind data.
+    # Within the chosen source class, newer missing/conflicting evidence still
+    # takes precedence: never revive an older favourable measurement.
+    weather = {"air_temperature", "relative_humidity", "wind_speed", "precipitation"}
+    grids = [m for m in metrics if m.relation == "containing_forecast_grid"]
+    if grids and metrics[0].name in weather:
+        metrics = grids
     latest = max((s.observed_at for m in metrics for s in m.evidence), default=None)
     candidates = [
         m for m in metrics if any(s.observed_at == latest for s in m.evidence)
     ]
     if not candidates:
         return None, None, ("measurement_evidence_unavailable",)
-    weather = {"air_temperature", "relative_humidity", "wind_speed", "precipitation"}
-    grids = [m for m in candidates if m.relation == "containing_forecast_grid"]
-    if grids and candidates[0].name in weather:
-        candidates = grids
-    elif all(m.relation == "nearby_station_context" for m in candidates):
+    if all(m.relation == "nearby_station_context" for m in candidates):
         distance = min(m.distance_km for m in candidates)
         candidates = [m for m in candidates if m.distance_km == distance]
     values = [(m, *_provisional_value(m, evidence)) for m in candidates]

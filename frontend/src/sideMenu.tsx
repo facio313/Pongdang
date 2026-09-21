@@ -61,10 +61,10 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
   const refresh = useDataRefresh();
   const refreshMessage = refresh.error ?? (refresh.pending
     ? "최신 자료와 점수를 갱신하고 있습니다."
-    : refresh.job?.status === "succeeded" ? "최신 자료와 점수를 갱신했습니다."
+    : refresh.job?.status === "succeeded" ? "자료 확인 완료 · 부족한 항목은 이전 값 유지"
     : refresh.job?.status === "partial" ? "일부 자료 또는 점수를 갱신하지 못했습니다. 다시 시도해 주세요."
     : refresh.job?.status === "failed" ? "새로고침하지 못했습니다. 잠시 후 다시 시도해 주세요."
-    : "10분마다 자동 갱신합니다.");
+    : "30분마다 자동 갱신 · 자료가 부족하면 이전 값 유지");
   const refreshFailed = !!refresh.error || ["partial", "failed"].includes(refresh.job?.status ?? "");
   const panel = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -198,7 +198,7 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
             <svg className={refresh.pending ? "is-refreshing" : undefined} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7" />
             </svg>
-            {t(refresh.pending ? "새로고침 중…" : refresh.canResume ? "상태 다시 확인" : "새로고침")}
+            {t(refresh.pending ? "데이터 갱신 중…" : refresh.canResume ? "상태 다시 확인" : "데이터 새로고침")}
           </button>
           <p id="pd-menu-refresh-status" className={"pd-menu-refresh-status" + (refreshFailed ? " is-error" : "")} role="status" aria-live="polite">
             {t(refreshMessage)}

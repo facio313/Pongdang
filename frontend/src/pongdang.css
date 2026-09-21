@@ -179,6 +179,23 @@ main:has(.pd-app.is-fullscreen) {
   gap: 8px;
   min-width: 0;
 }
+
+.pd-header-actions { display: flex; align-items: center; gap: 8px; }
+.pd-retained-note { font-size: 12px; line-height: 1.5; margin: 8px 0; }
+.pd-data-refresh { position: relative; font-size: 12px; }
+.pd-data-refresh button {
+  font: inherit; color: inherit; border: 1px solid currentColor;
+  border-radius: 8px; padding: 6px 9px; background: transparent;
+  white-space: nowrap; cursor: pointer;
+}
+.pd-data-refresh button:disabled { opacity: .7; cursor: wait; }
+.pd-data-refresh-message {
+  display: none; position: absolute; top: 100%; right: 0; z-index: 30;
+  width: 220px; padding: 8px; border-radius: 6px;
+  background: #fff; color: #26334a; box-shadow: 0 2px 8px #0002;
+}
+.pd-data-refresh:focus-within .pd-data-refresh-message,
+.pd-data-refresh:hover .pd-data-refresh-message { display: block; }
 /* 표지는 이미지 한 장입니다(brand.ts). 로고 원본이 코발트와 같은 파랑이라
    예전에는 코발트 면 위에서 흰 단색으로 눕혔지만(filter: invert), 그러면
    원본 색을 잃습니다. 이제는 **어느 면 위에서나 원색 그대로** 두고, 코발트

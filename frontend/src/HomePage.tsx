@@ -17,6 +17,7 @@ import {
 } from "./pongdangUi";
 import { activities, recommendedActivities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { conditionRetentionText } from "./productData";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
@@ -207,6 +208,7 @@ function Hero({
         </div>
 
         <ScoreGauge score={best?.score ?? null} loading={loading} glass />
+        {best?.data?.retained && <p className="pd-retained-note" role="status">{conditionRetentionText(best.data)}</p>}
         {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 「양호」 옆에 그래서
             뭘 해도 되는지를 한 줄로 붙입니다. 값이 없으면 문장을 지어내지 않고
             비워 둡니다 -- 모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */}

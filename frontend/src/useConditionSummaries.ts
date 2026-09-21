@@ -7,7 +7,6 @@ import {
   type ConditionSummary,
 } from "./productData";
 import { useResource } from "./useResource";
-import { useExpiry } from "./useExpiry";
 
 /** 한 번에 물을 수 있는 묶음 수. 25 × 4 = 100 으로, 서버가 한 번에 내려주는
  *  장소 수와 맞춥니다. 훅은 조건부로 부를 수 없어 **고정된 슬롯**을 두고,
@@ -60,16 +59,14 @@ export function useConditionSummaries(
       [dataA, dataB, dataC, dataD].flatMap((chunk) => chunk?.rows ?? []),
     [dataA, dataB, dataC, dataD],
   );
-  const expiredUntil = useExpiry(rows.map((row) => row.expires_at ? Date.parse(row.expires_at) : undefined));
 
   const byId = useMemo(() => {
     const map = new Map<number, ConditionSummary>();
     for (const row of rows) {
-      const expired = row.expires_at && expiredUntil !== undefined && Date.parse(row.expires_at) <= expiredUntil;
-      map.set(row.spot_id, expired ? { ...row, condition_score: null, water_temperature: null } : row);
+      map.set(row.spot_id, row);
     }
     return map;
-  }, [rows, expiredUntil]);
+  }, [rows]);
   const unavailable = useMemo(
     () =>
       new Map(

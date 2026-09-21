@@ -14,7 +14,9 @@ export function FirstSwimPreview({ spotId }: { spotId: number }) {
     : temperature.state === "error" ? t("수온 조회 실패")
     : temperature.state === "stale" ? t("수온 갱신 대기")
     : t("수온 미확인");
-  return <span className="first-swim-preview" title={t("관측 수온")}>{text}</span>;
+  return <span className="first-swim-preview" title={`${t("관측 수온")} · ${displayTime(temperature.observation?.observed_at ?? null)}`}>
+    {text}{temperature.state === "stale" && typeof temperature.value === "number" && <> · {t("이전 관측")}</>}
+  </span>;
 }
 
 function FirstSwimObservation({ spotId }: { spotId: number }) {
@@ -26,6 +28,7 @@ function FirstSwimObservation({ spotId }: { spotId: number }) {
         <p>{typeof value === "number"
           ? <strong>{t("관측 수온")} {value}°C</strong>
           : t(reason)}</p>
+        {state === "stale" && <p role="status">{t(reason)}</p>}
         {observation && station && <dl className="first-swim-explanation">
           <div><dt>{t("관측 출처")}</dt><dd>{observation.provider} · {station.name ?? station.source_id}{station.relation === "representative_station" && <> · {t("대표 관측소 자료")}</>}</dd></div>
           <div><dt>{t("관측 시각")}</dt><dd>{displayTime(observation.observed_at)}</dd></div>

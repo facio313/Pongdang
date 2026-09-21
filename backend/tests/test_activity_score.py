@@ -65,6 +65,77 @@ def test_components_and_total_use_available_evidence_without_missing_points():
     assert result == calculate_activity_score(evidence)
 
 
+@pytest.mark.parametrize("name,value", [("air_temperature", 23.0), ("wind_speed", 1.8)])
+def test_valid_weather_grid_survives_newer_expired_buoy(name, value):
+    grid = metric(
+        name,
+        value,
+        station_id=10,
+        relation="containing_forecast_grid",
+        evidence=(
+            source(
+                name,
+                value,
+                observed_at=NOW - timedelta(hours=1),
+                valid_from=NOW - timedelta(hours=1),
+            ),
+        ),
+    )
+    buoy = metric(
+        name,
+        None,
+        station_id=20,
+        relation="nearby_station_context",
+        distance_km=2.0,
+        status="stale",
+        reason_codes=("measurement_expired",),
+        evidence=(
+            source(
+                name,
+                value,
+                observed_at=NOW - timedelta(minutes=40),
+                valid_from=NOW - timedelta(minutes=40),
+                valid_until=NOW - timedelta(minutes=10),
+            ),
+        ),
+    )
+    result = calculate_activity_score(
+        envelope(metrics=(), context_metrics=(grid, buoy))
+    )
+    selected = component(result, name)
+    assert selected.station_id == 10 and selected.value == value
+    assert selected.status == "evaluated"
+
+
+def test_missing_weather_grid_does_not_silently_switch_to_marine_temperature():
+    grid = metric(
+        value=None,
+        station_id=10,
+        relation="containing_forecast_grid",
+        status="missing",
+        reason_codes=("numeric_measurement_missing",),
+        evidence=(source(value=None, is_missing=True),),
+    )
+    buoy = metric(
+        value=25.0, station_id=20, relation="nearby_station_context", distance_km=2.0
+    )
+    result = calculate_activity_score(
+        envelope(metrics=(), context_metrics=(grid, buoy))
+    )
+    assert component(result, "air_temperature").score is None
+
+
+def test_cold_air_zero_is_included_in_average_and_differs_from_missing():
+    wave = metric("wave_height", 0.0)
+    cold = calculate_activity_score(envelope(metrics=(metric(value=10.0), wave)))
+    warm = calculate_activity_score(envelope(metrics=(metric(value=25.0), wave)))
+    missing = calculate_activity_score(envelope(metrics=(wave,)))
+    assert component(cold, "air_temperature").score == 0.0
+    assert cold.score == 50.0 and warm.score == 100.0
+    assert cold.available_components == 2 and missing.available_components == 1
+    assert component(missing, "air_temperature").score is None
+
+
 @pytest.mark.parametrize(
     "status", ["missing", "stale", "unknown", "unit_mismatch", "not_applicable"]
 )

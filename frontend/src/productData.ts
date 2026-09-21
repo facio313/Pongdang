@@ -80,6 +80,8 @@ export interface Metric {
   }[];
 }
 export interface Conditions {
+  /** Display-only retention; source times and server scores are unchanged. */
+  retained?: boolean;
   spot_id: number;
   place_name: string | null;
   activity: Activity;
@@ -157,6 +159,10 @@ export function scoreCoverageText(data?: Conditions): string {
   return `${prefix}${t("근거 {available}/{total}{percentage}", { available, total, percentage })}`;
 }
 
+export function conditionRetentionText(data?: Conditions) {
+  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.at) }) : "";
+}
+
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
  *  같은 코드가 화면마다 다른 말로 보이지 않게 하려는 것이므로, 새 사전을
  *  만들지 말고 여기에 추가하세요. */
@@ -197,7 +203,7 @@ export function conditionScoreText(data?: Conditions) {
   const support = index.reason_codes.includes("activity_support_unknown") ? t(" 활동 지원 여부 미확인.") : "";
   const context = index.reason_codes.includes("nearby_station_context") ? t(" 주변 관측소 참고 · 장소 실측 아님.") : "";
   const issueUnknown = index.components.some((component) => component.reason_codes.includes("provider_issue_time_unknown")) ? t(" 예보 발표 시각 미확인.") : "";
-  return t("{label} {score}{coverage} · {state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.{support}{context}{issueUnknown}", {
+  return (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("{label} {score}{coverage} · {state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.{support}{context}{issueUnknown}", {
     label: t(index.label), score: score === null ? "–" : t("{score}점", { score }), coverage, state, support, context, issueUnknown,
   });
 }
@@ -217,7 +223,7 @@ export function evidenceSummary(data?: Conditions) {
   // conditionScoreText 로 그대로 남습니다.
   const coverage = t(" · 근거 확보 {available}/{total}", { available: index.available_components, total: index.total_components });
   const at = timeLabel(data?.at);
-  return t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
+  return (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
 }
 /** 안전 상태의 사용자 문장. 서버 enum(unknown/caution/restricted)을 그대로 쓰면
  *  뜻이 전달되지 않고, 특히 unknown 은 「이상 없음」으로 읽힙니다. 모르는 값은
@@ -438,13 +444,14 @@ export function conditionPath(
   id?: number,
   activity: Activity = "swim",
   at?: string,
+  mode?: "observation" | "forecast",
 ) {
   return id
     ? "water-index/conditions?" +
         new URLSearchParams({
           spot_id: String(id),
           activity,
-          mode: at ? "forecast" : "observation",
+          mode: mode ?? (at ? "forecast" : "observation"),
           ...(at ? { at } : {}),
         })
     : // 장소를 아직 모르는 것은 자료가 없는 것과 다릅니다(useResource 의
@@ -470,6 +477,7 @@ export function conditionSeriesPath(id: number | undefined, activity: Activity, 
 /** 목록 한 줄이 쓰는 요약. 전체 봉투(Conditions)에서 서버가 **뽑아낸** 것이며
  *  따로 계산한 값이 아닙니다 -- 목록과 상세가 다른 숫자를 말하면 안 됩니다. */
 export interface ConditionSummary {
+  retained?: boolean;
   spot_id: number;
   place_name: string | null;
   support_status: string;

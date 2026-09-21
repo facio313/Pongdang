@@ -20,14 +20,17 @@ export function useConditions(
   const needsForecast = !at && primary.data && conditionScore(primary.data) === null &&
     primary.data.condition_score?.status !== "blocked" &&
     primary.data.safety_status !== "restricted" && primary.data.support_status !== "unsupported";
-  // Use this place's just-returned observation target; a mount-time timestamp
-  // would query the wrong time after changing place or leaving the page open.
-  const fallback = useResource<Conditions>(needsForecast ? conditionPath(id, activity, primary.data!.at) : null);
-  const current = needsForecast && fallback.data ? fallback.data : primary.data;
-  const expired = useExpired(conditionScoreExpiry(current));
-  if (expired) return { ...primary, data: undefined, loading: false };
-  if (!needsForecast) return primary;
-  if (fallback.data && (conditionScore(fallback.data) !== null || fallback.data.metrics.length > primary.data!.metrics.length))
-    return fallback;
-  return { ...primary, loading: fallback.loading, error: primary.error ?? fallback.error };
+  // The server resolves an omitted target to request time. This stable current
+  // forecast key retains its result across observation refreshes; explicit date
+  // queries elsewhere still use their exact target and never borrow this result.
+  const fallback = useResource<Conditions>(needsForecast ? conditionPath(id, activity, undefined, "forecast") : null);
+  const selected = needsForecast && fallback.data && (conditionScore(fallback.data) !== null || fallback.data.metrics.length > primary.data!.metrics.length)
+    ? fallback : primary;
+  const expired = useExpired(at ? undefined : conditionScoreExpiry(selected.data));
+  return {
+    ...selected,
+    data: expired && selected.data ? { ...selected.data, retained: true } : selected.data,
+    loading: selected.data ? false : selected.loading || !!(needsForecast && fallback.loading),
+    error: selected.error ?? (needsForecast ? fallback.error : undefined),
+  };
 }

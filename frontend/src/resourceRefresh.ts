@@ -1,5 +1,5 @@
-/** Shared reads refresh at most once per ten minutes unless the user asks. */
-export const RESOURCE_REFRESH_INTERVAL = 600000;
+/** Shared reads refresh every thirty minutes unless the user asks. */
+export const RESOURCE_REFRESH_INTERVAL = 1800000;
 
 let generation = 0;
 const listeners = new Set<() => void>();

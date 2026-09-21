@@ -3,15 +3,9 @@ import { travelJson } from "./travelApi";
 import { queueResourceRead } from "./resourceQueue";
 import { useI18n } from "./i18n";
 import { RESOURCE_REFRESH_INTERVAL, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
+import { retainConditionData, retainsDisplayData } from "./retainConditionData";
 
-/** 「아직 한 번도 보여준 적 없는 첫 조회」인지.
- *
- *  조회 중을 「자료 없음」(–)으로 그리면 자료가 없다고 거짓말이 되지만, 반대로
- *  **모든** 조회 중을 스켈레톤으로 그리는 것도 틀립니다. 근거가 만료돼 다시
- *  불러오는 동안에는 이미 보여주던 값이 **못 쓰는 값이 됐다는 사실 자체가
- *  결론**이므로, 곧 숫자가 온다는 듯 자리를 잡아 두지 않고 그 자리에서 «–» 로
- *  비웁니다(useConditions 의 만료 처리). 스켈레톤은 아무것도 보여준 적 없는
- *  첫 조회에만 씁니다. */
+/** Skeletons are for the first read; later reads keep the displayed result. */
 export function isInitialLoad(state: {
   loading: boolean;
   previousData?: unknown;
@@ -41,10 +35,12 @@ export type ResourcePath = string | null | undefined;
  *  말하는 사실은 그대로인데 네트워크만 다시 때린 것입니다.
  *
  *  기억하는 것은 **성공한 응답뿐**입니다. 실패는 다시 물어볼 수 있어야 하므로
- *  남기지 않습니다. 근거 만료는 useExpiry가 화면에서 즉시 반영합니다.
- *  만료 표시와 자동 재조회 주기는 독립적입니다. */
+ *  남기지 않습니다. 조건 자료는 갱신 실패·근거 부족에도 마지막 결과를
+ *  기준 시각과 함께 보존합니다. */
 interface CacheEntry {
   data: unknown;
+  generation: number;
+  refreshError?: string;
   /** 응답을 받은 시각. TTL 이 지나면 화면은 그대로 둔 채 조용히 다시 읽습니다. */
   at: number;
 }
@@ -79,7 +75,7 @@ function watch(path: string, notify: () => void) {
 
 /** 이 경로의 기억을 버리고, 보고 있는 화면에 다시 읽게 합니다.
  *
- *  기억은 60초 살아 있습니다(CACHE_TTL). 그 시간은 **아무도 고치지 않았을 때**
+ *  기억은 CACHE_TTL 동안 살아 있습니다. 그 시간은 **아무도 고치지 않았을 때**
  *  같은 사실을 다시 묻지 않기 위한 것이지, 방금 내가 고친 것을 옛 값으로
  *  보여주기 위한 것이 아닙니다. 쓰기가 성공한 쪽에서 이걸 불러 주세요
  *  (useTastePreference.savePreference). */
@@ -89,9 +85,9 @@ export function forgetResource(path: string) {
   for (const notify of watchers.get(path) ?? []) notify();
 }
 
-function remember(key: string, data: unknown) {
+function remember(key: string, data: unknown, generation: number, refreshError?: string) {
   cache.delete(key);
-  cache.set(key, { data, at: Date.now() });
+  cache.set(key, { data, at: Date.now(), generation, refreshError });
   while (cache.size > CACHE_MAX) {
     const oldest = cache.keys().next();
     if (oldest.done) break;
@@ -103,26 +99,32 @@ function remember(key: string, data: unknown) {
  *  사라져도 취소되지 않습니다** -- 예전에는 폭 전환 중에 진행 중이던 요청이
  *  `controller.abort()` 로 죽고, 새 레이아웃이 같은 것을 처음부터 다시
  *  물었습니다. */
-function readResource(key: string, path: string, generation: number) {
+function readResource(key: string, resourceKey: string, path: string, generation: number) {
   const shared = inflight.get(key);
   if (shared) return shared;
   const signal = AbortSignal.timeout(20000);
   const pending = (async () => {
     try {
-      const data = await queueResourceRead(signal, () =>
+      const incoming = await queueResourceRead(signal, () =>
         travelJson<unknown>(import.meta.env.BASE_URL, path, "GET", undefined, signal),
       );
+      const data = retainConditionData(path, cache.get(resourceKey)?.data, incoming);
       // A read started before a manual refresh cannot repopulate its new cache.
-      if (generation === resourceRefreshGeneration()) remember(key, data);
+      if (generation === resourceRefreshGeneration()) remember(resourceKey, data, generation);
       return { data };
     } catch (error) {
-      return {
-        error: signal.aborted
+      const message = signal.aborted
           ? "자료 조회 시간이 초과됐습니다. 잠시 후 새로고침해 주세요."
           : error instanceof Error
             ? error.message
-            : "데이터를 불러오지 못했습니다.",
-      };
+            : "데이터를 불러오지 못했습니다.";
+      const previous = cache.get(resourceKey)?.data;
+      if (previous !== undefined && retainsDisplayData(path)) {
+        const data = retainConditionData(path, previous, undefined);
+        if (generation === resourceRefreshGeneration()) remember(resourceKey, data, generation, message);
+        return { data, refreshError: message };
+      }
+      return { error: message };
     } finally {
       inflight.delete(key);
     }
@@ -142,6 +144,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     resourceKey: string;
     data?: T;
     error?: string;
+    refreshError?: string;
   }>();
   // 무효화 횟수. forgetResource 가 이 값을 올리면 아래 effect 가 다시 돕니다.
   const [stamp, setStamp] = useState(0);
@@ -154,13 +157,13 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
-      const entry = cache.get(key);
-      const next = entry && Date.now() - entry.at < CACHE_TTL
-        ? await Promise.resolve({ data: entry.data, error: undefined })
-        : await readResource(key, path, generation);
+      const entry = cache.get(resourceKey);
+      const next = entry && entry.generation === generation && Date.now() - entry.at < CACHE_TTL
+        ? await Promise.resolve({ data: entry.data, error: undefined, refreshError: entry.refreshError })
+        : await readResource(key, resourceKey, path, generation);
       if (!alive) return;
       setResult({ key, resourceKey, ...(next as { data?: T; error?: string }) });
-      const refreshed = cache.get(key);
+      const refreshed = cache.get(resourceKey);
       timer = setTimeout(() => { void refresh(); }, !next.error && refreshed
         ? Math.max(1, CACHE_TTL - (Date.now() - refreshed.at))
         : CACHE_TTL);
@@ -176,8 +179,8 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
   const hit =
     result?.key === key
       ? result
-      : cache.has(key)
-        ? { key, data: cache.get(key)!.data as T, error: undefined }
+      : cache.has(resourceKey)
+        ? { key, data: cache.get(resourceKey)!.data as T, error: undefined, refreshError: cache.get(resourceKey)!.refreshError }
         // A manual refresh keeps the same screen and current selection visible.
         // A different path/revision must not borrow another query's result.
         : result?.resourceKey === resourceKey ? result : undefined;

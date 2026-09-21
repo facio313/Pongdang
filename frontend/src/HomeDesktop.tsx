@@ -47,6 +47,7 @@ import {
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { useHourlyScores } from "./useHourlyScores";
+import { conditionRetentionText } from "./productData";
 import type { ActivityCondition } from "./useBestActivity";
 import { spotLink } from "./spotsRoute";
 import { useWaterPlaces } from "./useWaterPlaces";
@@ -161,6 +162,7 @@ function HomeHero({
             />
           </div>
           <ScoreGauge score={best?.score ?? null} loading={loading} glass />
+          {best?.data?.retained && <p className="pd-retained-note" role="status">{conditionRetentionText(best.data)}</p>}
           {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 값이 없으면
               문장을 지어내지 않고 비워 둡니다. */}
           {verdict && <p className="hd-hero-verdict">{verdict}</p>}

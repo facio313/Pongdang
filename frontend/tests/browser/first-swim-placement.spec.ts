@@ -61,7 +61,7 @@ for (const width of [390, 1440]) {
     await expect(beaches.getByRole("button")).toHaveCount(0);
     const summaries = beaches.locator(".first-swim-preview");
     await expect(summaries).toHaveText([
-      "22°C", "18.5°C", "수온 미확인", "수온 갱신 대기",
+      "22°C", "18.5°C", "수온 미확인", "18.5°C · 이전 관측",
     ]);
     const nameRows = beaches.locator(".first-swim-name-row");
     await expect(nameRows).toHaveCount(4);
@@ -122,13 +122,13 @@ test("the explanation remains readable when private subscription status fails", 
   await expect(guide).not.toContainText("이 장소의 올해 알림 구독이 없습니다");
 });
 
-test("a visible beach stops presenting a temperature when its evidence expires", async ({ page }) => {
+test("a visible beach keeps its last temperature and labels expired evidence", async ({ page }) => {
   await page.clock.install();
   const { temperatureReads } = await fixture(page, { expiresInMs: 60000 });
   await page.goto("#home");
   const first = page.locator(".first-swim-preview").first();
   await expect(first).toHaveText("22°C");
   await page.clock.fastForward(61000);
-  await expect(first).toHaveText("수온 갱신 대기");
+  await expect(first).toHaveText("22°C · 이전 관측");
   expect(temperatureReads).toHaveLength(4);
 });

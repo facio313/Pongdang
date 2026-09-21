@@ -2,13 +2,11 @@ import type { Activity } from "./aiApi";
 import {
   conditionSeriesPath,
   conditionScore,
-  conditionScoreExpiry,
   kstDate,
   type Conditions,
   type ConditionSeries,
 } from "./productData";
 import { useResource } from "./useResource";
-import { useExpiry } from "./useExpiry";
 
 /** 조회할 시각.
  *
@@ -42,12 +40,8 @@ export function useHourlyScores(
   const result = useResource<ConditionSeries>(activity ? conditionSeriesPath(id, activity, targets) : null);
   const rows = new Map(result.data?.rows.map((row) => [Date.parse(row.at), row]));
   const values = targets.map((target) => rows.get(Date.parse(target)));
-  const expiries = values.map(conditionScoreExpiry);
-  const expiredUntil = useExpiry(expiries);
   return HOURS.map((hour, index) => {
-    const expiry = expiries[index];
-    const expired = expiry !== undefined && expiredUntil !== undefined && expiry <= expiredUntil;
-    const data = expired ? undefined : values[index];
+    const data = values[index];
     return { hour, score: conditionScore(data), data, loading: result.loading, error: result.error };
   });
 }

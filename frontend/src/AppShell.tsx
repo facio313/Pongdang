@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { LOGO_ALT, logoUrl } from "./brand";
+import { DataRefreshButton } from "./DataRefreshButton";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 
@@ -38,7 +39,7 @@ export function AppHeader({
       <span className="pd-header-mark">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </span>
-      <span>{title}</span>
+      <span className="pd-header-actions"><span>{title}</span><DataRefreshButton /></span>
     </div>
   );
 }

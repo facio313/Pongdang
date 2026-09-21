@@ -41,8 +41,8 @@ test('authentication and invalid status responses never claim a completed refres
   }
 });
 
-test('common reads use ten minutes and one invalidation notifies all active consumers', () => {
-  assert.equal(RESOURCE_REFRESH_INTERVAL, 600000);
+test('common reads use thirty minutes and one invalidation notifies all active consumers', () => {
+  assert.equal(RESOURCE_REFRESH_INTERVAL, 1800000);
   const before = resourceRefreshGeneration();
   const seen = [];
   const unsubscribeA = subscribeResourceRefresh(() => seen.push(['a', resourceRefreshGeneration()]));

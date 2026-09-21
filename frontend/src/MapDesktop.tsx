@@ -79,7 +79,7 @@ function SpotRow({
   onSelect,
 }: {
   place: Place;
-  summary?: Pick<ConditionSummary, "condition_score" | "water_temperature">;
+  summary?: Pick<ConditionSummary, "condition_score" | "water_temperature" | "retained">;
   loading: boolean;
   selected: boolean;
   onSelect: () => void;
@@ -102,6 +102,7 @@ function SpotRow({
         <span className="mk-spot-grade">
           <GradeIcon gradeKey={grade.key} size={12} />
           {t(grade.label)}
+          {summary?.retained && <> · {t("이전 관측")}</>}
         </span>
       </span>
       <span className="pd-dk-num mk-spot-temp">
@@ -246,6 +247,7 @@ export function MapDesktop() {
               key={place.id}
               place={place}
               summary={place.id === selected?.id ? {
+                retained: conditions.data?.retained,
                 condition_score: conditions.data?.condition_score,
                 water_temperature: conditions.data?.metrics.find((metric) => metric.name === "water_temperature"),
               } : summaries.byId.get(place.id)}
