@@ -176,13 +176,13 @@ function MyCoursesScreen() {
               }}
             />
 
-            {/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 --
-                공용 .pd-hero 규칙을 그대로 쓰고 자리만 지도 위로 옮깁니다. */}
+            {/* 지도 위 띠. 공용 .pd-hero 규칙을 쓰되 지도 · 내 코스 두 화면만
+                면과 잉크를 반전합니다 -- 흰 면에 코발트 잉크
+                (myCoursesPage.css). 그래서 onCobalt 를 주지 않습니다. */}
             <header className="pd-hero mc-topbar">
               <AppHeader
                 title={t("내 코스")}
                 time={timeLabel(new Date().toISOString())}
-                onCobalt
               />
             </header>
 

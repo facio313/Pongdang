@@ -22,23 +22,32 @@
   background-color: #cddff0;
 }
 
-/* 지도 위 코발트 띠. 이 화면의 유일한 히어로 레이어입니다 -- 공용 .pd-hero 의
-   코발트 · 하단 라운드 · 히어로 그림자를 그대로 물려받고 자리와 높이만
-   덮습니다. 지도 타일의 밝기를 예측할 수 없다고 해서 반투명 스크림을 새로
-   만들지 않습니다: 그라디언트는 코발트 히어로 하나뿐입니다(디자인 시스템 v2
-   §07). */
+/* 지도 위 띠. 공용 .pd-hero 의 하단 라운드 · 그림자는 그대로 물려받되, 이
+   화면(과 내 코스)만 **면과 잉크를 반전**합니다 -- 코발트 대신 흰 면, 잉크는
+   코발트 계열. 지도 타일 위에서 띠 자체가 경계가 됩니다. 반투명 스크림은
+   만들지 않습니다: 불투명한 흰 면 하나입니다. */
 .map-page .mp-topbar {
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 5;
   min-height: 0;
   padding-bottom: 10px;
+  background: var(--pd-surface);
+}
+.map-page .mp-topbar .pd-header {
+  color: var(--pd-blue-deep);
+}
+/* 손잡이는 코발트 면 전제의 유리 스타일이라 흰 면 위에서는 보이지 않습니다. */
+.map-page .mp-topbar .pd-menu-button {
+  border-color: var(--pd-line);
+  background: var(--pd-mist);
+  color: var(--pd-blue-deep);
 }
 .map-page .mp-searchbar {
   position: absolute;
-  /* 코발트 띠 바로 아래. 띠 높이는 노치 여백(.pd-header)에 따라 달라지므로
-     같은 계산식을 씁니다. */
-  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);
+  /* 띠 바로 아래. 띠 높이는 노치 여백(.pd-header)에 따라 달라지므로 같은
+     계산식을 씁니다. 워드마크(36px)가 띠 높이를 정합니다. */
+  top: calc(max(10px, env(safe-area-inset-top, 0px)) + 62px);
   left: 16px;
   right: 16px;
   z-index: 4;

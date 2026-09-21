@@ -154,8 +154,9 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-desktop-menu-root {
   display: contents;
 }
-/* 표지는 이미지 한 장입니다(brand.ts). 원본이 코발트와 같은 파랑이라 이
-   면 위에서는 흰 단색으로 눕히고, 흰 배경 변형에서만 원색으로 돌립니다. */
+/* 표지는 이미지 한 장입니다(brand.ts). 모바일 헤더(.pd-header-mark)와 같은
+   규칙입니다 -- 원본이 코발트와 같은 파랑이지만 흰 단색으로 눕히지 않고
+   원색 그대로 두고, 코발트 띠 위에서만 흰 외곽선으로 대비를 만듭니다. */
 .pd-dk-nav-mark {
   display: flex;
   align-items: center;
@@ -163,9 +164,15 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-dk-nav-mark img {
   display: block;
   width: auto;
-  height: 24px;
+  height: 48px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)
+    drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff);
+}
+/* 흰 면 위(명소 상세 · 지도 · 내 코스)에서는 테두리가 보이지 않으므로 끕니다. */
+.pd-dk-nav.is-on-surface .pd-dk-nav-mark img,
+.pd-dk-nav.is-on-map .pd-dk-nav-mark img {
+  filter: none;
 }
 .pd-dk-nav-links {
   display: flex;
@@ -195,9 +202,6 @@ main:has(.pd-desktop.is-fullscreen) {
   padding: 22px var(--dk-pad) 18px;
   border-bottom: 1px solid var(--dk-rule);
 }
-.pd-dk-nav.is-on-surface .pd-dk-nav-mark img {
-  filter: none;
-}
 .pd-dk-nav.is-on-surface .pd-dk-nav-link {
   color: var(--dk-ink-2);
 }
@@ -209,18 +213,34 @@ main:has(.pd-desktop.is-fullscreen) {
   color: var(--dk-ink-2);
 }
 
-/* 풀스크린 지도 위에 얹히는 변형. 이 띠가 그 화면의 **유일한 히어로 레이어**
-   이므로 코발트 면을 스스로 깝니다 -- 지도 타일의 밝기를 예측할 수 없다고 해서
-   반투명 스크림을 새로 만들지 않습니다. 그라디언트는 코발트 히어로 하나뿐이고
-   (디자인 시스템 v2 §07), 그 하나가 여기입니다. 잉크는 다른 코발트 면과 같은
-   --dk-onc 계열이라 대비도 그대로입니다. */
+/* 풀스크린 지도 위에 얹히는 변형. 지도 · 내 코스 두 화면은 다른 탭과 **반전**
+   합니다: 코발트 면 대신 흰 면을 깔고 잉크를 코발트 계열로 돌려, 지도 타일
+   위에서 띠가 스스로 경계가 되게 합니다(그림자로 지도와 분리). 반투명 스크림은
+   여전히 만들지 않습니다 -- 불투명한 흰 면 하나입니다. */
 .pd-dk-nav.is-on-map {
   position: absolute;
   inset: 0 0 auto 0;
   z-index: 5;
   min-height: var(--dk-map-nav-h);
   padding: 22px var(--dk-pad) 20px;
-  background: var(--dk-cobalt);
+  background: var(--dk-surface);
+  box-shadow: var(--dk-shadow-map);
+}
+/* 잉크 세트는 흰 배경 변형(.is-on-surface)과 같습니다. */
+.pd-dk-nav.is-on-map .pd-menu-button {
+  border-color: var(--dk-line);
+  background: var(--dk-mist);
+  color: var(--dk-ink);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-link {
+  color: var(--dk-ink-2);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-link[aria-current="page"] {
+  color: var(--dk-ink);
+  box-shadow: inset 0 -2px 0 var(--dk-blue);
+}
+.pd-dk-nav.is-on-map .pd-dk-nav-context {
+  color: var(--dk-ink-2);
 }
 
 /* ── 히어로 ────────────────────────────────────────────────
@@ -338,9 +358,11 @@ main:has(.pd-desktop.is-fullscreen) {
   /* 지도가 뜨기 전에도 흰 구멍이 아니라 물빛 면으로 보이게 합니다. */
   background: #dfe8f2;
 
-  /* 상단 코발트 띠의 높이. 네비와 아래 크롬 레이어가 **같은 값**을 읽습니다 --
-     한쪽을 고치고 다른 쪽을 잊으면 패널이 네비 밑으로 들어갑니다. */
-  --dk-map-nav-h: 68px;
+  /* 상단 띠의 높이. 네비와 아래 크롬 레이어가 **같은 값**을 읽습니다 --
+     한쪽을 고치고 다른 쪽을 잊으면 패널이 네비 밑으로 들어갑니다. 워드마크
+     48px 에 띠 패딩(22 + 20)을 더한 값입니다 -- 내용이 이 값을 넘으면 패널이
+     네비 밑으로 들어갑니다. */
+  --dk-map-nav-h: 90px;
   /* 좌 · 우 패널 폭. 예전 2열 구성(.mk-stage)의 352px 을 그대로 승계합니다. */
   --dk-map-panel-w: 352px;
 }
