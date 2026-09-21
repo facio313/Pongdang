@@ -45,7 +45,6 @@ import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import { useTastePreference } from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
-import { TravelLanguageNote } from "./TravelLanguageSelector";
 import { TravelRegionSelector } from "./TravelRegionSelector";
 import { travelRegionLabel, useTravelRegionSelection } from "./travelRegion";
 import { DEFAULT_PROVINCE, type RegionCatalog } from "./waterPlaceApi";
@@ -585,8 +584,6 @@ export function RecommendDesktop() {
                 <h1 className="rd-hero-title">
                   {t("고른 조건으로")}<br />
                   {t("실제 장소를 찾습니다")}</h1>
-                <p className="rd-hero-note">
-                  {t("서버가 등록 장소 카탈로그를 조회해 취향 일치 순서로 후보를 만듭니다. 경로는 출발지와 출발 시각을 넣어 따로 요청합니다. 순서와 시각은 예상값이며 안전 판정이 아닙니다.")}</p>
               </>
             )}
           </div>
@@ -612,7 +609,6 @@ export function RecommendDesktop() {
           </div>
         </div>
       </DesktopHero>
-      <TravelLanguageNote />
 
       {step !== null && (
         <div className="rd-row-foot">
@@ -703,7 +699,7 @@ export function RecommendDesktop() {
           }
           desc={
             tasteGroup
-              ? t("최대 {count}개까지 고를 수 있습니다. 선택 항목과 상한은 서버 키워드 카탈로그(travel-keywords.v1)에서 읽습니다. 선택은 색과 ✓ 두 겹으로 표시합니다.", { count: tasteGroup.max_selections })
+              ? t("최대 {count}개까지 고를 수 있습니다. ", { count: tasteGroup.max_selections })
               : t("고른 항목을 취향으로 저장하고 실제 장소를 조회합니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다.")
           }
         >

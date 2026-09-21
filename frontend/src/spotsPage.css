@@ -83,6 +83,8 @@
 .spots-page .water-place-filters {
   gap: 10px;
   padding: 0;
+  padding: 18px var(--dk-pad);
+
 }
 .spots-page .water-place-filters label {
   flex-direction: row;

@@ -197,9 +197,71 @@ main:has(.pd-desktop.is-fullscreen) {
   box-shadow: inset 0 -2px 0 var(--dk-sky);
 }
 .pd-dk-nav-context {
-  margin-left: auto;
   font-size: 12px;
   color: var(--dk-onc-2);
+}
+
+/* 언어 전환. 네비 오른쪽 끝으로 밀어 두며, 컨텍스트 문구가 없는 화면에서도
+   같은 자리에 서도록 margin-left: auto 를 이 쪽에 둡니다. */
+.pd-dk-lang {
+  position: relative;
+  margin-left: auto;
+}
+.pd-dk-lang summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--dk-glass-line);
+  border-radius: 999px;
+  background: var(--dk-glass);
+  color: var(--dk-onc);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-dk-lang summary::-webkit-details-marker,
+.pd-dk-lang summary::marker {
+  display: none;
+  content: "";
+}
+.pd-dk-lang-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 128px;
+  padding: 8px;
+  border: 1px solid var(--dk-line);
+  border-radius: 10px;
+  background: var(--dk-surface);
+  box-shadow: var(--dk-shadow-map);
+}
+.pd-dk-lang-panel button {
+  padding: 8px 10px;
+  border: 1px solid var(--dk-line);
+  border-radius: 8px;
+  background: var(--dk-mist);
+  color: var(--dk-ink);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-dk-lang-panel button[aria-pressed="true"] {
+  border-color: var(--dk-blue);
+  background: #fff;
+  color: var(--dk-blue);
+  font-weight: 700;
+}
+.pd-dk-nav.is-on-surface .pd-dk-lang summary,
+.pd-dk-nav.is-on-map .pd-dk-lang summary {
+  border-color: var(--dk-line);
+  background: var(--dk-mist);
+  color: var(--dk-ink);
 }
 
 /* 흰 배경 위에 얹히는 변형(명소 상세처럼 코발트 히어로가 없는 화면). */

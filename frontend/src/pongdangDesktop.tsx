@@ -1,11 +1,12 @@
 import { t } from "./i18n";
-import type { CSSProperties, ReactNode } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import { LOGO_ALT, logoUrl } from "./brand";
+import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
 // 물결 굴곡은 모바일 홈 히어로와 공유합니다(waveShape.ts 주석).
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
@@ -24,6 +25,36 @@ import "./pongdangDesktop.css";
 // 값을 모바일 레이아웃과 나눠 쓰기 위해서입니다.
 //
 // 카드 · 그림자 · 흰 테두리는 쓰지 않습니다. 구분은 괘선과 여백으로만 만듭니다.
+
+/** 헤더 안의 언어 전환. 사이드 메뉴에도 같은 선택지(TravelLanguageSelector)가
+ *  있지만, 언어를 자주 바꾸는 사람이 메뉴를 열지 않고도 닿게 헤더에 둡니다.
+ *  고르면 패널을 닫아 다시 눌러 접을 필요가 없게 합니다. */
+function DesktopLanguageSwitcher() {
+  const { locale } = useTravelLanguage();
+  const current = TRAVEL_LANGUAGES.find((language) => language.locale === locale)!;
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  return (
+    <details className="pd-dk-lang" ref={detailsRef}>
+      <summary aria-label={t("언어 선택")}>{current.label}</summary>
+      <div className="pd-dk-lang-panel" role="group" aria-label={t("언어 선택")}>
+        {TRAVEL_LANGUAGES.map((language) => (
+          <button
+            type="button"
+            key={language.locale}
+            lang={language.locale}
+            aria-pressed={locale === language.locale}
+            onClick={() => {
+              setTravelLanguage(language.locale);
+              if (detailsRef.current) detailsRef.current.open = false;
+            }}
+          >
+            {language.label}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 export function DesktopNav({
   active,
@@ -72,6 +103,7 @@ export function DesktopNav({
           </a>
         ))}
       </span>
+      <DesktopLanguageSwitcher />
       {context !== undefined && (
         <span className="pd-dk-nav-context">{context}</span>
       )}
