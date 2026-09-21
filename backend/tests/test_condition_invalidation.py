@@ -4,13 +4,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from psycopg import sql
+from psycopg import errors, sql
 from test_condition_score_integration import database as database
 from test_condition_score_integration import source, station
 
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import VERSION, connect, initialize
+from app.water_index import condition_invalidation
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.condition_storage import (
     migrate_conditions,
@@ -235,3 +236,46 @@ def test_empty_writes_and_identical_updates_do_not_invalidate(database, table):
             )
         )
         assert projection_revision(c) == revision
+
+
+def test_migration_waits_for_readers_without_blocking_other_reads(
+    database, monkeypatch
+):
+    waits = []
+    with connect(database) as reader, connect(database) as migration:
+        reader.execute("SELECT 1 FROM pongdang_data.spots_waterspot LIMIT 1")
+
+        def finish_reader(delay):
+            waits.append(delay)
+            # The failed NOWAIT attempt acquired earlier table locks first;
+            # rolling back its savepoint must have released every one of them.
+            with connect(database) as other_reader:
+                for table, _ in condition_invalidation.INPUT_TABLES:
+                    other_reader.execute(
+                        sql.SQL("SELECT 1 FROM {} LIMIT 1").format(
+                            sql.Identifier("pongdang_data", table)
+                        )
+                    )
+            reader.commit()
+
+        monkeypatch.setattr(condition_invalidation, "sleep", finish_reader)
+        condition_invalidation.migrate_condition_invalidation(migration)
+        assert waits == [0.5]
+        assert migration.execute(
+            "SELECT version FROM pongdang_data.schema_version"
+        ).fetchone() == (VERSION,)
+
+
+def test_migration_lock_wait_is_bounded_and_leaves_schema_intact(database, monkeypatch):
+    clock = iter([0, 300])
+    monkeypatch.setattr(condition_invalidation, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(
+        condition_invalidation, "sleep", lambda _: pytest.fail("Deadline passed")
+    )
+    with connect(database) as reader:
+        reader.execute("SELECT 1 FROM pongdang_data.spots_waterspot LIMIT 1")
+        with pytest.raises(errors.LockNotAvailable), connect(database) as migration:
+            condition_invalidation.migrate_condition_invalidation(migration)
+        assert reader.execute(
+            "SELECT version FROM pongdang_data.schema_version"
+        ).fetchone() == (VERSION,)

@@ -1,10 +1,45 @@
 """Invalidate published conditions only when collection inputs actually change."""
 
-from psycopg import sql
+from time import monotonic, sleep
+
+from psycopg import errors, sql
+
+INPUT_TABLES = (
+    ("conditions_observationsnapshot", ()),
+    ("conditions_observationmetric", ()),
+    ("collection_station", ("fetched_at",)),
+    ("spots_waterspot", ("catalog_verified_at",)),
+    ("water_index_station_mapping", ()),
+    ("water_index_authority_evidence", ()),
+)
+
+
+def _lock_inputs(connection):
+    """Wait for active readers without queuing an exclusive lock behind them."""
+    # Ensure transaction() below is a savepoint even for a fresh connection.
+    connection.execute("SELECT 1")
+    deadline = monotonic() + 300
+    statement = sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE NOWAIT").format(
+        sql.SQL(", ").join(
+            sql.Identifier("pongdang_data", table) for table, _ in INPUT_TABLES
+        )
+    )
+    while True:
+        try:
+            # A failed multi-table attempt must release every lock it acquired.
+            # Success retains the locks until the outer migration commits.
+            with connection.transaction():
+                connection.execute(statement)
+            return
+        except errors.LockNotAvailable:
+            if monotonic() >= deadline:
+                raise
+            sleep(0.5)
 
 
 def migrate_condition_invalidation(connection):
     """Replace v15 statement triggers without changing source data or scores."""
+    _lock_inputs(connection)
     connection.execute("""
         CREATE OR REPLACE FUNCTION pongdang_data.condition_input_content(
             content jsonb, refresh_fields text[], cutoff timestamptz
@@ -48,14 +83,7 @@ def migrate_condition_invalidation(connection):
             RETURN NULL;
         END $$
     """)
-    for table, refresh_fields in (
-        ("conditions_observationsnapshot", ()),
-        ("conditions_observationmetric", ()),
-        ("collection_station", ("fetched_at",)),
-        ("spots_waterspot", ("catalog_verified_at",)),
-        ("water_index_station_mapping", ()),
-        ("water_index_authority_evidence", ()),
-    ):
+    for table, refresh_fields in INPUT_TABLES:
         target = sql.Identifier("pongdang_data", table)
         connection.execute(
             sql.SQL("DROP TRIGGER IF EXISTS condition_projection_changed ON {}").format(
