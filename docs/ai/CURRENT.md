@@ -1,4 +1,26 @@
-# 현재 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
+# 현재 작업 · 빠른 로컬 검증 및 main 전용 CI · 2026-09-21
+
+- 요청/제약: iCloud 안의 원본 저장소 위치 유지. dev 커밋·병합·동기화·push·배포 금지, 기존 dev refs 보존. 로컬→CI→운영에서 전체 검증 체인을 반복하지 않는다.
+- 구현: ops/verify_local.py에 수정 파일을 명시하면 해당 lint, 짧은 Node 단위 검사, 필요한 증분 타입 검사/명시한 backend 테스트만 실행한다. Git 전체 스캔·자동 저장소 복제·전체 빌드는 하지 않는다. backend 동작 변경은 관련 --test를 요구하고 DB 테스트에는 명시적인 disposable loopback pongdang_test 환경을 요구한다.
+- CI: main push/PR만, dev 수동/PR 차단. 마지막 성공한 main push CI 이후 변경을 비교한다. 평소 UI는 기존 browser 핵심 8개(@smoke), backend 표시 문구/테스트 변경은 관련 테스트+core. 인증·DB·수집·점수·공용 API·인프라·미분류·수동은 전체 관련 검사를 유지하며 전체 browser는 독립 DB 2 shards. 이전 테스트 167개와 실패 시 배포 차단은 유지한다.
+- 빌드: frontend job의 중복 production build 제거, Docker 이미지에서 typecheck+Vite build. frontend/backend별 GHA v2 layer cache, npm/uv cache mount. 기본 Docker health/readiness/초기화/collector 확인 유지; 초기화 반복/볼륨 재생성 검사는 full에서 실행. 운영은 기존 SHA/health/readiness와 실패 복구 유지, 서버 아키텍처/환경 인자에 맞춰 기존 서버 빌드 유지. CI 산출물의 운영 직접 재사용은 구현하지 않았다.
+- 지침: ~/.codex/AGENTS.md, cks-gitflow 및 cks-platform-ops 지침(관련 참조 포함), 프로젝트 AGENTS/README/docs/ci.md 갱신. 일상 작업에 all-worktree audit/전체 로컬 검증을 강제하지 않는다.
+- 실제 검증: scope/local 안전 조건 단위 테스트 20개, Ruff/ESLint, actionlint 1.7.12, 두 스킬 validator 통과. 새 로컬 명령으로 frontend 139 단위+증분 typecheck 5.3초, backend 관련 133 테스트+Ruff 13.7초(테스트 자체 12.54초). 브라우저 mobile/desktop 핵심 8개 실제 통과 17.8초. 변경 전 지침/파일 백업을 보존했다.
+- 검증 환경/한계: 같은 소스의 기존 ~/.cache/pongdang-all-release-20260921-131615 검증 복사본을 재사용, 원본 iCloud 파일을 비교 후 반영했다. 기존 임시 PG 디렉터리는 없어 새 disposable DB 49289/별도 browser 5181·8098을 사용하고 검증 후 종료했다. Docker CLI 부재로 새 이미지 빌드/컨테이너 검사는 로컬 미실행. 새 Actions/운영 배포는 미실행이며 위 시간은 로컬 검증 복사본 실측이다. 평소 CI 2~5분은 목표일 뿐 보장하지 않는다.
+- 반영 상태: 원본에 변경 저장, 이번 요청에서 커밋·push·배포·dev refs 갱신 없음. workflow는 승인된 main 반영 뒤 활성화된다. ci-watch/timer는 설치용 템플릿만 변경했고 운영 호스트 설치본은 별도 적용이 필요하다.
+- 관련: docs/ci.md, .github/workflows/ci.yml, ops/ci_scope.py, ops/verify_local.py. 검증 복사본 branch codex/main-only-ci, 백업 ~/.cache/pongdang-main-only-ci-backup. 다음 승인된 릴리스에서는 최신 main 통합 후 새 CI 자체(full, 배포 구성 변경)를 한 번 확인한다.
+
+# 이전 작업 · 전체 변경 통합 및 운영 배포 완료 · 2026-09-21
+
+- 사용자 승인: 다른 작업의 변경도 모두 커밋하고 최신 원격 main 통합·충돌 조정·main/dev push·운영 배포. 비공개 환경과 .byeori/, .playwright-cli/, output/는 보존했다.
+- 전체 작업 커밋 183c473(154개 파일). 최신 main의 헤더·지도 패널·홈 취향·추천 화면·설명 문구 변경을 포함했다. HomePage.tsx와 useResource.ts 충돌은 첫 입수 수온, 취향 칩, 저장 직후 무효화와 주기적 갱신을 모두 유지하도록 해결했다.
+- 운영 배포 SHA: 0f824a9ccecbd7ed5332919c99b03920b769000c. main/dev 원격이 동일 SHA임을 확인했다. CI 및 배포: https://github.com/facio313/Pongdang/actions/runs/35564313621
+- 검증: 최종 CI frontend lint/139 unit/build, backend Ruff/1398 tests, browser 167 tests, Docker smoke 모두 통과. 2026-09-21 14:38:43 KST 배포 로그에서 frontend/backend/db/collector Healthy, API readiness status=ok, 동일 SHA 적용을 확인했다. 인증 후 운영 UI 직접 조작은 미실행이다.
+- 중간 실패 해결: 웹캠 테스트의 고정 DB 비밀번호 제거(실제 비밀번호 인증 DB에서 재현 후 66개 통과), CI backend 작업 10분 제한을 20분으로 조정, 최신 공용 버튼 스타일과 상세 버튼 폭 충돌 수정 및 새 홈 취향 API fixture 보완(실패 7개 재현 후 관련 browser 19개 통과). 검사를 삭제하거나 우회하지 않았다.
+- 통합 체크아웃: /Users/cksmacbook/.cache/pongdang-all-release-20260921-131615. 증거·백업: 같은 경로에 -evidence 접미사를 붙인 디렉터리. 원본 iCloud Git mmap 시간 초과는 파일 비교와 별도 객체 디렉터리로 대응했고 Git 기록을 보존했다. 원본 제품 파일과 로컬 fix/finale·main·dev·origin/main·origin/dev를 배포 SHA로 동기화했다. 상세 상태는 release-state.json에 기록했다.
+- 이 배포 결과 기록은 배포 후 작성한 로컬 인수인계 메모다.
+
+# 이전 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
 
 - 요청: 기존 명소의 운영·개장·주차·시설·문의·소개를 보강해 DB에 저장하고, 신규 장소 및 제공처 수정일 변경 시에만 상세 API를 호출한다. 화면은 읽기 전용 DB 조회. 거리 값은 출발점 좌표에 따른 직선거리로 계산한다.
 - 구현: TourAPI 공통/소개/반복정보 수집, 추가형 v11 저장, 최대 100개 DB 조회 API, 데이터 목록, 모바일/데스크톱 및 여행 조회 연결 완료. 기존 행 최초 보강·신규 행·원본 수정 시만 요청하며 자료 없음도 기억한다. 사진의 7일 재조회와 같은 좌표의 행정구역 빈 응답 재조회를 제거했다. 상세: [PLACE-DETAILS.md](PLACE-DETAILS.md).

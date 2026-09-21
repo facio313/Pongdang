@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { ACTIVITY_LABEL, headlineOf, routePreference, routeRecommendation, serverRecommendation } from "./recommendation";
 
-test("home and today render calculated server condition scores and their evidence", async ({
+test("home and today render calculated server condition scores and their evidence", { tag: "@smoke" }, async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -121,7 +121,7 @@ test("home and map use actual category-classified beaches when only the address 
   expect(requestedIds.every((id) => id === 71)).toBe(true);
 });
 
-test("missing observations use an explicitly labelled forecast and never bypass a restriction", async ({ page }) => {
+test("missing observations use an explicitly labelled forecast and never bypass a restriction", { tag: "@smoke" }, async ({ page }) => {
   let blocked = false;
   let forecasts = 0;
   // 관측 점수가 없을 때 예보로 물러서는 것은 이제 서버가 합니다
@@ -302,7 +302,7 @@ test("a current score clears at expiry without a read before the ten-minute inte
   await expect(page.locator(".td-hero-note")).toContainText("계산에 필요한 근거 부족");
 });
 
-test("preference → recommendation → persisted plan → selected plan detail", async ({
+test("preference → recommendation → persisted plan → selected plan detail", { tag: "@smoke" }, async ({
   page,
 }) => {
   // 저장된 취향이 남아 있으면 태그가 이미 눌린 채로 시작합니다. 이 검사는
@@ -416,7 +416,7 @@ test("map adds an actual place and requests a route only on explicit submit", as
   });
 });
 
-test("empty and unauthenticated data stay explicit", async ({ page }) => {
+test("empty and unauthenticated data stay explicit", { tag: "@smoke" }, async ({ page }) => {
   await page.route("**/api/data/water-index/default-place", (route) => route.fulfill({ json: {
     place: null, rows: [], display_name: "강릉 경포대 해수욕장", status: "no_places", message: "수집된 해수욕장이 없습니다. 수집기와 해변 자료 연동을 확인해야 합니다.",
   } }));
@@ -528,7 +528,7 @@ test("chat exchange dialog shows the sanitized model trace", async ({ page }) =>
   await expect(dialog).not.toContainText("37.123456789");
 });
 
-test("favorites and explicit notification settings use owner-scoped APIs", async ({
+test("favorites and explicit notification settings use owner-scoped APIs", { tag: "@smoke" }, async ({
   page,
 }) => {
   await page.goto("#map");

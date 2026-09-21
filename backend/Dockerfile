@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 RUN groupadd --gid 10001 app \
     && useradd --uid 10001 --gid 10001 --create-home app \
     && install -d -o app -g app -m 0750 /var/lib/pongdang/attachments \

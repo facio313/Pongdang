@@ -42,17 +42,31 @@
   Old demo/collector URL selections normalize to the real collection view.
 - Frontend: React + Vite + TypeScript, Node.js 24. Backend: Python 3.14 + FastAPI.
   Commit dependency lockfiles with dependency changes.
-- `dev` is integration; `main` deploys automatically after CI. Never bypass CI.
-  The server timer only dispatches missing CI runs for latest main/dev commits.
+- Do not commit, merge into, push, synchronize, or deploy `dev`. Preserve its
+  existing refs without updating or deleting them. Authorized task branches
+  integrate directly into `main`, which deploys after the selected CI checks pass.
+  Never use dev CI as a prerequisite or duplicate main CI.
+  The server timer template dispatches missing CI only for latest main commits;
+  its installed host copy must be updated separately.
 - Never commit secrets or `.env` files. Keep production DB/API ports private.
   The old db.bonifacio.work:15432 gateway still belongs to the legacy DB and is
   not managed by Pongdang. Changing that gateway requires a separate decision.
 - Production URL is `/pongdang/`; preserve Vite base and FastAPI root path.
   Keep the existing Bonifacio SSO gate and `access-pongdang` grant independent
   of legacy Multtara. No new user/account system is introduced by this separation.
-- Run frontend lint/tests/build and backend Ruff/tests. Database tests must use
-  a disposable `pongdang_test` database, never production. CI verifies initialization
-  and collection worker health with only the standalone stack and no shared database.
+- Keep the original repository in its current iCloud location. Do not move it or
+  alter iCloud settings. Avoid whole-tree copies and all-worktree audits for routine edits.
+- Local verification follows `docs/ci.md`: changed-file lint, short unit/related
+  tests and incremental typecheck when needed; use `ops/verify_local.py` with explicit
+  files. Check affected UI only. Do not default to full local build/backend/browser/
+  Docker suites or rerun passing checks without a relevant change or failure.
+  CI owns the release build. Normal UI changes run eight browser journeys;
+  authentication, database, collection, scoring, shared APIs, infrastructure, unknown
+  paths and manual CI retain full applicable regression. Selected checks must pass.
+  Documentation-only changes do not build or deploy. CI compares against the last
+  successful main validation, never just the previous push. Database tests must use
+  an explicitly disposable `pongdang_test`, never production. CI verifies initialization
+  and worker health using only the standalone stack and no shared database.
 - `ops/` contains installation templates; deployment does not self-update its SSH
   gate. Install reviewed changes to the host script separately.
 - `backend/app/data_catalog.json` is the table/column/query allowlist. Existing

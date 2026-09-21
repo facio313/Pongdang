@@ -10,9 +10,11 @@
     "test": "node --test tests/*.test.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/pongdang.tsbuildinfo",
     "lint": "eslint . --max-warnings=0",
     "preview": "vite preview",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:browser:smoke": "playwright test --grep @smoke"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.3.0",

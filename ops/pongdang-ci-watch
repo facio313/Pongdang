@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 readonly repository=facio313/Pongdang
 
-for branch in main dev; do
+for branch in main; do
   sha="$(gh api "repos/$repository/git/ref/heads/$branch" --jq .object.sha)"
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
   count="$(gh api \

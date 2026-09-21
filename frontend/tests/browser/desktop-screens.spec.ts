@@ -25,7 +25,7 @@ const INVENTED = [
   "작년보다 6일 늦음",
 ];
 
-test("desktop today reads the same server values as mobile", async ({ page }) => {
+test("desktop today reads the same server values as mobile", { tag: "@smoke" }, async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("#today");
@@ -80,7 +80,7 @@ test("weekly forecast distinguishes loading, failed reads and missing evidence",
   await expect(week.locator(".td-day-score")).toHaveText(Array(7).fill("–"));
 });
 
-test("desktop map lists real places and scores only the chosen one", async ({ page }) => {
+test("desktop map lists real places and scores only the chosen one", { tag: "@smoke" }, async ({ page }) => {
   await page.goto("#map");
   const response = await page.request.get("api/data/places?province=gangwon&page_size=100");
   const { rows: places }: { rows: { lat: number | null; lng: number | null }[] } = await response.json();
@@ -155,7 +155,7 @@ test("데스크탑 사이드 메뉴 항목은 실제로 그 화면을 연다", a
   await expect(page.locator(".pd-menu")).toHaveCount(0);
 });
 
-test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 연다", async ({ page }) => {
+test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 연다", { tag: "@smoke" }, async ({ page }) => {
   // 데스크탑 추천에는 저장 경로가 없었습니다. 코스를 만들 수는 있어도 남길 수
   // 없었고, 그러면서 데스크탑 내 코스는 「추천에서 코스 만들기 →」로 여기
   // 보냈습니다 -- 닫힌 고리였습니다. 저장한 코스를 여는 쪽도 없어서, 내 코스가
