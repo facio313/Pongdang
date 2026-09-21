@@ -196,7 +196,7 @@
 }
 .pd-desktop .rd-send {
   font-size: 12px;
-  padding: 10px 16px;
+  padding: 10px 112px;
   border-radius: 10px;
   background: var(--dk-blue);
 }
@@ -341,6 +341,130 @@
 .pd-desktop .rd-step-link.is-empty {
   font-weight: 400;
   color: var(--dk-ink-2);
+}
+
+/* 경로 계산 조건 폼(RouteRequestForm). 모바일 전용 --pd-* 토큰(.pd-card 등)을
+   쓰는 공용 컴포넌트라 .pd-desktop 에서는 아무 토큰도 풀리지 않아 완전히
+   맨 스타일이었습니다. 데스크탑은 카드 + 그림자를 쓰지 않으므로(§1 도입부
+   주석) 괘선 박스 하나로만 감싸 같은 화면의 .rd-field 와 같은 어휘를 씁니다. */
+.pd-desktop .rt-form {
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+  background: var(--dk-mist);
+  padding: 16px 18px 18px;
+  margin-top: 14px;
+}
+.pd-desktop .rt-form .pd-card-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.pd-desktop .rt-form .pd-note {
+  font-size: var(--dk-fs-cap);
+  line-height: 1.6;
+  color: var(--dk-ink-2);
+  margin: 6px 0 0;
+}
+.pd-desktop .rt-form .rt-field {
+  border: 0;
+  padding: 0;
+  margin: 12px 0 0;
+  min-width: 0;
+}
+.pd-desktop .rt-form .rt-field:first-of-type {
+  margin-top: 12px;
+}
+.pd-desktop .rt-form .rt-legend {
+  font-size: var(--dk-fs-cap);
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  padding: 0;
+  margin-bottom: 6px;
+}
+.pd-desktop .rt-form .rt-field:disabled {
+  opacity: 0.6;
+}
+.pd-desktop .rt-form .rt-modes {
+  display: flex;
+  gap: 7px;
+}
+.pd-desktop .rt-form .rt-mode {
+  flex: 1;
+  min-height: 38px;
+  font-size: var(--dk-fs-sm);
+  font-weight: 700;
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+  background: var(--dk-surface);
+  color: var(--dk-ink);
+  cursor: pointer;
+}
+.pd-desktop .rt-form .rt-mode.is-on {
+  background: var(--dk-blue);
+  border-color: var(--dk-blue);
+  color: #fff;
+}
+.pd-desktop .rt-form .rt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.pd-desktop .rt-form .rt-row-name {
+  flex: none;
+  width: 44px;
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rt-form .rt-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--dk-fs-sm);
+  color: var(--dk-ink);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
+}
+.pd-desktop .rt-form .rt-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-desktop .rt-form .rt-candidate {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.pd-desktop .rt-form .rt-candidate-name {
+  font-size: var(--dk-fs-sm);
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pd-desktop .rt-form .rt-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: var(--dk-fs-sm);
+  border-radius: var(--dk-r-ctl);
+  background: var(--dk-blue);
+  color: #fff;
+  cursor: pointer;
+}
+.pd-desktop .rt-form .rt-submit:disabled {
+  background: var(--dk-ink-2);
+  cursor: default;
+}
+.pd-desktop .rt-form .rt-problem {
+  color: var(--dk-alert);
 }
 
 /* ── 4 · 지도 ──────────────────────────────────────────── */
