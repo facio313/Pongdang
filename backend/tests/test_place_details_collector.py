@@ -16,6 +16,7 @@ from test_place_details_storage import (
 from app.ingestion.http import ProviderError
 from app.main import create_app
 from app.place_details.collector import (
+    MAX_BATCH_SECONDS,
     collect_details,
     due_places,
     link_places,
@@ -129,6 +130,105 @@ def test_quota_is_durable_per_service_and_calendar_day(database):
     add_place(database)
     assert due_places(settings, now) == []
     assert len(due_places(settings, now, check_budget=False)) == 1
+
+
+def test_bounded_backfill_stays_partial_until_remaining_places_are_collected(database):
+    settings = database.model_copy(update={"place_detail_batch_size": 1})
+    add_place(settings)
+    add_place(settings, "101")
+    first = collect(settings, Client())
+    assert first["inserted"] == 1
+    assert first["state"] == "partial"
+    assert first["error"] == "DETAIL_BACKFILL_PENDING"
+    second = collect(settings, Client())
+    assert second["inserted"] == 1
+    assert second["state"] == "succeeded" and second["error"] == ""
+    assert collect(settings, Client())["received"] == 0
+
+
+def test_canonical_water_place_details_precede_unrelated_name_matches(database):
+    unrelated, unrelated_spot = add_place(database)
+    priority, priority_spot = add_place(database, "101")
+    link_places(database)
+    with connect(database) as c:
+        # A name suffix alone must not outrank a confirmed UI water place.
+        c.execute(
+            "UPDATE pongdang_data.spots_waterspot SET type='tourism' WHERE id=%s",
+            [unrelated_spot],
+        )
+        c.execute(
+            "UPDATE pongdang_data.collection_place SET category='39' WHERE id=%s",
+            [unrelated],
+        )
+        c.execute(
+            "UPDATE pongdang_data.collection_place SET name='우선 명소' WHERE id=%s",
+            [priority],
+        )
+        c.execute(
+            "UPDATE pongdang_data.spots_waterspot SET name='우선 명소' WHERE id=%s",
+            [priority_spot],
+        )
+    settings = database.model_copy(update={"place_detail_batch_size": 1})
+    assert [p["id"] for p in due_places(settings, datetime.now(UTC))] == [priority]
+
+
+def test_batch_quota_exhaustion_preserves_pending_places_until_next_korean_day(
+    database,
+):
+    settings = configured(database).model_copy(update={"place_detail_daily_budget": 3})
+    first, _ = add_place(settings)
+    second, _ = add_place(settings, "101")
+    now = (datetime.now(UTC) - timedelta(days=2)).replace(
+        hour=14, minute=30, second=0, microsecond=0
+    )  # KST 23:30, with both test fetches in the past.
+    client = Client()
+
+    def run(at):
+        return collect_details(
+            settings,
+            provider=TourDetails(
+                settings,
+                client=client,
+                reserve=lambda service: reserve_request(settings, service, at),
+                clock=lambda: at,
+            ),
+            clock=lambda: at,
+        )
+
+    result = run(now)
+    assert result["received"] == result["inserted"] == 1
+    assert result["state"] == "partial"
+    assert result["error"] == "DETAIL_DAILY_BUDGET_EXHAUSTED"
+    assert result["next_run_seconds"] == 1800
+    assert len(client.calls) == 3
+    assert rows(
+        settings,
+        "SELECT place_id,state FROM pongdang_data.place_detail_collection",
+    ) == [(first, "available")]
+    assert run(now)["received"] == 0
+    assert len(client.calls) == 3
+    result = run(now + timedelta(hours=1))
+    assert result["state"] == "succeeded"
+    assert result["inserted"] == 1 and len(client.calls) == 6
+    assert rows(
+        settings,
+        "SELECT state FROM pongdang_data.place_detail_collection WHERE place_id=%s",
+        [second],
+    ) == [("available",)]
+
+
+def test_slow_backfill_yields_after_current_place_and_resumes(database, monkeypatch):
+    add_place(database)
+    add_place(database, "101")
+    times = iter([0, 0, MAX_BATCH_SECONDS])
+    monkeypatch.setattr("app.place_details.collector.monotonic", lambda: next(times))
+    result = collect(database, Client())
+    assert result["received"] == result["inserted"] == 1
+    assert result["state"] == "partial"
+    assert result["error"] == "DETAIL_BACKFILL_PENDING"
+    monkeypatch.setattr("app.place_details.collector.monotonic", lambda: 0)
+    result = collect(database, Client())
+    assert result["inserted"] == 1 and result["state"] == "succeeded"
 
 
 def test_db_matching_is_conservative_and_late_catalogue_rows_are_resolved(database):

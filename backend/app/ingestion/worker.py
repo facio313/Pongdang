@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from time import monotonic
 
+from psycopg.errors import QueryCanceled
 from psycopg.types.json import Jsonb
 
 from app.config import Settings
@@ -15,6 +16,7 @@ from app.ingestion.http import ProviderError
 from app.ingestion.jobs import scheduled_interval
 from app.ingestion.storage import store_batch
 from app.schema import connect
+from app.water_index.condition_storage import ConditionInputsChanged
 
 
 def registered_jobs(settings):
@@ -60,7 +62,11 @@ def registered_jobs(settings):
         else job
         for job in feature_jobs(settings)
     ]
-    jobs += features + [
+    # Publish product conditions immediately after collecting their inputs.
+    # Optional assessment/history and catalogue enrichment can take longer;
+    # they must not hold up the generation read by the home/today screens.
+    jobs += [job for job in features if job.name == "condition_projection"]
+    jobs += [job for job in features if job.name != "condition_projection"] + [
         replace(
             job,
             interval_seconds=max(600, job.interval_seconds),
@@ -68,9 +74,7 @@ def registered_jobs(settings):
         )
         for job in place_detail_jobs(settings) + attachment_jobs(settings)
     ]
-    return [job for job in jobs if job.name != "condition_projection"] + [
-        job for job in jobs if job.name == "condition_projection"
-    ]
+    return jobs
 
 
 def heartbeat(settings, state="running", tasks=None):
@@ -254,13 +258,20 @@ def run_due(
                     state, error = "failed", exc.code
                 except SourceScopeTooLargeError:
                     state, error = "failed", "SOURCE_SCOPE_TOO_LARGE"
+                except ConditionInputsChanged:
+                    state, error = "failed", "CONDITION_INPUT_CHANGED"
+                except QueryCanceled:
+                    state, error = "failed", "DATABASE_STATEMENT_TIMEOUT"
                 except Exception:
                     # Exceptions can contain request URLs, keys or database credentials.
                     state, error = "failed", "COLLECTION_ERROR"
                 finished = datetime.now(UTC)
                 failures = (int(row[1] or 0) + 1) if state == "failed" else 0
                 delay = (
-                    min(86400, scheduled_interval(job) * 2 ** min(failures, 6))
+                    30
+                    if error == "CONDITION_INPUT_CHANGED"
+                    and job.name == "condition_projection"
+                    else min(86400, scheduled_interval(job) * 2 ** min(failures, 6))
                     if failures
                     else next_run_seconds
                     if next_run_seconds is not None

@@ -4,8 +4,10 @@ import argparse
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from time import monotonic
 from zoneinfo import ZoneInfo
 
+from psycopg.errors import CheckViolation
 from psycopg.rows import dict_row
 
 from app.config import Settings
@@ -142,8 +144,15 @@ def _merge_windows(windows):
     return [{"start_at": s.isoformat(), "end_at": e.isoformat()} for s, e in result]
 
 
-def produce_assessments(settings, *, now=None):
+def publication_time(connection):
+    return connection.execute("SELECT clock_timestamp()").fetchone()[0]
+
+
+def _produce_assessments(settings, *, now=None, max_seconds=None):
+    started = monotonic()
     inserted = 0
+    processed_groups = 0
+    pending = False
     with connect(settings) as c:
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-water-index'))")
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
@@ -212,7 +221,33 @@ def produce_assessments(settings, *, now=None):
                         ):
                             continue
                         groups[(spot_id, activity, mode)].append((source, mapping))
-        for (spot_id, activity, mode), items in groups.items():
+        previous_runs = {
+            (spot, activity, mode): (run_id, digest)
+            for spot, activity, mode, run_id, digest in c.execute(
+                "SELECT DISTINCT ON (spot_id,activity,mode) "
+                "spot_id,activity,mode,run_id,digest FROM "
+                "pongdang_data.water_index_production_run "
+                "ORDER BY spot_id,activity,mode,run_id DESC"
+            ).fetchall()
+        }
+        # A frequently refreshed source must not starve an unfinished backfill.
+        ordered_groups = sorted(
+            groups,
+            key=lambda key: previous_runs.get(key, (0, ""))[0],
+        )
+        for spot_id, activity, mode in ordered_groups:
+            items = groups[(spot_id, activity, mode)]
+            # A complete pass can outlast short observation/tide intervals.
+            # Keep the original knowledge cutoff, but publish only live inputs.
+            publishing_at = publication_time(c)
+            items = [
+                (source, mapping)
+                for source, mapping in items
+                if datetime.fromisoformat(source["snapshot"]["valid_until"])
+                > publishing_at
+            ]
+            if not items:
+                continue
             authority = tuple(
                 a
                 for a in authorities
@@ -229,14 +264,17 @@ def produce_assessments(settings, *, now=None):
                     "model": provenance_manifest(),
                 },
             )
-            previous = c.execute(
-                "SELECT digest FROM pongdang_data.water_index_production_run "
-                "WHERE spot_id=%s AND activity=%s AND mode=%s ORDER BY run_id DESC "
-                "LIMIT 1",
-                [spot_id, activity, mode],
-            ).fetchone()
-            if previous and previous[0] == fingerprint:
+            previous = previous_runs.get((spot_id, activity, mode))
+            if previous and previous[1] == fingerprint:
                 continue
+            if (
+                max_seconds is not None
+                and processed_groups
+                and monotonic() - started >= max_seconds
+            ):
+                pending = True
+                break
+            processed_groups += 1
             requests = [
                 build_request(
                     source,
@@ -264,7 +302,7 @@ def produce_assessments(settings, *, now=None):
             for result in results:
                 if result.valid_until:
                     expiry = min(expiry, result.valid_until)
-            if expiry <= now:
+            if expiry <= publication_time(c):
                 continue
             mid = stable_id(
                 "collected-read:",
@@ -338,14 +376,49 @@ def produce_assessments(settings, *, now=None):
                     )
                 ],
             )
-            inserted += store_bundle_on_connection(c, bundle, now)
-            c.execute(
-                "INSERT INTO pongdang_data.water_index_production_run "
-                "(spot_id,activity,mode,digest,read_manifest_id) "
-                "VALUES(%s,%s,%s,%s,%s)",
-                [spot_id, activity, mode, fingerprint, mid],
-            )
+            try:
+                # Evidence validation/storage can itself cross an expiry. Roll
+                # back that group without discarding earlier valid publications.
+                with c.transaction():
+                    stored = store_bundle_on_connection(c, bundle, now)
+                    c.execute(
+                        "INSERT INTO pongdang_data.water_index_production_run "
+                        "(spot_id,activity,mode,digest,read_manifest_id) "
+                        "VALUES(%s,%s,%s,%s,%s)",
+                        [spot_id, activity, mode, fingerprint, mid],
+                    )
+            except CheckViolation as exc:
+                # The v4 schema's second CHECK is read_valid_until > created_at.
+                # Every other integrity failure must still fail the job.
+                if (
+                    exc.diag.table_name != "water_index_read_manifest"
+                    or exc.diag.constraint_name != "water_index_read_manifest_check1"
+                    or expiry > publication_time(c)
+                ):
+                    raise
+                continue
+            inserted += stored
+    return inserted, pending
+
+
+def produce_assessments(settings, *, now=None):
+    """Complete an explicit offline pass, preserving the existing CLI contract."""
+    inserted, _ = _produce_assessments(settings, now=now)
     return inserted
+
+
+def produce_assessment_batch(settings, *, now=None):
+    """Yield after one minute of complete groups so collection can keep running."""
+    inserted, pending = _produce_assessments(settings, now=now, max_seconds=60)
+    result = dict(
+        received=inserted,
+        inserted=inserted,
+        state="partial" if pending else "succeeded",
+        error="ASSESSMENT_BACKFILL_PENDING" if pending else "",
+    )
+    if pending:
+        result["next_run_seconds"] = 30
+    return result
 
 
 def main():

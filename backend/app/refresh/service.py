@@ -44,10 +44,10 @@ DYNAMIC_JOBS = frozenset(
     }
 )
 PROJECTION_JOBS = (
+    "condition_projection",
     "forecast_projection",
     "water_index_evaluation",
     "quality_comparison",
-    "condition_projection",
 )
 
 

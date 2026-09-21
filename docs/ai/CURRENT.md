@@ -1,4 +1,13 @@
-# 현재 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
+# 현재 작업 · 백엔드 운영 복구 · 2026-09-21
+
+- 사용자 요청: 점수·시간별 지표·수온·명소 상세가 정상 운영되도록 조치. 프론트 수정 금지. 커밋·운영 배포 승인 완료. 사용자 지시에 따라 dev 검증은 생략하고 main CI·자동배포만 진행한다.
+- 운영 기준 `0f824a9`, 별도 체크아웃 `/home/cks/.local/share/pongdang-repair.lIgOzy/repo`, 브랜치 `fix/backend-operational-recovery`.
+- 새 계산 SQL timeout, 예보 범위 초과, 수온의 불필요한 파생 조회, 명소 초기 수집 지연을 수정했다. 실제 자료를 복제한 격리 `pongdang_test`에서 추가로 발견한 게시 GC timeout과 평가 장기 실행도 bounded 처리로 보완했다. 운영 DB에는 테스트를 실행하지 않는다.
+- 검증: 로컬 backend 전체 1,416개 통과(후속 변경은 관련 회귀 별도 검증), frontend lint/139 tests/build 통과. 최종 main CI가 통합 소스 전체를 다시 검증한다. 원자료 SELECT 약2초, 예보2,184건 투영, 수온12동시요청200, 평가2batch 28+33그룹 commit, condition GC108,490행 삭제·rollback 복원 통과. 최종 condition107,312건/204.95초/peak242MiB 게시 및40ms readback도 성공했다. main 통합·배포를 진행한다.
+- 작업 중 원격 main에 별도 frontend 변경 `c8b4c75`가 추가됐다. 해당 변경을 보존하고 최신 main 위에 백엔드 수정만 통합한다.
+- 세부 상태/완료 조건: [BACKEND-OPERATIONAL-RECOVERY.md](BACKEND-OPERATIONAL-RECOVERY.md). 기존 작업 기록은 아래에 보존한다.
+
+# 이전 작업 · 명소 상세 영구 저장 및 정적 API 중복 조회 제거 · 2026-09-21
 
 - 요청: 기존 명소의 운영·개장·주차·시설·문의·소개를 보강해 DB에 저장하고, 신규 장소 및 제공처 수정일 변경 시에만 상세 API를 호출한다. 화면은 읽기 전용 DB 조회. 거리 값은 출발점 좌표에 따른 직선거리로 계산한다.
 - 구현: TourAPI 공통/소개/반복정보 수집, 추가형 v11 저장, 최대 100개 DB 조회 API, 데이터 목록, 모바일/데스크톱 및 여행 조회 연결 완료. 기존 행 최초 보강·신규 행·원본 수정 시만 요청하며 자료 없음도 기억한다. 사진의 7일 재조회와 같은 좌표의 행정구역 빈 응답 재조회를 제거했다. 상세: [PLACE-DETAILS.md](PLACE-DETAILS.md).

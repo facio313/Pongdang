@@ -1,7 +1,6 @@
 """Immutable forecast revisions, captured only by the worker, never by GET."""
 
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -16,24 +15,49 @@ from .models import ForecastRecord
 
 
 def read_normalized(connection, now, *, forecast_only=False, current_only=False):
-    """Bound applicable sources before the limit without dropping tide lineage."""
+    """Bound effective source targets, not repeated issue cycles or expired data."""
     with connection.cursor(row_factory=dict_row) as cursor:
         rows = cursor.execute(
-            "SELECT to_jsonb(s) AS snapshot,to_jsonb(st) AS station,"
-            "jsonb_agg(to_jsonb(m) ORDER BY m.id) AS metrics "
+            "WITH forecast_names AS (SELECT snapshot_id,"
+            "array_agg(name ORDER BY name) AS names FROM "
+            "pongdang_data.conditions_observationmetric WHERE mode='forecast' "
+            "GROUP BY snapshot_id), applicable AS (SELECT s.id,s.provider,"
+            "s.station_id,s.observed_at,s.fetched_at,s.ingestion_version,"
+            # Match forecast_from_normalized's identity before applying the
+            # bound. Separate KMA issue cycles are revisions of one target.
+            # Missing values still participate and can replace earlier values.
+            "CASE WHEN fm.snapshot_id IS NULL THEN jsonb_build_array(s.id) "
+            "WHEN left(s.provider,4)='kma_' THEN jsonb_build_array(s.provider,"
+            "s.station_id,s.observed_at,s.valid_until,fm.names) "
+            "ELSE jsonb_build_array(s.provider,s.station_id,s.source_record_id) "
+            "END AS selection_key "
             "FROM pongdang_data.conditions_observationsnapshot s "
-            "JOIN pongdang_data.collection_station st ON st.id=s.station_id "
-            "JOIN pongdang_data.conditions_observationmetric m ON m.snapshot_id=s.id "
+            "LEFT JOIN forecast_names fm ON fm.snapshot_id=s.id "
             "WHERE s.state<>'superseded' AND s.fetched_at<=%s "
             "AND (s.issued_at IS NULL OR s.issued_at<=%s) "
             "AND s.valid_until>%s AND s.observed_at<%s "
-            # Keep v2 tide slots, including expired ones: they establish which
-            # legacy timestamp identities must stay suppressed for that day.
+            # Expired v2 tide slots establish which legacy identities remain
+            # suppressed for that day; do not filter this lineage away.
             "AND ((s.provider='khoa_tide_extrema' "
             "AND s.ingestion_version='tide-event-slots.2') OR "
-            "((NOT %s OR s.valid_until>%s) AND (NOT %s OR EXISTS ("
-            "SELECT 1 FROM pongdang_data.conditions_observationmetric fm "
-            "WHERE fm.snapshot_id=s.id AND fm.mode='forecast')))) "
+            "((NOT %s OR s.valid_until>%s) "
+            "AND (NOT %s OR fm.snapshot_id IS NOT NULL)))), "
+            "latest AS (SELECT DISTINCT ON (selection_key) * FROM applicable "
+            "ORDER BY selection_key,fetched_at DESC,id DESC), "
+            "effective AS (SELECT s.id FROM latest s "
+            "WHERE s.provider<>'khoa_tide_extrema' "
+            "OR s.ingestion_version='tide-event-slots.2' OR NOT EXISTS ("
+            "SELECT 1 FROM latest n WHERE n.provider=s.provider "
+            "AND n.station_id=s.station_id "
+            "AND n.ingestion_version='tide-event-slots.2' "
+            "AND (n.observed_at AT TIME ZONE 'Asia/Seoul')::date="
+            "(s.observed_at AT TIME ZONE 'Asia/Seoul')::date)) "
+            "SELECT to_jsonb(s) AS snapshot,to_jsonb(st) AS station,"
+            "jsonb_agg(to_jsonb(m) ORDER BY m.id) AS metrics "
+            "FROM effective e JOIN "
+            "pongdang_data.conditions_observationsnapshot s ON s.id=e.id "
+            "JOIN pongdang_data.collection_station st ON st.id=s.station_id "
+            "JOIN pongdang_data.conditions_observationmetric m ON m.snapshot_id=s.id "
             "GROUP BY s.id,st.id ORDER BY s.id LIMIT 5001",
             [
                 now,
@@ -47,30 +71,7 @@ def read_normalized(connection, now, *, forecast_only=False, current_only=False)
         ).fetchall()
     if len(rows) > 5000:
         raise SourceScopeTooLargeError
-
-    # A complete new adapter pass establishes unambiguous ordered tide slots.
-    # Ignore pre-upgrade timestamp identities for dates now captured by v2;
-    # retain the old rows themselves for source audit and historical projections.
-    def tide_day(row):
-        snapshot = row["snapshot"]
-        local = datetime.fromisoformat(snapshot["observed_at"]).astimezone(
-            ZoneInfo("Asia/Seoul")
-        )
-        return snapshot["station_id"], local.date()
-
-    revised_days = {
-        tide_day(r)
-        for r in rows
-        if r["snapshot"]["provider"] == "khoa_tide_extrema"
-        and r["snapshot"].get("ingestion_version") == "tide-event-slots.2"
-    }
-    return [
-        r
-        for r in rows
-        if r["snapshot"]["provider"] != "khoa_tide_extrema"
-        or r["snapshot"].get("ingestion_version") == "tide-event-slots.2"
-        or tide_day(r) not in revised_days
-    ]
+    return rows
 
 
 def forecast_from_normalized(row):
@@ -130,7 +131,10 @@ def project_forecasts(settings, *, now=None):
         )
         c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-ingestion'))")
         selected = {}
-        for source in read_normalized(c, now, forecast_only=True):
+        # Already published history remains immutable. A normal worker pass
+        # updates currently applicable targets; expired observations/forecasts
+        # must not exhaust its capacity as raw collection history accumulates.
+        for source in read_normalized(c, now, forecast_only=True, current_only=True):
             record = forecast_from_normalized(source)
             if record is None:
                 continue
