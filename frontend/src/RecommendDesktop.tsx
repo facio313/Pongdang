@@ -635,14 +635,8 @@ export function RecommendDesktop() {
           }
         >
           <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
-          <div className="rd-tastes">
-            {savedLabels.map((label) => (
-              <span className="rd-taste is-on" key={label}>
-                {t(label)}
-                <Icon name="check" size={14} />
-              </span>
-            ))}
-          </div>
+          {/* 취향 칩은 히어로 영역(rd-hero-tastes)에서 이미 보여주므로 여기서는
+              다시 반복하지 않습니다. */}
           {/* 아래에 취향이나 후보가 이미 열려 있으면 여기서 다시 묻지 않습니다
               -- 고르는 자리와 찾는 버튼이 같은 화면에 두 벌이 됩니다. 이 행은
               그때 「저장돼 있는 취향」을 말하는 자리로만 남습니다. */}
@@ -1085,8 +1079,9 @@ export function RecommendDesktop() {
 
           {/* 후보 조회가 실패한 동안에는 지도 자리를 그리지 않습니다. 실패한
               조회의 낡은 마커·경로를 지도에 남겨 두면 실패를 성공처럼
-              보이게 합니다. */}
-          {!candidateAction.error && (
+              보이게 합니다. 후보가 아직 없을 때도 빈 지도 대신 자리를
+              통째로 숨깁니다. */}
+          {!candidateAction.error && markers.length > 0 && (
             <LabelRow
               kick={t("지도")}
               title={
@@ -1095,26 +1090,21 @@ export function RecommendDesktop() {
               desc={t("좌표는 등록 카탈로그 값입니다. 도로 선은 길찾기 응답을 받은 구간만 그리며, 받지 못한 구간은 직선으로 채우지 않습니다.")}
             >
               <div className="rd-map">
-                {markers.length ? (
-                  <KakaoMapCanvas
-                    markers={markers}
-                    paths={paths}
-                    selectedId={null}
-                    renderMarker={(id) => {
-                      if (id === "origin")
-                        return <span className="rd-pin is-origin">{t("출발")}</span>;
-                      const index = ordered.findIndex(
-                        (place) => place.id === Number(id),
-                      );
-                      return index === -1 ? null : (
-                        <span className="pd-dk-num rd-pin">{index + 1}</span>
-                      );
-                    }}
-                  />
-                ) : (
-                  <p className="rd-note">
-                    {t("지도에 찍을 실제 좌표가 아직 없습니다. 후보를 먼저 조회해 주세요.")}</p>
-                )}
+                <KakaoMapCanvas
+                  markers={markers}
+                  paths={paths}
+                  selectedId={null}
+                  renderMarker={(id) => {
+                    if (id === "origin")
+                      return <span className="rd-pin is-origin">{t("출발")}</span>;
+                    const index = ordered.findIndex(
+                      (place) => place.id === Number(id),
+                    );
+                    return index === -1 ? null : (
+                      <span className="pd-dk-num rd-pin">{index + 1}</span>
+                    );
+                  }}
+                />
               </div>
               <div className="rd-legend">
                 {ordered.map((place, index) => (
