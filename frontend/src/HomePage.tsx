@@ -355,7 +355,7 @@ function SpotScroller({
               </span>
               <span className="hm-pick-meta">{place.meta}</span>
             </a>
-            <PlacePhotoCredit photo={place.photo} />
+            {/* <PlacePhotoCredit photo={place.photo} /> */}
           </div>
         ))}
         {/* 점수 칩이 있던 자리입니다. 명소마다 점수를 붙이려면 장소마다 한
@@ -494,16 +494,25 @@ function TasteBanner() {
 
 function RouteCard() {
   const session = useTravelSession();
+  const routeCourse = session.route?.route ?? null;
+  // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
+  // 불러온 plan)는 있을 수 있습니다. route 만 보면 그 사이엔 홈이 늘 비어
+  // 보였습니다.
+  const planStops = routeCourse
+    ? []
+    : (session.plan?.days.flatMap((day) => day.items) ?? []);
   return (
     <div className="pd-card">
       <div className="hm-card-top">
         <div className="pd-card-title">{t("물놀이 최적경로")}</div>
-        <StateChip kind="partial" />
+        <StateChip kind={routeCourse ? "live" : "partial"} />
       </div>
       <div className="pd-slot hm-route-slot">
-        {session.route?.route
-          ? t("{places} · 예상 이동 {minutes}분", { places: session.route.route.items.map((item) => item.name).join(" → "), minutes: session.route.route.travel_minutes })
-          : t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
+        {routeCourse
+          ? t("{places} · 예상 이동 {minutes}분", { places: routeCourse.items.map((item) => item.name).join(" → "), minutes: routeCourse.travel_minutes })
+          : planStops.length
+            ? t("{places} · 경로 미계산", { places: planStops.map((item) => item.name).join(" → ") })
+            : t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
       </div>
       <a className="pd-secondary hm-cta" href="#map?view=course">
         {t("경로 탐색 →")}</a>

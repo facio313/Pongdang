@@ -148,7 +148,7 @@ function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         <span className="sp-row-where">{placeRegionLabel(place)}</span>
         <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
         {detail?.opening_hours && <span className="sp-row-hours">{t("운영")} · {detail.opening_hours}</span>}
-        <PlacePhotoCredit photo={place.photo} />
+        {/* <PlacePhotoCredit photo={place.photo} /> */}
       </span>
     </div>
   );

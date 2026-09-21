@@ -1,4 +1,4 @@
-.water-place-filters { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
+.water-place-filters { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 112px; }
 .water-place-filters label { display: flex; flex: 1 1 130px; min-width: 0; flex-direction: column; gap: 5px; font-size: var(--pd-fs-sm, var(--dk-fs-sm, 13px)); color: var(--pd-ink-2, var(--dk-ink-2, #5c789a)); }
 .water-place-filters select { width: 100%; min-width: 0; min-height: var(--pd-touch, 44px); padding: 8px 10px; border: 1px solid var(--pd-line, var(--dk-line, #dae7f5)); border-radius: var(--pd-r-ctl, var(--dk-r-ctl, 14px)); color: var(--pd-ink, var(--dk-ink, #1b2c3d)); background: var(--pd-surface, var(--dk-surface, #fff)); font: inherit; }
 .water-place-filters p { flex-basis: 100%; margin: 0; }

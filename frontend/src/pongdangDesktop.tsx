@@ -391,9 +391,9 @@ export function FootNote({
       <div className="pd-dk-foot-body">
         {/* 제품 이름은 바로 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
         <img className="pd-dk-foot-brand" src={logoUrl()} alt="" aria-hidden />
-        {missing && <div className="pd-dk-foot-missing">
+        {/* {missing && <div className="pd-dk-foot-missing">
           {alert && <Icon name="warning" size={14} />}{t("아직 실연동되지 않은 항목 — {items}", { items: t(missing) })}
-        </div>}
+        </div>} */}
         <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>
       </div>
     </footer>

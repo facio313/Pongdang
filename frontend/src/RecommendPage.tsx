@@ -877,7 +877,7 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
         </div>
         <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} {t(" KST 예보 · ")}{targetValid ? conditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.")}</p>
         <ConditionScoreDetails data={conditions.data} className="pd-note" />
-        <PlacePhotoCredit photo={stop.photo} />
+        {/* <PlacePhotoCredit photo={stop.photo} /> */}
       </div>
     </div>
   );

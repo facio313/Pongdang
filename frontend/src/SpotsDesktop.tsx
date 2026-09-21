@@ -68,7 +68,7 @@ function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         </div>
         <p className="sk-row-summary">{place.address ?? t("주소 없음")}</p>
         {detail?.opening_hours && <p className="sk-row-hours">{t("운영")} · {detail.opening_hours}</p>}
-        <PlacePhotoCredit photo={place.photo} />
+        {/* <PlacePhotoCredit photo={place.photo} /> */}
         <div className="sk-row-meta">
           <span>
             <span className="sk-meta-name">{t("지역")}</span>
@@ -287,7 +287,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
               {lookup.error}
             </p>
           )}
-          <PlacePhotoCredit photo={place?.photo} />
+          {/* <PlacePhotoCredit photo={place?.photo} /> */}
           <div className="sk-detail-score-row">
             <div>
               <div className="pd-dk-kick">

@@ -315,7 +315,7 @@ function BeachCard({ place }: { place: Place }) {
           </span>
         </span>
       </a>
-      <PlacePhotoCredit photo={place.photo} />
+      {/* <PlacePhotoCredit photo={place.photo} /> */}
     </div>
   );
 }
@@ -344,7 +344,16 @@ export function HomeDesktop() {
   // 값이라 취향을 저장하고 홈으로 와도 바뀌지 않았고 새로고침하면 사라졌습니다.
   const taste = useTastePreference();
   const tags = taste.savedIds.map(taste.labelOf);
-  const course = session.route?.route ?? null;
+  const routeCourse = session.route?.route ?? null;
+  // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
+  // 불러온 plan)는 있을 수 있습니다. route 만 보면 그 사이엔 홈이 늘 비어
+  // 보였습니다.
+  const planStops = routeCourse
+    ? []
+    : (session.plan?.days.flatMap((day) => day.items) ?? []);
+  const course = routeCourse ?? (planStops.length
+    ? { items: planStops, travel_minutes: null as number | null }
+    : null);
   // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
   // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
   const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
@@ -559,7 +568,7 @@ export function HomeDesktop() {
                       .map((activity) => travelActivityLabel(activity.activity, activity.label))
                       .join(" · ") || t("활동 미확인")}
                   </span>
-                  <PlacePhotoCredit photo={item.photo} />
+                  {/* <PlacePhotoCredit photo={item.photo} /> */}
                 </span>
               </div>
             ))}
@@ -573,11 +582,13 @@ export function HomeDesktop() {
       <LabelRow
         kick={t("물놀이 최적경로")}
         title={
-          course
-            ? t("오늘 조건으로 {count}곳", { count: course.items.length })
-            : t("코스를 만들면 여기에")
+          routeCourse
+            ? t("오늘 조건으로 {count}곳", { count: routeCourse.items.length })
+            : course
+              ? t("{count}곳 담음 · 경로 미계산", { count: course.items.length })
+              : t("코스를 만들면 여기에")
         }
-        chip={<StateChip kind={course ? "live" : "partial"} />}
+        chip={<StateChip kind={routeCourse ? "live" : "partial"} />}
         desc={t("최적의 여행 코스를 만들어보세요.")}
       >
         {course ? (
@@ -604,9 +615,11 @@ export function HomeDesktop() {
         )}
         <div className="hd-course-foot">
           <span className="hd-row-note">
-            {course
-              ? t("예상 이동 {minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.", { minutes: course.travel_minutes })
-              : ""}
+            {routeCourse
+              ? t("예상 이동 {minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.", { minutes: routeCourse.travel_minutes })
+              : course
+                ? t("지도에서 경로를 요청하면 이동 시간을 계산합니다.")
+                : ""}
           </span>
           <a className="pd-dk-button is-pill" href="#map?view=course">
             {t("지도에서 경로 탐색 →")}</a>

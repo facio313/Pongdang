@@ -610,19 +610,6 @@ export function RecommendDesktop() {
         </div>
       </DesktopHero>
 
-      {step !== null && (
-        <div className="rd-row-foot">
-          <span className="rd-note" />
-          <button
-            type="button"
-            className="pd-dk-button is-quiet"
-            disabled={mutationBusy}
-            onClick={resetAll}
-          >
-            {t("초기화")}</button>
-        </div>
-      )}
-
       {candidateAction.busy && (
         <div className="rd-row-foot">
           <span role="status">{t("후보를 조회하고 있습니다…")}</span>
@@ -942,6 +929,13 @@ export function RecommendDesktop() {
               >
                 {t("후보와 경로 보기 →")}</button>
             )}
+            <button
+              type="button"
+              className="pd-dk-button is-quiet"
+              disabled={mutationBusy}
+              onClick={resetAll}
+            >
+              {t("초기화")}</button>
           </div>
         </LabelRow>
       )}

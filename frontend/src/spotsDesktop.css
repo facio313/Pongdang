@@ -41,7 +41,6 @@
   align-items: center;
   gap: 16px;
   padding: 18px var(--dk-pad);
-  border-bottom: 1px solid var(--dk-rule);
 }
 .pd-desktop .sk-search {
   flex: 1;
