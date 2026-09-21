@@ -122,6 +122,7 @@ export interface ConditionScore {
     status: string;
     reason_codes: string[];
     criterion: string;
+    source_ids?: string[];
     station_name?: string | null;
     station_id?: number | null;
     relation?: string | null;

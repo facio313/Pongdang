@@ -89,7 +89,7 @@ test("a failed automatic refresh retains the score and waits another thirty minu
 });
 
 for (const width of [390, 1440]) {
-  test(`${width}px header data refresh preserves scores on empty updates and a failed place read`, async ({ page }) => {
+  test(`${width}px home hides header refresh and menu refresh preserves scores on empty updates and a failed place read`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await mockCommon(page);
     let collecting = false;
@@ -109,13 +109,16 @@ for (const width of [390, 1440]) {
     await page.goto("#home");
     const hero = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
     await expect(hero).toHaveText("75");
+    await expect(page.locator(".pd-header .pd-data-refresh, .pd-dk-nav .pd-data-refresh")).toHaveCount(0);
+    await page.getByRole("button", { name: "사이드 메뉴 열기", exact: true }).click();
     const refresh = page.getByRole("button", { name: "데이터 새로고침", exact: true });
     await expect(refresh).toBeVisible();
     const box = await refresh.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     await refresh.click();
-    await expect(page.locator(".pd-data-refresh-message")).toContainText("자료 확인 완료");
+    await expect(page.locator("#pd-menu-refresh-status")).toContainText("자료 확인 완료");
+    await page.getByRole("button", { name: "닫기", exact: true }).click();
     await expect(hero).toHaveText("75");
     await expect(page.locator(".pd-retained-note").first()).toContainText("기준");
     // The shared cache survives a tab unmount even after an insufficient read.

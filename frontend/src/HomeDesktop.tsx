@@ -1,4 +1,5 @@
 import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { HomeTides } from "./HomeTides";
 import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
 import { useState } from "react";
@@ -412,6 +413,11 @@ export function HomeDesktop() {
         >
           {places.error ?? conditions.error ?? selectionMessage}
         </p>
+      </LabelRow>
+
+      <LabelRow kick={t("물때")} title={t("다음 간조·만조")}
+        desc={t("국립해양조사원 공식 조석 예측")}>
+        <HomeTides id={place?.id} placeSettled={placeSettled} />
       </LabelRow>
 
       <LabelRow

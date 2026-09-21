@@ -28,6 +28,7 @@ import { PlacePhoto } from "./PlacePhoto";
 import type { PlacePhoto as Photo } from "./placePhotos";
 import { usePlacePhotos } from "./usePlacePhotos";
 import { HomeDesktop } from "./HomeDesktop";
+import { HomeTides } from "./HomeTides";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
@@ -89,7 +90,7 @@ function Hero({
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   return (
     <header className="pd-hero">
-      <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt />
+      <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt showRefresh={false} />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
           <span className="pd-lbl hm-hero-place">
@@ -622,6 +623,7 @@ function HomeScreen() {
               (conditions.loading ? t("조건 조회 중입니다.") : selectionMessage)
             }
           />
+          <HomeTides id={place?.id} placeSettled={placeSettled} />
           <BeachPicksCard />
           <TasteBanner />
           <TastePicksCard />

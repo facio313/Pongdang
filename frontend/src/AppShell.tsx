@@ -21,11 +21,13 @@ export function AppHeader({
   title,
   time,
   onCobalt = false,
+  showRefresh = true,
 }: {
   title: string;
   /** 목업 프레임용 시각 문자열. 없으면 자리만 비워 둡니다. */
   time?: string;
   onCobalt?: boolean;
+  showRefresh?: boolean;
 }) {
   return (
     <div className={"pd-header" + (onCobalt ? " is-on-cobalt" : "")}>
@@ -39,7 +41,7 @@ export function AppHeader({
       <span className="pd-header-mark">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </span>
-      <span className="pd-header-actions"><span>{title}</span><DataRefreshButton /></span>
+      <span className="pd-header-actions"><span>{title}</span>{showRefresh && <DataRefreshButton />}</span>
     </div>
   );
 }

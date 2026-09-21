@@ -14,6 +14,7 @@ import { grades } from "./groupAGrade.ts";
 import {
   SCORE_REASONS,
   formatValue,
+  conditionCriterionText,
   type ConditionScore,
   type Conditions,
 } from "./productData.ts";
@@ -134,6 +135,8 @@ export interface ComponentBar {
   evaluated: boolean;
   /** 미평가 사유의 한국어 표기. 없으면 빈 문자열입니다. */
   reasons: string;
+  criterion: string;
+  sources: ConditionScore["sources"];
 }
 
 /** 점수를 이루는 항목 전부. 점수가 없는 항목도 빼지 않고 사유를 달아 넘깁니다 --
@@ -154,6 +157,8 @@ export function componentBars(data?: Conditions): ComponentBar[] {
       reasons: item.reason_codes
         .map((reason) => t(SCORE_REASONS[reason] ?? reason))
         .join(" · "),
+      criterion: conditionCriterionText(item.criterion),
+      sources: data?.condition_score?.sources.filter((source) => item.source_ids?.includes(source.id)) ?? [],
     };
   });
 }

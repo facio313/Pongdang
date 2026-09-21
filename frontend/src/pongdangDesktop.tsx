@@ -89,7 +89,7 @@ export function DesktopNav({
           손잡이가 모바일 셸(AppShell)에만 있어서, 1080px 이상에서는 그 다섯
           곳에 닿을 방법이 전혀 없었습니다. */}
       <SideMenuButton />
-      <DataRefreshButton />
+      {active !== "home" && <DataRefreshButton />}
       <a className="pd-dk-nav-mark" href="#home">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </a>

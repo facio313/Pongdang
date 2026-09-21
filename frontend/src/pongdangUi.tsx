@@ -558,6 +558,21 @@ export function ComponentBars({
             {!bar.evaluated && bar.reasons && (
               <span className="pd-cbar-reason">{bar.reasons}</span>
             )}
+            {bar.metric === "air_temperature" && bar.evaluated && bar.criterion && (
+              <div className="pd-cbar-reason">
+                {bar.score === 0 && <p>{t("기온 0점은 현재 참고 곡선의 최저값입니다. 자료 없음이나 활동 금지를 뜻하지 않습니다.")}</p>}
+                <details className="pd-explainer">
+                  <summary className="pd-tap">{t("기온 점수 기준 · 미보정 참고값")}</summary>
+                  <div className="pd-explainer-body">
+                    <p>{bar.criterion}</p>
+                    {bar.sources.map((source) => <p key={source.id}>
+                      <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                      <br />{t(source.usage)}
+                    </p>)}
+                  </div>
+                </details>
+              </div>
+            )}
           </li>
         );
       })}

@@ -131,3 +131,18 @@ test('a zero score stays a real value in the bars and is not flattened into miss
   assert.equal(bars[0].score, 0);
   assert.equal(bars[0].evaluated, true);
 });
+
+test('temperature evidence preserves the server curve and only its cited sources without rescoring', () => {
+  const criterion = '제품 기본값 · 해변 방문 기온 · 21°C→0점, 25°C→100점 · 절점 사이 선형 보간';
+  const data = conditions([component('air_temperature', '외부 기온', 19.9, '°C', 0,
+    { criterion, source_ids: ['beach'] })]);
+  const source = { id: 'beach', title: 'Beach study', url: 'https://doi.org/10.3390/atmos7020030', usage: '선호도 참고' };
+  data.condition_score.sources = [source, { id: 'wind', title: 'Wind study' }];
+  const bar = componentBars(data)[0];
+  assert.equal(bar.score, 0);
+  assert.equal(bar.valueText, '19.9°C');
+  assert.equal(bar.criterion, criterion);
+  assert.deepEqual(bar.sources, [source]);
+  delete data.condition_score.components[0].source_ids;
+  assert.deepEqual(componentBars(data)[0].sources, []);
+});

@@ -1,0 +1,29 @@
+.pd-home-tides h2 {
+  margin: 0 0 6px;
+  font-size: var(--pd-fs-md);
+}
+.pd-home-tides-source {
+  margin: 0;
+  color: var(--pd-ink-2);
+  font-size: var(--pd-fs-cap);
+}
+.pd-home-tides-events {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-home-tides-events li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: var(--pd-fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.pd-home-tides-station {
+  grid-column: 1 / -1;
+  color: var(--pd-ink-2);
+  font-size: var(--pd-fs-cap);
+}

@@ -1,6 +1,12 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const conditionsMessages: Record<string, MessageTranslations> = {
+  "다음 간조·만조": ["Next low and high tides", "下一次低潮与高潮", "次の干潮・満潮"],
+  "국립해양조사원 공식 조석 예측": ["Official tide predictions from KHOA", "韩国国立海洋调查院官方潮汐预测", "韓国国立海洋調査院の公式潮汐予測"],
+  "연결된 다음 간조·만조 예측이 없습니다.": ["No upcoming low or high tide predictions are available for this place.", "此地点暂无已关联的下次潮汐预测。", "この場所に紐づく次の干潮・満潮予測はありません。"],
+  "일부 물때만 수집되었습니다.": ["Only some tide events are available.", "仅收集到部分潮汐时间。", "一部の潮汐時刻のみ取得されています。"],
+  "기온 0점은 현재 참고 곡선의 최저값입니다. 자료 없음이나 활동 금지를 뜻하지 않습니다.": ["A temperature score of 0 is the minimum of the current reference curve. It does not mean missing data or a ban on the activity.", "气温0分是当前参考曲线的最低值，不代表缺少数据或禁止活动。", "気温0点は現在の参考曲線の最低値です。データ欠損や活動禁止を意味しません。"],
+  "기온 점수 기준 · 미보정 참고값": ["Temperature scoring criteria · uncalibrated reference", "气温评分标准 · 未校准参考值", "気温の採点基準 · 未較正の参考値"],
   "홈": [
     "Home",
     "首页",
