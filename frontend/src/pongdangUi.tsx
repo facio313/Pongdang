@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import { t } from "./i18n";
 import { gradeOf, grades } from "./groupAGrade";
 import { metricText, type Conditions } from "./productData";
@@ -520,6 +521,8 @@ export function ComponentBars({
   bars: ComponentBar[];
   loading?: boolean;
 }) {
+  const disclosureId = useId();
+  const [expandedMetrics, setExpandedMetrics] = useState<string[]>([]);
   if (loading)
     return (
       <ul className="pd-cbars">
@@ -534,13 +537,27 @@ export function ComponentBars({
     <ul className="pd-cbars">
       {bars.map((bar) => {
         const grade = gradeOf(bar.score);
+        const expanded = expandedMetrics.includes(bar.metric);
+        const criterionId = `${disclosureId}-${bar.metric}`;
         return (
           <li
             className={"pd-cbar" + (bar.evaluated ? "" : " is-empty")}
             data-grade={grade.key}
             key={bar.metric}
           >
-            <span className="pd-cbar-label">{bar.label}</span>
+            {bar.criterion ? (
+              <button
+                type="button"
+                className="pd-cbar-label pd-cbar-toggle"
+                aria-expanded={expanded}
+                aria-controls={criterionId}
+                onClick={() => setExpandedMetrics((metrics) => metrics.includes(bar.metric)
+                  ? metrics.filter((metric) => metric !== bar.metric)
+                  : [...metrics, bar.metric])}
+              >
+                {bar.label}<span className="pd-cbar-chevron" aria-hidden="true" />
+              </button>
+            ) : <span className="pd-cbar-label">{bar.label}</span>}
             <span className="pd-num pd-cbar-value">{bar.valueText}</span>
             <span className="pd-cbar-track">
               {bar.evaluated && (
@@ -558,19 +575,16 @@ export function ComponentBars({
             {!bar.evaluated && bar.reasons && (
               <span className="pd-cbar-reason">{bar.reasons}</span>
             )}
-            {bar.metric === "air_temperature" && bar.evaluated && bar.criterion && (
-              <div className="pd-cbar-reason">
-                {bar.score === 0 && <p>{t("기온 0점은 현재 참고 곡선의 최저값입니다. 자료 없음이나 활동 금지를 뜻하지 않습니다.")}</p>}
-                <details className="pd-explainer">
-                  <summary className="pd-tap">{t("기온 점수 기준 · 미보정 참고값")}</summary>
-                  <div className="pd-explainer-body">
-                    <p>{bar.criterion}</p>
-                    {bar.sources.map((source) => <p key={source.id}>
-                      <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
-                      <br />{t(source.usage)}
-                    </p>)}
-                  </div>
-                </details>
+            {bar.criterion && (
+              <div className="pd-cbar-reason pd-cbar-criterion" id={criterionId} hidden={!expanded}>
+                <div className="pd-explainer-body">
+                  <p><strong>{t("점수 기준 · 미보정 참고값")}</strong></p>
+                  <p>{bar.criterion}</p>
+                  {bar.sources.map((source) => <p key={source.id}>
+                    <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                    <br />{t(source.usage)}
+                  </p>)}
+                </div>
               </div>
             )}
           </li>
