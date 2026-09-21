@@ -173,7 +173,7 @@ function SpotsListDesktop() {
                   <span className="pd-dk-num sk-count-num">{count}</span>
                 </span>
               ))}
-            </span>{t("운영 안내와 대표 사진은 수집해 저장한 정보가 있는 장소에 표시합니다. 장소를 고르면 상세정보와 물놀이 조건을 확인할 수 있습니다.")}</>
+            </span></>
         }
       >
         <div className="sk-list">

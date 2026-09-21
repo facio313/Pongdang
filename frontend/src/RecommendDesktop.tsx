@@ -621,7 +621,6 @@ export function RecommendDesktop() {
               {t("저장한 취향으로")}<br />
               {t("시작합니다")}</>
           }
-          desc={t("취향은 서버에 저장돼 있습니다(travel/preferences). 이 조건으로 바로 후보를 찾거나, 대화로 조건을 덧붙이거나, 취향을 다시 고를 수 있습니다.")}
         >
           <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
           <div className="rd-tastes">
@@ -637,8 +636,7 @@ export function RecommendDesktop() {
               그때 「저장돼 있는 취향」을 말하는 자리로만 남습니다. */}
           {!showTaste && !showCourse && (
             <div className="rd-row-foot">
-              <span className="rd-note">
-                {t("날짜는 오늘로 고정입니다. 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
+
               <button
                 type="button"
                 className="pd-dk-button is-quiet"

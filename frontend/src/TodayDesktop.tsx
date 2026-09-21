@@ -314,8 +314,6 @@ function SpotComparison({
           {status}
         </p>
       )}
-      <p className="td-note">
-        {t("지점마다 자기 조건을 따로 조회합니다. 막대는 100점 만점 대비 위치이며 기여도가 아닙니다. 값이 없으면 –이고 0점이 아닙니다.")}</p>
     </div>
   );
 }
@@ -384,8 +382,7 @@ function ActivityScores({
           {error}
         </p>
       )}
-      <p className="td-note">
-        {t("활동마다 보는 조건이 다릅니다. 지원하지 않는 활동은 –이며 0점이 아닙니다.")}</p>
+
     </div>
   );
 }
@@ -535,7 +532,7 @@ export function TodayDesktop() {
         kick={t("점수 근거")}
         title={t("{activity} 점수를 이루는 것들", { activity: t(activities[activity]) })}
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
-        desc={t("각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다. 값이 없는 항목은 –이며 0점이 아닙니다.")}
+        desc={t("각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.")}
       >
         <ComponentBars
           bars={componentBars(conditions.data)}
@@ -567,7 +564,7 @@ export function TodayDesktop() {
           </>
         }
         chip={<StateChip kind={tides.data?.rows.length ? "live" : "no_data"} />}
-        desc={t("공식 조석 예측의 간조·만조 시각입니다. 사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.")}
+        desc={t("공식 조석 예측의 간조·만조 시각입니다.")}
       >
         <div className="td-tide-state">
           <span className="td-tide-chip is-now">
@@ -613,7 +610,6 @@ export function TodayDesktop() {
         kick={t("수질")}
         title={t("최근 검사")}
         chip={<StateChip kind={quality.data ? "live" : "no_data"} />}
-        desc={t("수질은 점수에 들어가지 않습니다. 물놀이 조건 점수와 다른 값이라 하나로 요약하지 않습니다.")}
       >
         <SplitBody columns="1fr 1.35fr">
           <div className="td-first-swim">
