@@ -130,6 +130,17 @@
 .pd-desktop .rd-taste-group + .rd-taste-group {
   margin-top: 16px;
 }
+/* 이미 지나온 카테고리. 지우지 않고 물러나게만 둡니다 -- 위에서 그대로 고칠
+   수 있어야 합니다(예전에는 다음을 누르면 사라졌습니다). */
+.pd-desktop .rd-taste-group.is-past .pd-dk-kick {
+  color: var(--dk-ink-2);
+}
+.pd-desktop .rd-taste-group {
+  scroll-margin-top: 16px;
+}
+.pd-desktop .rd-course-anchor {
+  scroll-margin-top: 16px;
+}
 .pd-desktop .rd-taste-group .pd-dk-kick {
   margin-bottom: 8px;
 }
@@ -268,9 +279,49 @@
   place-items: center;
   font-size: 12.5px;
 }
+/* 대표 사진. 데스크탑에는 카드가 없으므로 사진도 카드가 되지 않고 괘선 행
+   안의 한 칸입니다. 사진이 없는 장소는 자리표시자가 대신합니다. */
+.pd-desktop .rd-step-photo {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: var(--dk-r-ctl);
+  background: #e7ecf2;
+  color: var(--dk-ink-2);
+}
 .pd-desktop .rd-step-body {
   flex: 1;
   min-width: 0;
+}
+/* 이 후보가 걸린 취향. 서버가 돌려준 matched_preferences 이며, 화면이
+   붙이는 말이 아닙니다. */
+.pd-desktop .rd-step-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pd-desktop .rd-step-chip {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dk-deep);
+  background: #e7ecf2;
+  padding: 3px 9px;
+  border-radius: var(--dk-r-pill);
+  white-space: nowrap;
+}
+/* 조회 중 자리. 번호 배지의 파란 원은 쓰지 않습니다 -- 아직 없는 순위를
+   확정된 것처럼 그리게 됩니다. */
+.pd-desktop .rd-step.is-skeleton .rd-step-no {
+  background: #e7ecf2;
+  color: transparent;
+}
+.pd-desktop .rd-step.is-skeleton .rd-step-body {
+  display: grid;
+  gap: 7px;
+}
+.pd-desktop .rd-step-photo-empty {
+  background: #e7ecf2;
 }
 .pd-desktop .rd-step-name {
   font-weight: 700;

@@ -180,13 +180,18 @@ test("pending and failed card signals do not block the next card or navigation",
 });
 
 test("equal place and activity labels are sent once while category IDs survive", async ({ page }) => {
-  const activity = (await catalogue(page)).find((group) => group.id === "activity")!;
+  const groups = await catalogue(page);
+  const place = groups.find((group) => group.id === "place_type")!;
+  const activity = groups.find((group) => group.id === "activity")!;
   await openTags(page);
-  const onsen = page.getByRole("button", { name: "온천", exact: true });
-  await onsen.click();
+  // 카테고리는 한 화면에 쌓입니다. 「온천」이라는 같은 이름이 장소와 활동 양쪽에
+  // 있으므로, 어느 카테고리에서 고른 것인지 덩어리로 좁혀 누릅니다 -- 화면도
+  // 같은 이유로 덩어리마다 카테고리 이름을 답니다(role="group").
+  const inGroup = (label: string) => page.getByRole("group", { name: label });
+  await inGroup(place.label).getByRole("button", { name: "온천", exact: true }).click();
   await page.getByRole("button", { name: "다음", exact: true }).click();
-  await onsen.click();
-  await page.getByRole("button", { name: "서핑", exact: true }).click();
+  await inGroup(activity.label).getByRole("button", { name: "온천", exact: true }).click();
+  await inGroup(activity.label).getByRole("button", { name: "서핑", exact: true }).click();
   await finishMobileTags(page);
   for (const option of activity.options) {
     await expect(page.locator(".rc-swipe-name")).toHaveText(option.label);

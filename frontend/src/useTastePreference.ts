@@ -1,4 +1,4 @@
-import { useResource } from "./useResource";
+import { forgetResource, useResource } from "./useResource";
 import { travelJson, type Preference } from "./travelApi";
 
 // 취향 한 벌을 읽고 쓰는 곳입니다. 예전에는 모바일 추천(RecommendPage)과
@@ -86,6 +86,11 @@ export function useTastePreference(): TastePreference {
       },
       signal,
     );
+    // 저장이 끝났으면 옛 취향을 들고 있는 화면이 없어야 합니다. 예전에는 조회
+    // 기억(60초)이 그대로 남아, 홈과 추천이 방금 고른 것을 모른 채 옛 취향을
+    // 계속 그렸습니다 -- 두 추천 화면이 `justSaved` 그림자 상태로 그 자리만
+    // 가리고 있었고, 홈은 아예 저장된 취향을 읽지도 못했습니다.
+    forgetResource("travel/preferences");
   };
 
   return {

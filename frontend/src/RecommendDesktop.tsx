@@ -1,5 +1,5 @@
 import { t } from "./i18n.ts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import {
   DesktopHero,
@@ -9,11 +9,25 @@ import {
   LabelRow,
   SplitBody,
 } from "./pongdangDesktop";
-import { Icon, StateChip } from "./pongdangUi";
+import { GradeChip, Icon, Skeleton, StateChip } from "./pongdangUi";
+import { PlacePhoto } from "./PlacePhoto";
+import type { PlacePhoto as Photo } from "./placePhotos";
+import { usePlacePhotos } from "./usePlacePhotos";
 import { AiSuggestion } from "./pongdangUi";
-import { dataStatusText, dateLabel, kstDate, placeRegionLabel, timeLabel } from "./productData";
+import {
+  conditionPath,
+  conditionScore,
+  conditionTargetInRange,
+  dataStatusText,
+  dateLabel,
+  kstDate,
+  placeRegionLabel,
+  timeLabel,
+  type Conditions,
+} from "./productData";
+import type { Activity } from "./aiApi";
 import { useAction } from "./useAction";
-import { useResource } from "./useResource";
+import { isInitialLoad, useResource } from "./useResource";
 import {
   kakaoRouteLink,
   routePaths,
@@ -58,6 +72,91 @@ const FOLLOWUPS = [
   "아이랑 갈 만한 곳으로",
   "더 가까운 곳으로",
 ];
+
+/** 후보 · 방문 순서 한 줄이 말하는 것. 번호와 이름만 있던 자리에 점수 조회
+ *  대상(`spotId` · `at`)과 취향 일치(`chips`) · 대표 사진을 함께 싣습니다. */
+interface RdStepRow {
+  key: string;
+  spotId: number;
+  /** 점수를 조회할 시각. 저장 코스는 도착 시각, 후보는 그날 정오입니다. */
+  at: string;
+  no: number;
+  name: string;
+  when: string;
+  chips: string[];
+  link: string | null;
+  photo?: Photo;
+}
+
+/** 후보 한 줄. 데스크탑에는 카드가 없으므로(pongdangDesktop.css) 괘선 행을
+ *  그대로 두고 밀도만 올립니다 -- 사진 · 점수 · 취향 일치는 카드를 만들지
+ *  않고도 같은 줄에서 말할 수 있는 것들입니다. */
+function RdStep({
+  step,
+  activity,
+  emptyLink,
+}: {
+  step: RdStepRow;
+  activity: Activity;
+  emptyLink: string;
+}) {
+  const targetValid = conditionTargetInRange(step.at);
+  const conditions = useResource<Conditions>(
+    targetValid ? conditionPath(step.spotId, activity, step.at) : null,
+  );
+  const score = conditionScore(conditions.data);
+  return (
+    <div className="rd-step">
+      <span className="pd-dk-num rd-step-no">{step.no}</span>
+      <PlacePhoto className="rd-step-photo" name={step.name} photo={step.photo} />
+      <div className="rd-step-body">
+        <div className="rd-step-name">{step.name}</div>
+        <div className="rd-step-when">{step.when}</div>
+        {step.chips.length > 0 && (
+          <div className="rd-step-chips">
+            {step.chips.map((chip) => (
+              <span className="rd-step-chip" key={chip}>{chip}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* 점수를 아직 모르는 동안과 값이 없는 것은 다른 사실입니다. 앞은
+          스켈레톤, 뒤는 «–» 입니다(useResource.isInitialLoad). */}
+      <GradeChip score={score} loading={targetValid && isInitialLoad(conditions)} />
+      {step.link ? (
+        <a
+          className="rd-step-link"
+          href={step.link}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t("이 구간 길찾기")}</a>
+      ) : (
+        <span className="rd-step-link is-empty">{emptyLink}</span>
+      )}
+    </div>
+  );
+}
+
+/** 후보를 조회하는 동안의 자리. 목록을 한 번도 보여준 적 없을 때만 씁니다. */
+function RdStepSkeletons({ count = 3 }: { count?: number }) {
+  return (
+    <div className="rd-steps" role="status" aria-label={t("후보를 조회하고 있습니다…")}>
+      {Array.from({ length: count }, (_, index) => (
+        <div className="rd-step is-skeleton" key={index}>
+          <span className="rd-step-no">
+            <Skeleton width="1.2em" label={t("후보 조회 중")} />
+          </span>
+          <span className="rd-step-photo rd-step-photo-empty" aria-hidden="true" />
+          <div className="rd-step-body">
+            <Skeleton width="9em" label={t("후보 조회 중")} />
+            <Skeleton width="13em" label={t("후보 조회 중")} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function RecommendDesktop() {
   const { locale } = useTravelLanguage();
@@ -104,11 +203,10 @@ export function RecommendDesktop() {
   const chosenIds = Object.values(chosen).flat();
   const selectionCount = chosenIds.length;
 
-  // 방금 저장한 취향. useResource 의 기억은 60초 동안 살아 있어서, 저장 직후의
-  // travel/preferences 는 아직 옛 값입니다. 저장했다는 사실을 화면이 바로
-  // 말해야 하므로 이 값을 우선합니다.
-  const [justSaved, setJustSaved] = useState<string[] | null>(null);
-  const savedLabels = justSaved ?? savedIds.map(labelOf);
+  // 저장된 취향 그대로입니다. 저장이 끝나면 useTastePreference 가 조회 기억을
+  // 버리고 다시 읽으므로(forgetResource), 방금 저장한 것을 따로 들고 있을
+  // 필요가 없습니다 -- 예전에는 여기 `justSaved` 그림자 상태가 있었습니다.
+  const savedLabels = savedIds.map(labelOf);
   const tasteKnown = savedLabels.length > 0 || hasTaste;
 
   const baseRequest = (): TravelRequest => requestInLanguage({
@@ -161,11 +259,15 @@ export function RecommendDesktop() {
           : "taste");
   const setStep = setMoved;
 
-  /** 취향 단계 안에서 지금 보고 있는 화면. 카테고리 하나씩이고, 마지막
-   *  (groups.length)은 요약입니다. */
+  /** 취향에서 **열린 데까지**. 카테고리 하나씩 열리고, 마지막(groups.length)은
+   *  요약입니다. 예전에는 이 값이 「지금 보이는 화면」이라 다음을 누르면 앞에서
+   *  고른 것이 사라졌습니다. 지금은 열린 것이 전부 아래로 쌓입니다. */
   const [tasteIndex, setTasteIndex] = useState(0);
   const tasteTotal = groups.length + 1;
   const tasteGroup = groups[tasteIndex];
+  /** 취향을 고르고 후보로 넘어왔는가. 후보 아래에 취향 덩어리를 그대로 남겨
+   *  두기 위한 값입니다 -- 저장된 취향으로 바로 찾은 경우와 다른 사실입니다. */
+  const [tasteVisited, setTasteVisited] = useState(false);
 
   const clearSavedNotice = () => {
     saveAction.cancel();
@@ -203,12 +305,18 @@ export function RecommendDesktop() {
   // 취향 확정. 예전에는 이 화면이 고른 조건을 **이번 요청에만** 쓰고 버렸고,
   // 저장은 모바일 추천에만 있었습니다. 같은 계약(GET → PUT expected_revision)
   // 으로 여기서도 저장합니다.
-  const saveAndFind = () =>
-    void action.run(async (signal) => {
+  const saveAndFind = () => {
+    // 후보 자리는 **조회를 시작할 때** 엽니다. 취향 덩어리를 밀어내지 않고 그
+    // 아래에 붙으므로, 조회 중에는 그 자리에 스켈레톤이 섭니다 -- 응답이 온
+    // 뒤에 열면 누른 다음 한참 아무 일도 없는 것처럼 보입니다. 앞선 후보는
+    // 이 조건의 답이 아니므로 requestList 와 같이 비웁니다.
+    setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
+    setTasteVisited(true);
+    setStep("course");
+    return void candidateAction.run(async (signal) => {
       const request = baseRequest();
       await savePreference(request.preferred_tags, signal);
       if (signal.aborted) return;
-      setJustSaved(request.preferred_tags);
       const result = await travelJson<RecommendationResult>(
         import.meta.env.BASE_URL,
         "travel/recommendations",
@@ -218,8 +326,8 @@ export function RecommendDesktop() {
       );
       if (signal.aborted) return;
       publish(result);
-      setStep("course");
     });
+  };
 
   // 코스 저장. 예전에는 이 화면에 저장 경로가 없어서, 데스크탑 사용자는 코스를
   // 만들 수는 있어도 내 코스에 남길 수 없었습니다 -- 그러면서 데스크탑 내
@@ -266,6 +374,52 @@ export function RecommendDesktop() {
   }, [requestedPlan.data, loadedPlanId]);
 
   const { candidates, originOptions } = useRouteFormSources();
+
+  // 후보 · 방문 순서 한 벌. 예전에는 이 목록이 JSX 안에서 만들어져 번호와
+  // 이름 두 줄이 전부였습니다. 점수 · 사진 · 취향 일치는 **같은 응답에 이미 있던
+  // 사실**인데 화면이 버리고 있었습니다.
+  const stepActivity = session.plan?.request.activity ?? recommendation?.request.activity ?? "relax";
+  const stepAt =
+    (session.plan?.request.dates[0] ?? recommendation?.request.dates[0] ?? kstDate()) +
+    "T12:00:00+09:00";
+  const stepBase: RdStepRow[] = calculated
+    ? items.map((item, index) => ({
+        key: `${item.spot_id}:${index}`,
+        spotId: item.spot_id,
+        at: item.arrival_at ?? stepAt,
+        no: index + 1,
+        name: item.name,
+        when: t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at), minutes: calculated.legs[index] ? t("{minutes}분 이동", { minutes: calculated.legs[index].duration_minutes }) : t("이동시간 –") }),
+        chips: [],
+        link: kakaoRouteLink(index === 0 ? calculated.origin : items[index - 1], [item]),
+      }))
+    : recommendation
+      ? recommendation.recommendations.map((item) => ({
+          key: String(item.spot_id),
+          spotId: item.spot_id,
+          at: stepAt,
+          no: item.rank,
+          name: item.name,
+          when: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
+          chips: item.matched_preferences.map((preference) => t(preference.tag)),
+          link: null,
+        }))
+      : // 저장된 코스의 정차지. 시각이 있으면 함께 적습니다.
+        savedStops.map((stop, index) => ({
+          key: `${stop.spot_id}:${index}`,
+          spotId: stop.spot_id,
+          at: stop.arrival_at ?? stepAt,
+          no: index + 1,
+          name: stop.name,
+          when: stop.arrival_at
+            ? t("{arrival} 도착", { arrival: timeLabel(stop.arrival_at) })
+            : t("시각 미정"),
+          chips: [t("저장 일정")],
+          link: null,
+        }));
+  // 사진은 목록 하나로 한 번에 읽습니다(usePlacePhotos).
+  const stepPhotos = usePlacePhotos(stepBase.map((row) => ({ ...row, id: row.spotId })));
+  const stepRows: RdStepRow[] = stepPhotos.rows ?? stepBase;
 
   // 마커·경로선은 좌표가 있는 실제 장소만 씁니다. 경로가 계산되면 방문 순서를,
   // 아직이면 후보 순서를 번호로 붙입니다. 지도는 이 배열의 동일성으로 다시
@@ -336,8 +490,27 @@ export function RecommendDesktop() {
     setSelectedRegion(currentRegion);
     reset();
     setTasteIndex(0);
+    setTasteVisited(false);
     setStep("taste");
   };
+  // 흐름은 아래로 쌓입니다. 대화만 그 자리를 대신 차지합니다 -- 취향을 고르는
+  // 자리가 아니라 다른 일이기 때문입니다.
+  const inFlow = step !== null && step !== "chat";
+  const showEntry = inFlow && tasteKnown;
+  const showTaste = inFlow && (step === "taste" || tasteVisited);
+  const showCourse = inFlow && step === "course";
+  // 새로 열린 덩어리로 데려다줍니다. 쌓이는 화면에서는 새 내용이 화면 **아래**에
+  // 붙으므로, 데려다주지 않으면 눌러도 아무 일이 없어 보입니다.
+  const openedRef = useRef<HTMLDivElement | null>(null);
+  const courseRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (showTaste && !showCourse)
+      openedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tasteIndex, showTaste, showCourse]);
+  useEffect(() => {
+    if (showCourse)
+      courseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showCourse]);
   const onRegion = (next: string) => {
     clearSavedNotice();
     setSelectedRegion(next);
@@ -440,7 +613,7 @@ export function RecommendDesktop() {
         </LabelRow>
       )}
 
-      {step === "entry" && (
+      {showEntry && (
         <LabelRow
           kick={t("시작")}
           title={
@@ -459,24 +632,29 @@ export function RecommendDesktop() {
               </span>
             ))}
           </div>
-          <div className="rd-row-foot">
-            <span className="rd-note">
-              {t("날짜는 오늘로 고정입니다. 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
-            <button
-              type="button"
-              className="pd-dk-button is-quiet"
-              onClick={() => setStep("chat")}
-            >
-              {t("대화로 좁히기 →")}</button>
-            <button
-              type="button"
-              className="pd-dk-button rd-remake"
-              disabled={action.busy}
-              onClick={requestList}
-            >
-              {t("이 조건으로 후보 찾기")}</button>
-          </div>
-          {error && (
+          {/* 아래에 취향이나 후보가 이미 열려 있으면 여기서 다시 묻지 않습니다
+              -- 고르는 자리와 찾는 버튼이 같은 화면에 두 벌이 됩니다. 이 행은
+              그때 「저장돼 있는 취향」을 말하는 자리로만 남습니다. */}
+          {!showTaste && !showCourse && (
+            <div className="rd-row-foot">
+              <span className="rd-note">
+                {t("날짜는 오늘로 고정입니다. 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
+              <button
+                type="button"
+                className="pd-dk-button is-quiet"
+                onClick={() => setStep("chat")}
+              >
+                {t("대화로 좁히기 →")}</button>
+              <button
+                type="button"
+                className="pd-dk-button rd-remake"
+                disabled={action.busy}
+                onClick={requestList}
+              >
+                {t("이 조건으로 후보 찾기")}</button>
+            </div>
+          )}
+          {error && !showTaste && !showCourse && (
             <p className="rd-note" role="alert">
               {error}
             </p>
@@ -484,7 +662,7 @@ export function RecommendDesktop() {
         </LabelRow>
       )}
 
-      {step === "taste" && (
+      {showTaste && (
         <LabelRow
           kick={t("취향 {current} / {total}", { current: Math.min(tasteIndex + 1, tasteTotal), total: tasteTotal })}
           title={
@@ -502,7 +680,7 @@ export function RecommendDesktop() {
               : t("고른 항목을 취향으로 저장하고 실제 장소를 조회합니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다.")
           }
         >
-          {/* 진행 점. 몇 개 중 몇 번째인지 화면마다 같은 자리에서 말합니다. */}
+          {/* 진행 점. 몇 개 중 몇 번째가 열렸는지 같은 자리에서 말합니다. */}
           <div className="rd-progress" aria-hidden="true">
             {Array.from({ length: tasteTotal }, (_, index) => (
               <span key={index} className={index <= tasteIndex ? "is-on" : ""} />
@@ -511,82 +689,94 @@ export function RecommendDesktop() {
           <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
 
           {groups.length === 0 ? (
-            <p
-              className="rd-note"
-              role={catalogue.error ? "alert" : "status"}
-            >
-              {catalogue.error ??
-                (catalogue.loading
-                  ? t("선택 항목을 불러오는 중입니다.")
-                  : t("서버가 발행한 선택 항목이 없습니다."))}
-            </p>
-          ) : tasteGroup ? (
-            <div className="rd-taste-group">
-              <div className="pd-dk-kick">
-                {t("{label} · 최대 {count}개", { label: t(tasteGroup.label), count: tasteGroup.max_selections })}
+            catalogue.loading ? (
+              <div className="rd-taste-group">
+                <div className="rd-tastes" role="status" aria-label={t("선택 항목을 불러오는 중입니다.")}>
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <Skeleton key={index} width={index % 3 === 0 ? "5.5em" : "4em"} label={t("선택 항목 조회 중")} />
+                  ))}
+                </div>
               </div>
-              <div className="rd-tastes">
-                {tasteGroup.options.map((option) => {
-                  const values = chosen[tasteGroup.id] ?? [];
-                  const on = values.includes(option.id);
-                  return (
-                    <button
-                      type="button"
-                      key={option.id}
-                      className={"rd-taste" + (on ? " is-on" : "")}
-                      aria-pressed={on}
-                      onClick={() =>
-                        setPicked((current) => {
-                          // 처음 누르는 순간까지는 저장된 취향이 화면의 값이
-                          // 었습니다. 그것을 밑값으로 이어받지 않으면 다른
-                          // 카테고리에서 고른 것이 이 클릭으로 사라집니다.
-                          const previous = current ?? seeded;
-                          const next = on
-                            ? values.filter((value) => value !== option.id)
-                            : [...values, option.id].slice(
-                                -tasteGroup.max_selections,
-                              );
-                          return { ...previous, [tasteGroup.id]: next };
-                        })
-                      }
-                    >
-                      {t(option.label)}
-                      {on && <Icon name="check" size={14} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            ) : (
+              <p className="rd-note" role={catalogue.error ? "alert" : "status"}>
+                {catalogue.error ?? t("서버가 발행한 선택 항목이 없습니다.")}
+              </p>
+            )
           ) : (
-            <div className="rd-taste-group">
-              <div className="pd-dk-kick">{t("고른 항목 · {count}개", { count: selectionCount })}</div>
-              <div className="rd-tastes">
-                {selectionCount === 0 ? (
-                  <p className="rd-note">
-                    {t("고른 항목이 없습니다. 선택 없이도 후보를 찾을 수 있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.")}</p>
-                ) : (
-                  chosenIds.map((id) => (
-                    <span className="rd-taste is-on" key={id}>
-                      {t(labelOf(id))}
-                      <Icon name="check" size={14} />
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
+            <>
+              {/* 열린 카테고리는 **전부** 남습니다. 예전에는 다음을 누르면 앞에서
+                  고른 것이 화면에서 사라져, 되짚으려면 뒤로 가야 했습니다. */}
+              {groups.slice(0, tasteIndex + 1).map((group, index) => {
+                const values = chosen[group.id] ?? [];
+                const current = index === tasteIndex;
+                return (
+                  <div
+                    className={"rd-taste-group" + (current ? "" : " is-past")}
+                    key={group.id}
+                    ref={current ? openedRef : undefined}
+                  >
+                    <div className="pd-dk-kick">
+                      {t("{label} · 최대 {count}개", { label: t(group.label), count: group.max_selections })}
+                    </div>
+                    <div className="rd-tastes">
+                      {group.options.map((option) => {
+                        const on = values.includes(option.id);
+                        return (
+                          <button
+                            type="button"
+                            key={option.id}
+                            className={"rd-taste" + (on ? " is-on" : "")}
+                            aria-pressed={on}
+                            onClick={() =>
+                              setPicked((currentPicks) => {
+                                // 처음 누르는 순간까지는 저장된 취향이 화면의
+                                // 값이었습니다. 그것을 밑값으로 이어받지 않으면
+                                // 다른 카테고리에서 고른 것이 이 클릭으로
+                                // 사라집니다.
+                                const previous = currentPicks ?? seeded;
+                                const next = on
+                                  ? values.filter((value) => value !== option.id)
+                                  : [...values, option.id].slice(-group.max_selections);
+                                return { ...previous, [group.id]: next };
+                              })
+                            }
+                          >
+                            {t(option.label)}
+                            {on && <Icon name="check" size={14} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!tasteGroup && (
+                <div className="rd-taste-group" ref={openedRef}>
+                  <div className="pd-dk-kick">{t("고른 항목 · {count}개", { count: selectionCount })}</div>
+                  <div className="rd-tastes">
+                    {selectionCount === 0 ? (
+                      <p className="rd-note">
+                        {t("고른 항목이 없습니다. 선택 없이도 후보를 찾을 수 있지만, 취향 근거 없이는 추천 이유를 적을 수 없습니다.")}</p>
+                    ) : (
+                      chosenIds.map((id) => (
+                        <span className="rd-taste is-on" key={id}>
+                          {t(labelOf(id))}
+                          <Icon name="check" size={14} />
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="rd-row-foot">
             <span className="rd-note">
               {t("날짜는 오늘로 고정이며, 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
-            {tasteIndex > 0 && (
-              <button
-                type="button"
-                className="pd-dk-button is-quiet"
-                onClick={() => setTasteIndex(tasteIndex - 1)}
-              >
-                {t("이전")}</button>
-            )}
+            {/* 「이전」은 없습니다 -- 앞의 카테고리가 위에 그대로 있어 거기서
+                바로 고칠 수 있습니다. */}
             {tasteGroup ? (
               <button
                 type="button"
@@ -605,7 +795,7 @@ export function RecommendDesktop() {
                 {t("취향 저장하고 후보 찾기")}</button>
             )}
           </div>
-          {error && (
+          {error && !showCourse && (
             <p className="rd-note" role="alert">
               {error}
             </p>
@@ -733,8 +923,8 @@ export function RecommendDesktop() {
         </LabelRow>
       )}
 
-      {step === "course" && (
-        <>
+      {showCourse && (
+        <div className="rd-course-anchor" ref={courseRef}>
           <LabelRow
             kick={t("후보와 경로")}
             title={
@@ -756,56 +946,13 @@ export function RecommendDesktop() {
             {recommendation?.recommendations.length || savedStops.length ? (
               <>
                 <div className="rd-steps">
-                  {(calculated
-                    ? items.map((item, index) => ({
-                        key: `${item.spot_id}:${index}`,
-                        no: index + 1,
-                        name: item.name,
-                        when: t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at), minutes: calculated.legs[index] ? t("{minutes}분 이동", { minutes: calculated.legs[index].duration_minutes }) : t("이동시간 –") }),
-                        link: kakaoRouteLink(
-                          index === 0 ? calculated.origin : items[index - 1],
-                          [item],
-                        ),
-                      }))
-                    : recommendation
-                    ? recommendation.recommendations.map((item) => ({
-                        key: String(item.spot_id),
-                        no: item.rank,
-                        name: item.name,
-                        when: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
-                        link: null,
-                      }))
-                    : // 저장된 코스의 정차지. 시각이 있으면 함께 적습니다.
-                      savedStops.map((stop, index) => ({
-                        key: `${stop.spot_id}:${index}`,
-                        no: index + 1,
-                        name: stop.name,
-                        when: stop.arrival_at
-                          ? t("{arrival} 도착", { arrival: timeLabel(stop.arrival_at) })
-                          : t("시각 미정"),
-                        link: null,
-                      }))
-                  ).map((step) => (
-                    <div className="rd-step" key={step.key}>
-                      <span className="pd-dk-num rd-step-no">{step.no}</span>
-                      <div className="rd-step-body">
-                        <div className="rd-step-name">{step.name}</div>
-                        <div className="rd-step-when">{step.when}</div>
-                      </div>
-                      {step.link ? (
-                        <a
-                          className="rd-step-link"
-                          href={step.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {t("이 구간 길찾기")}</a>
-                      ) : (
-                        <span className="rd-step-link is-empty">
-                          {calculated ? t("좌표 –") : t("경로 계산 전")}
-                        </span>
-                      )}
-                    </div>
+                  {stepRows.map((step) => (
+                    <RdStep
+                      key={step.key}
+                      step={step}
+                      activity={stepActivity}
+                      emptyLink={calculated ? t("좌표 –") : t("경로 계산 전")}
+                    />
                   ))}
                 </div>
                 {session.route && !session.route.route_calculated && (
@@ -886,12 +1033,20 @@ export function RecommendDesktop() {
               </>
             ) : (
               <>
-                <p className="rd-note" role={error ? "alert" : "status"}>
-                  {error ||
-                    (candidateAction.busy ? t("후보를 조회하고 있습니다…") : "") ||
-                    recommendation?.clarification ||
-                    t("아직 후보가 없습니다. 취향을 고르거나 대화로 알려 주세요.")}
-                </p>
+                {/* 조회 중에는 목록이 올 자리를 잡아 둡니다. 문구 한 줄만 두면
+                    눌러도 아무 일이 없는 것처럼 보였습니다. 이미 목록이 있는
+                    채로 다시 조회하는 경우에는 이 갈래로 오지 않습니다.
+                    아래 행은 조회 중에도 그대로 둡니다 -- 다시 누르는 길이
+                    사라지면 안 됩니다. */}
+                {candidateAction.busy && !error ? (
+                  <RdStepSkeletons count={5} />
+                ) : (
+                  <p className="rd-note" role={error ? "alert" : "status"}>
+                    {error ||
+                      recommendation?.clarification ||
+                      t("아직 후보가 없습니다. 취향을 고르거나 대화로 알려 주세요.")}
+                  </p>
+                )}
                 <div className="rd-row-foot">
                   <span className="rd-note" />
                   <button
@@ -960,7 +1115,7 @@ export function RecommendDesktop() {
               )}
             </div>
           </LabelRow>
-        </>
+        </div>
       )}
 
       <FootNote

@@ -62,6 +62,34 @@ const CACHE_TTL = 60000;
  *  전부 새로 물었습니다. */
 const CACHE_MAX = 80;
 
+/** 같은 경로를 보고 있는 구독자들. 쓰기가 끝난 뒤 옛 기억을 지우고 다시
+ *  읽게 하려면, 기억을 지우는 것만으로는 모자랍니다 -- 이미 마운트된 구독자는
+ *  deps 가 그대로라 effect 가 다시 돌지 않습니다. 그래서 경로별로 구독자를
+ *  들고 있다가 깨웁니다. */
+const watchers = new Map<string, Set<() => void>>();
+
+function watch(path: string, notify: () => void) {
+  const set = watchers.get(path) ?? new Set();
+  set.add(notify);
+  watchers.set(path, set);
+  return () => {
+    set.delete(notify);
+    if (set.size === 0) watchers.delete(path);
+  };
+}
+
+/** 이 경로의 기억을 버리고, 보고 있는 화면에 다시 읽게 합니다.
+ *
+ *  기억은 60초 살아 있습니다(CACHE_TTL). 그 시간은 **아무도 고치지 않았을 때**
+ *  같은 사실을 다시 묻지 않기 위한 것이지, 방금 내가 고친 것을 옛 값으로
+ *  보여주기 위한 것이 아닙니다. 쓰기가 성공한 쪽에서 이걸 불러 주세요
+ *  (useTastePreference.savePreference). */
+export function forgetResource(path: string) {
+  for (const key of [...cache.keys()])
+    if (key.startsWith(`data:${path}:`)) cache.delete(key);
+  for (const notify of watchers.get(path) ?? []) notify();
+}
+
 function remember(key: string, data: unknown) {
   cache.delete(key);
   cache.set(key, { data, at: Date.now() });
@@ -112,6 +140,12 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     data?: T;
     error?: string;
   }>();
+  // 무효화 횟수. forgetResource 가 이 값을 올리면 아래 effect 가 다시 돕니다.
+  const [stamp, setStamp] = useState(0);
+  useEffect(() => {
+    if (path == null) return;
+    return watch(path, () => setStamp((current) => current + 1));
+  }, [path]);
   useEffect(() => {
     if (path == null) return;
     const entry = cache.get(key);
@@ -126,7 +160,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     return () => {
       alive = false;
     };
-  }, [path, key, origin]);
+  }, [path, key, origin, stamp]);
   // 기억에 있는 값은 **첫 프레임부터** 보여줍니다. 리마운트했다는 것은 화면을
   // 다시 그렸다는 뜻이지 사실을 잊었다는 뜻이 아닙니다.
   const hit =

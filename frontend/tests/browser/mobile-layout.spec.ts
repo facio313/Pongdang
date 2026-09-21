@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 for (const width of [390, 768, 979, 1079]) {
   test.describe(`${width}px mobile layout`, () => {
@@ -107,33 +107,47 @@ test("1080px keeps the existing desktop navigation layout", async ({ page }) => 
 });
 
 
+/** 부드러운 스크롤이 멈출 때까지. 자리를 재기 전에 기다립니다 -- 움직이는
+ *  중에 재면 어느 순간의 값인지 알 수 없습니다. */
+async function scrollSettled(page: Page) {
+  await expect.poll(async () => {
+    const first = await page.evaluate(() => window.scrollY);
+    await page.waitForTimeout(120);
+    const second = await page.evaluate(() => window.scrollY);
+    return first === second;
+  }).toBe(true);
+}
+
 for (const width of [390, 768, 1079]) {
-  test(`${width}px recommendation STEP 1 CTA clears the tabs before any scroll`, async ({ page }) => {
+  test(`${width}px 취향은 아래로 쌓이고, 지금 단계의 버튼은 탭바에 가리지 않는다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("#recommend");
     await page.getByRole("button", { name: "+ 더 고르기" }).click();
     await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
-    for (let index = 0; index < 10; index++) {
-    const next = page.getByRole("button", { name: /^(다음|다음 · 카드로 확정하기)$/ });
-    const lastCategory = (await next.innerText()).includes("카드");
-    const layout = await next.evaluate(button => ({
-      scrollY: window.scrollY,
-      bottom: button.getBoundingClientRect().bottom,
-      tabTop: document.querySelector(".pd-tabbar")!.getBoundingClientRect().top,
-      noteBottom: [...document.querySelectorAll(".pd-card .pd-note")]
-        .find(note => note.textContent?.includes("travel-keywords.v1"))!
-        .getBoundingClientRect().bottom,
-      slotTop: button.closest(".pd-action-slot")!.getBoundingClientRect().top,
-    }));
-    expect(layout.scrollY).toBe(0);
-    expect(layout.noteBottom).toBeLessThanOrEqual(layout.slotTop);
-    expect(layout.bottom).toBeLessThanOrEqual(layout.tabTop - 12);
-    // A real pointer click (without Playwright's automatic scrolling) catches interception.
-    const rect = await next.boundingBox();
-    await page.mouse.click(rect!.x + rect!.width / 2, rect!.y + rect!.height / 2);
-    if (lastCategory) break;
+    const blocks = page.locator(".rc-taste-tags.rc-block");
+    for (let opened = 1; opened <= 10; opened++) {
+      // 열린 덩어리는 **사라지지 않습니다**. 다음을 누를 때마다 하나씩 늘어납니다.
+      await expect(blocks).toHaveCount(opened);
+      const next = page.getByRole("button", { name: /^(다음|다음 · 카드로 확정하기)$/ });
+      const lastCategory = (await next.innerText()).includes("카드");
+      await scrollSettled(page);
+      const layout = await next.evaluate(button => ({
+        bottom: button.getBoundingClientRect().bottom,
+        tabTop: document.querySelector(".pd-tabbar")!.getBoundingClientRect().top,
+        noteBottom: [...button.closest(".pd-card")!.querySelectorAll(".pd-note")]
+          .find(note => note.textContent?.includes("travel-keywords.v1"))!
+          .getBoundingClientRect().bottom,
+      }));
+      // 근거 문구는 버튼 위에 있고, 버튼은 고정 탭바에 가리지 않습니다.
+      expect(layout.noteBottom).toBeLessThanOrEqual(layout.bottom);
+      expect(layout.bottom).toBeLessThanOrEqual(layout.tabTop - 12);
+      // A real pointer click (without Playwright's automatic scrolling) catches interception.
+      const rect = await next.boundingBox();
+      await page.mouse.click(rect!.x + rect!.width / 2, rect!.y + rect!.height / 2);
+      if (lastCategory) break;
     }
     await expect(page.getByRole("heading", { name: "이건 어떠세요?" })).toBeVisible();
-    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    // 첫 카테고리에서 고른 자리는 그대로 남아 있어, 되짚지 않고 고칠 수 있습니다.
+    await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
   });
 }

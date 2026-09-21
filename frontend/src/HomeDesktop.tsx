@@ -50,6 +50,7 @@ import type { ActivityCondition } from "./useBestActivity";
 import { spotLink } from "./spotsRoute";
 import { useWaterPlaces } from "./useWaterPlaces";
 import { useTravelSession } from "./travelSession";
+import { useTastePreference } from "./useTastePreference";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
@@ -336,13 +337,11 @@ export function HomeDesktop() {
   const tastePhotos = usePlacePhotos((session.recommendation?.recommendations ?? [])
     .slice(0, 3).map((item) => ({ ...item, id: item.spot_id })));
   const tastePicks = tastePhotos.rows ?? [];
-  const tags = [
-    ...new Set(
-      (session.recommendation?.recommendations ?? []).flatMap((item) =>
-        item.matched_preferences.map((preference) => preference.tag),
-      ),
-    ),
-  ];
+  // 고른 취향은 서버에 저장돼 있습니다(travel/preferences). 예전에는 이 자리가
+  // 추천 결과의 matched_preferences 였는데, 그건 이 브라우저 메모리에만 있는
+  // 값이라 취향을 저장하고 홈으로 와도 바뀌지 않았고 새로고침하면 사라졌습니다.
+  const taste = useTastePreference();
+  const tags = taste.savedIds.map(taste.labelOf);
   const course = session.route?.route ?? null;
   // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
   // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
@@ -432,8 +431,7 @@ export function HomeDesktop() {
 
       {/* 예전에는 「서핑과 온천을 고르셨습니다」가 늘 떠 있었고 칩 네 개 중
           둘이 켜져 있었습니다. 고른 적이 없는데도 고른 것처럼 보였습니다 --
-          취향은 파일 안 상수였습니다. 실제로 고른 취향은 추천 결과 안에만
-          남습니다(matched_preferences). */}
+          취향은 파일 안 상수였습니다. 지금 칩은 서버에 저장된 취향입니다. */}
       <LabelRow
         kick={t("취향 맞추기")}
         title={
@@ -445,11 +443,21 @@ export function HomeDesktop() {
       >
         <SplitBody columns="1.25fr 1fr">
           <div className="hd-taste">
-            <div className="hd-taste-lead">
-              {tags.length
-                ? t("{tags}을 고르셨습니다", { tags: tags.map((tag) => t(tag)).join(" · ") })
-                : t("아직 고른 취향이 없습니다")}
+            <div className="hd-taste-lead" role={taste.profileError ? "alert" : "status"}>
+              {taste.profileError ??
+                (tags.length
+                  ? t("{tags}을 고르셨습니다", { tags: tags.map((tag) => t(tag)).join(" · ") })
+                  : taste.profileLoading
+                    ? t("저장된 취향을 조회하고 있습니다.")
+                    : t("아직 고른 취향이 없습니다"))}
             </div>
+            {taste.profileLoading && !tags.length && (
+              <div className="hd-taste-chips">
+                {[0, 1, 2].map((index) => (
+                  <Skeleton key={index} width="4.5em" label={t("취향 조회 중")} />
+                ))}
+              </div>
+            )}
             {tags.length > 0 && (
               <div className="hd-taste-chips">
                 {tags.map((tag) => (
