@@ -3,9 +3,21 @@
    컴포넌트 선택자에는 모두 페이지 루트를 붙여 button 리셋(0,1,1)보다 명시도를
    높입니다. */
 
+/* 본문. 예전에는 단계마다 셸을 새로 그려서 카드가 .pd-body 의 직계 자식이었고
+   간격도 거기서 나왔습니다. 이제 한 셸 안에 덩어리를 쌓으므로 같은 간격을
+   여기서 냅니다. */
+.recommend-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* 히어로를 감싸는 겹. 셸이 히어로를 본문 **밖에** 그리므로 히어로 규칙은
+   본문(.recommend-page) 이 아니라 이 겹을 뿌리로 씁니다 -- 같은 클래스를 두
+   군데 붙이면 「이 화면」을 가리키는 이름이 둘이 됩니다. */
+
 /* ── 히어로 ─────────────────────────────────────────────── */
 
-.recommend-page .rc-hero {
+.rc-hero-slot .rc-hero {
   background: var(--pd-cobalt);
   color: var(--pd-on-cobalt);
   padding-bottom: 18px;
@@ -13,19 +25,19 @@
   box-shadow: var(--pd-shadow-hero);
 }
 
-.recommend-page .rc-hero-inner {
+.rc-hero-slot .rc-hero-inner {
   padding: 8px 20px 0;
 }
-.recommend-page .rc-hero .pd-lbl {
+.rc-hero-slot .rc-hero .pd-lbl {
   color: var(--pd-sky);
 }
-.recommend-page .rc-hero-title {
+.rc-hero-slot .rc-hero-title {
   font-size: 19px;
   font-weight: 700;
   line-height: 1.35;
   margin: 8px 0 0;
 }
-.recommend-page .rc-hero-back {
+.rc-hero-slot .rc-hero-back {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -37,13 +49,13 @@
 }
 /* 저장된 취향. 히어로는 이 사람이 **이미 말한 것**을 되풀이해 확인해 주는
    자리라서 누를 수 없습니다 -- 고치는 곳은 아래 「내 취향」 카드입니다. */
-.recommend-page .rc-hero-tastes {
+.rc-hero-slot .rc-hero-tastes {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 10px;
 }
-.recommend-page .rc-hero-taste {
+.rc-hero-slot .rc-hero-taste {
   font-size: var(--pd-fs-cap);
   font-weight: 700;
   color: var(--pd-on-cobalt);
@@ -52,7 +64,7 @@
   padding: 5px 10px;
   border-radius: 999px;
 }
-.recommend-page .rc-hero-ai {
+.rc-hero-slot .rc-hero-ai {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -66,29 +78,29 @@
   cursor: pointer;
 }
 
-.recommend-page .rc-progress {
+.rc-hero-slot .rc-progress {
   display: flex;
   gap: 5px;
   margin-top: 14px;
 }
-.recommend-page .rc-progress span {
+.rc-hero-slot .rc-progress span {
   flex: 1;
   height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.28);
 }
-.recommend-page .rc-progress span.is-on {
+.rc-hero-slot .rc-progress span.is-on {
   background: #eef5ff;
 }
 
 /* 컨시어지 헤더 */
-.recommend-page .rc-bot-head {
+.rc-hero-slot .rc-bot-head {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 6px 20px 0;
 }
-.recommend-page .rc-bot-avatar {
+.rc-hero-slot .rc-bot-avatar {
   width: 40px;
   height: 40px;
   flex: none;
@@ -98,34 +110,34 @@
   display: grid;
   place-items: center;
 }
-.recommend-page .rc-bot-name {
+.rc-hero-slot .rc-bot-name {
   font-size: 15px;
   font-weight: 700;
 }
-.recommend-page .rc-bot-sub {
+.rc-hero-slot .rc-bot-sub {
   font-size: var(--pd-fs-cap);
   color: var(--pd-on-cobalt-2);
   margin-top: 2px;
 }
 
 /* 코스 결과 히어로 */
-.recommend-page .rc-hero-row {
+.rc-hero-slot .rc-hero-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   margin-top: 6px;
 }
-.recommend-page .rc-hero-score-num {
+.rc-hero-slot .rc-hero-score-num {
   font-size: 38px;
   line-height: 1;
 }
-.recommend-page .rc-days {
+.rc-hero-slot .rc-days {
   display: flex;
   gap: 6px;
   margin-top: 14px;
 }
-.recommend-page .rc-day {
+.rc-hero-slot .rc-day {
   flex: 1;
   min-width: 0;
   padding: 8px 0 7px;
@@ -136,25 +148,25 @@
   color: var(--pd-on-cobalt);
   cursor: pointer;
 }
-.recommend-page .rc-day.is-selected {
+.rc-hero-slot .rc-day.is-selected {
   background: #eef5ff;
   border-color: #eef5ff;
   color: #0f2f7a;
 }
-.recommend-page .rc-day-score {
+.rc-hero-slot .rc-day-score {
   font-family: var(--pd-font-num);
   font-weight: 700;
   font-size: var(--pd-fs-sm);
   font-variant-numeric: tabular-nums;
 }
-.recommend-page .rc-day-name {
+.rc-hero-slot .rc-day-name {
   font-size: var(--pd-fs-cap);
   font-weight: 700;
   margin-top: 2px;
 }
 
 /* 조건 변화 카드 (B4 히어로) */
-.recommend-page .rc-change {
+.rc-hero-slot .rc-change {
   background: var(--pd-glass);
   border: 1px solid var(--pd-glass-line);
   border-radius: var(--pd-r-card);
@@ -166,31 +178,31 @@
   gap: 10px;
   flex-wrap: wrap;
 }
-.recommend-page .rc-change-metric {
+.rc-hero-slot .rc-change-metric {
   font-size: var(--pd-fs-sm);
   color: var(--pd-on-cobalt-2);
 }
-.recommend-page .rc-change-metric b {
+.rc-hero-slot .rc-change-metric b {
   color: var(--pd-on-cobalt);
 }
-.recommend-page .rc-change-scores {
+.rc-hero-slot .rc-change-scores {
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
-.recommend-page .rc-change-from {
+.rc-hero-slot .rc-change-from {
   font-family: var(--pd-font-num);
   font-weight: 700;
   font-size: var(--pd-fs-sm);
   color: #bcd4ff;
   text-decoration: line-through;
 }
-.recommend-page .rc-change-to {
+.rc-hero-slot .rc-change-to {
   font-family: var(--pd-font-num);
   font-weight: 700;
   font-size: 18px;
 }
-.recommend-page .rc-hero-note {
+.rc-hero-slot .rc-hero-note {
   font-size: var(--pd-fs-cap);
   line-height: 1.6;
   color: var(--pd-on-cobalt-2);
@@ -451,22 +463,38 @@
 .recommend-page .rc-stop-head {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   flex-wrap: wrap;
 }
-.recommend-page .rc-stop-badge {
-  width: 26px;
-  height: 26px;
+/* 후보 줄의 대표 사진. 홈의 .hm-pick-photo 와 같은 자리표시자 규칙을 씁니다 --
+   사진이 없는 장소를 점선 슬롯으로 그리면 목록 전체가 미완성으로 읽힙니다. */
+.recommend-page .rc-stop-photo {
+  width: 52px;
+  height: 52px;
   flex: none;
-  border-radius: 50%;
-  background: var(--pd-badge);
-  color: var(--pd-blue-deep);
-  display: grid;
-  place-items: center;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-mist);
+  color: var(--pd-ink-mute);
+}
+.recommend-page .rc-stop-headline {
+  flex: 1;
+  min-width: 0;
 }
 .recommend-page .rc-stop-name {
   font-weight: 700;
   font-size: 14px;
+}
+/* 점수 한 줄 -- 등급 칩과 0~100 눈금. 이름 옆에 두면 390px 에서 장소 이름이
+   두 글자씩 끊깁니다. */
+.recommend-page .rc-stop-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+}
+.recommend-page .rc-stop-score .pd-gauge {
+  flex: 1;
+  min-width: 0;
 }
 .recommend-page .rc-stop-place {
   font-size: var(--pd-fs-sm);
@@ -498,6 +526,41 @@
   padding: 3px 9px;
   border-radius: var(--pd-r-pill);
   white-space: nowrap;
+}
+
+/* 후보를 조회하는 동안의 자리. 색을 쓰지 않습니다 -- 아직 모르는 점수를
+   등급색으로 칠하면 값이 온 것처럼 읽힙니다. */
+.recommend-page .rc-stop.is-skeleton .rc-stop-dot {
+  background: var(--pd-badge);
+}
+.recommend-page .rc-stop-photo-empty {
+  background: var(--pd-mist);
+}
+.recommend-page .rc-stop.is-skeleton .rc-stop-headline {
+  display: grid;
+  gap: 6px;
+}
+
+/* ── 쌓이는 취향 덩어리 ────────────────────────────────
+   예전에는 카테고리마다 화면을 갈아 끼웠고, 다음을 누르면 앞에서 고른 것이
+   사라졌습니다. 이제 덩어리가 아래로 쌓입니다. 지나온 덩어리는 **지우지 않고**
+   살짝 물러나게만 둡니다 -- 고친 내용이 그 자리에서 바로 보여야 합니다. */
+
+.recommend-page .rc-block {
+  scroll-margin-top: 12px;
+}
+.recommend-page .rc-block.is-past {
+  border-color: var(--pd-line);
+  box-shadow: none;
+}
+.recommend-page .rc-block.is-past .rc-group-lbl {
+  color: var(--pd-ink-mute);
+}
+.recommend-page .rc-block-actions {
+  margin-top: 12px;
+}
+.recommend-page .rc-course-anchor {
+  scroll-margin-top: 12px;
 }
 
 /* ── 빈 상태 (예보 없는 날) ────────────────────────────── */
@@ -639,7 +702,7 @@
 .recommend-page .rc-group-lbl {
   margin-top: 14px;
 }
-.recommend-page .rc-hero-lbl {
+.rc-hero-slot .rc-hero-lbl {
   margin-top: 6px;
 }
 .recommend-page .rc-note-flush {
@@ -648,7 +711,7 @@
 .recommend-page .rc-note-flush-top {
   margin-top: 0;
 }
-.recommend-page .rc-hero-score {
+.rc-hero-slot .rc-hero-score {
   text-align: right;
   flex: none;
 }

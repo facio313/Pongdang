@@ -39,13 +39,10 @@
     border-radius: var(--pd-r-ctl);
   }
 
-  /* STEP 1 keeps its final note ahead of the sticky CTA at entry. Reserve the
-     CTA's touch height in the card, and use the normal 8px paragraph spacing
-     between its compact tag groups instead of repeated section-top margins. */
-  .pd-app .rc-taste-tags {
-    padding-bottom: calc(14px + var(--pd-touch));
-  }
-
+  /* 취향 덩어리의 「다음」은 이제 그 덩어리 안에 있습니다 -- 화면을 갈아
+     끼우던 시절에는 고정 슬롯(.pd-action-slot)에 떠 있었고, 그 높이만큼 카드
+     아래를 비워 두어야 했습니다. 쌓이는 화면에서는 덩어리마다 그런 빈자리가
+     생기므로 두지 않습니다. 좁은 화면의 태그 줄 간격만 남깁니다. */
   .pd-app .rc-taste-tags .rc-group-lbl {
     margin-top: 8px;
   }

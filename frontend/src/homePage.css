@@ -278,6 +278,26 @@
 .home-page .hm-picks-note {
   margin-top: 4px;
 }
+/* 저장된 취향 칩. 추천 화면의 고른 태그(.rc-tag.is-on)와 같은 옷을 입혀,
+   같은 사실이 두 화면에서 같아 보이게 합니다. */
+.home-page .hm-taste-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+.home-page .hm-taste-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--pd-r-pill);
+  border: 1px solid var(--pd-blue);
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+}
 /* 가로 스크롤입니다. 카드 안쪽 여백을 음수 마진으로 뚫어 첫 칸과 마지막 칸이
    카드 가장자리까지 스크롤되게 하고, 스크롤 스냅으로 칸 단위로 멈춥니다. */
 .home-page .hm-picks-row {

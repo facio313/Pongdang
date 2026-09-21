@@ -261,12 +261,16 @@ test("desktop recommend chat opens the sanitized model exchange dialog", async (
   await expect(dialog).toContainText("explain");
 });
 
-test("데스크탑 추천은 취향을 한 화면에 한 단계씩 묻고, 저장한 취향은 히어로가 말한다", async ({
+test("데스크탑 추천은 취향을 한 덩어리씩 열어 아래로 쌓고, 저장한 취향은 히어로가 말한다", async ({
   page,
 }) => {
   // 예전에는 네 단계(취향 · 대화 · 후보 · 지도)가 한 페이지에 전부 펼쳐져
   // 있었습니다. 아직 아무것도 고르지 않은 사람에게 앞으로 할 일을 한꺼번에
   // 보여 주고, 후보·지도 자리는 「아직 후보가 없습니다」만 적힌 채였습니다.
+  //
+  // 그 다음에는 한 번에 한 카테고리만 그렸는데, 다음을 누르면 **앞에서 고른
+  // 것이 사라졌습니다**. 지금은 한 덩어리씩 열리되 열린 것은 그대로 남습니다.
+  // 아직 시작하지 않은 단계(대화 · 지도)는 여전히 그려지지 않습니다.
   await routePreference(page, []);
   await page.goto("#recommend");
 
@@ -279,7 +283,7 @@ test("데스크탑 추천은 취향을 한 화면에 한 단계씩 묻고, 저�
     pickable.includes(category.id),
   );
 
-  // 한 화면에 한 카테고리입니다. 나머지 단계는 아직 그려지지 않습니다.
+  // 처음에는 첫 카테고리 하나입니다. 나머지 단계는 아직 그려지지 않습니다.
   await expect(page.locator(".rd-taste-group")).toHaveCount(1);
   await expect(page.getByLabel("컨시어지에게 보낼 내용")).toHaveCount(0);
   await expect(page.locator(".rd-map")).toHaveCount(0);
@@ -289,7 +293,9 @@ test("데스크탑 추천은 취향을 한 화면에 한 단계씩 묻고, 저�
   );
 
   for (let index = 0; index < categories.length; index++) {
-    await expect(page.locator(".rd-taste-group .pd-dk-kick")).toContainText(
+    // 열린 덩어리는 사라지지 않고 쌓입니다 -- 방금 열린 것이 마지막입니다.
+    await expect(page.locator(".rd-taste-group")).toHaveCount(index + 1);
+    await expect(page.locator(".rd-taste-group .pd-dk-kick").last()).toContainText(
       `${categories[index].label} · 최대 ${categories[index].max_selections}개`,
     );
     if (index === 0)
@@ -298,6 +304,12 @@ test("데스크탑 추천은 취향을 한 화면에 한 단계씩 묻고, 저�
         .click();
     await page.getByRole("button", { name: /^다음/ }).click();
   }
+
+  // 요약까지 열려도 앞의 카테고리는 그 자리에 있어, 되짚지 않고 고칠 수 있습니다.
+  await expect(page.locator(".rd-taste-group")).toHaveCount(categories.length + 1);
+  await expect(
+    page.getByRole("button", { name: categories[0].options[0].label, exact: true }),
+  ).toBeVisible();
 
   // 요약에서 저장합니다. 예전에는 데스크탑이 고른 조건을 이번 요청에만 쓰고
   // 버렸고, 저장은 모바일 추천에만 있었습니다.

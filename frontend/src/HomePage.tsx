@@ -29,6 +29,7 @@ import { usePlacePhotos } from "./usePlacePhotos";
 import { HomeDesktop } from "./HomeDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
+import { useTastePreference } from "./useTastePreference";
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { HourlyConditions } from "./HourlyConditions";
@@ -321,6 +322,7 @@ function SpotScroller({
   link,
   places,
   firstSwim = false,
+  chips,
   children,
 }: {
   title: string;
@@ -328,6 +330,8 @@ function SpotScroller({
   link: { href: string; label: string };
   places: { id: number; name: string; meta: string; photo?: Photo }[];
   firstSwim?: boolean;
+  /** 목록 위에 붙는 칩 줄. 「고른 취향의 명소」가 취향을 싣는 자리입니다. */
+  chips?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -339,6 +343,7 @@ function SpotScroller({
         </a>
       </div>
       {note && <p className="pd-note hm-picks-note">{note}</p>}
+      {chips}
       <div className="hm-picks-row">
         {places.map((place) => (
           <div className="hm-pick" key={place.id}>
@@ -400,10 +405,15 @@ function BeachPicksCard() {
 /** 예전에는 「고른 취향의 명소 · 서핑 · 온천」이 늘 떠 있었습니다. 고른 적이
  *  없는데도 고른 것처럼 보였습니다 -- 취향은 파일 안 상수였습니다.
  *
- *  실제로 고른 취향은 추천 결과 안에만 남습니다(matched_preferences). 추천을
- *  받기 전에는 보여 줄 것이 없으므로 그 사실을 적고 추천으로 보냅니다. */
+ *  그 다음에는 추천 결과 안의 matched_preferences 를 읽었습니다. 그것은 이
+ *  브라우저 메모리에만 있는 값이라(travelSession), 추천에서 취향을 저장하고
+ *  홈으로 와도 아무것도 바뀌지 않았고 새로고침하면 사라졌습니다. 고른 취향은
+ *  **서버에 저장돼 있으므로**(travel/preferences) 그것을 읽습니다. 아래 장소
+ *  줄만 추천 결과에서 가져옵니다 -- 그건 이번 조회의 결과이지 취향이 아닙니다. */
 function TastePicksCard() {
   const session = useTravelSession();
+  const { savedIds, labelOf, profileLoading, profileError } = useTastePreference();
+  const tags = savedIds.map(labelOf);
   const photoPicks = usePlacePhotos((session.recommendation?.recommendations ?? [])
     .slice(0, 4)
     .map((item) => ({
@@ -412,13 +422,7 @@ function TastePicksCard() {
       meta: placeRegionLabel(item),
     })));
   const picks = photoPicks.rows ?? [];
-  const tags = [
-    ...new Set(
-      (session.recommendation?.recommendations ?? []).flatMap((item) =>
-        item.matched_preferences.map((preference) => preference.tag),
-      ),
-    ),
-  ];
+  const chips = <TasteChipRow tags={tags} loading={profileLoading} />;
   if (!picks.length)
     return (
       <div className="pd-card">
@@ -426,18 +430,50 @@ function TastePicksCard() {
         {/* 「취향 고르기 →」 버튼은 바로 위 TasteBanner 것 하나만 둡니다.
             두 카드가 붙어 있어 같은 버튼이 두 번 보였습니다. 여기서는 이
             자리가 왜 비어 있는지만 말합니다. */}
-        <p className="pd-note">
-          {t("아직 고른 취향이 없습니다. 위 「취향 고르기」로 취향을 고르면 그 결과가 여기에 들어옵니다.")}</p>
+        {chips}
+        <p className="pd-note" role={profileError ? "alert" : "status"}>
+          {profileError ??
+            (profileLoading
+              ? t("저장된 취향을 조회하고 있습니다.")
+              : tags.length
+                ? t("저장된 취향입니다. 추천에서 후보를 조회하면 그 장소가 여기에 들어옵니다.")
+                : t("아직 고른 취향이 없습니다. 위 「취향 고르기」로 취향을 고르면 그 결과가 여기에 들어옵니다."))}
+        </p>
       </div>
     );
   return (
     <SpotScroller
-      title={t("고른 취향의 명소{tags}", { tags: tags.length ? ` · ${tags.map((tag) => t(tag)).join(" · ")}` : "" })}
+      title={t("고른 취향의 명소")}
       note={t("추천에서 고른 취향에 맞춰 서버가 고른 장소입니다.")}
       link={{ href: "#recommend", label: t("추천 다시 보기") }}
       places={picks}
+      chips={chips}
     >
       {t("퐁당 점수는 물놀이 조건이 있는 명소에만 산정됩니다. 없으면 –이며 0점이 아닙니다.")}</SpotScroller>
+  );
+}
+
+/** 저장된 취향 칩. 조회가 끝나기 전에는 「없음」이 아니라 「모름」이므로
+ *  스켈레톤으로 자리만 잡습니다. */
+function TasteChipRow({ tags, loading }: { tags: string[]; loading: boolean }) {
+  if (loading)
+    return (
+      <div className="hm-taste-chips" role="status" aria-label={t("저장된 취향을 조회하고 있습니다.")}>
+        {[0, 1, 2].map((index) => (
+          <Skeleton key={index} width="4.5em" label={t("취향 조회 중")} />
+        ))}
+      </div>
+    );
+  if (!tags.length) return null;
+  return (
+    <div className="hm-taste-chips">
+      {tags.map((tag) => (
+        <span className="hm-taste-chip" key={tag}>
+          {t(tag)}
+          <Icon name="check" size={12} />
+        </span>
+      ))}
+    </div>
   );
 }
 
