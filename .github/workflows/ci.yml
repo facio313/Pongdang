@@ -216,7 +216,7 @@ jobs:
           resource_limits() {
             docker inspect --format '{{.HostConfig.Memory}} {{.HostConfig.MemorySwap}} {{.HostConfig.NanoCpus}} {{.HostConfig.PidsLimit}}' "$1"
           }
-          test "$(resource_limits pongdang-ci-db)" = '1073741824 2147483648 1500000000 256'
+          test "$(resource_limits pongdang-ci-db)" = '2147483648 3221225472 1500000000 256'
           test "$(resource_limits pongdang-ci-backend)" = '536870912 1073741824 1000000000 128'
           test "$(resource_limits pongdang-ci-frontend)" = '134217728 268435456 500000000 64'
       - name: Verify the page and database readiness
