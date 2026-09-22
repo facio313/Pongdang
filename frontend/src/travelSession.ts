@@ -22,6 +22,17 @@ export function setTravelSession(update: Partial<TravelSession>) {
   state = { ...state, ...update };
   listeners.forEach((listener) => listener());
 }
+
+/** Load a saved plan without discarding a route just calculated for that plan. */
+export function adoptSavedPlan(plan: TripPlan) {
+  if (state.route?.route_calculated && state.plan?.plan_id === plan.plan_id) return;
+  setTravelSession({
+    plan,
+    planInput: { request: plan.request, stops: plan.input_stops },
+    recommendation: null,
+    route: null,
+  });
+}
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => {

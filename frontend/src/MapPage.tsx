@@ -40,7 +40,7 @@ import {
   type RouteResult,
   type TripPlan,
 } from "./travelApi";
-import { setTravelSession, useTravelSession } from "./travelSession";
+import { adoptSavedPlan, setTravelSession, useTravelSession } from "./travelSession";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { MapSheet } from "./MapSheet";
@@ -549,16 +549,7 @@ function MapScreen() {
       : null,
   );
   useEffect(() => {
-    if (savedPlan.data)
-      setTravelSession({
-        plan: savedPlan.data,
-        planInput: {
-          request: savedPlan.data.request,
-          stops: savedPlan.data.input_stops,
-        },
-        recommendation: null,
-        route: null,
-      });
+    if (savedPlan.data) adoptSavedPlan(savedPlan.data);
   }, [savedPlan.data]);
   const [view, setView] = useState<View>(() =>
     new URLSearchParams(window.location.hash.split("?")[1]).get("view") ===
