@@ -393,18 +393,9 @@ test("map adds an actual place and requests a route only on explicit submit", as
   await page.getByRole("button", { name: "코스에 넣기" }).click();
   await expect(page.locator(".mp-stop-name")).toHaveCount(1);
   expect(routeCalls).toBe(0);
-  const originSelect = page.getByLabel("출발 장소", { exact: true });
-  await expect(originSelect).toBeVisible();
-  const origin = await originSelect
-    .locator("option:not([value=''])")
-    .nth(1)
-    .getAttribute("value");
-  await originSelect.selectOption(origin!);
-  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("sv-SE", {
-    timeZone: "Asia/Seoul",
-  });
-  await page.getByLabel("출발 날짜와 시각").fill(`${tomorrow}T09:00`);
-  await page.getByRole("button", { name: "선택 코스 경로 계산" }).click();
+  // "코스 생성" 은 폼 없이 등록 좌표 중 하나를 출발지로 써서 경로 계산과
+  // 저장을 한 번에 합니다(MapPage.tsx 의 createCourse 주석 참고).
+  await page.getByRole("button", { name: "코스 생성" }).click();
   await expect(page.locator(".mp-searchbar.is-course")).toContainText(
     "분 이동",
   );

@@ -578,7 +578,8 @@ function MapScreen() {
     window.history.replaceState(null, "", "#map?view=course");
   };
   const showCourseDetail =
-    Boolean(selectedPlanId) || Boolean(session.planInput?.stops.length);
+    Boolean(selectedPlanId) ||
+    (!session.plan?.plan_id && Boolean(session.planInput?.stops.length));
 
   const browser = useWaterPlaceBrowser();
   const { search, setSearch, places } = browser;
@@ -610,7 +611,9 @@ function MapScreen() {
     ? raw.find((item) => item.id === selectedSpotId)
     : raw.find((item) => item.id === places.defaultPlaceId) ??
       raw.find((item) => item.type === "beach") ?? raw[0];
-  const conditions = useConditions(selected?.id);
+  // "코스 경로" 뷰에서는 지점 점수를 보여주지 않으므로 여기서는 묻지
+  // 않습니다 -- 코스 정차지마다 부르지 않는 CourseSheet 와 같은 규칙입니다.
+  const conditions = useConditions(selected?.id, undefined, undefined, view === "spots");
   const spots = raw.map((item) => ({
     ...item,
     score:

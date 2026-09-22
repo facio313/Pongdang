@@ -287,7 +287,8 @@ export function MapDesktop() {
   // (selectedPlanId), 추천에서 아직 저장 전인 초안(planInput)을 들고 온
   // 경우에만 상세(이동 순서)를 곧바로 보여줍니다.
   const showCourseDetail =
-    Boolean(selectedPlanId) || Boolean(session.planInput?.stops.length);
+    Boolean(selectedPlanId) ||
+    (!session.plan?.plan_id && Boolean(session.planInput?.stops.length));
   // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
   // travel/sessions 를 이미 결합해 두었으므로 plan_id 로 찾기만 합니다.
   const selectedAlarm = myPlansWithAlarm.find(

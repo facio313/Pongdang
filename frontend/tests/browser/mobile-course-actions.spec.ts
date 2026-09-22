@@ -42,7 +42,8 @@ async function clickAboveTabs(page: Page, action: Locator, atEnd = false) {
     };
   });
   expect(layout.top).toBeGreaterThanOrEqual(0);
-  expect(layout.bottom).toBeLessThanOrEqual(layout.tabTop);
+  // 서브픽셀 반올림(폰트 렌더링에 따라 0.5px 안팎으로 갈립니다) 여유를 둡니다.
+  expect(layout.bottom).toBeLessThanOrEqual(layout.tabTop + 1);
   expect(layout.receivesPointer).toBe(true);
   // Keep the measured position: locator.click() may scroll before clicking.
   await page.mouse.click(layout.x, layout.y);

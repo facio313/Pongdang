@@ -9,12 +9,12 @@ test("desktop course URLs show the empty course flow and a working recommendatio
   await expect(page.locator(".pd-dk-mapshell")).toBeVisible();
   await expect(page.locator(".map-page")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "코스 경로", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("complementary", { name: "이동 순서" })).toContainText("추천에서 코스를 만들거나 저장한 코스를 열어 주세요.");
-  await expect(page.getByRole("button", { name: "선택 코스 경로 계산" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "내 코스에 저장", exact: true })).toBeDisabled();
-  await page.getByRole("link", { name: "추천에서 편집" }).click();
+  // 상세로 볼 코스가 없으면 왼쪽 패널은 내 코스 목록입니다(이동 순서가 아닙니다).
+  await expect(page.getByRole("complementary", { name: "내 코스 목록" })).toContainText("아직 저장한 코스가 없습니다.");
+  await expect(page.getByRole("complementary", { name: "후보지" })).toContainText("추천에서 코스를 만들거나 저장한 코스를 열어 주세요.");
+  await expect(page.getByRole("button", { name: "코스 생성" })).toBeDisabled();
+  await page.getByRole("link", { name: "추천", exact: true }).click();
   await expect(page).toHaveURL(/#recommend$/);
-  await expect(page.getByRole("button", { name: "이 조건으로 후보 찾기" })).toBeVisible();
 });
 
 test("desktop detail drafts retain their chosen stop when opening the course map", async ({ page }) => {
@@ -29,12 +29,13 @@ test("desktop detail drafts retain their chosen stop when opening the course map
   await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
   await page.getByRole("link", { name: "코스 초안 보기" }).click();
   await expect(page).toHaveURL(/#map\?view=course$/);
-  await expect(page.locator(".mk-course-stop-name")).toHaveText(place.name);
-  await expect(page.getByRole("button", { name: "선택 코스 경로 계산" })).toBeEnabled();
+  // 이동 순서(왼쪽)와 후보지(오른쪽) 패널이 같은 정차지를 함께 보여줍니다.
+  await expect(page.locator(".mk-course-stop-name").first()).toHaveText(place.name);
+  await expect(page.getByRole("button", { name: "코스 생성" })).toBeEnabled();
   expect(routeCalls).toBe(0);
 });
 
-test("desktop course URLs preserve plan_id and use the existing explicit route request", async ({ page }) => {
+test("desktop course URLs preserve plan_id and don't recompute a saved plan's route", async ({ page }) => {
   const response = await page.request.get("api/data/livecams/preview/places?q=");
   const places = await response.json();
   const place = places[0];
@@ -49,24 +50,19 @@ test("desktop course URLs preserve plan_id and use the existing explicit route r
     status: "draft", unresolved: [], queried_at: new Date().toISOString(), route_status: "not_calculated",
   };
   await page.route(`**/api/data/travel/plans/${planId}`, route => route.fulfill({ json: savedPlan }));
-  const routeRequests: { request: { must_include: number[] }; candidate_ranks: number[] }[] = [];
+  const routeRequests: unknown[] = [];
   page.on("request", request => {
     if (request.url().endsWith("/travel/routes/recommend")) routeRequests.push(request.postDataJSON());
   });
   await page.goto(`#map?view=course&plan_id=${planId}`);
-  await expect(page.locator(".mk-course-stop-name")).toHaveText(place.name);
+  // 이동 순서(왼쪽)와 후보지(오른쪽) 패널이 같은 정차지를 함께 보여줍니다.
+  await expect(page.locator(".mk-course-stop-name").first()).toHaveText(place.name);
+  // 이미 저장된 코스이므로 "코스 생성" 은 다시 누를 수 없고, 경로도 다시
+  // 계산하지 않습니다.
   await expect(page.getByRole("button", { name: "저장됨", exact: true })).toBeDisabled();
   expect(routeRequests).toHaveLength(0);
-  const origin = places.find((item: { id: number; lat: number | null; lng: number | null }) => item.id !== place.id && item.lat !== null && item.lng !== null);
-  expect(origin).toBeTruthy();
-  await page.getByLabel("출발 장소", { exact: true }).selectOption(String(origin.id));
-  await page.getByLabel("출발 날짜와 시각").fill(`${date}T09:00`);
-  await page.getByRole("button", { name: "선택 코스 경로 계산" }).click();
-  await expect(page.locator(".pd-dk-nav-context")).toContainText("분 이동");
-  expect(routeRequests).toHaveLength(1);
-  expect(routeRequests[0].request.must_include).toEqual([place.id]);
-  expect(routeRequests[0].candidate_ranks).toHaveLength(1);
   await expect(page).toHaveURL(new RegExp(`#map\\?view=course&plan_id=${planId}$`));
   await page.reload();
-  await expect(page.locator(".mk-course-stop-name")).toHaveText(place.name);
+  await expect(page.locator(".mk-course-stop-name").first()).toHaveText(place.name);
+  expect(routeRequests).toHaveLength(0);
 });
