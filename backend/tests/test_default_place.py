@@ -74,24 +74,50 @@ def test_gyeongpo_without_region_or_place_catalog_is_selected_with_forecast(data
     assert counts(database) == before
 
 
-def test_stale_gyeongpo_falls_back_to_beach_with_current_data(database):
-    beach(database, "경포", stale=True)
-    fallback = beach(database, "해운대해수욕장")
+def test_gyeongpo_aliases_collapse_without_other_beaches(database):
+    canonical = beach(database, "경포해수욕장")
+    beach(database, "송정해변")
+    beach(database, "주문진해수욕장")
+    with connect(database) as c:
+        for _ in range(2):
+            alias = c.execute(
+                "INSERT INTO pongdang_data.spots_waterspot(name,type) "
+                "VALUES('경포해수욕장','beach') RETURNING id"
+            ).fetchone()[0]
+            c.execute(
+                "INSERT INTO pongdang_data.place_alias(spot_id,canonical_spot_id) "
+                "VALUES(%s,%s)",
+                [alias, canonical],
+            )
     produce_conditions(database)
     with TestClient(create_app(database)) as client:
         result = client.get("/api/data/water-index/default-place").json()
-        assert result["status"] == "fallback"
-        assert result["place"]["id"] == fallback
-        assert result["display_name"] == "해운대해수욕장"
+    assert result["place"]["id"] == canonical
+    assert [row["id"] for row in result["rows"]] == [canonical]
+    assert result["candidates_checked"] == 1
 
 
-def test_unavailable_numeric_evidence_does_not_win_over_valid_other_beach(database):
-    beach(database, "경포", missing=True)
-    fallback = beach(database, "대천해수욕장")
+def test_stale_gyeongpo_stays_selected_when_another_beach_has_data(database):
+    spot = beach(database, "경포", stale=True)
+    beach(database, "해운대해수욕장")
     produce_conditions(database)
     with TestClient(create_app(database)) as client:
         result = client.get("/api/data/water-index/default-place").json()
-        assert result["status"] == "fallback" and result["place"]["id"] == fallback
+        assert result["status"] == "no_current_data"
+        assert result["place"]["id"] == spot
+        assert result["display_name"] == "강릉 경포대 해수욕장"
+        assert [row["id"] for row in result["rows"]] == [spot]
+
+
+def test_missing_gyeongpo_evidence_does_not_switch_to_another_beach(database):
+    spot = beach(database, "경포", missing=True)
+    beach(database, "대천해수욕장")
+    produce_conditions(database)
+    with TestClient(create_app(database)) as client:
+        result = client.get("/api/data/water-index/default-place").json()
+        assert result["status"] == "no_current_data"
+        assert result["place"]["id"] == spot
+        assert [row["id"] for row in result["rows"]] == [spot]
 
 
 def test_empty_database_returns_explicit_no_data_without_inventing_a_place(database):

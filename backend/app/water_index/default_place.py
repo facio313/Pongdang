@@ -1,4 +1,8 @@
-"""Select a collected beach with usable evidence; never create places or data."""
+"""Select the preferred Gyeongpo beach; never create places or data.
+
+Other beaches stay on the place catalog. Opening the place switcher reads
+that catalog. This entry path does not rank them or scan their observations.
+"""
 
 import asyncio
 from datetime import UTC, datetime
@@ -14,70 +18,59 @@ from app.water_index.condition_storage import read_condition_set
 PREFERRED_NAME = "강릉 경포대 해수욕장"
 
 
-async def beach_candidates(reader, now):
+async def preferred_beach(reader):
+    """Canonical beach whose own name, or an alias, contains 경포."""
     async with reader.connection() as c:
         return await (
             await c.execute(
-                f"""WITH beaches AS ({PLACE_SELECT}), ranked AS (
-                SELECT p.*, (p.name LIKE '%%경포%%') AS preferred,
-                  row_number() OVER (PARTITION BY (p.name LIKE '%%경포%%')
-                    ORDER BY EXISTS (
-                      SELECT 1 FROM pongdang_data.conditions_observationsnapshot s
-                      JOIN pongdang_data.conditions_observationmetric m
-                        ON m.snapshot_id=s.id
-                      WHERE s.spot_id=p.id AND s.state<>'superseded'
-                        AND m.name IN ('water_temperature','sea_water_temperature',
-                          'air_temperature','wind_speed','wave_height')
-                        AND m.numeric_value IS NOT NULL AND NOT m.is_missing
-                        AND m.observed_at<=%s AND m.valid_until>%s
-                        AND m.fetched_at<=%s
-                    ) DESC,
-                    CASE WHEN p.name ~ '(해운대|광안리|대천|속초|낙산|송정)'
-                      THEN 0 ELSE 1 END, p.id) AS rank
-                FROM beaches p WHERE p.place_kind='beach')
-                SELECT id,name,place_kind,address,region,lat,lng,preferred
-                FROM ranked WHERE (preferred AND rank<=3)
-                  OR (NOT preferred AND rank<=5)
-                ORDER BY preferred DESC,rank LIMIT 8""",
-                [now, now, now],
+                f"""WITH named AS (
+                SELECT id FROM pongdang_data.spots_waterspot WHERE name LIKE '%%경포%%'
+                UNION
+                SELECT a.canonical_spot_id FROM pongdang_data.spots_waterspot s
+                JOIN pongdang_data.place_alias a ON a.spot_id=s.id
+                WHERE s.name LIKE '%%경포%%'), classified AS (
+                SELECT * FROM ({PLACE_SELECT}) p
+                WHERE p.id IN (SELECT id FROM named)), matched AS (
+                SELECT DISTINCT coalesce(a.canonical_spot_id,p.id) AS id
+                FROM classified p LEFT JOIN pongdang_data.place_alias a
+                  ON a.spot_id=p.id WHERE p.place_kind='beach')
+                SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng
+                FROM classified p JOIN matched m ON m.id=p.id
+                ORDER BY (p.name=%s) DESC, p.id LIMIT 1""",
+                [PREFERRED_NAME],
             )
-        ).fetchall()
+        ).fetchone()
 
 
 async def select_default_place(reader):
     now = datetime.now(UTC)
-    candidates = await beach_candidates(reader, now)
-    places = [PreviewPlace.model_validate(row) for row in candidates]
-    selected = candidates[0] if candidates else None
+    selected = await preferred_beach(reader)
+    places = [PreviewPlace.model_validate(selected)] if selected else []
     status = "no_current_data" if selected else "no_places"
-    checked = 0
-    queries = [
-        ConditionQuery(spot_id=candidate["id"], activity="swim", mode=mode)
-        for candidate in candidates
-        for mode in ("observation", "forecast")
-    ]
-    conditions = await read_condition_set(reader, queries, now=now) if queries else []
-    for index, candidate in enumerate(candidates):
-        checked += 1
-        for evidence in conditions[index * 2 : index * 2 + 2]:
+    checked = 1 if selected else 0
+    conditions = []
+    if selected:
+        conditions = await read_condition_set(
+            reader,
+            [
+                ConditionQuery(spot_id=selected["id"], activity="swim", mode=mode)
+                for mode in ("observation", "forecast")
+            ],
+            now=now,
+        )
+        for evidence in conditions:
             if isinstance(evidence, HTTPException):
                 raise evidence
-            if evidence.condition_score.status == "blocked":
-                # A known restriction is not missing data. Preserve it for the
-                # preferred beach instead of hiding it behind another place.
-                if candidate["preferred"]:
-                    selected, status = candidate, "preferred"
-                    break
+            # A stored score or a known restriction is enough. Another beach is
+            # not consulted on this request.
+            if (
+                evidence.condition_score.status == "blocked"
+                or evidence.condition_score.score is not None
+            ):
+                status = "preferred"
                 break
-            if evidence.condition_score.score is not None:
-                selected = candidate
-                status = "preferred" if candidate["preferred"] else "fallback"
-                break
-        if status in {"preferred", "fallback"}:
-            break
     messages = {
         "preferred": "기본 장소인 강릉 경포대 해수욕장의 수집 자료를 표시합니다.",
-        "fallback": "경포 자료가 부족하여 다른 해수욕장의 수집 자료를 표시합니다.",
         "no_current_data": (
             "현재 유효한 조건 자료가 없습니다. "
             "수집기 상태와 자료 갱신을 확인해야 합니다."
@@ -88,12 +81,18 @@ async def select_default_place(reader):
     }
     return {
         "place": PreviewPlace.model_validate(selected) if selected else None,
-        "display_name": PREFERRED_NAME
-        if not selected or selected["preferred"]
-        else selected["name"],
+        "display_name": PREFERRED_NAME,
         "status": status,
         "message": messages[status],
         "candidates_checked": checked,
+        "refresh_pending": any(
+            not isinstance(evidence, HTTPException)
+            and (
+                evidence.projection.status == "refreshing"
+                or "condition_projection_pending" in evidence.reason_codes
+            )
+            for evidence in conditions
+        ),
         "rows": places,
     }
 
