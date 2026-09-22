@@ -19,7 +19,6 @@ import {
   dataStatusText,
   kstDate,
   metricText,
-  placeRegionLabel,
   timeLabel,
   type Place,
   type Conditions,
@@ -28,6 +27,7 @@ import {
   directionLink,
   exclusionReasonsText,
   kakaoRouteLink,
+  originFromPlace,
   planItems,
   routePaths,
   travelJson,
@@ -36,10 +36,6 @@ import {
   type RouteResult,
   type TripPlan,
 } from "./travelApi";
-import {
-  RouteRequestForm,
-  type RouteRequestValue,
-} from "./RouteRequestForm";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { MapSheet } from "./MapSheet";
@@ -299,8 +295,65 @@ function SpotSheet({
   );
 }
 
-function CourseSheet({ onSave }: { onSave: () => void }) {
+function CourseSheet({
+  onCreate,
+  busy,
+  showDetail,
+  selectedPlanId,
+  onBack,
+  myPlans,
+  onSelectPlan,
+}: {
+  onCreate: () => void;
+  busy: boolean;
+  showDetail: boolean;
+  selectedPlanId: string | null;
+  onBack: () => void;
+  myPlans: {
+    data?: { rows: TripPlan[] };
+    loading: boolean;
+    error?: string;
+  };
+  onSelectPlan: (plan: TripPlan) => void;
+}) {
   const session = useTravelSession();
+  if (!showDetail)
+    return (
+      <div className="pd-card">
+        <div className="mp-card-top">
+          <div className="pd-card-title">{t("내 코스 목록")}</div>
+          <StateChip kind={myPlans.data ? "live" : "no_data"} />
+        </div>
+        <div className="mp-rows">
+          {(myPlans.data?.rows ?? []).map((plan) => (
+            <button
+              type="button"
+              className="mp-saved-course"
+              key={plan.plan_id}
+              onClick={() => onSelectPlan(plan)}
+            >
+              <div className="mp-saved-course-name">
+                {plan.request.dates[0]
+                  ? t("{date} 물 코스", { date: plan.request.dates[0] })
+                  : t("저장 코스")}
+              </div>
+              <div className="mp-saved-course-meta">
+                {t("{count}곳", { count: planItems(plan).length })} ·{" "}
+                {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
+              </div>
+            </button>
+          ))}
+        </div>
+        {!myPlans.data?.rows.length && (
+          <p className="pd-note" role={myPlans.error ? "alert" : "status"}>
+            {myPlans.error ??
+              (myPlans.loading
+                ? t("저장 코스를 불러오는 중입니다.")
+                : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}
+          </p>
+        )}
+      </div>
+    );
   const calculated = session.route?.route;
   const items = calculated?.items ?? planItems(session.plan);
   const stops = items.length
@@ -342,6 +395,11 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
           <div className="pd-card-title">{t("이동 순서")}</div>
           <StateChip kind="live" />
         </div>
+        {selectedPlanId && (
+          <button type="button" className="pd-secondary mp-action" onClick={onBack}>
+            {t("← 코스 목록으로")}
+          </button>
+        )}
         <div className="mp-rows">
           {stops.map((stop) => (
             <div className="mp-stop" key={stop.no}>
@@ -388,16 +446,15 @@ function CourseSheet({ onSave }: { onSave: () => void }) {
       </div>
 
       <div className="mp-actions">
-        <a className="pd-secondary mp-action" href="#recommend">
-          <Icon name="transit" size={16} />{t("추천에서 편집")}</a>
         <button
           type="button"
           className="pd-primary mp-action"
-          disabled={!session.planInput || Boolean(session.plan?.plan_id)}
-          onClick={onSave}
+          aria-busy={busy}
+          disabled={!session.planInput?.stops.length || Boolean(session.plan?.plan_id) || busy}
+          onClick={onCreate}
         >
-          <Icon name="save" size={16} />
-          {session.plan?.plan_id ? t("저장됨") : t("내 코스에 저장")}
+          <Icon name={busy ? "refresh" : "save"} size={16} className={busy ? "mp-spin" : undefined} />
+          {busy ? t("계산 중…") : session.plan?.plan_id ? t("저장됨") : t("코스 생성")}
         </button>
       </div>
       <p className="pd-note mp-actions-note">
@@ -435,6 +492,35 @@ function MapScreen() {
       ? "course"
       : "spots",
   );
+
+  // 내 코스 목록(코스 시트 초기 화면). 데스크탑 MapDesktop.tsx · CoursesDesktop.tsx 와
+  // 같은 API·같은 방식으로 저장한 코스를 조회합니다.
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
+  const myPlans = useResource<{ rows: TripPlan[] }>(
+    "travel/plans?limit=100&offset=0",
+  );
+  const openSavedPlan = (plan: TripPlan) => {
+    setTravelSession({
+      plan,
+      planInput: { request: plan.request, stops: plan.input_stops },
+      recommendation: null,
+      route: null,
+    });
+    setSelectedPlanId(plan.plan_id!);
+    window.history.replaceState(
+      null,
+      "",
+      `#map?view=course&plan_id=${plan.plan_id}`,
+    );
+  };
+  const backToCourseList = () => {
+    setSelectedPlanId(null);
+    setTravelSession({ plan: null, planInput: null, recommendation: null, route: null });
+    window.history.replaceState(null, "", "#map?view=course");
+  };
+  const showCourseDetail =
+    Boolean(selectedPlanId) || Boolean(session.planInput?.stops.length);
+
   const browser = useWaterPlaceBrowser();
   const { search, setSearch, places } = browser;
   // 목록 조회는 명소 탭과 같은 훅을 씁니다. 같은 장소를 두 화면이 서로 다른
@@ -550,74 +636,69 @@ function MapScreen() {
       );
       if (!signal.aborted) window.location.hash = "#favorites";
     });
-  const save = () =>
-    void action.run(async (signal) => {
-      if (!session.planInput) return;
-      const plan = await travelJson<TripPlan>(
-        import.meta.env.BASE_URL,
-        "travel/plans",
-        "POST",
-        session.planInput,
-        signal,
-      );
-      if (!signal.aborted) {
-        window.history.replaceState(
-          null,
-          "",
-          `#map?view=course&plan_id=${plan.plan_id}`,
-        );
-        setTravelSession({ plan });
-      }
-    });
-  const route = (value: RouteRequestValue) =>
+  // 「코스 생성」은 폼 없이 경로 계산(필요할 때만) + 저장을 한 번에 합니다.
+  // 데스크탑 MapDesktop.tsx 의 createCourse 와 같은 규칙입니다 -- 추천 화면에서
+  // 이미 계산해 둔 경로(session.route.route_calculated)가 있으면 그대로 저장만
+  // 하고, 기본값으로 다시 계산해 덮어쓰지 않습니다.
+  const createCourse = () =>
     void action.run(async (signal) => {
       const stops = session.planInput?.stops ?? [];
       if (!session.planInput || !stops.length)
         throw new Error(
           "경로를 계산할 방문 장소가 없습니다. 지도에서 「코스에 넣기」로 장소를 고르거나 추천에서 코스를 가져와 주세요.",
         );
-      // The map's course is an explicit must-visit set, so every stop is
-      // required and the visit count is the number of stops.
-      const must_include = stops.map((item) => item.spot_id);
-      const request = {
-        ...session.planInput.request,
-        dates: [value.date],
-        day_trip: true,
-        departure_time: value.departure_time,
-        origin: value.origin,
-        must_include,
-      };
-      const recommendations = await travelJson<RecommendationResult>(
-        import.meta.env.BASE_URL,
-        "travel/recommendations",
-        "POST",
-        { request, limit: 5 },
-        signal,
-      );
-      const ranks = recommendations.recommendations
-        .filter((item) => must_include.includes(item.spot_id))
-        .map((item) => item.rank);
-      if (ranks.length !== must_include.length || !recommendations.selection_token)
-        throw new Error(
-          t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
-            (exclusionReasonsText(recommendations.excluded, must_include) ||
-              t("후보를 다시 선택해 주세요.")),
+      let planInput = session.planInput;
+      if (!session.route?.route_calculated) {
+        const originPlace = raw.find(
+          (place) => place.lat !== null && place.lng !== null,
         );
-      const result = await travelJson<RouteResult>(
-        import.meta.env.BASE_URL,
-        "travel/routes/recommend",
-        "POST",
-        {
-          selection_token: recommendations.selection_token,
-          candidate_ranks: ranks,
-          stop_count: ranks.length,
-          stay_minutes: value.stay_minutes,
-          include_geometry: true,
-          request,
-        },
-        signal,
-      );
-      if (!signal.aborted)
+        if (!originPlace)
+          throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
+        // The map's course is an explicit must-visit set, so every stop is
+        // required and the visit count is the number of stops.
+        const must_include = stops.map((item) => item.spot_id);
+        const catalogIds = new Set(must_include);
+        const origin = originFromPlace(originPlace, catalogIds)!;
+        const departure = new Date(Date.now() + 600000).toISOString();
+        const request = {
+          ...session.planInput.request,
+          dates: [kstDate(departure)],
+          day_trip: true,
+          departure_time: timeLabel(departure),
+          origin,
+          must_include,
+        };
+        const recommendations = await travelJson<RecommendationResult>(
+          import.meta.env.BASE_URL,
+          "travel/recommendations",
+          "POST",
+          { request, limit: 5 },
+          signal,
+        );
+        const ranks = recommendations.recommendations
+          .filter((item) => must_include.includes(item.spot_id))
+          .map((item) => item.rank);
+        if (ranks.length !== must_include.length || !recommendations.selection_token)
+          throw new Error(
+            t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
+              (exclusionReasonsText(recommendations.excluded, must_include) ||
+                t("후보를 다시 선택해 주세요.")),
+          );
+        const result = await travelJson<RouteResult>(
+          import.meta.env.BASE_URL,
+          "travel/routes/recommend",
+          "POST",
+          {
+            selection_token: recommendations.selection_token,
+            candidate_ranks: ranks,
+            stop_count: ranks.length,
+            stay_minutes: 60,
+            include_geometry: true,
+            request,
+          },
+          signal,
+        );
+        if (signal.aborted) return;
         setTravelSession({
           recommendation: recommendations,
           route: result,
@@ -625,6 +706,24 @@ function MapScreen() {
             ? { planInput: result.plan_input, plan: null }
             : {}),
         });
+        planInput = result.plan_input ?? planInput;
+      }
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans",
+        "POST",
+        planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        setSelectedPlanId(plan.plan_id!);
+        window.history.replaceState(
+          null,
+          "",
+          `#map?view=course&plan_id=${plan.plan_id}`,
+        );
+        setTravelSession({ plan });
+      }
     });
   const sheet = useSheetHeight();
   const [expanded, setExpanded] = useState(false);
@@ -701,7 +800,15 @@ function MapScreen() {
                 </div>
               )
             ) : (
-              <CourseSheet onSave={save} />
+              <CourseSheet
+                onCreate={createCourse}
+                busy={action.busy}
+                showDetail={showCourseDetail}
+                selectedPlanId={selectedPlanId}
+                onBack={backToCourseList}
+                myPlans={myPlans}
+                onSelectPlan={openSavedPlan}
+              />
             )}
             <p
               className="pd-note"
@@ -727,19 +834,6 @@ function MapScreen() {
                 ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
                 : ""}
             </p>
-            {view === "course" && (
-              <RouteRequestForm
-                places={raw.map((place) => ({ ...place, region: placeRegionLabel(place, "") }))}
-                defaultDate={session.planInput?.request.dates[0]}
-                disabled={action.busy || !session.planInput?.stops.length}
-                submitLabel={
-                  session.route?.route_calculated
-                    ? t("조건을 바꿔 다시 계산")
-                    : t("선택 코스 경로 계산")
-                }
-                onSubmit={route}
-              />
-            )}
             <div className="pd-slot mp-todo">
               <div>
                 <b>{t("편의시설 필터")}</b>

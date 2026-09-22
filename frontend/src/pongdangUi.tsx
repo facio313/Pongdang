@@ -39,7 +39,8 @@ export type IconName =
   | "save"
   | "check"
   | "menu"
-  | "close";
+  | "close"
+  | "refresh";
 
 /** 05b 아이콘 라이브러리(디자인 시스템 v2). 전부 24×24 그리드, stroke 1.6,
  *  라운드 캡, 채움형 없음. `close` 만 05b 에 없어 같은 규격으로 맞춰 그렸습니다. */
@@ -198,6 +199,7 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
   check: <path d="M5 12.5l4.5 4.5L19 7" />,
   menu: <path d="M4 7h16M4 12h16M4 17h11" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  refresh: <path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7" />,
 };
 
 export function Icon({

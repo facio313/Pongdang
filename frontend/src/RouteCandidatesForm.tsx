@@ -1,6 +1,7 @@
 import { t } from "./i18n.ts";
 import { useState } from "react";
 import { AppActions } from "./AppShell";
+import { Icon } from "./pongdangUi";
 import { kstDate, timeLabel } from "./productData";
 import { originFromPlace } from "./travelApi";
 import type { OriginOption, RouteCandidate, RouteRequestValue } from "./RouteRequestForm";
@@ -19,6 +20,7 @@ export function RouteCandidatesForm({
   candidates,
   defaultDate,
   disabled = false,
+  busy = false,
   submitLabel = "이 조건으로 경로 계산",
   onSubmit,
 }: {
@@ -26,6 +28,9 @@ export function RouteCandidatesForm({
   candidates: readonly RouteCandidate[];
   defaultDate?: string;
   disabled?: boolean;
+  /** True while the submitted request is in flight -- shown as a spinner on
+   *  the submit button, same as RouteRequestForm. */
+  busy?: boolean;
   submitLabel?: string;
   onSubmit: (value: RouteRequestValue) => void;
 }) {
@@ -123,9 +128,11 @@ export function RouteCandidatesForm({
           type="button"
           className="rt-submit"
           disabled={disabled}
+          aria-busy={busy}
           onClick={submit}
         >
-          {t(submitLabel)}
+          {busy && <Icon name="refresh" size={16} className="rt-submit-spin" />}
+          {busy ? t("계산 중…") : t(submitLabel)}
         </button>
       </AppActions>
       {problem && (

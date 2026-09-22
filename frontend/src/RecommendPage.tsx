@@ -801,6 +801,7 @@ function ChatBody({
             candidates={candidates}
             defaultDate={session.recommendation.request.dates[0]}
             disabled={busy}
+            busy={busy}
             submitLabel={
               session.route?.route_calculated
                 ? t("조건을 바꿔 다시 계산")
@@ -1221,6 +1222,7 @@ function CourseBody({
                 candidates={candidates}
                 defaultDate={day.id}
                 disabled={busy}
+                busy={busy}
                 submitLabel={
                   session.route ? t("조건을 바꿔 다시 계산") : t("이 후보로 경로 계산")
                 }

@@ -989,6 +989,7 @@ export function RecommendDesktop() {
                     (recommendation ?? session.plan)?.request.dates[0]
                   }
                   disabled={mutationBusy}
+                  busy={mutationBusy}
                   submitLabel={
                     calculated ? t("조건을 바꿔 다시 계산") : t("이 후보로 경로 계산")
                   }

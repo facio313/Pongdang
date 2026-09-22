@@ -111,6 +111,16 @@
   background: var(--pd-ink-mute, #73879c);
   cursor: default;
 }
+.rt-form .rt-submit-spin {
+  margin-right: 7px;
+  animation: rt-submit-spin 0.9s linear infinite;
+}
+@keyframes rt-submit-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rt-form .rt-submit-spin { animation: none; }
+}
 
 .rt-form .rt-problem {
   color: var(--pd-alert-ink);

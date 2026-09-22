@@ -264,6 +264,20 @@
   margin-left: auto;
 }
 
+/* 「코스 생성」 버튼의 진행중 스피너. routeRequestForm.css 의
+   .rt-submit-spin 과 같은 규칙이지만 이 버튼은 .rt-form 밖에 있어 그 선택자가
+   닿지 않으므로 같은 이름으로 이 파일에도 둡니다. */
+.pd-desktop .rt-submit-spin {
+  margin-right: 7px;
+  animation: mk-submit-spin 0.9s linear infinite;
+}
+@keyframes mk-submit-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-desktop .rt-submit-spin { animation: none; }
+}
+
 /* 정차지 줄. 모바일 CourseSheet 의 mp-stop 과 같은 사실(순번 · 이름 · 도착
    시각 · 구간 이동시간 · 길찾기)을 데스크탑 패널 문법으로 그립니다. */
 .pd-desktop .mk-course-rows {

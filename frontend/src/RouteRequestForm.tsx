@@ -1,6 +1,7 @@
 import { t } from "./i18n.ts";
 import { useState } from "react";
 import { AppActions } from "./AppShell";
+import { Icon } from "./pongdangUi";
 import { kstDate, timeLabel } from "./productData";
 import { originFromPlace, type Origin } from "./travelApi";
 import "./routeRequestForm.css";
@@ -44,6 +45,7 @@ export function RouteRequestForm({
   candidates = [],
   defaultDate,
   disabled = false,
+  busy = false,
   submitLabel = "이 조건으로 경로 계산",
   onSubmit,
 }: {
@@ -51,6 +53,10 @@ export function RouteRequestForm({
   candidates?: readonly RouteCandidate[];
   defaultDate?: string;
   disabled?: boolean;
+  /** True while the submitted request is in flight. Shown as a spinner on
+   *  the submit button -- `disabled` alone doesn't tell the user whether the
+   *  form is waiting on a response or just missing required input. */
+  busy?: boolean;
   submitLabel?: string;
   onSubmit: (value: RouteRequestValue) => void;
 }) {
@@ -293,9 +299,11 @@ export function RouteRequestForm({
           type="button"
           className="rt-submit"
           disabled={disabled}
+          aria-busy={busy}
           onClick={submit}
         >
-          {t(submitLabel)}
+          {busy && <Icon name="refresh" size={16} className="rt-submit-spin" />}
+          {busy ? t("계산 중…") : t(submitLabel)}
         </button>
       </AppActions>
       {problem && (
