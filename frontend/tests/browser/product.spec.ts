@@ -394,15 +394,18 @@ test("map adds an actual place and requests a route only on explicit submit", as
   await expect(page.locator(".mp-stop-name")).toHaveCount(1);
   expect(routeCalls).toBe(0);
   // "코스 생성" 은 폼 없이 등록 좌표 중 하나를 출발지로 써서 경로 계산과
-  // 저장을 한 번에 합니다(MapPage.tsx 의 createCourse 주석 참고).
+  // 저장을 한 번에 합니다(MapPage.tsx 의 createCourse 주석 참고). 이 흐름은
+  // recommendations → routes/recommend(전 구간 조합 탐색 포함) 두 번의 순차
+  // 요청을 거치므로, 부하가 있는 CI 러너에서는 기본 5초를 넘기기도 합니다.
   await page.getByRole("button", { name: "코스 생성" }).click();
   await expect(page.locator(".mp-searchbar.is-course")).toContainText(
     "분 이동",
+    { timeout: 15000 },
   );
   expect(routeCalls).toBe(1);
   await expect(
     page.locator(".map-page .pd-note").filter({ hasText: "출발 기준 교통 자료" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
   await page.screenshot({
     path: "test-results/map-connected.png",
     fullPage: true,
