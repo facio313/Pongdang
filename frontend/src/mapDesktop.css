@@ -14,6 +14,7 @@
    .pd-dk-mapshell-chrome 이 정의합니다. */
 .pd-desktop .mk-switch {
   grid-column: 2;
+  grid-row: 1;
   align-self: start;
   justify-self: center;
   display: flex;
@@ -271,6 +272,32 @@
 }
 .pd-desktop .mk-course-alarm .mk-note {
   margin: 0;
+}
+
+/* 후보지 패널의 출발지 선택. .mk-search 와 같은 톤(테두리 · 라운드)이지만
+   입력이 아니라 select 라 높이를 touch 대상만큼 살짝 낮춥니다. */
+.pd-desktop .mk-origin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pd-desktop .mk-origin-label {
+  flex: none;
+  font-size: var(--dk-fs-cap);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .mk-origin-select {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--dk-ink);
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-r-ctl);
 }
 
 /* 「코스 생성」 버튼의 진행중 스피너. routeRequestForm.css 의
