@@ -45,9 +45,7 @@ import {
   type PlanItem,
   type TripPlan,
 } from "./travelApi";
-import { adoptSavedPlan, setTravelSession, useTravelSession } from "./travelSession";
-import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
-import { useAction } from "./useAction";
+import { setTravelSession, useTravelSession } from "./travelSession";
 import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
@@ -198,7 +196,16 @@ export function MapDesktop() {
       : null,
   );
   useEffect(() => {
-    if (savedPlan.data) adoptSavedPlan(savedPlan.data);
+    if (savedPlan.data)
+      setTravelSession({
+        plan: savedPlan.data,
+        planInput: {
+          request: savedPlan.data.request,
+          stops: savedPlan.data.input_stops,
+        },
+        recommendation: null,
+        route: null,
+      });
   }, [savedPlan.data]);
 
   // ── 내 코스 목록 (좌측 패널 초기 화면) ──────────────────────

@@ -36,8 +36,7 @@ import {
   type PlanItem,
   type TripPlan,
 } from "./travelApi";
-import { adoptSavedPlan, setTravelSession, useTravelSession } from "./travelSession";
-import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
+import { setTravelSession, useTravelSession } from "./travelSession";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { mappablePlaces } from "./useWaterPlaces";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -587,7 +586,16 @@ function MapScreen() {
       : null,
   );
   useEffect(() => {
-    if (savedPlan.data) adoptSavedPlan(savedPlan.data);
+    if (savedPlan.data)
+      setTravelSession({
+        plan: savedPlan.data,
+        planInput: {
+          request: savedPlan.data.request,
+          stops: savedPlan.data.input_stops,
+        },
+        recommendation: null,
+        route: null,
+      });
   }, [savedPlan.data]);
   const [view, setView] = useState<View>(() =>
     new URLSearchParams(window.location.hash.split("?")[1]).get("view") ===
