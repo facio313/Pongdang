@@ -27,21 +27,18 @@ import {
 } from "./productData";
 import {
   directionLink,
-  exclusionReasonsText,
   kakaoRouteLink,
-  originFromPlace,
   planItems,
   routePaths,
   travelJson,
   routeReasonsText,
   unknownConditionsText,
   type PlanItem,
-  type RecommendationResult,
-  type RouteResult,
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
+import { mappablePlaces } from "./useWaterPlaces";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { MapSheet } from "./MapSheet";
 import { useSheetHeight } from "./useSheetHeight";
@@ -311,6 +308,10 @@ function CourseSheet({
   plans,
   sessions,
   onSelectPlan,
+  originRows,
+  originId,
+  onOriginChange,
+  candidateTrip,
 }: {
   onCreate: () => void;
   onRecalculate: () => void;
@@ -326,6 +327,12 @@ function CourseSheet({
   plans: PlanWithAlarm[];
   sessions: { loading: boolean; error?: string };
   onSelectPlan: (plan: TripPlan) => void;
+  /** 출발지로 고를 수 있는, 좌표가 있는 등록 장소 목록(데스크탑 MapDesktop.tsx
+   *  의 mk-origin 과 같은 기능). */
+  originRows: Place[];
+  originId: number | null;
+  onOriginChange: (id: number) => void;
+  candidateTrip: string | null;
 }) {
   const session = useTravelSession();
   // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
@@ -467,6 +474,27 @@ function CourseSheet({
             {t("← 코스 목록으로")}
           </button>
         )}
+        {originRows.length ? (
+          <label className="mp-origin">
+            <span className="mp-origin-label">{t("출발지")}</span>
+            <select
+              className="mp-origin-select"
+              aria-label={t("출발지")}
+              value={String(originId ?? originRows[0]?.id ?? "")}
+              onChange={(event) => onOriginChange(Number(event.target.value))}
+            >
+              {originRows.map((place) => (
+                <option key={place.id} value={place.id}>
+                  {place.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="pd-note" role="status">
+            {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
+          </p>
+        )}
         <div className="mp-rows">
           {stops.map((stop) => (
             <div className="mp-stop" key={stop.no}>
@@ -530,6 +558,15 @@ function CourseSheet({
           <Icon name={busy ? "refresh" : "save"} size={16} className={busy ? "mp-spin" : undefined} />
           {busy ? t("계산 중…") : session.plan?.plan_id ? t("최적 경로 다시 계산") : t("코스 생성")}
         </button>
+        {candidateTrip && (
+          <a
+            className="pd-secondary mp-action"
+            href={candidateTrip}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="transit" size={16} />{t("카카오맵에서 후보 순서대로 길찾기 →")}</a>
+        )}
       </div>
       <p className="pd-note mp-actions-note">
         <StateChip kind="partial" /> {t("카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.")}</p>
@@ -620,6 +657,16 @@ function MapScreen() {
       ]),
     ).values(),
   ], [places.rows, coursePlaces.rows]);
+  // 코스 경로의 출발지 후보. 좌표가 있는 등록 장소만 고를 수 있습니다 -- 데스크탑
+  // MapDesktop.tsx 의 rows(pinned)와 같은 기준입니다(mappablePlaces).
+  const originRows = useMemo(
+    () => mappablePlaces(raw).map(({ place }) => place),
+    [raw],
+  );
+  const courseSpotIds =
+    session.route?.route?.items.map((item) => item.spot_id) ??
+    session.planInput?.stops.map((item) => item.spot_id) ??
+    [];
   const selected = selectedSpotId !== null
     ? raw.find((item) => item.id === selectedSpotId)
     : raw.find((item) => item.id === places.defaultPlaceId) ??
@@ -711,118 +758,25 @@ function MapScreen() {
       );
       if (!signal.aborted) window.location.hash = "#favorites";
     });
-  // 정차지 집합을 실제 출발지·시각으로 순열 탐색해 방문 순서를 최적화합니다
-  // (추천 화면의 경로 계산과 같은 서버 로직). 데스크탑 MapDesktop.tsx 의
-  // optimizeCourseRoute 와 같은 규칙입니다 -- 추천 화면에서 이미 계산해 둔
-  // 경로(session.route.route_calculated)가 있으면 그대로 쓰고 다시 계산해
-  // 덮어쓰지 않습니다.
-  const optimizeCourseRoute = async (signal: AbortSignal) => {
-    const stops = session.planInput?.stops ?? [];
-    if (!session.planInput || !stops.length)
-      throw new Error(
-        "경로를 계산할 방문 장소가 없습니다. 지도에서 「코스에 넣기」로 장소를 고르거나 추천에서 코스를 가져와 주세요.",
-      );
-    if (session.route?.route_calculated)
-      return session.route.plan_input ?? session.planInput;
-    const originPlace = raw.find(
-      (place) => place.lat !== null && place.lng !== null,
-    );
-    if (!originPlace)
-      throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
-    // The map's course is an explicit must-visit set, so every stop is
-    // required and the visit count is the number of stops.
-    const must_include = stops.map((item) => item.spot_id);
-    const catalogIds = new Set(must_include);
-    const origin = originFromPlace(originPlace, catalogIds)!;
-    const departure = new Date(Date.now() + 600000).toISOString();
-    const request = {
-      ...session.planInput.request,
-      dates: [kstDate(departure)],
-      day_trip: true,
-      departure_time: timeLabel(departure),
-      origin,
-      must_include,
-    };
-    const recommendations = await travelJson<RecommendationResult>(
-      import.meta.env.BASE_URL,
-      "travel/recommendations",
-      "POST",
-      { request, limit: 5 },
-      signal,
-    );
-    const ranks = recommendations.recommendations
-      .filter((item) => must_include.includes(item.spot_id))
-      .map((item) => item.rank);
-    if (ranks.length !== must_include.length || !recommendations.selection_token)
-      throw new Error(
-        t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
-          (exclusionReasonsText(recommendations.excluded, must_include) ||
-            t("후보를 다시 선택해 주세요.")),
-      );
-    const result = await travelJson<RouteResult>(
-      import.meta.env.BASE_URL,
-      "travel/routes/recommend",
-      "POST",
-      {
-        selection_token: recommendations.selection_token,
-        candidate_ranks: ranks,
-        stop_count: ranks.length,
-        stay_minutes: 60,
-        include_geometry: true,
-        request,
-      },
-      signal,
-    );
-    if (signal.aborted) return session.planInput;
-    setTravelSession({
-      recommendation: recommendations,
-      route: result,
-      ...(result.plan_input
-        ? { planInput: result.plan_input, plan: null }
-        : {}),
-    });
-    return result.plan_input ?? session.planInput;
-  };
-
-  // 「코스 생성」은 폼 없이 경로 최적화(필요할 때만) + 저장을 한 번에 합니다.
+  // 정차지 집합을 실제 출발지·시각으로 순열 탐색해 방문 순서를 최적화하고
+  // 저장합니다. 데스크탑 MapDesktop.tsx 와 같은 훅을 씁니다 -- 예전에는 이
+  // 코드가 두 파일에 복붙되어 있어 한쪽에만 기능(출발지 선택)이 반영되는 일이
+  // 있었습니다.
+  const {
+    originId,
+    setOriginId,
+    createCourse: createCourseFor,
+    recalculateCourse,
+    candidateTrip,
+  } = useCourseRouteOptimization(originRows, courseSpotIds, coursePlaces.rows, action);
   const createCourse = () =>
-    void action.run(async (signal) => {
-      const planInput = await optimizeCourseRoute(signal);
-      if (signal.aborted) return;
-      const plan = await travelJson<TripPlan>(
-        import.meta.env.BASE_URL,
-        "travel/plans",
-        "POST",
-        planInput,
-        signal,
+    createCourseFor((plan) => {
+      setSelectedPlanId(plan.plan_id!);
+      window.history.replaceState(
+        null,
+        "",
+        `#map?view=course&plan_id=${plan.plan_id}`,
       );
-      if (!signal.aborted) {
-        setSelectedPlanId(plan.plan_id!);
-        window.history.replaceState(
-          null,
-          "",
-          `#map?view=course&plan_id=${plan.plan_id}`,
-        );
-        setTravelSession({ plan });
-      }
-    });
-
-  // 이미 저장된 코스도 정차지 구성은 그대로 두고 방문 순서 최적화와 이동시간을
-  // 다시 계산해 저장할 수 있어야 합니다.
-  const recalculateCourse = () =>
-    void action.run(async (signal) => {
-      if (!session.plan?.plan_id)
-        throw new Error("다시 계산할 저장된 코스가 없습니다.");
-      const planInput = await optimizeCourseRoute(signal);
-      if (signal.aborted) return;
-      const plan = await travelJson<TripPlan>(
-        import.meta.env.BASE_URL,
-        `travel/plans/${session.plan.plan_id}`,
-        "PUT",
-        { ...planInput, expected_revision: session.plan.revision },
-        signal,
-      );
-      if (!signal.aborted) setTravelSession({ plan });
     });
   const sheet = useSheetHeight();
   const [expanded, setExpanded] = useState(false);
@@ -910,6 +864,10 @@ function MapScreen() {
                 plans={myPlansWithAlarm}
                 sessions={sessions}
                 onSelectPlan={openSavedPlan}
+                originRows={originRows}
+                originId={originId}
+                onOriginChange={setOriginId}
+                candidateTrip={candidateTrip}
               />
             )}
             <p
