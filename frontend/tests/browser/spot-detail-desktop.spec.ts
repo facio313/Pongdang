@@ -67,5 +67,5 @@ test("desktop detail adds a real beach station with empty region", async ({ page
   expect((await response.json()).input_stops.map((stop: { spot_id: number }) => stop.spot_id)).toEqual([place.id]);
   await expect(page.locator(".sk-note[role=status]")).toContainText("코스 초안에 추가했습니다");
   await page.getByRole("link", { name: "코스 초안 보기" }).click();
-  await expect(page.locator(".mp-stop-name")).toHaveText(place.name);
+  await expect(page.locator(".mk-course-stop-name")).toHaveText(place.name);
 });

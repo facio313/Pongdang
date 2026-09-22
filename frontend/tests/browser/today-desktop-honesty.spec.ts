@@ -43,9 +43,14 @@ test("desktop today separates recommendation eligibility, partial scores and the
 test("desktop baseline keeps the provider mode and distinguishes a failed read from missing values", async ({ page }) => {
   await page.route("**/api/data/water-index/recommendation?**", route =>
     route.fulfill({ status: 503, json: { detail: "fixture failure" } }));
+  // A failed recommendation can recover the baseline independently. Only a
+  // failed baseline read should display a lookup failure instead of its values.
+  await page.route("**/api/data/water-index/conditions?**", route =>
+    route.fulfill({ status: 503, json: { detail: "fixture baseline failure" } }));
   await page.goto("#today");
   await expect(page.locator(".td-hero-tiles .td-tile-value").first()).toHaveText("조회 실패");
   await page.unroute("**/api/data/water-index/recommendation?**");
+  await page.unroute("**/api/data/water-index/conditions?**");
   await routeRecommendation(page, { activity: "relax", score: 75 }, {
     conditions: [{ ...conditionsFixture({ activity: "swim", score: 65 }), mode: "forecast" }, conditionsFixture({ activity: "relax", score: 75 })],
   });
