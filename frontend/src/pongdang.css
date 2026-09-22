@@ -814,25 +814,6 @@ main:has(.pd-app.is-fullscreen) {
   color: var(--pd-ink-2);
   white-space: nowrap;
 }
-.pd-app .pd-cbar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 6px;
-  color: var(--pd-ink-2);
-  text-align: left;
-  cursor: pointer;
-}
-.pd-cbar-chevron {
-  width: 5px;
-  height: 5px;
-  border-right: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-}
-.pd-cbar-toggle[aria-expanded="true"] .pd-cbar-chevron {
-  transform: translateY(1px) rotate(225deg);
-}
 .pd-cbar-value {
   color: var(--pd-ink);
   font-variant-numeric: tabular-nums;
@@ -866,10 +847,6 @@ main:has(.pd-app.is-fullscreen) {
   grid-column: 1 / -1;
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-mute);
-}
-.pd-cbar-criterion {
-  padding-bottom: 8px;
-  overflow-wrap: anywhere;
 }
 
 /* ── 추천 근거 (RecommendationReason) ───────────────────
