@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { LOGO_ALT, logoUrl } from "./brand";
-import { DataRefreshButton } from "./DataRefreshButton";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 
@@ -21,13 +20,11 @@ export function AppHeader({
   title,
   time,
   onCobalt = false,
-  showRefresh = true,
 }: {
   title: string;
   /** 목업 프레임용 시각 문자열. 없으면 자리만 비워 둡니다. */
   time?: string;
   onCobalt?: boolean;
-  showRefresh?: boolean;
 }) {
   return (
     <div className={"pd-header" + (onCobalt ? " is-on-cobalt" : "")}>
@@ -41,7 +38,7 @@ export function AppHeader({
       <span className="pd-header-mark">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </span>
-      <span className="pd-header-actions"><span>{title}</span>{showRefresh && <DataRefreshButton />}</span>
+      <span className="pd-header-actions"><span>{title}</span></span>
     </div>
   );
 }

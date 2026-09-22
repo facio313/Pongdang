@@ -2,7 +2,6 @@ import { t } from "./i18n";
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
-import { DataRefreshButton } from "./DataRefreshButton";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
@@ -89,7 +88,6 @@ export function DesktopNav({
           손잡이가 모바일 셸(AppShell)에만 있어서, 1080px 이상에서는 그 다섯
           곳에 닿을 방법이 전혀 없었습니다. */}
       <SideMenuButton />
-      {active !== "home" && <DataRefreshButton />}
       <a className="pd-dk-nav-mark" href="#home">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
       </a>

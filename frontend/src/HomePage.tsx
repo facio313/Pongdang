@@ -90,7 +90,7 @@ function Hero({
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   return (
     <header className="pd-hero">
-      <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt showRefresh={false} />
+      <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
           <span className="pd-lbl hm-hero-place">
