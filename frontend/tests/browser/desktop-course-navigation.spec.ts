@@ -57,9 +57,10 @@ test("desktop course URLs preserve plan_id and don't recompute a saved plan's ro
   await page.goto(`#map?view=course&plan_id=${planId}`);
   // 이동 순서(왼쪽)와 후보지(오른쪽) 패널이 같은 정차지를 함께 보여줍니다.
   await expect(page.locator(".mk-course-stop-name").first()).toHaveText(place.name);
-  // 이미 저장된 코스이므로 "코스 생성" 은 다시 누를 수 없고, 경로도 다시
-  // 계산하지 않습니다.
-  await expect(page.getByRole("button", { name: "저장됨", exact: true })).toBeDisabled();
+  // 이미 저장된 코스를 여는 것만으로는(클릭 없이는) 경로를 다시 계산하지
+  // 않습니다. 버튼은 다시 최적화할 수 있도록 눌러지지만, 자동으로 누르진
+  // 않습니다.
+  await expect(page.getByRole("button", { name: "최적 경로 다시 계산", exact: true })).toBeEnabled();
   expect(routeRequests).toHaveLength(0);
   await expect(page).toHaveURL(new RegExp(`#map\\?view=course&plan_id=${planId}$`));
   await page.reload();
