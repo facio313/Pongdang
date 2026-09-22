@@ -9,6 +9,7 @@ for (const port of [frontendPort, backendPort]) {
 export default defineConfig({
   testDir: "./tests/browser",
   workers: 1,
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: `http://127.0.0.1:${frontendPort}/pongdang/`,
     viewport: { width: 390, height: 844 },

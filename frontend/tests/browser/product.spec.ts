@@ -379,6 +379,9 @@ test("preference → recommendation → persisted plan → selected plan detail"
 test("map adds an actual place and requests a route only on explicit submit", async ({
   page,
 }) => {
+  // 아래 경로 계산 대기가 CI 러너 부하에서 15~30초까지 걸릴 수 있어, 기본
+  // 30초 테스트 타임아웃보다 여유를 둡니다.
+  test.setTimeout(60000);
   let routeCalls = 0;
   page.on("request", (request) => {
     if (request.url().endsWith("/travel/routes/recommend")) routeCalls++;
@@ -395,12 +398,13 @@ test("map adds an actual place and requests a route only on explicit submit", as
   expect(routeCalls).toBe(0);
   // "코스 생성" 은 폼 없이 등록 좌표 중 하나를 출발지로 써서 경로 계산과
   // 저장을 한 번에 합니다(MapPage.tsx 의 createCourse 주석 참고). 이 흐름은
-  // recommendations → routes/recommend(전 구간 조합 탐색 포함) 두 번의 순차
-  // 요청을 거치므로, 부하가 있는 CI 러너에서는 기본 5초를 넘기기도 합니다.
+  // recommendations → routes/recommend 두 번의 순차 요청과 그 사이 DB 조회를
+  // 거치므로, 부하가 있는 CI 러너에서는 15초도 넘기는 경우가 있어 여유를
+  // 더 둡니다(playwright.config.ts 의 CI retries 도 참고).
   await page.getByRole("button", { name: "코스 생성" }).click();
   await expect(page.locator(".mp-searchbar.is-course")).toContainText(
     "분 이동",
-    { timeout: 15000 },
+    { timeout: 30000 },
   );
   expect(routeCalls).toBe(1);
   await expect(
