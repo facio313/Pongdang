@@ -259,6 +259,10 @@ export function MapDesktop() {
     [pinned],
   );
   const rows = useMemo(() => pinned.map(({ place }) => place), [pinned]);
+  // 코스 경로의 출발지. 고르지 않았으면 예전과 같은 기본값(좌표 있는 등록
+  // 장소 중 첫 번째)을 씁니다.
+  const [originId, setOriginId] = useState<number | null>(null);
+  const selectedOrigin = rows.find((place) => place.id === originId) ?? rows[0];
   const selected = selectedId !== null
     ? allRows.find((place) => place.id === selectedId)
     : rows.find((place) => place.id === places.defaultPlaceId) ?? rows[0];
@@ -356,6 +360,18 @@ export function MapDesktop() {
   const wholeTrip = calculated
     ? kakaoRouteLink(calculated.origin, calculated.items)
     : null;
+  // 아직 경로를 계산하지 않은 후보지도, 고른 출발지 + 목록 순서 그대로
+  // 카카오맵 길찾기를 열 수 있어야 합니다(계산은 방문 순서 최적화일 뿐,
+  // 길찾기 자체는 순서만 있으면 됩니다).
+  const candidateTrip = selectedOrigin
+    ? kakaoRouteLink(
+        { latitude: selectedOrigin.lat, longitude: selectedOrigin.lng },
+        courseSpotIds.map((id) => {
+          const place = coursePlaces.rows.find((row) => row.id === id);
+          return { latitude: place?.lat ?? null, longitude: place?.lng ?? null };
+        }),
+      )
+    : null;
   const coursePaths = useMemo(
     () => (view === "course" ? routePaths(session.route) : []),
     [session.route, view],
@@ -404,9 +420,7 @@ export function MapDesktop() {
       );
     if (session.route?.route_calculated)
       return session.route.plan_input ?? session.planInput;
-    const originPlace = rows.find(
-      (place) => place.lat !== null && place.lng !== null,
-    );
+    const originPlace = selectedOrigin;
     if (!originPlace)
       throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
     // 지도 코스는 명시적으로 고른 필수 방문 집합이므로, 모든 정차지가
@@ -984,6 +998,27 @@ export function MapDesktop() {
                 <span className="pd-dk-kick">{t("후보지")}</span>
                 <StateChip kind={action.busy ? "no_data" : "live"} />
               </div>
+              {rows.length ? (
+                <label className="mk-origin">
+                  <span className="mk-origin-label">{t("출발지")}</span>
+                  <select
+                    className="mk-origin-select"
+                    aria-label={t("출발지")}
+                    value={String(selectedOrigin?.id ?? "")}
+                    onChange={(event) => setOriginId(Number(event.target.value))}
+                  >
+                    {rows.map((place) => (
+                      <option key={place.id} value={place.id}>
+                        {place.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="mk-note" role="status">
+                  {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
+                </p>
+              )}
               <div className="mk-course-rows">
                 {courseStops.map((stop) => (
                   <CourseStopRow
@@ -1015,6 +1050,16 @@ export function MapDesktop() {
                     ? t("최적 경로 다시 계산")
                     : t("코스 생성")}
               </button>
+              {candidateTrip && (
+                <a
+                  className="pd-dk-button is-quiet"
+                  href={candidateTrip}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="transit" size={16} />{t("카카오맵에서 후보 순서대로 길찾기 →")}
+                </a>
+              )}
               <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
                 {action.error ||
                   savedPlan.error ||

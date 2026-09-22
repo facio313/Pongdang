@@ -522,12 +522,21 @@ main:has(.pd-desktop.is-fullscreen) {
 }
 .pd-dk-mappanel.is-start {
   grid-column: 1;
+  grid-row: 1;
 }
 .pd-dk-mappanel.is-end {
   grid-column: 3;
+  grid-row: 1;
 }
+/* grid-row 를 명시하지 않으면, 자동 배치 커서가 가운데 칸(mk-switch · 여기)을
+   먼저 놓은 뒤 왼쪽 칸(column 1)으로 되돌아가는 다음 요소를 만나 커서 규칙상
+   행을 하나 더 만들어 버립니다 -- 그러면 이 칸과 좌우 패널이 명시적
+   1fr 행이 아니라 내용 높이만큼만 잡는 암묵 행에 놓여, 패널이 화면 높이를
+   다 채우지 못하고 짧게 보입니다(실측으로 확인). 행을 고정해 항상 같은
+   명시적 1fr 행에 놓습니다. */
 .pd-dk-mapcontrols {
   grid-column: 2;
+  grid-row: 1;
   align-self: end;
   justify-self: end;
   display: flex;
