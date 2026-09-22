@@ -176,8 +176,16 @@ main:has(.pd-desktop.is-fullscreen) {
   background: var(--dk-mist);
   color: var(--dk-ink);
 }
-/* 메뉴 패널만 담는 껍데기라 흐름에서 자리를 차지하면 안 됩니다. */
-.pd-desktop-menu-root {
+/* 메뉴 패널만 담는 껍데기라 흐름에서 자리를 차지하면 안 됩니다.
+   .pd-app 클래스도 같이 달고 있는데(모바일 메뉴 패널의 --pd-* 토큰을
+   그대로 받기 위해), pongdang.css 의 기본 `.pd-app { display: flex }`
+   규칙과 이 규칙은 클래스 하나짜리라 우선순위가 같습니다 -- 어느 스타일시트가
+   번들에 나중에 들어가는지에 따라 display 가 뒤집힐 수 있었고, 실제로
+   pongdang.css 가 나중에 로드돼 flex 가 이겼습니다. 그 결과 이 껍데기가
+   패딩만큼 박스를 그려 화면 맨 아래에 빈 흰 띠로 남았습니다(풀스크린
+   화면은 .pd-desktop.is-fullscreen 의 overflow:hidden 에 가려 안 보였을
+   뿐입니다). 조상 선택자를 하나 더 걸어 이 규칙이 항상 이기게 합니다. */
+.pd-desktop .pd-desktop-menu-root {
   display: contents;
 }
 /* 표지는 이미지 한 장입니다(brand.ts). 모바일 헤더(.pd-header-mark)와 같은
