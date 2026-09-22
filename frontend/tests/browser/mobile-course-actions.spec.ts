@@ -100,25 +100,20 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1079, height: 900 
         expect(savedPlanId).toBeTruthy();
         await expect(page.getByRole("button", { name: "저장됨", exact: true })).toBeDisabled();
 
+        // 내 코스는 별도 탭이 아니라 지도 탭의 코스 뷰(#map?view=course)에
+        // 있습니다.
         const plansRead = page.waitForResponse(response =>
           new URL(response.url()).pathname.endsWith("/travel/plans") && response.request().method() === "GET");
-        await page.getByRole("link", { name: "내 코스", exact: true }).click();
+        await page.goto("#map?view=course");
         const plansResponse = await plansRead;
         expect(plansResponse.status()).toBe(200);
         const { rows } = await plansResponse.json() as { rows: TripPlan[] };
         const savedIndex = rows.findIndex(item => item.plan_id === savedPlanId);
         expect(savedIndex).toBeGreaterThanOrEqual(0);
-        await expect(page.locator(".mc-row").first()).toBeVisible();
-        await clickAboveTabs(page, page.getByRole("link", { name: "내 기록 열기" }), true);
-        await expect(page).toHaveURL(/#travel-history$/);
-        await expect(page.getByRole("heading", { name: "지난 코스 기록 · 실제 자료 조회", exact: true })).toBeVisible();
-
-        await page.goto("#my-courses");
-        await clickAboveTabs(page, page.locator(".mc-row").nth(savedIndex));
-        await expect(page.locator(".mc-detail-list")).toBeVisible();
-        await clickAboveTabs(page, page.getByRole("link", { name: "코스 상세 열기" }), true);
-        await expect(page).toHaveURL(new RegExp(`#recommend\\?plan_id=${savedPlanId}$`));
-        await expect(page.locator(".rc-stop-name").first()).toContainText("OFFLINE TEST");
+        await expect(page.locator(".mp-saved-course").first()).toBeVisible();
+        await clickAboveTabs(page, page.locator(".mp-saved-course").nth(savedIndex));
+        await expect(page).toHaveURL(new RegExp(`#map\\?view=course&plan_id=${savedPlanId}$`));
+        await expect(page.locator(".mp-stop-name").first()).toContainText("OFFLINE TEST");
         expect(routeRequests).toBe(0);
       } finally {
         if (savedPlanId) {

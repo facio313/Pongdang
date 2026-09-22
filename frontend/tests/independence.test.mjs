@@ -29,8 +29,9 @@ test("the root route enters the home screen", () => {
     app,
     /route\.page === "data" && rawPage !== "data"\)\s*\n\s*return \{ kind: "product", key: "home" \};/,
   );
-  // 제품 5화면과 기능 데이터 화면이 같은 해시 라우터를 씁니다.
-  for (const key of ["home", "today", "recommend", "map", "my-courses"])
+  // 제품 5화면과 기능 데이터 화면이 같은 해시 라우터를 씁니다. 저장한 코스는
+  // 별도 화면이 아니라 지도 탭 안(#map?view=course)에 있습니다.
+  for (const key of ["home", "today", "recommend", "map"])
     assert.match(app, new RegExp(`"?${key}"?:`));
   assert.match(app, /readRoute\(hash\)/);
 });

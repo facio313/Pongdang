@@ -1012,10 +1012,6 @@ export function RecommendDesktop() {
                   </button>
                   <button type="button" className="pd-dk-button rd-remake" onClick={requestList}>
               {t("이 조건으로 후보 찾기")}</button>
-                  {session.plan && (
-                    <a className="pd-dk-button is-quiet" href="#my-courses">
-                      {t("저장한 코스 보기 →")}</a>
-                  )}
                   <a className="pd-dk-button is-quiet" href="#map?view=course">
                     {t("지도 탭에서 보기 →")}</a>
                   {wholeTrip && (

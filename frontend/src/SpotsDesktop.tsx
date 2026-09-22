@@ -111,53 +111,35 @@ function SpotsListDesktop() {
         nav={
           <DesktopNav
             active="spots"
-            context={t("{region} · 수집된 물놀이 장소 · {date}", { region: browser.regionLabel, date: dateLabel() })}
+            context={t("{region} · 수집된 물놀이 장소 · {date}", {
+              region: browser.regionLabel,
+              date: dateLabel(),
+            })}
           />
         }
         mascot="spot"
       >
         <div className="sk-hero">
           <div className="sk-hero-lead">
-            <div className="pd-dk-kick sk-hero-kick">{t("공공 API · 백엔드 가공 목록")}</div>
+            <div className="pd-dk-kick sk-hero-kick">
+              {t("공공 API · 백엔드 가공 목록")}
+            </div>
             <h1 className="sk-hero-title">
-              {t("강원도 명소")} {places.loading ? (
+              {t("강원도 명소")}{" "}
+              {places.loading ? (
                 <Skeleton width="2em" glass label={t("장소 조회 중")} />
               ) : (
-                <span className="pd-dk-num sk-hero-count">{t("{count}곳", { count: places.total })}</span>
+                <span className="pd-dk-num sk-hero-count">
+                  {t("{count}곳", { count: places.total })}
+                </span>
               )}
             </h1>
           </div>
         </div>
       </DesktopHero>
-
-      {/* 검색은 히어로(코발트 면)가 아니라 그 아래, 걸러낼 목록 바로 위에
-          둡니다. 무엇을 바꾸는 컨트롤인지 자리로 말합니다. */}
-      <div className="sk-searchbar">
-        <label className="sk-search">
-          <Icon name="search" size={17} />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            maxLength={100}
-            placeholder={t("장소명 · 지역 검색")}
-            aria-label={t("장소명·지역 검색")}
-          />
-        </label>
-        {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는
-            채 비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는
-            고를 것이 없습니다(spotsRoute.sortPlaces). */}
-        <span className="sk-search-order">{t("이름순")}</span>
-      </div>
-
-      <WaterPlaceFilters district={browser.district} kind={browser.kind} onDistrict={browser.setDistrict} onKind={browser.setKind} />
       <LabelRow
         kick={t("목록")}
-        title={
-          <>
-            {t("수집된 물놀이 장소")}
-          </>
-        }
+        title={<>{t("수집된 물놀이 장소")}</>}
         chip={<StateChip kind={places.rows ? "live" : "no_data"} />}
         desc={
           <>
@@ -173,26 +155,69 @@ function SpotsListDesktop() {
                   <span className="pd-dk-num sk-count-num">{count}</span>
                 </span>
               ))}
-            </span></>
+            </span>
+          </>
         }
       >
         <div className="sk-list">
+          {/* 검색은 히어로(코발트 면)가 아니라 그 아래, 걸러낼 목록 바로 위에
+          둡니다. 무엇을 바꾸는 컨트롤인지 자리로 말합니다. */}
+          <div className="sk-searchbar">
+            <label className="sk-search">
+              <Icon name="search" size={17} />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                maxLength={100}
+                placeholder={t("장소명 · 지역 검색")}
+                aria-label={t("장소명·지역 검색")}
+              />
+            </label>
+            {/* 정렬 버튼이 있었습니다. 「퐁당 점수순」은 목록의 점수를 모르는
+            채 비교해 눌러도 순서가 바뀌지 않았고, 남은 「이름순」 하나로는
+            고를 것이 없습니다(spotsRoute.sortPlaces). */}
+            <span className="sk-search-order">{t("이름순")}</span>
+          </div>
+
+          <WaterPlaceFilters
+            district={browser.district}
+            kind={browser.kind}
+            onDistrict={browser.setDistrict}
+            onKind={browser.setKind}
+          />
           {rows.map((place) => (
-            <ListRow key={place.id} place={place} detail={details.byId.get(place.id)} />
+            <ListRow
+              key={place.id}
+              place={place}
+              detail={details.byId.get(place.id)}
+            />
           ))}
           {!rows.length && (
             <p className="sk-note" role={places.error ? "alert" : "status"}>
               {places.error ??
-                (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
+                (places.loading
+                  ? t("장소를 조회하고 있습니다.")
+                  : t("검색 결과 없음"))}
             </p>
           )}
-          <WaterPlacePagination {...places} count={rows.length} onPage={browser.setPage} />
-          {details.error && <p className="sk-note" role="alert">{t("저장된 상세정보를 불러오지 못했습니다.")} {details.error}</p>}
+          <WaterPlacePagination
+            {...places}
+            count={rows.length}
+            onPage={browser.setPage}
+          />
+          {details.error && (
+            <p className="sk-note" role="alert">
+              {t("저장된 상세정보를 불러오지 못했습니다.")} {details.error}
+            </p>
+          )}
         </div>
       </LabelRow>
 
       <FootNote
-        note={t("퐁당 점수는 물놀이 조건 점수이며 명소의 품질 평가가 아닙니다. 목록에는 점수를 싣지 않습니다 -- 장소마다 따로 조회해야 하므로 상세에서 읽습니다. 리뷰 평점은 수집하지 않습니다.")}
+        note={t(
+          "퐁당 점수는 물놀이 조건 점수이며 명소의 품질 평가가 아닙니다. 목록에는 점수를 싣지 않습니다 -- 장소마다 따로 조회해야 하므로 상세에서 읽습니다. 리뷰 평점은 수집하지 않습니다.",
+        )}
       />
     </DesktopShell>
   );

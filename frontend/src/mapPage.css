@@ -282,6 +282,15 @@
 .map-page .mp-course-link {
   margin-top: 12px;
 }
+.map-page .mp-course-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.map-page .mp-course-detail-meta .pd-note {
+  margin: 0;
+}
 
 /* ── 내 코스 목록 (코스 시트 초기 화면) ───────────────────── */
 
@@ -303,6 +312,20 @@
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
   margin-top: 2px;
+}
+.map-page .mp-saved-course-alarm {
+  display: inline-block;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pd-r-pill);
+  margin-top: 6px;
+  background: var(--pd-badge);
+  color: var(--pd-blue-deep);
+}
+.map-page .mp-saved-course-alarm.is-off {
+  background: #e7ecf2;
+  color: #4b5563;
 }
 
 /* 「코스 생성」 버튼의 진행중 스피너. */

@@ -263,6 +263,15 @@
 .pd-desktop .mk-course-panel-head .pd-state-chip {
   margin-left: auto;
 }
+.pd-desktop .mk-course-alarm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pd-desktop .mk-course-alarm .mk-note {
+  margin: 0;
+}
 
 /* 「코스 생성」 버튼의 진행중 스피너. routeRequestForm.css 의
    .rt-submit-spin 과 같은 규칙이지만 이 버튼은 .rt-form 밖에 있어 그 선택자가

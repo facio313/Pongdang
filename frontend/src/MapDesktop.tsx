@@ -12,6 +12,7 @@ import {
 } from "./pongdangDesktop";
 import {
   ComponentBars,
+  GradeChip,
   GradeIcon,
   Icon,
   ScoreExplainer,
@@ -23,13 +24,17 @@ import { EvidenceNote } from "./EvidenceNote";
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import {
+  conditionPath,
   conditionScore,
+  conditionTargetInRange,
+  dataStatusText,
   dateLabel,
   formatValue,
   kstDate,
   metricText,
   timeLabel,
   type ConditionSummary,
+  type Conditions,
   type Place,
 } from "./productData";
 import {
@@ -40,11 +45,13 @@ import {
   routePaths,
   routeReasonsText,
   travelJson,
+  unknownConditionsText,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
+import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
 import { isInitialLoad, useResource } from "./useResource";
 import { useAction } from "./useAction";
 import { useConditions } from "./useConditions";
@@ -208,11 +215,9 @@ export function MapDesktop() {
   }, [savedPlan.data]);
 
   // ── 내 코스 목록 (좌측 패널 초기 화면) ──────────────────────
-  // CoursesDesktop.tsx 와 같은 API·같은 방식으로 저장한 코스를 조회합니다.
+  // 저장한 코스와 동행 알림 상태를 함께 조회합니다(useMyPlansWithAlarm).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
-  const myPlans = useResource<{ rows: TripPlan[] }>(
-    "travel/plans?limit=100&offset=0",
-  );
+  const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
   const openSavedPlan = (plan: TripPlan) => {
     setTravelSession({
       plan,
@@ -283,6 +288,31 @@ export function MapDesktop() {
   // 경우에만 상세(이동 순서)를 곧바로 보여줍니다.
   const showCourseDetail =
     Boolean(selectedPlanId) || Boolean(session.planInput?.stops.length);
+  // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
+  // travel/sessions 를 이미 결합해 두었으므로 plan_id 로 찾기만 합니다.
+  const selectedAlarm = myPlansWithAlarm.find(
+    (item) => item.plan.plan_id === session.plan?.plan_id,
+  )?.alarm ?? false;
+  // 점수는 첫 정차지 하나만 조회합니다. 모바일 CourseSheet(MapPage.tsx)와 같은 규칙입니다 --
+  // 정차지마다 부르면 요청이 코스 길이만큼 늘어납니다.
+  const courseSelectedStops = useMemo(
+    () =>
+      session.plan?.days.flatMap((day) =>
+        day.items.map((item) => ({
+          ...item,
+          at: item.arrival_at ?? day.date + "T12:00:00+09:00",
+        })),
+      ) ?? [],
+    [session.plan],
+  );
+  const courseFirst = courseSelectedStops[0];
+  const courseFirstValid = conditionTargetInRange(courseFirst?.at);
+  const courseFirstConditions = useResource<Conditions>(
+    courseFirstValid
+      ? conditionPath(courseFirst?.spot_id, session.plan?.request.activity ?? "relax", courseFirst?.at)
+      : null,
+  );
+  const courseSelectedScore = conditionScore(courseFirstConditions.data);
   // 데이터 조합은 모바일 CourseSheet 와 같습니다(MapPage.tsx). 계산된 경로가
   // 있으면 그 순서 · 시각 · 구간을, 없으면 초안 코스의 후보 순서만 씁니다.
   const calculated = session.route?.route;
@@ -333,7 +363,7 @@ export function MapDesktop() {
   const origin = calculated?.origin;
   // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
   // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다 -- 원시 값만 담은 문자열
-  // 키에 의존을 좁힙니다(CoursesDesktop 과 같은 방식).
+  // 키에 의존을 좁힙니다(모바일 MapPage.tsx 와 같은 방식).
   const courseMarkerKey = JSON.stringify([
     origin && origin.latitude !== null && origin.longitude !== null
       ? [origin.latitude, origin.longitude]
@@ -719,7 +749,7 @@ export function MapDesktop() {
                     </div>
                   </div>
                   <div className="mk-detail-actions">
-                    <a className="pd-dk-button" href="#my-courses">{t("코스에 추가")}</a>
+                    <a className="pd-dk-button" href="#map?view=course">{t("코스에 추가")}</a>
                     <a className="mk-detail-link" href={spotLink(selected)}>
                       {selected.name} {t("상세 →")}</a>
                   </div>
@@ -812,6 +842,20 @@ export function MapDesktop() {
                     <span className="pd-dk-kick">{t("이동 순서")}</span>
                     <StateChip kind="live" />
                   </div>
+                  {session.plan?.plan_id && (
+                    <>
+                      <div className="mk-course-alarm">
+                        <GradeChip score={courseSelectedScore} />
+                        <span className="mk-note">
+                          {selectedAlarm ? t("동행 세션에서 켜짐") : t("시작된 동행 알림 없음")}
+                        </span>
+                      </div>
+                      <p className="mk-note">
+                        {courseFirst?.name ?? t("첫 장소 없음")} · {courseFirst?.at ?? t("일정 시각 없음")}.{" "}
+                        {courseFirstValid ? courseFirstConditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.")}
+                      </p>
+                    </>
+                  )}
                   {selectedPlanId && (
                     <button type="button" className="pd-dk-button is-quiet" onClick={backToCourseList}>
                       {t("← 코스 목록으로")}
@@ -841,6 +885,11 @@ export function MapDesktop() {
                       {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: courseLines, total: calculated.legs.length })}
                     </p>
                   )}
+                  {session.plan?.plan_id && (
+                    <p className="mk-note">
+                      <StateChip kind="live" /> {t("상태: {status} · 경로: {route}. 미확인 조건: {unresolved}. 종합 안전 점수는 제공하지 않습니다.", { status: dataStatusText(session.plan.status), route: dataStatusText(session.plan.route_status), unresolved: unknownConditionsText(session.plan.unresolved) || t("없음") })}
+                    </p>
+                  )}
                   {wholeTrip && (
                     <a
                       className="pd-dk-button"
@@ -859,7 +908,7 @@ export function MapDesktop() {
                     <span className="pd-dk-kick">{t("내 코스 목록")}</span>
                     <StateChip kind={myPlans.data ? "live" : "no_data"} />
                   </div>
-                  {(myPlans.data?.rows ?? []).map((plan) => (
+                  {myPlansWithAlarm.map(({ plan, alarm }) => (
                     <button
                       type="button"
                       className="cd-saved"
@@ -875,6 +924,15 @@ export function MapDesktop() {
                         <div className="cd-saved-meta">
                           {t("{count}곳", { count: planItems(plan).length })} ·{" "}
                           {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
+                        </div>
+                        <div className="cd-saved-alarm">
+                          {sessions.error
+                            ? t("동행 알림 조회 실패")
+                            : sessions.loading
+                              ? t("동행 알림 조회 중")
+                              : alarm
+                                ? t("동행 알림 켬")
+                                : t("동행 알림 꺼짐")}
                         </div>
                       </div>
                     </button>

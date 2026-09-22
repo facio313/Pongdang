@@ -16,6 +16,8 @@ import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import {
   conditionScore,
+  conditionPath,
+  conditionTargetInRange,
   dataStatusText,
   kstDate,
   metricText,
@@ -32,11 +34,13 @@ import {
   routePaths,
   travelJson,
   routeReasonsText,
+  unknownConditionsText,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
+import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { MapSheet } from "./MapSheet";
 import { useSheetHeight } from "./useSheetHeight";
@@ -302,6 +306,8 @@ function CourseSheet({
   selectedPlanId,
   onBack,
   myPlans,
+  plans,
+  sessions,
   onSelectPlan,
 }: {
   onCreate: () => void;
@@ -314,9 +320,36 @@ function CourseSheet({
     loading: boolean;
     error?: string;
   };
+  plans: PlanWithAlarm[];
+  sessions: { loading: boolean; error?: string };
   onSelectPlan: (plan: TripPlan) => void;
 }) {
   const session = useTravelSession();
+  // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
+  // travel/sessions 를 이미 결합해 두었으므로 plan_id 로 찾기만 합니다.
+  const selectedAlarm = plans.find(
+    (item) => item.plan.plan_id === session.plan?.plan_id,
+  )?.alarm ?? false;
+  // 점수는 첫 정차지 하나만 조회합니다. 데스크탑 MapDesktop.tsx 와 같은 규칙입니다 --
+  // 정차지마다 부르면 요청이 코스 길이만큼 늘어납니다.
+  const selectedStops = useMemo(
+    () =>
+      session.plan?.days.flatMap((day) =>
+        day.items.map((item) => ({
+          ...item,
+          at: item.arrival_at ?? day.date + "T12:00:00+09:00",
+        })),
+      ) ?? [],
+    [session.plan],
+  );
+  const first = selectedStops[0];
+  const firstTargetValid = conditionTargetInRange(first?.at);
+  const selectedConditions = useResource<Conditions>(
+    firstTargetValid
+      ? conditionPath(first?.spot_id, session.plan?.request.activity ?? "relax", first?.at)
+      : null,
+  );
+  const selectedScore = conditionScore(selectedConditions.data);
   if (!showDetail)
     return (
       <div className="pd-card">
@@ -325,7 +358,7 @@ function CourseSheet({
           <StateChip kind={myPlans.data ? "live" : "no_data"} />
         </div>
         <div className="mp-rows">
-          {(myPlans.data?.rows ?? []).map((plan) => (
+          {plans.map(({ plan, alarm }) => (
             <button
               type="button"
               className="mp-saved-course"
@@ -341,6 +374,15 @@ function CourseSheet({
                 {t("{count}곳", { count: planItems(plan).length })} ·{" "}
                 {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
               </div>
+              <span className={"mp-saved-course-alarm" + (alarm ? "" : " is-off")}>
+                {sessions.error
+                  ? t("동행 알림 조회 실패")
+                  : sessions.loading
+                    ? t("동행 알림 조회 중")
+                    : alarm
+                      ? t("동행 알림 켬")
+                      : t("동행 알림 꺼짐")}
+              </span>
             </button>
           ))}
         </div>
@@ -395,6 +437,20 @@ function CourseSheet({
           <div className="pd-card-title">{t("이동 순서")}</div>
           <StateChip kind="live" />
         </div>
+        {session.plan?.plan_id && (
+          <>
+            <div className="mp-course-detail-meta">
+              <GradeChip score={selectedScore} />
+              <span className="pd-note">
+                {selectedAlarm ? t("동행 세션에서 켜짐") : t("시작된 동행 알림 없음")}
+              </span>
+            </div>
+            <p className="pd-note">
+              {first?.name ?? t("첫 장소 없음")} · {first?.at ?? t("일정 시각 없음")}.{" "}
+              {firstTargetValid ? selectedConditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.")}
+            </p>
+          </>
+        )}
         {selectedPlanId && (
           <button type="button" className="pd-secondary mp-action" onClick={onBack}>
             {t("← 코스 목록으로")}
@@ -432,6 +488,11 @@ function CourseSheet({
         {calculated && (
           <p className="pd-note">
             {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: lines, total: calculated.legs.length })}
+          </p>
+        )}
+        {session.plan?.plan_id && (
+          <p className="pd-note">
+            <StateChip kind="live" /> {t("상태: {status} · 경로: {route}. 미확인 조건: {unresolved}. 종합 안전 점수는 제공하지 않습니다.", { status: dataStatusText(session.plan.status), route: dataStatusText(session.plan.route_status), unresolved: unknownConditionsText(session.plan.unresolved) || t("없음") })}
           </p>
         )}
         {wholeTrip && (
@@ -493,12 +554,10 @@ function MapScreen() {
       : "spots",
   );
 
-  // 내 코스 목록(코스 시트 초기 화면). 데스크탑 MapDesktop.tsx · CoursesDesktop.tsx 와
-  // 같은 API·같은 방식으로 저장한 코스를 조회합니다.
+  // 내 코스 목록(코스 시트 초기 화면). 저장한 코스와 동행 알림 상태를 함께
+  // 조회합니다(useMyPlansWithAlarm, 데스크탑 MapDesktop.tsx 와 같은 훅).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
-  const myPlans = useResource<{ rows: TripPlan[] }>(
-    "travel/plans?limit=100&offset=0",
-  );
+  const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
   const openSavedPlan = (plan: TripPlan) => {
     setTravelSession({
       plan,
@@ -807,6 +866,8 @@ function MapScreen() {
                 selectedPlanId={selectedPlanId}
                 onBack={backToCourseList}
                 myPlans={myPlans}
+                plans={myPlansWithAlarm}
+                sessions={sessions}
                 onSelectPlan={openSavedPlan}
               />
             )}

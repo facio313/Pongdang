@@ -98,16 +98,13 @@ test("desktop map lists real places and scores only the chosen one", { tag: "@sm
   await page.screenshot({ path: "test-results/map-desktop.png", fullPage: true });
 });
 
-test("desktop courses says there is no saved course rather than showing one", async ({ page }) => {
+test("desktop map course view says there is no saved course rather than showing one", async ({ page }) => {
   await page.route("**/api/data/travel/plans**", (route) =>
     route.fulfill({ json: { rows: [] } }),
   );
-  await page.goto("#my-courses");
-  // 히어로가 없어졌으므로 「저장한 코스가 없습니다」는 오른쪽 패널이 말합니다.
+  // 내 코스는 별도 화면이 아니라 지도 탭의 코스 뷰(#map?view=course)입니다.
+  await page.goto("#map?view=course");
   await expect(page.locator(".pd-desktop")).toContainText("아직 저장한 코스가 없습니다");
-  await expect(page.locator(".cd-item")).toHaveCount(0);
-  // 이동 거리 · 소요 시간은 API 에 없습니다. «–» 이며 0 이 아닙니다.
-  await expect(page.locator(".cd-summary")).toContainText("–");
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);
@@ -116,13 +113,13 @@ test("desktop courses says there is no saved course rather than showing one", as
   await page.screenshot({ path: "test-results/courses-desktop.png", fullPage: true });
 });
 
-test("데스크탑 여섯 화면 모두에서 사이드 메뉴가 열린다", async ({ page }) => {
+test("데스크탑 다섯 화면 모두에서 사이드 메뉴가 열린다", async ({ page }) => {
   // 사이드 메뉴는 모바일 셸(AppShell)에만 달려 있었습니다. 데스크탑 화면은
   // DesktopShell 을 쓰므로 컨텍스트 밖이라 손잡이가 null 을 반환했고,
   // 1080px 이상에서는 저장한 코스 · 지점 즐겨찾기 · 알림 설정 · 데이터 출처 ·
   // 이용 안내에 닿을 길이 **전혀 없었습니다**. 탭바가 담는 여행 흐름 밖의
   // 항목들이라 다른 입구도 없습니다.
-  for (const route of ["#home", "#today", "#spots", "#map", "#recommend", "#my-courses"]) {
+  for (const route of ["#home", "#today", "#spots", "#map", "#recommend"]) {
     await page.goto(route);
     await expect(page.locator(".pd-desktop")).toBeVisible();
     const handle = page.getByRole("button", { name: "사이드 메뉴 열기" });
@@ -150,16 +147,15 @@ test("데스크탑 사이드 메뉴 항목은 실제로 그 화면을 연다", a
   await page.goto("#home");
   await page.getByRole("button", { name: "사이드 메뉴 열기" }).click();
   await page.locator(".pd-menu").getByRole("link", { name: "저장한 코스" }).click();
-  await expect(page).toHaveURL(/#my-courses$/);
+  await expect(page).toHaveURL(/#map\?view=course$/);
   // 해시가 바뀌면 메뉴는 열린 채로 남지 않습니다.
   await expect(page.locator(".pd-menu")).toHaveCount(0);
 });
 
-test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 연다", { tag: "@smoke" }, async ({ page }) => {
+test("데스크탑에서 만든 코스를 저장하고 지도 코스 뷰에서 다시 연다", { tag: "@smoke" }, async ({ page }) => {
   // 데스크탑 추천에는 저장 경로가 없었습니다. 코스를 만들 수는 있어도 남길 수
-  // 없었고, 그러면서 데스크탑 내 코스는 「추천에서 코스 만들기 →」로 여기
-  // 보냈습니다 -- 닫힌 고리였습니다. 저장한 코스를 여는 쪽도 없어서, 내 코스가
-  // 만드는 `#recommend?plan_id=…` 링크는 이 폭에서 무시됐습니다.
+  // 없었습니다. 저장한 코스는 이제 별도 화면이 아니라 지도 탭의 코스 뷰
+  // (#map?view=course)에서 다시 엽니다.
   // 취향이 저장돼 있으면 추천은 시작 화면부터 엽니다. 이 검사가 보려는 것은
   // 저장 경로이므로 취향 고르기를 다시 통과하지 않습니다.
   await routePreference(page, ["온천"]);
@@ -186,20 +182,15 @@ test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 �
   await expect(page.locator(".rd-note").filter({ hasText: "내 코스에 저장했습니다" })).toBeVisible();
 
   // 내 코스에 실제로 쌓입니다.
-  await page.goto("#my-courses");
+  await page.goto("#map?view=course");
   await expect(page.locator(".cd-saved")).toHaveCount(1);
-  // 고른 코스를 그대로 추천으로 넘깁니다. 예전에는 #recommend 로만 보내
-  // 선택이 사라졌습니다.
+  // 고른 코스를 그대로 지도 코스 상세로 엽니다.
   await page.locator(".cd-saved").click();
-  await page.getByRole("link", { name: "이 코스 열기 →" }).click();
-  await expect(page).toHaveURL(/#recommend\?plan_id=/);
-  await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
+  await expect(page).toHaveURL(/#map\?view=course&plan_id=/);
+  await expect(page.locator(".mk-course-stop-name").first()).toContainText("OFFLINE TEST");
   // 새로고침해도 같은 코스가 열립니다 -- plan_id 로 다시 읽기 때문입니다.
   await page.reload();
-  await expect(page.locator(".rd-step-name").first()).toContainText("OFFLINE TEST");
-  await expect(
-    page.locator(".rd-note").filter({ hasText: "저장된 코스를 불러왔습니다" }),
-  ).toBeVisible();
+  await expect(page.locator(".mk-course-stop-name").first()).toContainText("OFFLINE TEST");
 
   // 이 검사는 일회용 DB 에 실제로 코스를 남깁니다. 지우지 않으면 뒤따르는
   // 검사들이 「저장 0개」를 전제로 세운 단언에서 이 코스를 함께 셉니다.
@@ -213,16 +204,6 @@ test("데스크탑에서 만든 코스를 저장하고 내 코스에서 다시 �
     return response.status;
   }, planId);
   expect(status).toBe(204);
-});
-
-test("데스크탑 내 코스는 고른 코스를 다시 눌러 접을 수 있다", async ({ page }) => {
-  await page.goto("#my-courses");
-  const saved = page.locator(".cd-saved");
-  if (!(await saved.count())) return; // 저장 코스가 없으면 볼 것이 없습니다.
-  await saved.first().click();
-  await expect(saved.first()).toHaveAttribute("aria-pressed", "true");
-  await saved.first().click();
-  await expect(saved.first()).toHaveAttribute("aria-pressed", "false");
 });
 
 test("desktop recommend chat opens the sanitized model exchange dialog", async ({

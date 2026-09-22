@@ -34,13 +34,13 @@ for (const width of [390, 768, 979, 1079]) {
     });
 
     test("the last content and course actions can clear the fixed bottom tabs", async ({ page }) => {
-      // 지도 · 내 코스는 페이지가 스크롤되지 않는 풀스크린 지도 화면입니다.
+      // 지도(코스 뷰 포함)는 페이지가 스크롤되지 않는 풀스크린 지도 화면입니다.
       // 본문이 문서 흐름을 타지 않고 지도 위 시트 안에서 스크롤하므로, 탭바를
       // 비켜 가는 방법도 다릅니다 -- 흐름의 슬롯이 아니라 **시트의 스크롤
       // 상자 자체**가 탭바 위에서 끝납니다. 확인하는 사실은 그대로입니다:
       // 마지막 내용이 탭 위에 남고, 눌러야 하는 것이 눌립니다.
-      const sheetRoutes = new Set(["#my-courses", "#map?view=course"]);
-      for (const route of ["#home", "#today", "#recommend", "#my-courses", "#map?view=course"]) {
+      const sheetRoutes = new Set(["#map?view=course"]);
+      for (const route of ["#home", "#today", "#recommend", "#map?view=course"]) {
         await page.goto(route);
         await page.waitForLoadState("networkidle");
         await expect(page.locator(".pd-tabbar")).toBeVisible();
@@ -67,14 +67,6 @@ for (const width of [390, 768, 979, 1079]) {
             .toBeLessThanOrEqual(layout.tabTop);
           expect(layout.pageOverflow, `${route}: the fullscreen map page must not scroll`)
             .toBeLessThanOrEqual(1);
-          if (route === "#my-courses") {
-            const history = page.getByRole("link", { name: "내 기록 열기" });
-            await expect(history).toBeVisible();
-            await history.scrollIntoViewIfNeeded();
-            await history.click({ trial: true });
-            const rect = await history.boundingBox();
-            expect(rect!.y + rect!.height).toBeLessThanOrEqual(layout.tabTop);
-          }
           continue;
         }
 

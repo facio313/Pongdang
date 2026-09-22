@@ -117,7 +117,7 @@ test("mobile preferences describe the existing save flow and show saved choices 
 for (const width of [390, 1440]) {
   test(`${width}px product screens keep internal data status codes out of body copy`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    for (const hash of ["#home", "#today", "#recommend", "#spots", "#map", "#my-courses"]) {
+    for (const hash of ["#home", "#today", "#recommend", "#spots", "#map"]) {
       await page.goto(hash);
       await expect(page.locator(`nav a[aria-current="page"][href="${hash}"]`)).toBeVisible();
       await page.waitForLoadState("networkidle");

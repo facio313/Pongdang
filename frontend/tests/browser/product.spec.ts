@@ -229,19 +229,20 @@ test("saved course scores use its actual date and never query unsupported histor
       condition_score: { label: "활동 조건 참고 점수", model_id: "fixture", model_version: "1", methodology: "fixture", status: "partial", score: 73.5, coverage: 0.5, available_components: 2, total_components: 4, components: [], sources: [], reason_codes: [] },
     } });
   });
-  await page.goto("#my-courses");
-  await expect(page.locator(".mc-row")).toHaveCount(2);
+  // 내 코스는 별도 화면이 아니라 지도 탭의 코스 뷰(#map?view=course)입니다.
+  await page.goto("#map?view=course");
+  await expect(page.locator(".mp-saved-course")).toHaveCount(2);
   expect(targets).toEqual([]);
-  await page.locator(".mc-row").first().click();
-  await expect(page.locator(".mc-row").first().locator(".mc-score-badge")).toHaveText("73.5");
-  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("첫 장소 참고점수");
-  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText(savedAt);
+  await page.locator(".mp-saved-course").first().click();
+  await expect(page.locator(".mp-course-detail-meta .pd-grade-chip-num")).toHaveText("73.5");
+  await expect(page.locator(".pd-card")).toContainText(savedAt);
   expect(targets.length).toBeGreaterThan(0);
   expect(targets.every((target) => target === savedAt)).toBe(true);
   targets.length = 0;
-  await page.locator(".mc-row").nth(1).click();
-  await expect(page.locator(".mc-row").nth(1).locator(".mc-score-badge")).toHaveText("–");
-  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("현재 기준 앞뒤 31일");
+  await page.getByRole("button", { name: "← 코스 목록으로" }).click();
+  await page.locator(".mp-saved-course").nth(1).click();
+  await expect(page.locator(".mp-course-detail-meta .pd-grade-chip-num")).toHaveText("–");
+  await expect(page.locator(".pd-card")).toContainText("현재 기준 앞뒤 31일");
   expect(targets).toEqual([]);
 });
 
@@ -358,17 +359,15 @@ test("preference → recommendation → persisted plan → selected plan detail"
   await expect(
     page.getByRole("button", { name: "저장됨", exact: true }),
   ).toBeDisabled();
-  await page.getByRole("link", { name: "내 코스", exact: true }).click();
-  await expect(page.locator(".mc-row")).toHaveCount(1);
+  // 내 코스는 별도 탭이 아니라 지도 탭의 코스 뷰(#map?view=course)입니다.
+  await page.goto("#map?view=course");
+  await expect(page.locator(".mp-saved-course")).toHaveCount(1);
   await page.reload();
-  await page.locator(".mc-row").click();
-  await expect(page.locator(".pd-card:has(.mc-detail-list)")).toContainText("OFFLINE TEST");
-  await page.getByRole("link", { name: "코스 상세 열기" }).click();
-  await expect(page.locator(".rc-stop-name").first()).toContainText(
-    "OFFLINE TEST",
-  );
+  await page.locator(".mp-saved-course").click();
+  await expect(page.locator(".pd-card")).toContainText("OFFLINE TEST");
+  await expect(page).toHaveURL(/#map\?view=course&plan_id=/);
   await page.reload();
-  await expect(page.locator(".rc-stop-name").first()).toContainText(
+  await expect(page.locator(".mp-stop-name").first()).toContainText(
     "OFFLINE TEST",
   );
   await page.screenshot({
@@ -444,9 +443,9 @@ test("empty and unauthenticated data stay explicit", { tag: "@smoke" }, async ({
       json: { detail: "SSO_AUTHENTICATION_REQUIRED" },
     }),
   );
-  await page.goto("#my-courses");
-  await expect(page.locator(".mc-row")).toHaveCount(0);
-  await expect(page.locator(".mc-lead").first()).toContainText(
+  await page.goto("#map?view=course");
+  await expect(page.locator(".mp-saved-course")).toHaveCount(0);
+  await expect(page.locator(".pd-note[role=alert]").first()).toContainText(
     "기존 SSO 로그인이 필요합니다.",
   );
 });
@@ -594,14 +593,15 @@ test("a new place never displays the previous place’s observations", async ({
 test("a proposed alternative changes a saved plan only after explicit apply", async ({
   page,
 }) => {
-  await page.goto("#my-courses");
-  await page.locator(".mc-row").first().click();
-  await page.getByRole("link", { name: "코스 상세 열기" }).click();
+  // 저장한 코스를 여는 화면(내 코스)이 아니라, 그 코스를 다시 여는 대상 화면
+  // (추천)의 동작을 봅니다 -- plan_id 는 API 목록에서 바로 얻습니다.
+  const { rows: savedPlans } = await (
+    await page.request.get("api/data/travel/plans?limit=100&offset=0")
+  ).json();
+  const id = savedPlans[0].plan_id as string;
+  await page.goto(`#recommend?plan_id=${id}`);
   await expect(page.locator(".rc-stop-name").first()).toContainText(
     "OFFLINE TEST",
-  );
-  const id = new URLSearchParams(new URL(page.url()).hash.split("?")[1]).get(
-    "plan_id",
   );
   const before = await (
     await page.request.get(`api/data/travel/plans/${id}`)

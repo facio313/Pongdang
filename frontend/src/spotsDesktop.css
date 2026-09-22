@@ -40,7 +40,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px var(--dk-pad);
+  padding: 18px 0;
 }
 .pd-desktop .sk-search {
   flex: 1;

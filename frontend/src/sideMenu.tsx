@@ -20,7 +20,7 @@ const MENU_ITEMS: {
   href?: string;
   state?: "uncollected";
 }[] = [
-  { label: "저장한 코스", href: "#my-courses" },
+  { label: "저장한 코스", href: "#map?view=course" },
   { label: "지점 즐겨찾기", href: "#favorites" },
   { label: "알림 설정", href: "#first-swim" },
   { label: "데이터 출처와 갱신", href: "#info" },
