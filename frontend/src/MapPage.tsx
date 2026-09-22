@@ -757,9 +757,6 @@ function MapScreen() {
 }
 
 export function MapPage() {
-  // 코스 URL은 폭과 관계없이 기존 저장 코스·초안·경로 흐름으로 엽니다.
-  // 데스크톱 지점 지도는 코스를 읽지 않으므로 지점 보기에서만 사용합니다.
   const isDesktop = useIsDesktop();
-  const isCourse = new URLSearchParams(window.location.hash.split("?")[1]).get("view") === "course";
-  return isDesktop && !isCourse ? <MapDesktop /> : <MapScreen />;
+  return isDesktop ? <MapDesktop /> : <MapScreen />;
 }

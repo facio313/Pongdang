@@ -1,5 +1,5 @@
 import { t } from "./i18n.ts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
@@ -26,11 +26,28 @@ import {
   conditionScore,
   dateLabel,
   formatValue,
+  kstDate,
   metricText,
+  placeRegionLabel,
+  timeLabel,
   type ConditionSummary,
   type Place,
 } from "./productData";
-import { isInitialLoad } from "./useResource";
+import {
+  exclusionReasonsText,
+  kakaoRouteLink,
+  planItems,
+  routePaths,
+  routeReasonsText,
+  travelJson,
+  type RecommendationResult,
+  type RouteResult,
+  type TripPlan,
+} from "./travelApi";
+import { RouteRequestForm, type RouteRequestValue } from "./RouteRequestForm";
+import { setTravelSession, useTravelSession } from "./travelSession";
+import { isInitialLoad, useResource } from "./useResource";
+import { useAction } from "./useAction";
 import { useConditions } from "./useConditions";
 import { useConditionSummaries } from "./useConditionSummaries";
 import { mappablePlaces } from "./useWaterPlaces";
@@ -58,6 +75,14 @@ import "./mapDesktop.css";
 //
 // 지도 컴포넌트는 모바일과 같은 KakaoMapCanvas 를 그대로 씁니다 -- 데스크탑
 // 비율로 커졌을 뿐입니다.
+//
+// 예전에는 「지점 보기」만 이 화면에 있었고 코스 URL(#map?view=course)은 폭과
+// 관계없이 모바일 흐름으로 보냈습니다("데스크톱 지점 지도는 코스를 읽지
+// 않으므로"). 그런데 내 코스 데스크탑의 "지도에서 경로 계산 →" 링크가 이미
+// 그 URL 로 데스크탑 사용자를 보내고 있어, 실제로는 데스크탑에 코스 화면이
+// 없는 결과로 이어졌습니다. 이제 지점 · 코스 두 뷰를 한 화면 안에서 전환합니다
+// -- 다른 데스크탑 화면들과 같은 문법입니다(SpotsPage 의 view=map 처럼, 화면
+// 하나가 하위 뷰를 전부 내부에서 분기합니다).
 
 /** 점수를 매길 활동. 모바일 지도는 수영 기준이므로 같은 기준을 씁니다. */
 const ACTIVITY: Activity = "swim";
@@ -112,7 +137,77 @@ function SpotRow({
   );
 }
 
+/** 코스 정차지 한 줄. 모바일 CourseSheet 의 mp-stop 과 같은 사실(순번 · 이름 ·
+ *  도착 시각 · 구간 이동시간 · 길찾기)을 데스크탑 패널 문법으로 그립니다. */
+function CourseStopRow({
+  no,
+  name,
+  meta,
+  distance,
+  leg,
+}: {
+  no: number;
+  name: string;
+  meta: string;
+  distance: string | null;
+  leg: string | null;
+}) {
+  return (
+    <div className="mk-course-stop">
+      <span className="pd-dk-num mk-course-stop-no">{no}</span>
+      <span className="mk-course-stop-body">
+        <span className="mk-course-stop-name">{name}</span>
+        <span className="mk-course-stop-meta">{meta}</span>
+      </span>
+      {leg ? (
+        <a
+          className="mk-course-stop-dist"
+          href={leg}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {distance ?? "–"} {t("· 길찾기")}
+        </a>
+      ) : (
+        <span className="mk-course-stop-dist">{distance ?? "–"}</span>
+      )}
+    </div>
+  );
+}
+
 export function MapDesktop() {
+  // 뷰 전환은 화면 안에서만 일어납니다 -- 눌러도 URL 은 바뀌지 않습니다.
+  // 외부 링크(#map?view=course)가 정하는 것은 **처음 여는 뷰**뿐입니다.
+  const [view, setView] = useState<"spots" | "course">(() =>
+    new URLSearchParams(window.location.hash.split("?")[1]).get("view") ===
+    "course"
+      ? "course"
+      : "spots",
+  );
+
+  const session = useTravelSession();
+  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
+    "plan_id",
+  );
+  const savedPlan = useResource<TripPlan>(
+    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+      ? `travel/plans/${planId}`
+      : null,
+  );
+  useEffect(() => {
+    if (savedPlan.data)
+      setTravelSession({
+        plan: savedPlan.data,
+        planInput: {
+          request: savedPlan.data.request,
+          stops: savedPlan.data.input_stops,
+        },
+        recommendation: null,
+        route: null,
+      });
+  }, [savedPlan.data]);
+
+  // ── 지점 보기 ──────────────────────────────────────────────
   // 지도 조작 API 는 지도가 준비된 뒤 effect 에서 넘어옵니다.
   const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
   const browser = useWaterPlaceBrowser();
@@ -156,253 +251,565 @@ export function MapDesktop() {
   const selectedGrade = gradeOf(selectedScore);
   const unmapped = allRows.length - pinned.length;
 
+  // ── 코스 보기 ──────────────────────────────────────────────
+  // 데이터 조합은 모바일 CourseSheet 와 같습니다(MapPage.tsx). 계산된 경로가
+  // 있으면 그 순서 · 시각 · 구간을, 없으면 초안 코스의 후보 순서만 씁니다.
+  const calculated = session.route?.route;
+  const courseItems = calculated?.items ?? planItems(session.plan);
+  const courseSpotIds =
+    calculated?.items.map((item) => item.spot_id) ??
+    session.planInput?.stops.map((item) => item.spot_id) ??
+    [];
+  const coursePlaces = usePlacesById(view === "course" ? courseSpotIds : []);
+  const courseStops = courseItems.length
+    ? courseItems.map((item, index) => ({
+        no: index + 1,
+        spotId: item.spot_id,
+        name: item.name,
+        meta: t("{time} 도착", { time: timeLabel(item.arrival_at) }),
+        distance: calculated?.legs[index]
+          ? t("{minutes}분", { minutes: calculated.legs[index].duration_minutes })
+          : null,
+        leg: calculated
+          ? kakaoRouteLink(
+              index === 0 ? calculated.origin : calculated.items[index - 1],
+              [calculated.items[index]],
+            )
+          : null,
+      }))
+    : (session.recommendation?.recommendations ?? [])
+        .filter((item) =>
+          session.planInput?.stops.some(
+            (stop) => stop.spot_id === item.spot_id,
+          ),
+        )
+        .map((item, index) => ({
+          no: index + 1,
+          spotId: item.spot_id,
+          name: item.name,
+          meta: t("방문 시각 미계산"),
+          distance: null,
+          leg: null,
+        }));
+  const wholeTrip = calculated
+    ? kakaoRouteLink(calculated.origin, calculated.items)
+    : null;
+  const coursePaths = useMemo(
+    () => (view === "course" ? routePaths(session.route) : []),
+    [session.route, view],
+  );
+  const courseLines = coursePaths.length;
+  const origin = calculated?.origin;
+  // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
+  // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다 -- 원시 값만 담은 문자열
+  // 키에 의존을 좁힙니다(CoursesDesktop 과 같은 방식).
+  const courseMarkerKey = JSON.stringify([
+    origin && origin.latitude !== null && origin.longitude !== null
+      ? [origin.latitude, origin.longitude]
+      : null,
+    courseSpotIds.map((id) => {
+      const place = coursePlaces.rows.find((row) => row.id === id);
+      return [id, place?.lat ?? null, place?.lng ?? null];
+    }),
+  ]);
+  const courseMarkers = useMemo(() => {
+    const [originCoords, stopCoords] = JSON.parse(courseMarkerKey) as [
+      [number, number] | null,
+      [number, number | null, number | null][],
+    ];
+    return [
+      ...(originCoords
+        ? [{ id: "origin", latitude: originCoords[0], longitude: originCoords[1] }]
+        : []),
+      ...stopCoords.flatMap(([id, latitude, longitude], index) =>
+        latitude !== null && longitude !== null
+          ? [{ id: String(id), latitude, longitude, order: index + 1 }]
+          : [],
+      ),
+    ];
+  }, [courseMarkerKey]);
+
+  const action = useAction();
+  const save = () =>
+    void action.run(async (signal) => {
+      if (!session.planInput) return;
+      const plan = await travelJson<TripPlan>(
+        import.meta.env.BASE_URL,
+        "travel/plans",
+        "POST",
+        session.planInput,
+        signal,
+      );
+      if (!signal.aborted) {
+        window.history.replaceState(
+          null,
+          "",
+          `#map?view=course&plan_id=${plan.plan_id}`,
+        );
+        setTravelSession({ plan });
+      }
+    });
+  const route = (value: RouteRequestValue) =>
+    void action.run(async (signal) => {
+      const stops = session.planInput?.stops ?? [];
+      if (!session.planInput || !stops.length)
+        throw new Error(
+          "경로를 계산할 방문 장소가 없습니다. 추천에서 코스를 만들거나 저장한 코스를 열어 주세요.",
+        );
+      // 지도 코스는 명시적으로 고른 필수 방문 집합이므로, 모든 정차지가 필수이고
+      // 방문 수는 정차지 수와 같습니다.
+      const must_include = stops.map((item) => item.spot_id);
+      const request = {
+        ...session.planInput.request,
+        dates: [value.date],
+        day_trip: true,
+        departure_time: value.departure_time,
+        origin: value.origin,
+        must_include,
+      };
+      const recommendations = await travelJson<RecommendationResult>(
+        import.meta.env.BASE_URL,
+        "travel/recommendations",
+        "POST",
+        { request, limit: 5 },
+        signal,
+      );
+      const ranks = recommendations.recommendations
+        .filter((item) => must_include.includes(item.spot_id))
+        .map((item) => item.rank);
+      if (ranks.length !== must_include.length || !recommendations.selection_token)
+        throw new Error(
+          t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
+            (exclusionReasonsText(recommendations.excluded, must_include) ||
+              t("후보를 다시 선택해 주세요.")),
+        );
+      const result = await travelJson<RouteResult>(
+        import.meta.env.BASE_URL,
+        "travel/routes/recommend",
+        "POST",
+        {
+          selection_token: recommendations.selection_token,
+          candidate_ranks: ranks,
+          stop_count: ranks.length,
+          stay_minutes: value.stay_minutes,
+          include_geometry: true,
+          request,
+        },
+        signal,
+      );
+      if (!signal.aborted)
+        setTravelSession({
+          recommendation: recommendations,
+          route: result,
+          ...(result.plan_input
+            ? { planInput: result.plan_input, plan: null }
+            : {}),
+        });
+    });
+
   return (
     <DesktopShell fullscreen>
       <DesktopMapShell
         nav={
           <DesktopNav
             active="map"
-            context={t("{region} · {date} · 지도에 표시된 지점 {count}곳", { region: browser.regionLabel, date: dateLabel(), count: pinned.length })}
+            context={
+              view === "spots"
+                ? t("{region} · {date} · 지도에 표시된 지점 {count}곳", { region: browser.regionLabel, date: dateLabel(), count: pinned.length })
+                : t("선택 코스 · {count}곳 · {detail}", { count: courseSpotIds.length, detail: calculated ? t("{minutes}분 이동", { minutes: calculated.travel_minutes }) : t("경로 계산 전") })
+            }
             onMap
           />
         }
         map={
-          <KakaoMapCanvas
-            markers={markers}
-            selectedId={selected ? String(selected.id) : null}
-            insets={{
-              top: DESKTOP_MAP.nav,
-              left: DESKTOP_MAP.panel,
-              right: selected ? DESKTOP_MAP.panel : DESKTOP_MAP.edge,
-              bottom: DESKTOP_MAP.edge,
-            }}
-            renderMarker={(id) => {
-              const place = rows.find((item) => item.id === Number(id));
-              if (!place) return null;
-              // 핀마다 조회하지 않습니다 -- 그러면 100번이 됩니다. 목록과 같은
-              // 묶음 요약을 읽으므로 고르기 전에도 점수를 말할 수 있습니다.
-              const isSelected = place.id === selected?.id;
-              const score = isSelected
-                ? selectedScore
-                : conditionScore(summaries.byId.get(place.id));
-              const grade = gradeOf(score);
-              return (
-                <button
-                  type="button"
-                  className={"mk-pin" + (isSelected ? " is-selected" : "")}
-                  data-grade={grade.key}
-                  aria-pressed={isSelected}
-                  aria-label={t("{name} 퐁당 {score} {grade}", { name: place.name, score: score ?? "–", grade: t(grade.label) })}
-                  onClick={() => setSelectedId(place.id)}
-                >
-                  <span className="pd-dk-num mk-pin-core">{score ?? "–"}</span>
-                  <span className="mk-pin-label">{place.name}</span>
-                </button>
-              );
-            }}
-            onReady={setMapApi}
-          />
+          view === "spots" ? (
+            <KakaoMapCanvas
+              markers={markers}
+              selectedId={selected ? String(selected.id) : null}
+              insets={{
+                top: DESKTOP_MAP.nav,
+                left: DESKTOP_MAP.panel,
+                right: selected ? DESKTOP_MAP.panel : DESKTOP_MAP.edge,
+                bottom: DESKTOP_MAP.edge,
+              }}
+              renderMarker={(id) => {
+                const place = rows.find((item) => item.id === Number(id));
+                if (!place) return null;
+                // 핀마다 조회하지 않습니다 -- 그러면 100번이 됩니다. 목록과 같은
+                // 묶음 요약을 읽으므로 고르기 전에도 점수를 말할 수 있습니다.
+                const isSelected = place.id === selected?.id;
+                const score = isSelected
+                  ? selectedScore
+                  : conditionScore(summaries.byId.get(place.id));
+                const grade = gradeOf(score);
+                return (
+                  <button
+                    type="button"
+                    className={"mk-pin" + (isSelected ? " is-selected" : "")}
+                    data-grade={grade.key}
+                    aria-pressed={isSelected}
+                    aria-label={t("{name} 퐁당 {score} {grade}", { name: place.name, score: score ?? "–", grade: t(grade.label) })}
+                    onClick={() => setSelectedId(place.id)}
+                  >
+                    <span className="pd-dk-num mk-pin-core">{score ?? "–"}</span>
+                    <span className="mk-pin-label">{place.name}</span>
+                  </button>
+                );
+              }}
+              onReady={setMapApi}
+            />
+          ) : (
+            <KakaoMapCanvas
+              markers={courseMarkers}
+              paths={coursePaths}
+              selectedId={null}
+              insets={{
+                top: DESKTOP_MAP.nav,
+                left: DESKTOP_MAP.panel,
+                right: DESKTOP_MAP.panel,
+                bottom: DESKTOP_MAP.edge,
+              }}
+              renderMarker={(id) => {
+                if (id === "origin")
+                  return (
+                    <span className="mk-course-pin is-origin">
+                      <span className="mk-course-pin-core">{t("출발")}</span>
+                      <span className="mk-course-pin-label">
+                        {origin?.label ?? t("출발지")}
+                      </span>
+                    </span>
+                  );
+                const marker = courseMarkers.find((item) => item.id === id);
+                const stop = courseStops.find(
+                  (item) => String(item.spotId) === id,
+                );
+                if (!marker || !stop) return null;
+                return (
+                  <span className="mk-course-pin">
+                    <span className="pd-dk-num mk-course-pin-core">
+                      {stop.no}
+                    </span>
+                    <span className="mk-course-pin-label">{stop.name}</span>
+                  </span>
+                );
+              }}
+            />
+          )
         }
       >
-        <aside className="pd-dk-mappanel is-start" aria-label={t("지점 목록")}>
-          {/* 예전에는 지도 면 왼쪽 위에 떠 있던 뱃지입니다. 풀스크린에서는
-              지도 위에 설 자리가 패널과 겹치므로 패널의 첫 줄로 들어왔습니다. */}
-          <div className="pd-dk-mappanel-badge">{t("카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다")}</div>
-          {/* 예전에는 히어로에 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가
-              있었고 눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은
-              두지 않습니다. 대신 실제로 목록을 바꾸는 검색을, 걸러낼 지점 목록
-              바로 위에 둡니다. */}
-          <label className="mk-search">
-            <Icon name="search" size={17} />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setSelectedId(null);
-              }}
-              maxLength={100}
-              placeholder={t("장소명 · 지역 검색")}
-              aria-label={t("장소명·지역 검색")}
-            />
-          </label>
-          <WaterPlaceFilters
-            district={browser.district} kind={browser.kind}
-            onDistrict={(district) => { browser.setDistrict(district); setSelectedId(null); }}
-            onKind={(kind) => { browser.setKind(kind); setSelectedId(null); }}
-          />
-
-          <div className="pd-dk-kick mk-side-kick">
-            {t("지점 {count}곳 · {activity} 점수", { count: pinned.length, activity: t(activities[ACTIVITY]) })}
-          </div>
-          {selectedId !== null && !selected && (
-            <p className="mk-note" role={selectedPlace.error ? "alert" : "status"}>
-              {selectedPlace.error ?? (selectedPlace.loading
-                ? t("선택한 장소를 조회하고 있습니다.")
-                : t("선택한 장소를 찾을 수 없습니다."))}
-            </p>
-          )}
-          {rows.map((place) => (
-            <SpotRow
-              key={place.id}
-              place={place}
-              summary={place.id === selected?.id ? {
-                retained: conditions.data?.retained,
-                condition_score: conditions.data?.condition_score,
-                water_temperature: conditions.data?.metrics.find((metric) => metric.name === "water_temperature"),
-              } : summaries.byId.get(place.id)}
-              loading={place.id === selected?.id ? conditions.loading : summaries.loading}
-              selected={place.id === selected?.id}
-              onSelect={() => setSelectedId(place.id)}
-            />
+        <div className="mk-switch" role="group" aria-label={t("지도 보기 전환")}>
+          {(["spots", "course"] as const).map((key) => (
+            <button
+              type="button"
+              key={key}
+              className={"mk-switch-item" + (view === key ? " is-on" : "")}
+              aria-pressed={view === key}
+              onClick={() => setView(key)}
+            >
+              {key === "spots" ? t("지점 보기") : t("코스 경로")}
+            </button>
           ))}
-          {!rows.length && (
-            <p className="mk-note" role={places.error ? "alert" : "status"}>
-              {places.error ??
-                (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
-            </p>
-          )}
-
-          <WaterPlacePagination {...places} count={places.rows?.length ?? 0} onPage={(page) => { browser.setPage(page); setSelectedId(null); }} />
-          <p className="mk-note">{t("현재 페이지와 선택한 장소 중 좌표가 있는 곳을 표시합니다.")}{unmapped > 0 &&
-              t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
-          </p>
-          <div className="mk-alert">
-            <Icon name="warning" size={15} />{t("값이 없는 상태가 안전을 뜻하지 않습니다")}</div>
-        </aside>
-
-        <div className="pd-dk-mapcontrols">
-          <button type="button" aria-label={t("확대")} onClick={() => mapApi?.zoomIn()}>
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-          <button type="button" aria-label={t("축소")} onClick={() => mapApi?.zoomOut()}>
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="is-accent"
-            aria-label={t("현재 위치로 이동")}
-            onClick={() => void mapApi?.locate()}
-          >
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-            </svg>
-          </button>
         </div>
 
-        {/* 오른쪽 패널. 예전에는 지도 위에 뜬 작은 카드(이름 · 점수)와, 스크롤을
-            내려야 나오는 근거 행이 따로 있었습니다. 고른 지점에 대해 화면이 할
-            말은 하나이므로 한 패널에 모읍니다 -- 지점 · 점수 · 근거 막대 · 설명 ·
-            상세 링크, 그리고 전역 주의 문구까지.
-
-            예전에는 근거 막대가 「파고 0.6m 적정 72%」처럼 지어낸 비율이었고,
-            편의 시설은 주차 · 샤워장이 늘 「있음」이었습니다. 이제 점수를 이루는
-            실제 항목을 그립니다. 편의 시설을 내려주는 API 는 없으므로 그 칸은
-            없앴습니다 -- 「정보 없음」 아이콘만 남기면 있는 기능처럼 보입니다. */}
-        <aside className="pd-dk-mappanel is-end" aria-label={t("선택 지점 근거")}>
-          <div className="pd-dk-kick mk-evidence-kick">{t("선택 지점")}</div>
-          {selected ? (
-            <>
-              <div className="mk-detail-head">
-                <img
-                  src={mascotUrl("swim")}
-                  alt={MASCOT_ALT}
-                  width={52}
-                  height={52}
+        {view === "spots" ? (
+          <>
+            <aside className="pd-dk-mappanel is-start" aria-label={t("지점 목록")}>
+              {/* 예전에는 지도 면 왼쪽 위에 떠 있던 뱃지입니다. 풀스크린에서는
+                  지도 위에 설 자리가 패널과 겹치므로 패널의 첫 줄로 들어왔습니다. */}
+              <div className="pd-dk-mappanel-badge">{t("카카오 지도 · 보이는 지점의 점수를 묶어서 조회합니다")}</div>
+              {/* 예전에는 히어로에 「수영 · 서핑 · 온천 · 주차 · 샤워장」 필터가
+                  있었고 눌러도 목록이 바뀌지 않았습니다. 동작하지 않는 컨트롤은
+                  두지 않습니다. 대신 실제로 목록을 바꾸는 검색을, 걸러낼 지점 목록
+                  바로 위에 둡니다. */}
+              <label className="mk-search">
+                <Icon name="search" size={17} />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setSelectedId(null);
+                  }}
+                  maxLength={100}
+                  placeholder={t("장소명 · 지역 검색")}
+                  aria-label={t("장소명·지역 검색")}
                 />
-                <div className="mk-detail-lead">
-                  <div className="mk-detail-name">{selected.name}</div>
-                  <div className="mk-detail-meta">
-                    {selected.address ?? t("주소 없음")} {t("· 수온")}{" "}
-                    {metricText(conditions.data, "water_temperature")}
-                  </div>
-                </div>
-                <div className="mk-detail-score" data-grade={selectedGrade.key}>
-                  <div className="pd-dk-num mk-detail-score-num">
-                    {isInitialLoad(conditions) ? (
-                      <Skeleton width="1.4em" label={t("점수 조회 중")} />
-                    ) : (
-                      (selectedScore ?? "–")
-                    )}
-                  </div>
-                  <div className="mk-detail-score-grade">
-                    <GradeIcon gradeKey={selectedGrade.key} size={13} />
-                    {selectedGrade.label}
-                  </div>
-                </div>
+              </label>
+              <WaterPlaceFilters
+                district={browser.district} kind={browser.kind}
+                onDistrict={(district) => { browser.setDistrict(district); setSelectedId(null); }}
+                onKind={(kind) => { browser.setKind(kind); setSelectedId(null); }}
+              />
+
+              <div className="pd-dk-kick mk-side-kick">
+                {t("지점 {count}곳 · {activity} 점수", { count: pinned.length, activity: t(activities[ACTIVITY]) })}
               </div>
-              <div className="mk-detail-actions">
-                <a className="pd-dk-button" href="#my-courses">{t("코스에 추가")}</a>
-                <a className="mk-detail-link" href={spotLink(selected)}>
-                  {selected.name} {t("상세 →")}</a>
+              {selectedId !== null && !selected && (
+                <p className="mk-note" role={selectedPlace.error ? "alert" : "status"}>
+                  {selectedPlace.error ?? (selectedPlace.loading
+                    ? t("선택한 장소를 조회하고 있습니다.")
+                    : t("선택한 장소를 찾을 수 없습니다."))}
+                </p>
+              )}
+              {rows.map((place) => (
+                <SpotRow
+                  key={place.id}
+                  place={place}
+                  summary={place.id === selected?.id ? {
+                    retained: conditions.data?.retained,
+                    condition_score: conditions.data?.condition_score,
+                    water_temperature: conditions.data?.metrics.find((metric) => metric.name === "water_temperature"),
+                  } : summaries.byId.get(place.id)}
+                  loading={place.id === selected?.id ? conditions.loading : summaries.loading}
+                  selected={place.id === selected?.id}
+                  onSelect={() => setSelectedId(place.id)}
+                />
+              ))}
+              {!rows.length && (
+                <p className="mk-note" role={places.error ? "alert" : "status"}>
+                  {places.error ??
+                    (places.loading ? t("장소를 조회하고 있습니다.") : t("검색 결과 없음"))}
+                </p>
+              )}
+
+              <WaterPlacePagination {...places} count={places.rows?.length ?? 0} onPage={(page) => { browser.setPage(page); setSelectedId(null); }} />
+              <p className="mk-note">{t("현재 페이지와 선택한 장소 중 좌표가 있는 곳을 표시합니다.")}{unmapped > 0 &&
+                  t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
+              </p>
+              <div className="mk-alert">
+                <Icon name="warning" size={15} />{t("값이 없는 상태가 안전을 뜻하지 않습니다")}</div>
+            </aside>
+
+            <div className="pd-dk-mapcontrols">
+              <button type="button" aria-label={t("확대")} onClick={() => mapApi?.zoomIn()}>
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+              <button type="button" aria-label={t("축소")} onClick={() => mapApi?.zoomOut()}>
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="is-accent"
+                aria-label={t("현재 위치로 이동")}
+                onClick={() => void mapApi?.locate()}
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 오른쪽 패널. 예전에는 지도 위에 뜬 작은 카드(이름 · 점수)와, 스크롤을
+                내려야 나오는 근거 행이 따로 있었습니다. 고른 지점에 대해 화면이 할
+                말은 하나이므로 한 패널에 모읍니다 -- 지점 · 점수 · 근거 막대 · 설명 ·
+                상세 링크, 그리고 전역 주의 문구까지.
+
+                예전에는 근거 막대가 「파고 0.6m 적정 72%」처럼 지어낸 비율이었고,
+                편의 시설은 주차 · 샤워장이 늘 「있음」이었습니다. 이제 점수를 이루는
+                실제 항목을 그립니다. 편의 시설을 내려주는 API 는 없으므로 그 칸은
+                없앴습니다 -- 「정보 없음」 아이콘만 남기면 있는 기능처럼 보입니다. */}
+            <aside className="pd-dk-mappanel is-end" aria-label={t("선택 지점 근거")}>
+              <div className="pd-dk-kick mk-evidence-kick">{t("선택 지점")}</div>
+              {selected ? (
+                <>
+                  <div className="mk-detail-head">
+                    <img
+                      src={mascotUrl("swim")}
+                      alt={MASCOT_ALT}
+                      width={52}
+                      height={52}
+                    />
+                    <div className="mk-detail-lead">
+                      <div className="mk-detail-name">{selected.name}</div>
+                      <div className="mk-detail-meta">
+                        {selected.address ?? t("주소 없음")} {t("· 수온")}{" "}
+                        {metricText(conditions.data, "water_temperature")}
+                      </div>
+                    </div>
+                    <div className="mk-detail-score" data-grade={selectedGrade.key}>
+                      <div className="pd-dk-num mk-detail-score-num">
+                        {isInitialLoad(conditions) ? (
+                          <Skeleton width="1.4em" label={t("점수 조회 중")} />
+                        ) : (
+                          (selectedScore ?? "–")
+                        )}
+                      </div>
+                      <div className="mk-detail-score-grade">
+                        <GradeIcon gradeKey={selectedGrade.key} size={13} />
+                        {selectedGrade.label}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mk-detail-actions">
+                    <a className="pd-dk-button" href="#my-courses">{t("코스에 추가")}</a>
+                    <a className="mk-detail-link" href={spotLink(selected)}>
+                      {selected.name} {t("상세 →")}</a>
+                  </div>
+                  <div className="mk-evidence-head-row">
+                    <h2 className="mk-evidence-title">
+                      {activities[ACTIVITY]} {t("점수 근거")}</h2>
+                    <StateChip kind={conditions.data ? "live" : "no_data"} />
+                  </div>
+                  <p className="mk-note">
+                    {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
+                  <ComponentBars
+                    bars={componentBars(conditions.data)}
+                    loading={isInitialLoad(conditions)}
+                  />
+                  <ScoreReason
+                    text={scoreReason(conditions.data).text}
+                    loading={isInitialLoad(conditions)}
+                  />
+                  <EvidenceNote
+                    data={conditions.data}
+                    className="mk-note"
+                    chip={false}
+                  />
+                  <ScoreExplainer data={conditions.data} />
+                </>
+              ) : (
+                <p className="mk-note" role="status">{t("지점을 고르면 그 지점의 점수 근거를 조회합니다.")}</p>
+              )}
+
+              {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
+                  자리가 없어 이 패널의 마지막에 들어옵니다 -- 자리를 옮겼을 뿐
+                  생략하지 않습니다. */}
+              <FootNote
+                wave={false}
+                missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
+                note={t("마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
+              />
+            </aside>
+          </>
+        ) : (
+          <>
+            {/* 왼쪽 패널: 이동 순서. 모바일 CourseSheet 의 mp-rows 와 같은
+                데이터를 데스크탑 패널 문법으로 그립니다. */}
+            <aside className="pd-dk-mappanel is-start" aria-label={t("이동 순서")}>
+              <div className="pd-dk-mappanel-badge">{t("선택 코스의 정차지 순서 · 카카오맵 길찾기")}</div>
+              <div className="mk-course-panel-head">
+                <span className="pd-dk-kick">{t("이동 순서")}</span>
+                <StateChip kind="live" />
               </div>
-              <div className="mk-evidence-head-row">
-                <h2 className="mk-evidence-title">
-                  {activities[ACTIVITY]} {t("점수 근거")}</h2>
-                <StateChip kind={conditions.data ? "live" : "no_data"} />
+              <div className="mk-course-rows">
+                {courseStops.map((stop) => (
+                  <CourseStopRow
+                    key={stop.no}
+                    no={stop.no}
+                    name={stop.name}
+                    meta={stop.meta}
+                    distance={stop.distance}
+                    leg={stop.leg}
+                  />
+                ))}
               </div>
               <p className="mk-note">
-                {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
-              <ComponentBars
-                bars={componentBars(conditions.data)}
-                loading={isInitialLoad(conditions)}
-              />
-              <ScoreReason
-                text={scoreReason(conditions.data).text}
-                loading={isInitialLoad(conditions)}
-              />
-              <EvidenceNote
-                data={conditions.data}
-                className="mk-note"
-                chip={false}
-              />
-              <ScoreExplainer data={conditions.data} />
-            </>
-          ) : (
-            <p className="mk-note" role="status">{t("지점을 고르면 그 지점의 점수 근거를 조회합니다.")}</p>
-          )}
+                {session.route?.route_calculated
+                  ? t("출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, {detail}", { detail: session.route.optimality === "provisional_missing_comparison_evidence" ? t("일부 비교 자료가 부족한 임시 결과입니다.") : t("전체 지역의 최적 경로를 뜻하지 않습니다.") })
+                  : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}{" "}
+                {courseStops.length === 0 &&
+                  t("추천에서 코스를 만들거나 저장한 코스를 열어 주세요.")}
+              </p>
+              {calculated && (
+                <p className="mk-note">
+                  {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: courseLines, total: calculated.legs.length })}
+                </p>
+              )}
+              {wholeTrip && (
+                <a
+                  className="pd-dk-button"
+                  href={wholeTrip}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="transit" size={16} />{t("카카오맵에서 순서대로 길찾기 →")}
+                </a>
+              )}
+            </aside>
 
-          {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
-              자리가 없어 이 패널의 마지막에 들어옵니다 -- 자리를 옮겼을 뿐
-              생략하지 않습니다. */}
-          <FootNote
-            wave={false}
-            missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
-            note={t("마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
-          />
-        </aside>
+            {/* 오른쪽 패널: 경로 계산 조건과 저장. RouteRequestForm 은 모바일
+                지도 · 추천 화면과 공유하며 데스크탑 셸도 지원하도록 만들어져
+                있습니다(routeRequestForm.css). */}
+            <aside className="pd-dk-mappanel is-end" aria-label={t("경로 계산")}>
+              <div className="mk-course-panel-head">
+                <span className="pd-dk-kick">{t("경로 계산")}</span>
+                <StateChip kind={action.busy ? "no_data" : "live"} />
+              </div>
+              <RouteRequestForm
+                places={rows.map((place) => ({ ...place, region: placeRegionLabel(place, "") }))}
+                defaultDate={session.planInput?.request.dates[0] ?? kstDate()}
+                disabled={action.busy || !session.planInput?.stops.length}
+                submitLabel={
+                  session.route?.route_calculated
+                    ? t("조건을 바꿔 다시 계산")
+                    : t("선택 코스 경로 계산")
+                }
+                onSubmit={route}
+              />
+              <div className="mk-detail-actions">
+                <a className="pd-dk-button is-quiet" href="#recommend">
+                  {t("추천에서 편집")}
+                </a>
+                <button
+                  type="button"
+                  className="pd-dk-button"
+                  disabled={!session.planInput || Boolean(session.plan?.plan_id) || action.busy}
+                  onClick={save}
+                >
+                  {session.plan?.plan_id ? t("저장됨") : t("내 코스에 저장")}
+                </button>
+              </div>
+              <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
+                {action.error ||
+                  savedPlan.error ||
+                  t("카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.")}{" "}
+                {session.route && !session.route.route_calculated
+                  ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
+                  : ""}
+              </p>
+
+              {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
+                  자리가 없어 이 패널의 마지막에 들어옵니다. */}
+              <FootNote
+                wave={false}
+                missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
+                note={t("경로는 자동차 이동만 계산하며 예상값이고 안전 판정이 아닙니다. 좌표가 없는 정차지는 지도에 찍지 않습니다.")}
+              />
+            </aside>
+          </>
+        )}
       </DesktopMapShell>
     </DesktopShell>
   );

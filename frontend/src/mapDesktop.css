@@ -6,6 +6,38 @@
    코스가 같은 무대를 쓰므로 pongdangDesktop.css 의 .pd-dk-mapshell 이 단일
    출처이고, 여기에는 이 화면의 **내용**(목록 줄 · 핀 · 근거)만 남깁니다. */
 
+/* ── 지점 · 코스 전환 ─────────────────────────────────── */
+
+/* 상단 네비 바로 아래, 두 패널 사이 가운데에 뜹니다. 모바일 mp-switch(같은
+   화면, mapPage.css)의 데스크탑 대응입니다. 무대 격자의 가운데 칸(지도 조작
+   버튼과 같은 칸)에 얹히므로 여기 있고, 무대 자체는 pongdangDesktop.css 의
+   .pd-dk-mapshell-chrome 이 정의합니다. */
+.pd-desktop .mk-switch {
+  grid-column: 2;
+  align-self: start;
+  justify-self: center;
+  display: flex;
+  gap: 6px;
+  background: var(--dk-surface);
+  border-radius: var(--dk-r-pill);
+  padding: 4px;
+  box-shadow: var(--dk-shadow-map);
+}
+.pd-desktop .mk-switch-item {
+  min-width: 108px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--dk-r-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  cursor: pointer;
+}
+.pd-desktop .mk-switch-item.is-on {
+  background: var(--dk-deep);
+  color: #fff;
+}
+
 /* ── 왼쪽 패널: 검색 + 지점 목록 ──────────────────────── */
 
 /* 검색은 걸러낼 지점 목록 바로 위에 섭니다. */
@@ -219,3 +251,105 @@
 }
 /* 패널 안 주의 문구의 공통 규칙은 pongdangDesktop.css 의 무대 쪽에 있습니다 --
    내 코스 패널도 같은 블록을 쓰는데 이 파일은 지도 화면만 읽습니다. */
+
+/* ── 코스 보기 ─────────────────────────────────────────── */
+
+.pd-desktop .mk-course-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pd-desktop .mk-course-panel-head .pd-state-chip {
+  margin-left: auto;
+}
+
+/* 정차지 줄. 모바일 CourseSheet 의 mp-stop 과 같은 사실(순번 · 이름 · 도착
+   시각 · 구간 이동시간 · 길찾기)을 데스크탑 패널 문법으로 그립니다. */
+.pd-desktop .mk-course-rows {
+  display: flex;
+  flex-direction: column;
+}
+.pd-desktop .mk-course-stop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--dk-line);
+}
+.pd-desktop .mk-course-stop:last-child {
+  border-bottom: 0;
+}
+.pd-desktop .mk-course-stop-no {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  background: #1b5fc0;
+  color: #fff;
+}
+.pd-desktop .mk-course-stop-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pd-desktop .mk-course-stop-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.pd-desktop .mk-course-stop-meta {
+  font-size: 11.5px;
+  color: var(--dk-ink-2);
+  margin-top: 2px;
+}
+.pd-desktop .mk-course-stop-dist {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--dk-ink-2);
+  text-align: right;
+}
+.pd-desktop a.mk-course-stop-dist {
+  color: var(--dk-deep);
+  text-decoration: none;
+}
+
+/* 코스 정차지 핀. 점수가 아니라 **순서**를 말하므로 지점 핀(.mk-pin)과 모양을
+   다르게 둡니다 -- 내 코스 화면의 .cd-pin과 같은 문법입니다. */
+.pd-desktop .mk-course-pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.pd-desktop .mk-course-pin-core {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  background: #1b5fc0;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: var(--dk-shadow-map);
+}
+.pd-desktop .mk-course-pin.is-origin .mk-course-pin-core {
+  background: var(--dk-deep);
+}
+.pd-desktop .mk-course-pin-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dk-ink);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--dk-r-pill);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
