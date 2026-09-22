@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readDataRefresh, refreshFinished, requestDataRefresh } from '../src/dataRefreshApi.ts';
-import { invalidateResources, resourceRefreshGeneration, subscribeResourceRefresh, RESOURCE_REFRESH_INTERVAL } from '../src/resourceRefresh.ts';
+import { invalidateResources, resourceRefreshInterval, resourceRefreshGeneration, subscribeResourceRefresh, RESOURCE_REFRESH_INTERVAL } from '../src/resourceRefresh.ts';
 
 const job = {
   request_id: 'refresh-123', status: 'queued', requested_at: '2026-09-21T03:00:00Z',
@@ -53,4 +53,24 @@ test('common reads use thirty minutes and one invalidation notifies all active c
   unsubscribeB();
   invalidateResources();
   assert.equal(seen.length, 2);
+});
+
+test('unfinished calculations refresh sooner than complete or truly empty reads', () => {
+  for (const value of [undefined, null, {}, { rows: [] }, { projection: { status: 'ready' } },
+    { projection: { status: 'pending' }, reason_codes: ['condition_projection_unavailable_for_target'] }]) {
+    assert.equal(resourceRefreshInterval(value), 1800000);
+  }
+  for (const value of [
+    { refresh_pending: true }, { projection: { status: 'pending' } },
+    { conditions: [{ projection: { status: 'refreshing' } }] },
+    { rows: [{ projection: { status: 'ready' } }, { projection: { status: 'pending' } }] },
+  ]) assert.equal(resourceRefreshInterval(value), 30000);
+});
+
+test('published results honor their server refresh time instead of starting a new ten minutes', () => {
+  const receivedAt = Date.parse('2026-09-21T12:00:00Z');
+  const result = { projection: { status: 'ready', refresh_after: '2026-09-21T12:02:00Z' } };
+  assert.equal(resourceRefreshInterval(result, receivedAt), 120000);
+  assert.equal(resourceRefreshInterval({ conditions: [result] }, receivedAt), 120000);
+  assert.equal(resourceRefreshInterval(result, receivedAt + 180000), 30000);
 });

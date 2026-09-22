@@ -227,7 +227,9 @@ export function evidenceSummary(data?: Conditions) {
   // conditionScoreText 로 그대로 남습니다.
   const coverage = t(" · 근거 확보 {available}/{total}", { available: index.available_components, total: index.total_components });
   const at = timeLabel(data?.at);
-  return (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
+  const summary = (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
+  return data?.projection?.status === "refreshing"
+    ? `${summary} · ${t("새 자료 반영 중 · 이전 계산 결과")}` : summary;
 }
 /** 안전 상태의 사용자 문장. 서버 enum(unknown/caution/restricted)을 그대로 쓰면
  *  뜻이 전달되지 않고, 특히 unknown 은 「이상 없음」으로 읽힙니다. 모르는 값은

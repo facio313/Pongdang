@@ -229,6 +229,83 @@ test("fixed hourly and weekly forecast targets remain after their source windows
   await expect(page.locator(".td-bar-score")).toHaveText(Array(7).fill("75"));
 });
 
+test("an in-progress calculation recovers home and its hourly forecasts without reloading", async ({ page }) => {
+  await mockCommon(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  let ready = false;
+  let reads = 0;
+  await page.route("**/api/data/water-index/recommendation?**", route => {
+    reads += 1;
+    if (ready) return route.fallback();
+    const pending = { ...conditions(75, new Date(NOW.getTime() + 3600000).toISOString()),
+      condition_score: null, metrics: [],
+      projection: { status: "pending", computed_at: null, refresh_after: null } };
+    return route.fulfill({ json: { spot_id: 1, choice: null, conditions: [pending],
+      ranked: [], reasons: [], alternatives: [], rules: [], limitations: [], reason_codes: [] } });
+  });
+  await page.goto("#home");
+  await expect(page.locator(".hd-hero-score-num")).toHaveText("–");
+  expect(reads).toBe(1);
+  ready = true;
+  await page.clock.fastForward(30001);
+  await expect(page.locator(".hd-hero-score-num")).toHaveText("75");
+  await expect(page.locator(".hd-hour-score")).toHaveText(["75", "75", "75", "75"]);
+  expect(reads).toBe(2);
+});
+
+test("home refreshes at the published deadline before its current evidence expires", async ({ page }) => {
+  const mocked = await mockCommon(page);
+  let calls = 0;
+  await page.route("**/api/data/water-index/recommendation?**", async route => {
+    calls += 1;
+    await route.fulfill({ json: { spot_id: 1,
+      choice: { activity: "swim", score: mocked.current.score, status: "partial" },
+      conditions: [{ ...conditions(mocked.current.score, new Date(NOW.getTime() + 3600000).toISOString()),
+        projection: { status: "ready", computed_at: NOW.toISOString(),
+          refresh_after: new Date(NOW.getTime() + 60000).toISOString() } }],
+      ranked: [], reasons: [], alternatives: [], rules: [], limitations: [], reason_codes: [],
+    } });
+  });
+  await page.goto("#home");
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
+  mocked.current.score = 81;
+  await page.clock.fastForward(60001);
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
+  expect(calls).toBe(2);
+});
+
+for (const desktop of [false, true]) {
+  test(`${desktop ? "desktop" : "mobile"} keeps valid today scores while the next generation is computing`, async ({ page }) => {
+    await mockCommon(page);
+    await page.setViewportSize(desktop ? { width: 1440, height: 1000 } : { width: 390, height: 844 });
+    let published = false;
+    let calls = 0;
+    await page.route("**/api/data/water-index/recommendation?**", async route => {
+      calls += 1;
+      const score = published ? 81 : 75;
+      const projection = { status: published || calls === 1 ? "ready" : "refreshing",
+        computed_at: NOW.toISOString(), refresh_after: new Date(NOW.getTime() + 600000).toISOString() };
+      await route.fulfill({ json: { spot_id: 1, choice: { activity: "swim", score, status: "partial" },
+        conditions: [{ ...conditions(score, new Date(NOW.getTime() + 3600000).toISOString()), projection }],
+        ranked: [], reasons: [], alternatives: [], rules: [], limitations: [], reason_codes: [] } });
+    });
+    await page.goto("#today");
+    const swim = page.locator(desktop ? ".td-activity-score" : ".td-act-score").first();
+    await expect(swim).toHaveText("75");
+    await page.clock.fastForward(600001);
+    await expect.poll(() => calls).toBe(2);
+    await expect(swim).toHaveText("75");
+    await expect(page.getByText(/새 자료 반영 중 · 이전 계산 결과/).first()).toBeVisible();
+    await page.clock.fastForward(30001);
+    await expect.poll(() => calls).toBe(3);
+    await expect(swim).toHaveText("75");
+    published = true;
+    await page.clock.fastForward(30001);
+    await expect(swim).toHaveText("81");
+    expect(calls).toBe(4);
+  });
+}
+
 test("weekly scores use one stored series and match dates independently of response order", async ({ page }) => {
   await mockCommon(page);
   let calls = 0;
@@ -251,6 +328,45 @@ test("weekly scores use one stored series and match dates independently of respo
   await expect(page.locator(".td-bar-detail .pd-grade-chip-num")).toHaveText("52");
   expect(calls).toBe(1);
 });
+
+for (const desktop of [false, true]) {
+  test(`${desktop ? "desktop" : "mobile"} retains elapsed hourly forecasts and today's weekly score`, async ({ page }) => {
+    await page.setViewportSize(desktop ? { width: 1440, height: 1000 } : { width: 390, height: 844 });
+    await mockCommon(page, 12 * 3600000);
+    await page.clock.setSystemTime(new Date("2026-09-21T12:30:00Z")); // 21:30 KST
+    await page.route("**/api/data/water-index/conditions/series?**", route => {
+      const targets = new URL(route.request().url()).searchParams.get("targets")!.split(",");
+      const rows = targets.map((at, index) => {
+        // Each target was valid for its own hour. Today has passed, tomorrow has not.
+        const data = conditions(51 + index, new Date(Date.parse(at) + 3600000).toISOString());
+        return {
+          ...data, at, mode: "forecast", as_of: "2026-09-21T12:30:00Z",
+          metrics: index === 2 ? [] : data.metrics,
+          condition_score: index === 2 ? null : data.condition_score,
+        };
+      });
+      return route.fulfill({ json: { spot_id: 1, activity: "swim", rows: rows.reverse() } });
+    });
+    await page.goto("#home");
+    if (desktop) {
+      await expect(page.locator(".hd-hour-score")).toHaveText(["51", "52", "–", "54"]);
+      await expect(page.locator(".hd-hour-label")).toHaveText(["9시", "12시", "15시", "18시"]);
+    } else {
+      const rows = page.getByRole("table", { name: "오늘 시간대별 수집 예보" }).locator("tbody tr");
+      await expect(rows.locator("th")).toHaveText(["09시", "12시", "15시", "18시"]);
+      await expect(rows.nth(0).locator("td").first()).toContainText("21°C");
+      await expect(rows.nth(2).locator("td").first()).toHaveText("–");
+      await expect(rows.nth(3).locator("td").first()).toContainText("21°C");
+    }
+    await page.getByRole("link", { name: "오늘", exact: true }).click();
+    await expect(page.locator(desktop ? ".td-day-score" : ".td-bar-score"))
+      .toHaveText(["51", "52", "–", "54", "55", "56", "57"]);
+    const today = page.locator(desktop ? ".td-day" : ".td-bar").first();
+    await expect(today).toContainText("오늘");
+    if (desktop) await expect(today).toContainText("부분 점수 · 근거 1/4 (25%)");
+    else await expect(today).toHaveAttribute("aria-label", /부분 점수 · 근거 1\/4 \(25%\)/);
+  });
+}
 
 test("manual refresh waits for completion, refreshes common reads and preserves unsaved input", async ({ page }) => {
   const mocked = await mockCommon(page);

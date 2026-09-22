@@ -44,6 +44,7 @@ import {
 import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
 import { useConditions } from "./useConditions";
+import { useComparisonPlaces } from "./useComparisonPlaces";
 import { useConditionDays } from "./useConditionDays";
 import type { ActivityCondition } from "./useBestActivity";
 import "./todayDesktop.css";
@@ -296,7 +297,7 @@ function SpotComparison({
   status: string;
   statusIsError?: boolean;
 }) {
-  const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
+  const resolved = rows;
   return (
     <div>
       <div className="td-head">
@@ -309,7 +310,7 @@ function SpotComparison({
       {resolved.map((place) => (
         <SpotRow key={place.id} place={place} activity={activity} max={100} />
       ))}
-      {!resolved.length && (
+      {status && (
         <p className="td-note" role={statusIsError ? "alert" : "status"}>
           {status}
         </p>
@@ -490,10 +491,11 @@ function OperatingRow({
 
 export function TodayDesktop() {
   const {
-    now, place, places, conditions, baseline, activities: activityStates, best,
+    now, place, conditions, baseline, activities: activityStates, best,
     recommendation, displayName, selectionMessage, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
+  const comparison = useComparisonPlaces(place);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
   const activity: Activity = best?.activity ?? "swim";
@@ -519,10 +521,10 @@ export function TodayDesktop() {
 
       <section className="td-section td-compare">
         <SpotComparison
-          rows={places.data?.rows ?? []}
+          rows={comparison.rows}
           activity={activity}
-          status={places.error ?? selectionMessage}
-          statusIsError={Boolean(places.error)}
+          status={comparison.status ?? selectionMessage}
+          statusIsError={Boolean(comparison.error)}
         />
         <ActivityScores states={activityStates} placeName={displayName} />
       </section>

@@ -9,6 +9,7 @@ import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
 import { TodayForecast } from "./TodayForecast";
 import { useConditions } from "./useConditions";
+import { useComparisonPlaces } from "./useComparisonPlaces";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import { RecommendationReason } from "./RecommendationReason";
@@ -293,7 +294,7 @@ function SpotSection({
   statusIsError?: boolean;
 }) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
-  const resolved = rows.filter((row) => row.type === "beach").slice(0, 3);
+  const resolved = rows;
   const selected = resolved.find((spot) => spot.id === selectedSpotId);
   // 다른 장소의 점수라 추천 응답에 없습니다. 여기는 따로 조회합니다.
   const conditions = useConditions(selected?.id, activity);
@@ -634,10 +635,11 @@ function TodayScreen() {
   // 고정돼 있어서, 같은 장소 같은 시각을 두고 홈은 「온천」을 권하는데 이
   // 화면은 수영 조건만 늘어놓았습니다.
   const {
-    now, place, places, conditions, baseline, activities: activityStates, best,
+    now, place, conditions, baseline, activities: activityStates, best,
     recommendation, displayName, selectionMessage, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
+  const comparison = useComparisonPlaces(place);
   // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
   // 물러서되(화면에 그렇게 적습니다) 히어로 점수를 그것으로 채우지 않습니다.
   const activity: Activity = best?.activity ?? "swim";
@@ -665,13 +667,13 @@ function TodayScreen() {
         }
       >
           <SpotSection
-            rows={places.data?.rows ?? []}
+            rows={comparison.rows}
             activity={activity}
-            statusIsError={Boolean(places.error ?? conditions.error)}
+            statusIsError={Boolean(comparison.error ?? conditions.error)}
             status={
-              places.error ??
+              comparison.error ??
               conditions.error ??
-              selectionMessage
+              comparison.status ?? selectionMessage
             }
           />
           <ActivitySection states={activityStates} />

@@ -40,6 +40,8 @@ export function useHourlyScores(
   const result = useResource<ConditionSeries>(activity ? conditionSeriesPath(id, activity, targets) : null);
   const rows = new Map(result.data?.rows.map((row) => [Date.parse(row.at), row]));
   const values = targets.map((target) => rows.get(Date.parse(target)));
+  // The server evaluates evidence at each forecast target. Passing that time
+  // does not invalidate its forecast; live observation expiry is separate.
   return HOURS.map((hour, index) => {
     const data = values[index];
     return { hour, score: conditionScore(data), data, loading: result.loading, error: result.error };

@@ -1,8 +1,9 @@
 """Read-only classification of existing collected water places."""
 
+from math import isfinite
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.data_reader import DataReader
@@ -60,6 +61,62 @@ class PlacePage(BaseModel):
     page: int
     page_size: int
     has_more: bool
+
+
+class NearbyPlaces(BaseModel):
+    rows: list[PreviewPlace] = Field(max_length=2)
+    status: Literal["ready", "coordinates_unavailable"]
+
+
+async def read_nearby_places(reader, spot_id):
+    """Two distinct places of the selected kind, ordered by great-circle distance."""
+    async with reader.connection() as c:
+        reference = await (
+            await c.execute(
+                f"WITH classified AS ({PLACE_SELECT}) "
+                "SELECT p.*,coalesce(a.canonical_spot_id,p.id) AS canonical_id "
+                "FROM classified p LEFT JOIN pongdang_data.place_alias a "
+                "ON a.spot_id=p.id WHERE p.id=%s AND p.place_kind IS NOT NULL",
+                [spot_id],
+            )
+        ).fetchone()
+        if reference is None:
+            raise HTTPException(404, "place_not_found")
+        lat, lng = reference["lat"], reference["lng"]
+        if (
+            lat is None
+            or lng is None
+            or not isfinite(lat)
+            or not isfinite(lng)
+            or not -90 <= lat <= 90
+            or not -180 <= lng <= 180
+            or (lat, lng) == (0, 0)
+        ):
+            return {"rows": [], "status": "coordinates_unavailable"}
+        rows = await (
+            await c.execute(
+                place_catalog_cte("WHERE p.place_kind=%s")
+                + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng "
+                "FROM classified p JOIN matched m ON m.id=p.id "
+                "WHERE p.id<>%s AND p.place_kind=%s "
+                "AND p.lat BETWEEN -90 AND 90 AND p.lng BETWEEN -180 AND 180 "
+                "AND (p.lat<>0 OR p.lng<>0) "
+                # The haversine term is monotonic in great-circle distance.
+                # No page, name, score or district preference may outrank distance.
+                "ORDER BY power(sin(radians(p.lat-%s)/2),2) + "
+                "cos(radians(%s))*cos(radians(p.lat))*"
+                "power(sin(radians(p.lng-%s)/2),2), p.id LIMIT 2",
+                [
+                    reference["place_kind"],
+                    reference["canonical_id"],
+                    reference["place_kind"],
+                    lat,
+                    lat,
+                    lng,
+                ],
+            )
+        ).fetchall()
+    return {"rows": rows, "status": "ready"}
 
 
 def place_catalog_cte(where):
@@ -137,6 +194,10 @@ def create_places_router(settings, *, reader=None):
     @router.get("/regions")
     async def regions():
         return region_options()
+
+    @router.get("/places/nearby", response_model=NearbyPlaces)
+    async def nearby_places(spot_id: int = Query(..., gt=0)):
+        return await read_nearby_places(reader, spot_id)
 
     @router.get("/places", response_model=PlacePage)
     async def places(

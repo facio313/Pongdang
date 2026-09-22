@@ -36,6 +36,9 @@ def test_v4_upgrade_preserves_evidence_and_is_idempotent(monkeypatch):
             patch.setattr(
                 schema, "migrate_condition_invalidation", lambda connection: None
             )
+            patch.setattr(
+                schema, "migrate_condition_continuity", lambda connection: None
+            )
             assert schema.initialize(settings)
         with schema.connect(settings) as connection:
             assert connection.execute(

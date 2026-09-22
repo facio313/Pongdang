@@ -9,6 +9,8 @@ export function useConditionDays(id: number | undefined, now: string, activity: 
   const rows = new Map(result.data?.rows.map((row) => [Date.parse(row.at), row]));
   const previousRows = new Map(result.previousData?.rows.map((row) => [Date.parse(row.at), row]));
   const values = days.map((day) => rows.get(Date.parse(day.at)));
+  // Keep today's noon forecast after noon: validity is evaluated by the server
+  // at day.at, not against the viewer's current clock.
   return days.map((day, index) => {
     const data = values[index];
     return { ...day, ...result, data, previousData: previousRows.get(Date.parse(day.at)), score: conditionScore(data) };

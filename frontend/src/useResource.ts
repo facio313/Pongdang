@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { travelJson } from "./travelApi";
 import { queueResourceRead } from "./resourceQueue";
 import { useI18n } from "./i18n";
-import { RESOURCE_REFRESH_INTERVAL, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
+import { RESOURCE_REFRESH_INTERVAL, resourceRefreshInterval, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
 import { retainConditionData, retainsDisplayData } from "./retainConditionData";
 
 /** Skeletons are for the first read; later reads keep the displayed result. */
@@ -158,14 +158,14 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
       const entry = cache.get(resourceKey);
-      const next = entry && entry.generation === generation && Date.now() - entry.at < CACHE_TTL
+      const next = entry && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)
         ? await Promise.resolve({ data: entry.data, error: undefined, refreshError: entry.refreshError })
         : await readResource(key, resourceKey, path, generation);
       if (!alive) return;
       setResult({ key, resourceKey, ...(next as { data?: T; error?: string }) });
       const refreshed = cache.get(resourceKey);
       timer = setTimeout(() => { void refresh(); }, !next.error && refreshed
-        ? Math.max(1, CACHE_TTL - (Date.now() - refreshed.at))
+        ? Math.max(1, resourceRefreshInterval(refreshed.data, refreshed.at) - (Date.now() - refreshed.at))
         : CACHE_TTL);
     };
     void refresh();

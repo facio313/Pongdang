@@ -73,7 +73,9 @@ def test_expired_snapshot_survives_multiple_publications_and_new_clients(databas
         assert body["retained_at"] == first.at.isoformat().replace("+00:00", "Z")
         assert body["projection"][
             "computed_at"
-        ] == first.projection.computed_at.isoformat().replace("+00:00", "Z")
+        ] == first.projection.computed_at.astimezone(UTC).isoformat().replace(
+            "+00:00", "Z"
+        )
         summary = client.get(
             BASE + "/conditions/summary",
             params=dict(spot_ids=str(spot), activity="swim"),

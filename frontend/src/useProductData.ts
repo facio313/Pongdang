@@ -118,7 +118,8 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     /** 서버가 고른 활동과 그 근거. `mode: "best"` 가 아니면 undefined 입니다. */
     recommendation: settled(activities.recommendation),
     displayName,
-    selectionMessage,
+    selectionMessage: conditions.data?.projection?.status === "refreshing"
+      ? `${selectionMessage} ${t("새 자료 반영 중 · 이전 계산 결과")}` : selectionMessage,
     /** 장소가 영영 정해지지 않는 상태. 이 훅 밖에서 장소 id 로 막아 둔 조회가
      *  있으면 `settledWithoutPlace` 에 함께 넘겨야 합니다. */
     placeSettled,

@@ -10,7 +10,7 @@ from test_condition_score_integration import source, station
 
 from app.ingestion.storage import store_batch
 from app.main import create_app
-from app.schema import VERSION, connect, initialize
+from app.schema import VERSION, connect, initialize, migrate_condition_continuity
 from app.water_index import condition_invalidation
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.condition_storage import (
@@ -302,7 +302,7 @@ def test_migration_waits_for_readers_without_blocking_other_reads(
             reader.commit()
 
         monkeypatch.setattr(condition_invalidation, "sleep", finish_reader)
-        condition_invalidation.migrate_condition_invalidation(migration)
+        migrate_condition_continuity(migration)
         assert waits == [0.5]
         assert migration.execute(
             "SELECT version FROM pongdang_data.schema_version"
@@ -318,7 +318,7 @@ def test_migration_lock_wait_is_bounded_and_leaves_schema_intact(database, monke
     with connect(database) as reader:
         reader.execute("SELECT 1 FROM pongdang_data.spots_waterspot LIMIT 1")
         with pytest.raises(errors.LockNotAvailable), connect(database) as migration:
-            condition_invalidation.migrate_condition_invalidation(migration)
+            migrate_condition_continuity(migration)
         assert reader.execute(
             "SELECT version FROM pongdang_data.schema_version"
         ).fetchone() == (VERSION,)

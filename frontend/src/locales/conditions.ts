@@ -9,6 +9,22 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
   "일부 물때만 수집되었습니다.": ["Only some tide events are available.", "仅收集到部分潮汐时间。", "一部の潮汐時刻のみ取得されています。"],
   "기온 0점은 현재 참고 곡선의 최저값입니다. 자료 없음이나 활동 금지를 뜻하지 않습니다.": ["A temperature score of 0 is the minimum of the current reference curve. It does not mean missing data or a ban on the activity.", "气温0分是当前参考曲线的最低值，不代表缺少数据或禁止活动。", "気温0点は現在の参考曲線の最低値です。データ欠損や活動禁止を意味しません。"],
   "기온 점수 기준 · 미보정 참고값": ["Temperature scoring criteria · uncalibrated reference", "气温评分标准 · 未校准参考值", "気温の採点基準 · 未較正の参考値"],
+  "주변 비교 장소 조회 중": [
+    "Loading nearby comparison places", "正在加载附近对比地点", "周辺の比較場所を読み込み中"
+  ],
+  "기준 장소의 좌표가 없어 주변 비교 장소를 찾을 수 없습니다.": [
+    "Nearby places cannot be found because the reference place has no coordinates.",
+    "基准地点缺少坐标，无法查找附近地点。", "基準場所の座標がないため、周辺の場所を検索できません。"
+  ],
+  "기준 장소 + 가까운 동일 유형 장소 최대 2곳 · 직선거리 기준": [
+    "Reference place + up to 2 nearest places of the same type · straight-line distance",
+    "基准地点 + 最多2个最近的同类地点 · 按直线距离", "基準場所＋最も近い同じ種類の場所を最大2か所 · 直線距離順"
+  ],
+  "새 자료 반영 중 · 이전 계산 결과": [
+    "Updating data · previously calculated result",
+    "正在更新数据 · 上次计算结果",
+    "データ更新中 · 前回の計算結果"
+  ],
   "홈": [
     "Home",
     "首页",

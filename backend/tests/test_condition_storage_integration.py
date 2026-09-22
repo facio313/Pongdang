@@ -341,3 +341,40 @@ def test_series_returns_requested_targets_from_one_published_set(database, monke
             (start + timedelta(minutes=i)).isoformat() for i in range(33)
         )
         assert client.get(BASE + "/conditions/series", params=params).status_code == 422
+
+
+def test_local_v18_upgrade_removes_extra_truncate_triggers(database):
+    from psycopg import sql
+
+    from app.schema import VERSION, initialize
+    from app.water_index.condition_invalidation import INPUT_TABLES
+
+    store_batch(database, source())
+    with connect(database) as c:
+        for table, _ in INPUT_TABLES:
+            c.execute(
+                sql.SQL(
+                    "CREATE TRIGGER condition_projection_truncated "
+                    "AFTER TRUNCATE ON {} "
+                    "FOR EACH STATEMENT EXECUTE FUNCTION "
+                    "pongdang_data.invalidate_condition_projection()"
+                ).format(sql.Identifier("pongdang_data", table))
+            )
+        c.execute("UPDATE pongdang_data.schema_version SET version=18")
+    assert initialize(database)
+    assert not initialize(database)
+    with connect(database) as c:
+        assert c.execute(
+            "SELECT version FROM pongdang_data.schema_version"
+        ).fetchone() == (VERSION,)
+        assert c.execute(
+            "SELECT count(*) FROM pg_trigger "
+            "WHERE tgname='condition_projection_truncated'"
+        ).fetchone() == (0,)
+        before = c.execute(
+            "SELECT revision FROM pongdang_data.condition_source_revision"
+        ).fetchone()[0]
+        c.execute("TRUNCATE pongdang_data.water_index_authority_evidence")
+        assert c.execute(
+            "SELECT revision FROM pongdang_data.condition_source_revision"
+        ).fetchone() == (before + 1,)
