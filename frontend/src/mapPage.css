@@ -292,6 +292,31 @@
   margin: 0;
 }
 
+/* 후보지 카드의 출발지 선택. 데스크탑 mapDesktop.css 의 .mk-origin 과 같은
+   기능이며, water-place-filters select 와 같은 톤(테두리·라운드·높이)입니다. */
+.map-page .mp-origin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.map-page .mp-origin-label {
+  flex: none;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.map-page .mp-origin-select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--pd-touch, 44px);
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--pd-ink);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+}
+
 /* ── 내 코스 목록 (코스 시트 초기 화면) ───────────────────── */
 
 .map-page .mp-saved-course {
