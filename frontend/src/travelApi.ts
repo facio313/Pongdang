@@ -206,6 +206,7 @@ export interface PlanItem {
   departure_at: string | null;
   role: string;
   unknown_conditions: string[];
+  previous_leg?: { duration_minutes: number | null; status: string } | null;
 }
 export interface TripPlan {
   plan_id: string | null;

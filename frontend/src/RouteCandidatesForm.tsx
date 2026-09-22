@@ -13,8 +13,8 @@ function defaultDeparture() {
   return `${kstDate(soon)}T${timeLabel(soon)}`;
 }
 
-/** RecommendDesktop 전용 경로 계산 폼. 출발지·출발 시각은 등록 장소의 첫
- *  좌표와 현재 시각으로 자동 채우고, 화면에는 방문할 후보만 고르게 합니다. */
+/** RecommendDesktop 전용 경로 계산 폼. 출발지는 좌표가 있는 등록 장소 중에서
+ *  고르고, 출발 시각은 현재 시각으로 자동 채웁니다. */
 export function RouteCandidatesForm({
   places,
   candidates,
@@ -37,9 +37,11 @@ export function RouteCandidatesForm({
   const [problem, setProblem] = useState("");
   const [ranks, setRanks] = useState<number[] | null>(null);
   const [stops, setStops] = useState<number | null>(null);
+  const [placeId, setPlaceId] = useState<string | null>(null);
   const mappable = places.filter(
     (place) => place.lat !== null && place.lng !== null,
   );
+  const originId = placeId ?? (mappable[0] ? String(mappable[0].id) : "");
   const selectedRanks = (
     ranks ?? candidates.slice(0, 3).map((item) => item.rank)
   ).filter((rank) => candidates.some((item) => item.rank === rank));
@@ -54,7 +56,8 @@ export function RouteCandidatesForm({
   const submit = () => {
     setProblem("");
     const catalogIds = new Set(candidates.map((item) => item.spot_id));
-    const origin = mappable[0] ? originFromPlace(mappable[0], catalogIds) : null;
+    const place = mappable.find((item) => String(item.id) === originId);
+    const origin = place ? originFromPlace(place, catalogIds) : null;
     if (!origin) {
       setProblem("좌표가 등록된 장소가 없어 출발지를 정할 수 없습니다.");
       return;
@@ -78,6 +81,32 @@ export function RouteCandidatesForm({
 
   return (
     <div className="rt-form">
+      <div className="pd-card-title">{t("방문 순서 최적화")}</div>
+      <p className="pd-note rt-note-flush">
+        {t("선택한 후보 중에서 이동 시간이 가장 짧은 방문 순서를 계산합니다.")}</p>
+      <fieldset className="rt-field" disabled={disabled}>
+        <legend className="rt-legend">{t("출발지")}</legend>
+        <label className="rt-row">
+          <span className="rt-row-name">{t("장소")}</span>
+          <select
+            className="rt-input"
+            aria-label={t("출발 장소")}
+            value={originId}
+            onChange={(event) => setPlaceId(event.target.value)}
+          >
+            {mappable.map((place) => (
+              <option key={place.id} value={place.id}>
+                {place.name}{place.region ? ` · ${place.region}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        {places.length > mappable.length && (
+          <p className="pd-note rt-note-flush">
+            {t("좌표가 등록되지 않은 장소 {count}곳은 출발지로 사용할 수 없어 목록에 없습니다.", { count: places.length - mappable.length })}
+          </p>
+        )}
+      </fieldset>
       <fieldset className="rt-field" disabled={disabled}>
         <legend className="rt-legend">
           {t("방문할 후보 · {count}곳", { count: selectedRanks.length })}

@@ -160,9 +160,9 @@ export function RouteRequestForm({
 
   return (
     <div className="pd-card rt-form">
-      <div className="pd-card-title">{t("경로 계산 조건")}</div>
+      <div className="pd-card-title">{t("방문 순서 최적화")}</div>
       <p className="pd-note rt-note-flush">
-        {t("출발지와 출발 시각이 있어야 방문 순서와 이동 시간을 계산합니다. 자동차 이동만 계산하며, 이 결과는 예상값이고 안전 판정이 아닙니다.")}</p>
+        {t("출발지와 출발 시각이 있어야 선택한 후보의 방문 순서를 최적화하고 이동 시간을 계산합니다. 자동차 이동만 계산하며, 이 결과는 예상값이고 안전 판정이 아닙니다.")}</p>
 
       <fieldset className="rt-field" disabled={disabled}>
         <legend className="rt-legend">{t("출발지")}</legend>

@@ -937,7 +937,7 @@ export function RecommendDesktop() {
       {showCourse && (
         <div className="rd-course-anchor" ref={courseRef}>
           <LabelRow
-            kick={t("후보와 경로")}
+            kick={t("후보와 최적 순서")}
             title={
               calculated
                 ? t("방문 {count}곳 · {minutes}분 이동", { count: items.length, minutes: calculated.travel_minutes })
