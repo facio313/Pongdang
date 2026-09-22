@@ -37,6 +37,7 @@ import {
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
+import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { mappablePlaces } from "./useWaterPlaces";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
