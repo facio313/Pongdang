@@ -445,7 +445,7 @@ def test_each_followup_rereads_changed_activity_not_previous_facts(settings):
         request=request,
     )
     assert result.context.activity == "surf"
-    visible = " ".join([result.answer, *(fact.text for fact in result.facts)])
+    visible = " ".join([result.answer, *(fact["text"] for fact in result.facts)])
     assert "999" not in visible
     user_input = json.loads(provider.bodies[0]["input"][0]["content"])
     assert user_input["untrusted_history"][0]["role"] == "assistant"
