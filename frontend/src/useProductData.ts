@@ -5,6 +5,7 @@ import { useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacePhotos } from "./usePlacePhotos";
+import { activityRecommendationDisplay } from "./recommendationText";
 import {
   periodPath,
   productPlaces,
@@ -77,16 +78,23 @@ export function useProductData(mode: "swim" | "best" = "swim") {
   // 것입니다. 예전에는 id 를 빼서 껐는데, 그러면 「장소를 아직 모름」과 구분이
   // 되지 않아 첫 페인트에서 쓰는 쪽까지 「자료 없음」으로 읽혔습니다.
   const activities = useBestActivity(place?.id, mode === "best");
-  const single = useConditions(place?.id, "swim", undefined, mode !== "best");
+  // A recommendation failure must not also hide separately stored place
+  // measurements. Read their baseline only when the combined response failed;
+  // the unavailable recommendation remains explicit and is never invented here.
+  const recommendationFailed = mode === "best" && !!activities.error && !activities.recommendation.data;
+  const useSingle = mode !== "best" || recommendationFailed;
+  const single = useConditions(place?.id, "swim", undefined, useSingle);
   // best 가 없어도 근거·안전 문장은 나와야 하므로 첫 활동(수영) 상태로 물러섭니다.
   const conditions =
-    mode === "best" ? (activities.best ?? activities.all[0]) : single;
+    useSingle ? single : (activities.best ?? activities.all[0]);
   // 히어로 위쪽 관측 패널(기온·수온·파고·바람·강수)은 활동과 무관한 「지금
   // 날씨와 바다」입니다. 서버는 그 활동이 보는 지표만 내려주므로, 여기에
   // best 응답을 쓰면 갯벌이 뽑힌 날 수온·파고가 통째로 «–» 가 됩니다.
   // 수영 응답이 해양 지표를 가장 넓게 담고 있어 기준으로 씁니다(all[0] 이
   // 수영이라 조회가 더 늘지 않습니다).
-  const baseline = mode === "best" ? activities.all[0] : single;
+  const baseline = useSingle ? single : activities.all[0];
+  const activityStates = recommendationFailed ? activities.all.map(state => state.activity === "swim"
+    ? { ...state, ...single, ...activityRecommendationDisplay(single.data) } : state) : activities.all;
   // 기본 해수욕장 조회가 끝났는데도 장소가 없으면 id 는 **영영** 정해지지
   // 않습니다 -- 조회에 실패했거나(catalog.error), 서버가 수집된 해수욕장이
   // 없다고 제대로 답한 경우(status: no_places)입니다. 그 사실을 아래로
@@ -106,7 +114,7 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     conditions: settled(conditions),
     baseline: settled(baseline),
     best: activities.best,
-    activities: activities.all.map(settled),
+    activities: activityStates.map(settled),
     /** 서버가 고른 활동과 그 근거. `mode: "best"` 가 아니면 undefined 입니다. */
     recommendation: settled(activities.recommendation),
     displayName,

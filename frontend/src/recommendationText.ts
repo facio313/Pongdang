@@ -78,6 +78,17 @@ export interface ReasonLine {
   text: string;
 }
 
+/** Optional context can fail while the stored condition results remain usable. */
+export function recommendationLookupWarning(rec?: Recommendation) {
+  const failures = new Set([
+    "place_lookup_unavailable", "alternatives_lookup_unavailable",
+    "alternative_conditions_unavailable", "recommendation_context_unavailable",
+  ]);
+  return rec && ([...(rec.reason_codes ?? []), ...(rec.reasons ?? []).map(reason => reason.code)]
+    .some(code => failures.has(code)))
+    ? t("추천 보조 자료 일부를 불러오지 못했습니다. 확인된 활동 점수와 지표를 표시합니다.") : null;
+}
+
 /** 고른 활동이 없을 때 히어로가 할 말. **조회 실패와 「고를 것이 없음」은 다른
  *  사실입니다** -- 서버에 닿지 못한 것을 「오늘은 할 게 없다」로 바꾸면 화면이
  *  없는 판단을 지어내는 셈입니다. */

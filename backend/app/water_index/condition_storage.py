@@ -11,6 +11,7 @@ from psycopg import sql
 from psycopg.types.json import Jsonb
 
 from app.water_index.activity_score import ActivityScore
+from app.water_index.condition_retention import RetainedPublication
 from app.water_index.conditions import (
     ACTIVITIES,
     ConditionProjection,
@@ -151,6 +152,14 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
         ).fetchone()[0]
         if current != source_revision:
             raise ConditionInputsChanged
+        previous = c.execute(
+            "SELECT g.id,g.source_revision,g.computed_at FROM "
+            "pongdang_data.condition_generation g CROSS JOIN "
+            "pongdang_data.condition_source_revision r WHERE r.id=1 "
+            "AND g.source_revision>=r.invalidated_revision "
+            "AND g.model_version=%s ORDER BY g.id DESC LIMIT 1",
+            [MODEL_VERSION],
+        ).fetchone()
         generation = c.execute(
             "INSERT INTO pongdang_data.condition_generation "
             "(source_revision,model_version,computed_at,record_count) "
@@ -159,10 +168,29 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
         ).fetchone()
         if generation is None:
             return 0
+
+        def origin(identifier, revision, timestamp):
+            return dict(
+                generation_id=identifier,
+                source_revision=revision,
+                computed_at=timestamp.isoformat(),
+                refresh_after=(
+                    timestamp + timedelta(seconds=REFRESH_SECONDS)
+                ).isoformat(),
+                status="ready",
+                retention_allowed=True,
+            )
+
+        retention = RetainedPublication(
+            c,
+            origin(*previous) if previous else None,
+            origin(generation[0], source_revision, computed_at),
+        )
         count = 0
         # Materialize only one small batch before opening COPY: Python scoring
         # must not consume the database statement timeout while COPY is open.
         for batch in batched(records, 500, strict=False):
+            retained = list(retention.records(batch))
             with (
                 c.cursor() as cursor,
                 cursor.copy(
@@ -172,7 +200,7 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
                     "FROM STDIN"
                 ) as copy,
             ):
-                for record in batch:
+                for record in retained:
                     copy.write_row(
                         (
                             generation[0],
@@ -185,9 +213,8 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
                         )
                     )
                     count += 1
-        # Derived display sets are replaceable caches. Retain the current and
-        # preceding complete sets; source evidence and generation metadata remain
-        # intact, and explicit historical calculations read that source history.
+        # Last usable values were copied forward with their original evidence
+        # and times. Pruning old generations must not prune those display values.
         _prune_generations(c)
         c.execute(
             "UPDATE pongdang_data.condition_generation "
@@ -244,9 +271,9 @@ def _unavailable(q, at, as_of, row):
 async def read_condition_set(reader, queries, *, now=None, connection=None):
     """One SELECT for bounded places/activities/targets in one consistent set.
 
-    New observations may reuse the last complete, still-valid publication while
-    the worker refreshes it. Corrections, restrictions and mapping changes revoke
-    older evidence immediately. No calculation or write happens on a cache miss.
+    Read the last complete publication even through collection/expiry gaps.
+    Restrictions and mapping changes still revoke affected evidence. No
+    calculation or write happens on a cache miss.
     """
     if not queries or len(queries) > 200:
         raise ValueError("A condition set must contain 1 to 200 queries")
@@ -287,7 +314,8 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
                 "LEFT JOIN LATERAL (SELECT payload FROM "
                 "pongdang_data.condition_snapshot WHERE generation_id=g.id "
                 "AND spot_id=q.spot_id AND activity=q.activity AND mode=q.mode "
-                "AND target_start<=q.at AND target_end>q.at "
+                "AND target_start<=q.at "
+                "AND (q.mode='observation' OR target_end>q.at) "
                 "ORDER BY target_start DESC LIMIT 1) s ON true ORDER BY q.ordinal",
                 [Jsonb(wanted), MODEL_VERSION],
             )
@@ -301,11 +329,17 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
         if row["payload"] is None:
             envelope = _unavailable(q, at, as_of, row)
         else:
+            payload = row["payload"]
+            retained_at = payload.get("retained_at")
             envelope = ConditionsEnvelope.model_validate(
-                {**row["payload"], "at": at, "as_of": as_of}
+                {**payload, "at": at, "as_of": as_of, "retained_at": retained_at}
             )
         computed_at = row["computed_at"]
-        refreshing = bool(row["payload"] and row["source_revision"] != row["revision"])
+        if envelope.retained and envelope.projection:
+            computed_at = envelope.projection.computed_at
+        refreshing = envelope.retained or bool(
+            row["payload"] and row["source_revision"] != row["revision"]
+        )
         result.append(
             envelope.model_copy(
                 update={

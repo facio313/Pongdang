@@ -90,18 +90,59 @@ test("a failed automatic refresh retains the score and waits another thirty minu
 });
 
 for (const width of [390, 1440]) {
-  test(`${width}px cold home keeps scores and explicitly reports a failed optional tide lookup`, async ({ page }) => {
+  test(`${width}px a failed recommendation keeps independent home and today measurements available`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const mocked = await mockCommon(page);
+    let unavailable = true;
+    await page.route("**/api/data/water-index/recommendation?**", route => unavailable
+      ? route.fulfill({ status: 503, json: { detail: "unavailable" } }) : route.fallback());
+    await page.goto("#home");
+    await expect(page.locator(width < 1080 ? ".hm-hero-metrics" : ".hd-hero-metrics")).toContainText("21°C");
+    await expect(page.locator(width < 1080 ? ".hm-hero-sentence" : ".hd-hero-title")).toContainText("불러오지 못했");
+    expect(mocked.reads.filter(path => path.endsWith("/conditions"))).toHaveLength(1);
+    await page.goto("#today");
+    await expect(page.locator(".td-hero-tiles")).toContainText("21°C");
+    await expect(page.locator(width < 1080 ? ".td-act-score" : ".td-activity-score").first()).toHaveText("75");
+    await expect(page.locator(".td-hero-score-num")).toHaveText("–");
+    unavailable = false;
+    await page.clock.fastForward(1800100);
+    await expect(page.locator(".td-hero-score-num")).toHaveText("75");
+  });
+
+  test(`${width}px unsupported activities do not discard stored scores during an incomplete refresh`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockCommon(page);
+    let incomplete = false;
+    const unsupported = { ...conditions(null, NOW.toISOString()), activity: "onsen", support_status: "unsupported" };
+    unsupported.condition_score.status = "blocked";
+    const extra = { conditions: [conditions(75, "2026-09-22T03:00:00Z"), unsupported] };
+    await routeRecommendation(page, () => incomplete ? null : { activity: "swim", score: 75 }, extra);
+    await page.goto("#home");
+    const hero = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    await expect(hero).toHaveText("75");
+    incomplete = true;
+    extra.conditions = [conditions(null, NOW.toISOString()), unsupported];
+    await page.clock.fastForward(1800100);
+    await expect(page.locator(".pd-retained-note").first()).toContainText("이전 결과");
+    await expect(hero).toHaveText("75");
+    await expect(page.locator(width < 1080 ? ".hm-hero-metrics" : ".hd-hero-metrics")).toContainText("21°C");
+    await page.goto("#today");
+    await expect(page.locator(".td-hero-score-num")).toHaveText("75");
+  });
+
+  test(`${width}px cold home keeps scores and explicitly reports failed optional lookups`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await mockCommon(page);
     await routeRecommendation(page, { activity: "swim", score: 75 }, {
       conditions: [conditions(75, "2026-09-22T03:00:00Z")],
       reasons: [{ code: "tide_lookup_unavailable" }],
-      reason_codes: ["tide_lookup_unavailable"],
+      reason_codes: ["tide_lookup_unavailable", "alternatives_lookup_unavailable"],
     });
     const hero = page.locator(width === 390 ? ".hm-hero-score-num" : ".hd-hero-score-num");
     await page.goto("#home");
     await expect(hero).toHaveText("75");
     await expect(page.getByText("간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.").first()).toBeVisible();
+    await expect(page.getByText("추천 보조 자료 일부를 불러오지 못했습니다. 확인된 활동 점수와 지표를 표시합니다.")).toBeVisible();
     await page.reload();
     await expect(hero).toHaveText("75");
   });

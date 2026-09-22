@@ -8,6 +8,7 @@ import {
   alternativeGroups,
   alternativeText,
   choiceReason,
+  recommendationLookupWarning,
   rejectionReason,
   tideLine,
 } from '../src/recommendationText.ts';
@@ -90,6 +91,19 @@ test('a failed tide lookup is explicit without erasing the available score', () 
     text: '간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.',
   });
   assert.equal(tideLine(recommendation()), null);
+});
+
+test('optional context failures are disclosed without claiming the scores failed', () => {
+  for (const code of ['place_lookup_unavailable', 'alternatives_lookup_unavailable',
+    'alternative_conditions_unavailable', 'recommendation_context_unavailable']) {
+    const rec = recommendation({ reason_codes: [code] });
+    assert.equal(recommendationLookupWarning(rec),
+      '추천 보조 자료 일부를 불러오지 못했습니다. 확인된 활동 점수와 지표를 표시합니다.');
+    assert.equal(rec.choice.score, 82);
+    assert.equal(recommendationLookupWarning(recommendation({ reasons: [reason(code)] })),
+      recommendationLookupWarning(rec));
+  }
+  assert.equal(recommendationLookupWarning(recommendation()), null);
 });
 
 test('a chosen activity with no server reason gets no invented sentence', () => {

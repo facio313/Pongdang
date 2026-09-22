@@ -204,7 +204,7 @@ def test_explicit_weights_zero_values_and_inclusive_bounds(database):
         assert result["evidence"]["support_status"] == "unknown"
 
 
-def test_latest_missing_revision_never_falls_back_and_historical_cutoff_survives(
+def test_missing_revision_retains_display_but_raw_calculation_remains_incomplete(
     database,
 ):
     original = source()
@@ -223,8 +223,11 @@ def test_latest_missing_revision_never_falls_back_and_historical_cutoff_survives
         store_batch(database, replacement)
         produce_conditions(database)
         after = conditions(client, spot)
-        assert metric(after, "air_temperature")["status"] == "missing"
-        assert metric(after, "air_temperature")["value"] is None
+        assert metric(after, "air_temperature") == metric(before, "air_temperature")
+        assert after["condition_score"] == before["condition_score"]
+        assert after["retained"] is True
+        # Retention is a saved display. Explicit calculations still use the
+        # latest missing source, and historical queries use their real cutoff.
         result = score(client, spot, [criterion(sid)])
         assert result["status"] == "incomplete"
         assert result["score"] is None

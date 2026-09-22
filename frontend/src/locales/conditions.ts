@@ -3,6 +3,7 @@ import type { MessageTranslations } from "../i18n.ts";
 export const conditionsMessages: Record<string, MessageTranslations> = {
   "다음 간조·만조": ["Next low and high tides", "下一次低潮与高潮", "次の干潮・満潮"],
   "간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.": ["Tide lookup failed, so tide-based rules were not applied. The displayed scores are not safety assessments.", "潮汐查询失败，因此未应用潮汐规则。显示的分数不是安全评估。", "干潮・満潮の取得に失敗したため、潮汐の基準は適用していません。表示スコアは安全判定ではありません。"],
+  "추천 보조 자료 일부를 불러오지 못했습니다. 확인된 활동 점수와 지표를 표시합니다.": ["Some recommendation context could not be loaded. Available activity scores and measurements are shown.", "部分推荐辅助资料无法加载。已获取的活动评分和指标仍会显示。", "おすすめの補足情報の一部を取得できませんでした。確認できた活動スコアと観測値を表示しています。"],
   "국립해양조사원 공식 조석 예측": ["Official tide predictions from KHOA", "韩国国立海洋调查院官方潮汐预测", "韓国国立海洋調査院の公式潮汐予測"],
   "연결된 다음 간조·만조 예측이 없습니다.": ["No upcoming low or high tide predictions are available for this place.", "此地点暂无已关联的下次潮汐预测。", "この場所に紐づく次の干潮・満潮予測はありません。"],
   "일부 물때만 수집되었습니다.": ["Only some tide events are available.", "仅收集到部分潮汐时间。", "一部の潮汐時刻のみ取得されています。"],

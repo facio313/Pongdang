@@ -68,7 +68,7 @@ def test_product_get_never_calculates_or_populates_missing_results(
             assert all(c["projection"] for c in recommendation.json()["conditions"])
 
 
-def test_missing_correction_invalidates_old_scores_before_worker_runs(database):
+def test_missing_refresh_preserves_published_scores_before_and_after_worker(database):
     original = source()
     store_batch(database, original)
     _, spot = station(database)
@@ -96,13 +96,19 @@ def test_missing_correction_invalidates_old_scores_before_worker_runs(database):
         )
         store_batch(database, revised)
         pending = client.get(BASE + "/conditions", params=query(spot)).json()
-        assert pending["condition_score"]["score"] is None
-        assert pending["projection"]["status"] == "pending"
-        assert pending["projection"]["retention_allowed"] is False
+        assert pending["condition_score"] == first["condition_score"]
+        assert pending["projection"]["status"] == "refreshing"
+        assert pending["projection"]["retention_allowed"] is True
         produce_conditions(database)
         replacement = client.get(BASE + "/conditions", params=query(spot)).json()
-        assert replacement["condition_score"]["score"] is None
-        assert replacement["projection"]["status"] == "ready"
+        assert replacement["condition_score"] == first["condition_score"]
+        assert replacement["projection"]["status"] == "refreshing"
+        assert replacement["retained"] is True
+        assert replacement["metrics"] == first["metrics"]
+        assert (
+            replacement["projection"]["computed_at"]
+            == first["projection"]["computed_at"]
+        )
         assert (
             replacement["projection"]["generation_id"]
             != first["projection"]["generation_id"]
@@ -286,7 +292,11 @@ def test_projection_read_exposes_expiry_without_extending_source_validity(databa
         read_condition_set(reader, [q], now=now + timedelta(minutes=1))
     )[0]
     assert current.condition_score.score is not None
-    assert expired.condition_score.score is None
+    assert expired.condition_score == current.condition_score
+    assert expired.metrics == current.metrics
+    assert expired.retained is True
+    assert expired.retained_at == current.at
+    assert expired.metrics[0].evidence[0].valid_until == batch.readings[0].valid_until
     assert expired.projection.computed_at == current.projection.computed_at
 
 

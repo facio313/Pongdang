@@ -342,6 +342,7 @@ class ConditionsEnvelope(Record):
     condition_score: ActivityScore | None = None
     projection: ConditionProjection | None = None
     retained: bool = False
+    retained_at: AwareDatetime | None = None
     metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)]
     context_metrics: Annotated[tuple[ConditionMetric, ...], Field(max_length=100)] = ()
     display_metrics: Annotated[tuple[DisplayMetric, ...], Field(max_length=100)] = ()
@@ -351,6 +352,13 @@ class ConditionsEnvelope(Record):
 
     @model_validator(mode="after")
     def available_at_cutoff(self):
+        evidence_at = (
+            self.retained_at if self.retained and self.mode == "observation" else None
+        )
+        if evidence_at is not None and (
+            evidence_at > self.as_of or evidence_at > self.at
+        ):
+            raise ValueError("Retained observations cannot use future knowledge")
         if self.mode == "observation" and self.at > self.as_of:
             raise ValueError("An observation cannot establish future conditions")
         for metric in (*self.metrics, *self.context_metrics):
@@ -363,7 +371,9 @@ class ConditionsEnvelope(Record):
                 or (source.issued_at is not None and source.issued_at > self.as_of)
                 or (source.mode == "forecast" and source.issued_at is None)
                 or source.valid_until is None
-                or not source.valid_from <= self.at < source.valid_until
+                or not source.valid_from
+                <= (evidence_at or self.at)
+                < source.valid_until
                 or source.observed_at > self.at
             ):
                 raise ValueError(

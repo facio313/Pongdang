@@ -106,7 +106,13 @@ export function retainConditionData(path: string, previous: unknown, next: unkno
     const before = previous as Recommendation;
     const after = next as Recommendation;
     // A new official restriction must never be masked by an old recommendation.
-    if (after.conditions.some(blocked) || before.conditions.some(blocked)) return after;
+    // Unchanged unsupported activities (e.g. onsen at a beach) are not a reason
+    // to discard the still-usable swimming score and its measurements.
+    const unsupportedOnly = (condition: Conditions) => condition.support_status === "unsupported" &&
+      condition.safety_status !== "restricted" && condition.projection?.retention_allowed !== false;
+    if (after.conditions.some(current => blocked(current) && !(unsupportedOnly(current) &&
+        before.conditions.some(old => old.activity === current.activity && unsupportedOnly(old)))) ||
+        before.conditions.some(old => blocked(old) && (!unsupportedOnly(old) || old.activity === before.choice?.activity))) return after;
     const degraded = before.conditions.some(old => {
       const current = after.conditions.find(c => c.activity === old.activity);
       return current ? retainConditions(old, current) !== current : conditionScore(old) !== null;

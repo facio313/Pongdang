@@ -51,7 +51,8 @@ def migrate_condition_invalidation(connection):
     # whose evidence may already have been corrected or restricted.
     connection.execute(
         "UPDATE pongdang_data.condition_source_revision "
-        "SET invalidated_revision=revision WHERE id=1"
+        "SET invalidated_revision=revision WHERE id=1 AND "
+        "(SELECT version FROM pongdang_data.schema_version WHERE id=1)<17"
     )
     connection.execute("""
         CREATE OR REPLACE FUNCTION pongdang_data.condition_input_content(
@@ -70,7 +71,7 @@ def migrate_condition_invalidation(connection):
     connection.execute("""
         CREATE OR REPLACE FUNCTION pongdang_data.invalidate_condition_projection()
         RETURNS trigger LANGUAGE plpgsql AS $$
-        DECLARE changed boolean;
+        DECLARE changed boolean; revoke boolean;
         BEGIN
             IF TG_OP = 'INSERT' THEN
                 SELECT EXISTS(SELECT 1 FROM new_inputs) INTO changed;
@@ -90,13 +91,26 @@ def migrate_condition_invalidation(connection):
                 changed := true;
             END IF;
             IF changed THEN
+                revoke := TG_OP IN ('DELETE', 'TRUNCATE')
+                    OR TG_TABLE_NAME IN (
+                        'water_index_station_mapping',
+                        'water_index_authority_evidence'
+                    ) OR (TG_OP = 'UPDATE' AND TG_TABLE_NAME='spots_waterspot');
+                IF TG_OP = 'UPDATE' AND TG_TABLE_NAME='collection_station' THEN
+                    SELECT EXISTS(
+                        SELECT to_jsonb(n) - ARRAY[
+                            'fetched_at', 'source_valid_from', 'source_valid_until'
+                        ] FROM new_inputs n
+                        EXCEPT
+                        SELECT to_jsonb(o) - ARRAY[
+                            'fetched_at', 'source_valid_from', 'source_valid_until'
+                        ] FROM old_inputs o
+                    ) INTO revoke;
+                END IF;
                 UPDATE pongdang_data.condition_source_revision
                 SET revision=revision+1,
                     invalidated_revision=CASE
-                        WHEN TG_OP <> 'INSERT' OR TG_TABLE_NAME IN (
-                            'water_index_station_mapping',
-                            'water_index_authority_evidence'
-                        ) THEN revision+1
+                        WHEN revoke THEN revision+1
                         ELSE invalidated_revision
                     END
                 WHERE id=1;
@@ -130,4 +144,11 @@ def migrate_condition_invalidation(connection):
                     sql.SQL(",").join(map(sql.Literal, refresh_fields)),
                 )
             )
-    connection.execute("UPDATE pongdang_data.schema_version SET version=17 WHERE id=1")
+    # Re-publish existing inputs using durable retention after a v17 upgrade.
+    # Leave the last completed generation readable while that work is queued.
+    connection.execute(
+        "UPDATE pongdang_data.condition_source_revision SET revision=revision+1 "
+        "WHERE id=1 AND (SELECT version FROM pongdang_data.schema_version "
+        "WHERE id=1)=17"
+    )
+    connection.execute("UPDATE pongdang_data.schema_version SET version=18 WHERE id=1")

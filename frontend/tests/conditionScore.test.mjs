@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
+import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, conditionRetentionText, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
 
 const index = {
   label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
@@ -65,6 +65,13 @@ test('tide times retain their actual KST date across midnight and year boundarie
   assert.equal(tideTimeLabel('2026-12-31T15:00:00Z'), '1/1 00:00 KST');
   for (const value of [undefined, null, '', 'invalid-date'])
     assert.equal(tideTimeLabel(value), '–');
+});
+
+test('retained snapshots disclose their original time rather than a later requested target', () => {
+  const data = { retained: true, at: '2026-09-22T03:00:00Z', retained_at: '2026-09-21T00:00:00Z' };
+  assert.equal(conditionRetentionText(data), '이전 결과 · 9/21 09:00 KST 기준 · 새 자료 대기');
+  assert.equal(conditionRetentionText({ ...data, projection: { computed_at: '2026-09-21T00:05:00Z' } }),
+    '이전 결과 · 9/21 09:05 KST 기준 · 새 자료 대기');
 });
 
 test('the collapsed evidence line keeps coverage and never turns a missing score into a number', () => {

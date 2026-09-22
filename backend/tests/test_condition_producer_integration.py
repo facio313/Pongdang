@@ -460,12 +460,23 @@ def test_mapping_authority_and_expiry_boundaries_publish_same_condition_set(data
     assert produce_conditions(database, now=now) > 0
     assert produce_conditions(database, now=now) == 0
     assert produce_conditions(database, now=datetime.now(UTC)) == 0
-    for at in (now, boundary, base + timedelta(hours=4)):
+    for at in (now, boundary):
         stored = asyncio.run(read_condition_set(DataReader(database), [q], now=at))[0]
         expected = assert_parity(database, loaded, q, at, at)
         assert stored.model_dump(exclude={"projection"}) == expected.model_dump(
             exclude={"projection"}
         )
+    expired = asyncio.run(
+        read_condition_set(DataReader(database), [q], now=base + timedelta(hours=4))
+    )[0]
+    # The completed display keeps its values at expiry. The expired official
+    # restriction and mapping are still resolved at their actual boundaries.
+    assert expired.retained is True
+    assert expired.condition_score == stored.condition_score
+    assert expired.metrics == stored.metrics
+    assert expired.context_metrics == stored.context_metrics
+    assert expired.safety_status == "unknown"
+    assert expired.restriction_refs == ()
     forecast = q.model_copy(
         update={"mode": "forecast", "at": boundary - timedelta(seconds=1)}
     )

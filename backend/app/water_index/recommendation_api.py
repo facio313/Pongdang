@@ -6,11 +6,12 @@
 
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from psycopg.errors import QueryCanceled
+from psycopg import Error as DatabaseError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
 from app.data_reader import DataReader
@@ -53,6 +54,8 @@ ALTERNATIVES_PER_KIND = 2
 TIDE_LOOKBACK = timedelta(hours=12)
 TIDE_LOOKAHEAD = timedelta(hours=24)
 TIDE_LOOKUP_TIMEOUT = 2.0
+OPTIONAL_LOOKUP_TIMEOUT = 2.0
+RECOMMENDATION_CONTEXT_TIMEOUT = 5.0
 logger = logging.getLogger(__name__)
 
 #: 카카오 카테고리와 TourAPI 콘텐츠 유형. `app/travel/catalog.py` 의 분류와
@@ -369,68 +372,120 @@ async def read_activities(reader, q, now, *, fallback=True):
     }
 
 
+@asynccontextmanager
+async def optional_lookup(
+    unavailable, code, spot_id, *, connection=None, timeout=OPTIONAL_LOOKUP_TIMEOUT
+):
+    """부가 조회의 실패를 표시하고 이미 읽은 활동 조건은 보존합니다."""
+    try:
+        async with asyncio.timeout(timeout):
+            if connection is None:
+                yield
+            else:
+                # A failed statement aborts its transaction. Keep every optional
+                # query in a savepoint so the other lookups can still run.
+                async with connection.transaction():
+                    yield
+    except (DatabaseError, TimeoutError, HTTPException) as exc:
+        if isinstance(exc, HTTPException) and exc.status_code not in {404, 503}:
+            raise
+        if code not in unavailable:
+            unavailable.append(code)
+        logger.warning("%s for spot_id=%s", code, spot_id)
+
+
 async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
     now = now or datetime.now(UTC)
     at, as_of = q.times(now)
     envelopes = await read_activities(reader, q, now)
     first = envelopes[RECOMMENDED_ACTIVITIES[0]]
 
-    async with reader.connection() as c:
-        place = await (
-            await c.execute(
-                f"SELECT id,name,place_kind,lat,lng FROM ({PLACE_SELECT}) p "
-                "WHERE id=%s",
-                [q.spot_id],
-            )
-        ).fetchone()
-        tide = None
-        tide_unavailable = False
-        if place and place["place_kind"] == "beach":
-            try:
-                # A canceled statement aborts its transaction. Roll back only
-                # the optional tide lookup so conditions and alternatives can
-                # still be returned from the same read-only snapshot.
-                async with c.transaction(), asyncio.timeout(TIDE_LOOKUP_TIMEOUT):
+    place = None
+    tide = None
+    alternatives: list[Alternative] = []
+    unavailable: list[str] = []
+    # Core conditions have already been read. Bound all remaining work together
+    # so optional lookups cannot consume the route's full response budget.
+    async with optional_lookup(
+        unavailable,
+        "recommendation_context_unavailable",
+        q.spot_id,
+        timeout=RECOMMENDATION_CONTEXT_TIMEOUT,
+    ):
+        async with reader.connection() as c:
+            async with optional_lookup(
+                unavailable, "place_lookup_unavailable", q.spot_id, connection=c
+            ):
+                place = await (
+                    await c.execute(
+                        f"SELECT id,name,place_kind,lat,lng FROM ({PLACE_SELECT}) p "
+                        "WHERE id=%s",
+                        [q.spot_id],
+                    )
+                ).fetchone()
+            if place and place["place_kind"] == "beach":
+                async with optional_lookup(
+                    unavailable,
+                    "tide_lookup_unavailable",
+                    q.spot_id,
+                    connection=c,
+                    timeout=TIDE_LOOKUP_TIMEOUT,
+                ):
                     tide = await read_tide(c, q.spot_id, at, as_of)
-            except QueryCanceled, TimeoutError:
-                tide_unavailable = True
-                logger.warning("Tide lookup timed out for spot_id=%s", q.spot_id)
 
-        decision = decide(
-            envelopes,
-            place_kind=place["place_kind"] if place else None,
-            tide=tide,
-        )
-
-        alternatives: list[Alternative] = []
-        if place and place["lat"] is not None and place["lng"] is not None:
-            kinds = set(decision.alternative_kinds)
-            if "valley" in kinds:
-                alternatives += [
-                    _alternative("valley", row)
-                    for row in await read_valleys(c, place, as_of)
-                ]
-            catalog_kinds = sorted(kinds - {"valley"})
-            if catalog_kinds:
-                alternatives += [
-                    _alternative(row["kind"], row)
-                    for row in await read_catalog_places(c, place, as_of, catalog_kinds)
-                ]
-
-    # 계곡 대안 한 곳에 한해 그 장소의 추천을 한 번 더 계산합니다. 「대신 계곡」
-    # 이라고 말하면서 그곳 조건을 모르면 근거가 아니라 넘겨짚기입니다.
-    for index, item in enumerate(alternatives):
-        if item.kind != "valley":
-            continue
-        nested = await read_recommendation_choice(reader, item.spot_id, q, now)
-        if nested:
-            alternatives[index] = item.model_copy(
-                update={"best_activity": nested.activity, "score": nested.score}
+            decision = decide(
+                envelopes,
+                place_kind=place["place_kind"] if place else None,
+                tide=tide,
             )
-        break
 
-    unavailable_reason = (
-        (Reason(code="tide_lookup_unavailable"),) if tide_unavailable else ()
+            if place and place["lat"] is not None and place["lng"] is not None:
+                kinds = set(decision.alternative_kinds)
+                if "valley" in kinds:
+                    async with optional_lookup(
+                        unavailable,
+                        "alternatives_lookup_unavailable",
+                        q.spot_id,
+                        connection=c,
+                    ):
+                        alternatives += [
+                            _alternative("valley", row)
+                            for row in await read_valleys(c, place, as_of)
+                        ]
+                catalog_kinds = sorted(kinds - {"valley"})
+                if catalog_kinds:
+                    async with optional_lookup(
+                        unavailable,
+                        "alternatives_lookup_unavailable",
+                        q.spot_id,
+                        connection=c,
+                    ):
+                        alternatives += [
+                            _alternative(row["kind"], row)
+                            for row in await read_catalog_places(
+                                c, place, as_of, catalog_kinds
+                            )
+                        ]
+
+        # 계곡 대안 한 곳에 한해 그 장소의 추천을 한 번 더 계산합니다.
+        # 실패한 대안의 점수는 비워 두고 원래 장소의 조건은 그대로 돌려줍니다.
+        for index, item in enumerate(alternatives):
+            if item.kind != "valley":
+                continue
+            async with optional_lookup(
+                unavailable, "alternative_conditions_unavailable", item.spot_id
+            ):
+                nested = await read_recommendation_choice(reader, item.spot_id, q, now)
+                if nested:
+                    alternatives[index] = item.model_copy(
+                        update={"best_activity": nested.activity, "score": nested.score}
+                    )
+            break
+
+    decision = decide(
+        envelopes,
+        place_kind=place["place_kind"] if place else None,
+        tide=tide,
     )
     return Recommendation(
         spot_id=q.spot_id,
@@ -441,12 +496,11 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
         mode=q.mode,
         choice=decision.choice,
         ranked=decision.ranked,
-        reasons=decision.reasons + unavailable_reason,
+        reasons=decision.reasons + tuple(Reason(code=code) for code in unavailable),
         tide=tide,
         alternatives=tuple(alternatives),
         conditions=tuple(envelopes[a] for a in RECOMMENDED_ACTIVITIES),
-        reason_codes=decision.reason_codes
-        + (("tide_lookup_unavailable",) if tide_unavailable else ()),
+        reason_codes=decision.reason_codes + tuple(unavailable),
     )
 
 

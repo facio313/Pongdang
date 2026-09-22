@@ -82,6 +82,8 @@ export interface Metric {
 export interface Conditions {
   /** Display-only retention; source times and server scores are unchanged. */
   retained?: boolean;
+  /** Original evaluation time when a later requested target reuses a snapshot. */
+  retained_at?: string | null;
   spot_id: number;
   place_name: string | null;
   activity: Activity;
@@ -162,7 +164,7 @@ export function scoreCoverageText(data?: Conditions): string {
 }
 
 export function conditionRetentionText(data?: Conditions) {
-  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.projection?.computed_at ?? data.at) }) : "";
+  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.projection?.computed_at ?? data.retained_at ?? data.at) }) : "";
 }
 
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --

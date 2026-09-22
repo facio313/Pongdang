@@ -5,6 +5,7 @@ import {
   alternativeGroups,
   alternativeText,
   choiceReason,
+  recommendationLookupWarning,
   rejectionReason,
   tideLine,
 } from "./recommendationText";
@@ -54,6 +55,7 @@ export function RecommendationReason({
   const lead = variant === "lead";
   const detail = variant === "detail";
   const choice = detail ? undefined : choiceReason(data);
+  const lookupWarning = detail ? null : recommendationLookupWarning(data);
   const rejection = lead ? undefined : rejectionReason(data);
   const tideInfo = tideLine(data);
   // Optional lookup failures are part of the result's limits, not detail that
@@ -85,7 +87,7 @@ export function RecommendationReason({
         </p>
       </div>
     );
-  if (!choice && !rejection && !tide && !groups.length) return null;
+  if (!choice && !rejection && !tide && !lookupWarning && !groups.length) return null;
   return (
     <div className={root}>
       {choice && (
@@ -96,6 +98,7 @@ export function RecommendationReason({
       )}
       {rejection && <p className="pd-why-line">{rejection.text}</p>}
       {tide && <p className="pd-why-line is-tide">{tide.text}</p>}
+      {lookupWarning && <p className="pd-why-line" role="status">{lookupWarning}</p>}
       {groups.map((group) => (
         <p className="pd-why-alts" key={group.kind}>
           <span className="pd-why-alts-label">{group.label}</span>

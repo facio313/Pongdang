@@ -78,6 +78,26 @@ test('recommendations survive incomplete updates but immediately accept restrict
   assert.equal(retainConditionData(path, previous, restricted), restricted);
 });
 
+test('an unchanged unsupported activity does not erase other activities on an incomplete refresh', () => {
+  const path = 'water-index/recommendation?spot_id=7';
+  const unsupported = { ...condition(null, []), activity: 'onsen', support_status: 'unsupported',
+    condition_score: { ...condition(null, []).condition_score, status: 'blocked' } };
+  const previous = { choice: { activity: 'swim', score: 80 }, conditions: [condition(), unsupported] };
+  const incomplete = { choice: null, conditions: [condition(null, []), unsupported] };
+  const kept = retainConditionData(path, previous, incomplete);
+  assert.equal(kept.choice.score, 80);
+  assert.equal(kept.conditions[0].retained, true);
+  assert.equal(kept.conditions[0].at, previous.conditions[0].at);
+  for (const changes of [{ safety_status: 'restricted' }, { projection: { retention_allowed: false } }]) {
+    const revoked = { ...incomplete, conditions: [incomplete.conditions[0], { ...unsupported, ...changes }] };
+    assert.equal(retainConditionData(path, previous, revoked), revoked);
+  }
+  const newlyUnsupported = { ...incomplete, conditions: [
+    { ...incomplete.conditions[0], support_status: 'unsupported' }, unsupported,
+  ] };
+  assert.equal(retainConditionData(path, previous, newlyUnsupported), newlyUnsupported);
+});
+
 test('failed reads preserve public conditions, never private or unrelated resources', () => {
   const previous = condition();
   assert.deepEqual(retainConditionData('water-index/conditions?spot_id=7', previous, undefined), { ...previous, retained: true });
