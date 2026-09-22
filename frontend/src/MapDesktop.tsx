@@ -745,6 +745,47 @@ export function MapDesktop() {
                   />
                   <ScoreExplainer data={conditions.data} />
                 </>
+              ) : isInitialLoad(places) ? (
+                // 지점 목록이 아직 처음 조회 중이라 고를 대상 자체가 없는
+                // 짧은 순간입니다. 「지점을 고르면…」한 줄로 대신하면 목록이
+                // 도착해 지점이 자동으로 고정되는 순간 패널이 한 줄에서
+                // 전체 근거 블록으로 갑자기 부풀어 들썩입니다. 같은 틀을
+                // 스켈레톤으로 미리 채워 크기를 고정합니다.
+                <>
+                  <div className="mk-detail-head">
+                    <img
+                      src={mascotUrl("swim")}
+                      alt={MASCOT_ALT}
+                      width={52}
+                      height={52}
+                    />
+                    <div className="mk-detail-lead">
+                      <div className="mk-detail-name">
+                        <Skeleton width="8em" label={t("장소 조회 중")} />
+                      </div>
+                      <div className="mk-detail-meta">
+                        <Skeleton width="12em" />
+                      </div>
+                    </div>
+                    <div className="mk-detail-score" data-grade="unscored">
+                      <div className="pd-dk-num mk-detail-score-num">
+                        <Skeleton width="1.4em" />
+                      </div>
+                      <div className="mk-detail-score-grade">
+                        <Skeleton width="3.4em" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mk-evidence-head-row">
+                    <h2 className="mk-evidence-title">
+                      {activities[ACTIVITY]} {t("점수 근거")}</h2>
+                    <StateChip kind="no_data" />
+                  </div>
+                  <p className="mk-note">
+                    {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
+                  <ComponentBars bars={componentBars(undefined)} loading />
+                  <ScoreReason text="" loading />
+                </>
               ) : (
                 <p className="mk-note" role="status">{t("지점을 고르면 그 지점의 점수 근거를 조회합니다.")}</p>
               )}

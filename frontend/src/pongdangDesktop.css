@@ -79,13 +79,24 @@
   background: var(--dk-surface);
   color: var(--dk-ink);
   font-size: 13px;
+  /* 히어로 · 푸터가 100vw 로 튀어나가는 기법(아래 주석)을 쓰는 동안, 스크롤바
+     폭 때문에 생기는 1px 안팎의 가로 여유를 감춥니다. */
+  overflow-x: hidden;
 }
 
 /* 1440 이 디자인 기준 폭입니다. 그보다 넓어지면 좌우 112px 여백을 유지한 채
-   본문만 늘어나고, 1600 에서 멈춥니다. */
+   본문만 늘어나고, 1600 에서 멈춥니다. 코발트 면(히어로 · 푸터)은 예외입니다 --
+   그 둘은 **읽는 본문**이 아니라 화면을 감싸는 배경이므로 이 상한을 받지 않고
+   전 폭으로 늘어나야 합니다(각자 100vw 로 튀어나가고, 그 안의 글은 다시
+   1600 으로 가운데 정렬합니다 -- .pd-dk-hero-body · .pd-dk-foot-body 주석
+   참고). 짧은 화면(명소 상세처럼 히어로가 없는 페이지)에서도 최소 뷰포트
+   높이를 유지해, 콘텐츠가 짧다고 페이지 자체가 짜부라지지 않게 합니다. */
 .pd-desktop-page {
   max-width: 1600px;
   margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 main:has(.pd-desktop) {
@@ -109,6 +120,7 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-desktop.is-fullscreen .pd-desktop-page {
   max-width: none;
   height: 100%;
+  min-height: 0;
 }
 
 .pd-desktop :focus-visible {
@@ -140,6 +152,15 @@ main:has(.pd-desktop.is-fullscreen) {
   align-items: center;
   gap: 30px;
   padding: 24px var(--dk-pad) 0;
+}
+/* 히어로가 100vw 로 튀어나간 뒤에도(.pd-dk-hero 주석), 그 안의 네비는 다른
+   본문과 같은 1600 상한으로 가운데 정렬합니다 -- 풀스크린 지도 위 네비
+   (.is-on-map)만 예외입니다. 지도 위 네비는 그 자체가 이미 화면 끝까지
+   가는 것이 의도이므로 여기서 다시 가두면 안 됩니다. */
+.pd-dk-nav:not(.is-on-map) {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
 }
 /* 사이드 메뉴 손잡이. 모바일과 같은 컴포넌트라 .pd-menu-button 규칙을 그대로
    받고, 데스크탑 팔레트(--dk-*)로만 덮습니다. 네비가 흰 배경 위에 얹히는
@@ -333,6 +354,13 @@ main:has(.pd-desktop.is-fullscreen) {
   color: var(--dk-onc);
   --dk-hero-min-h: 520px;
   --dk-hero-mascot-size: 200px;
+  /* .pd-desktop-page 가 1600px 에서 멈춰도 코발트 면은 계속 늘어나야 하므로,
+     여기서 뷰포트 폭까지 튀어나갑니다("full-bleed 브레이크아웃"). 안의 글
+     (.pd-dk-nav · .pd-dk-hero-body)은 각자 다시 1600 으로 가운데 정렬해
+     본문 정렬은 그대로 유지됩니다. */
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
 }
 /* 높이가 여섯 화면 공통이라 내용이 짧은 화면(지도 · 내 코스)은 아래가 빕니다.
    위로 붙이면 빈 코발트가 아래에 덩어리로 남아 「덜 그려진 화면」으로 읽히므로
@@ -345,6 +373,14 @@ main:has(.pd-desktop.is-fullscreen) {
   flex-direction: column;
   justify-content: center;
   padding: 26px var(--dk-pad) 0;
+  /* 히어로 자체는 이제 100vw 지만(위 주석), 안의 글은 다른 본문 행과 같은
+     1600 상한으로 가운데 정렬해야 정렬선이 어긋나지 않습니다. 마스코트는
+     이 요소를 기준으로 절대배치되므로(position:relative) 이 상한 안에서
+     제자리를 지킵니다. */
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 /* 마스코트는 히어로 본문의 마지막 자식이지만 흐름에서는 빠집니다 -- 흐름에
    두면 화면마다 다른 본문 배치(점수 · 관측값 · 검색) 뒤로 밀려 어느 화면에서도
@@ -465,6 +501,10 @@ main:has(.pd-desktop.is-fullscreen) {
      격자를 밀고 나가 페이지가 스크롤됩니다. 스크롤은 패널 **안에서만**
      일어나야 합니다. */
   min-height: 0;
+  /* 반대 방향도 고정합니다 -- 내용이 데이터 로딩 전이라 짧을 때도 패널은
+     격자 칸(전체 높이)만큼 서 있어야 합니다. 격자의 기본 정렬(stretch)이
+     이걸 이미 하긴 하지만, 값을 명시해 내용 길이와 무관하게 항상 보장합니다. */
+  height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
   background: var(--dk-surface);
@@ -525,9 +565,20 @@ main:has(.pd-desktop.is-fullscreen) {
    위치는 패널 본문과 같습니다. 파도는 이 안에서 그리지 않으므로(wave={false})
    파도 자리였던 위쪽 104px 패딩도 쓰지 않습니다. */
 .pd-desktop .pd-dk-mappanel .pd-dk-foot {
+  /* 페이지 레벨 푸터의 100vw 브레이크아웃(.pd-dk-foot 기본 규칙)을 되돌립니다
+     -- 여기서는 352px 패널 폭을 그대로 채워야지 뷰포트로 튀어나가면 안
+     됩니다. margin-top: auto 는 그대로 씁니다 -- 패널 안에서 바닥에 붙는
+     동작은 여기서도 원하는 것입니다(패널이 flex column 이므로). */
+  width: auto;
+  transform: none;
   margin: auto -20px -22px;
   padding: 18px 20px 22px;
   border-radius: 0 0 var(--dk-r-panel) var(--dk-r-panel);
+}
+.pd-desktop .pd-dk-mappanel .pd-dk-foot-body {
+  max-width: none;
+  margin: 0;
+  padding: 0;
 }
 
 .pd-dk-mappanel-badge {
@@ -645,19 +696,37 @@ main:has(.pd-desktop.is-fullscreen) {
 .pd-dk-foot {
   position: relative;
   overflow: hidden;
-  padding: 104px var(--dk-pad) 64px;
+  padding: 104px 0 64px;
   background: var(--dk-cobalt);
   color: var(--dk-onc);
+  /* 히어로와 같은 이유로 페이지 폭(1600 상한)과 무관하게 뷰포트 끝까지
+     늘어납니다(.pd-dk-hero 주석 참고). 페이지 안(위쪽) 푸터는 여백 아래
+     남는 자리를 스스로 채워 화면 바닥에 붙습니다(.pd-desktop-page 가
+     flex column 이므로 margin-top: auto 로 밀립니다) -- 짧은 화면에서
+     푸터가 콘텐츠 바로 아래에 뜨지 않고 뷰포트 하단에 자리 잡습니다.
+     지도 패널 안에 중첩될 때는 아래 오버라이드가 이 네 가지를 모두
+     되돌립니다. */
+  width: 100vw;
+  margin-top: auto;
+  margin-left: 50%;
+  transform: translateX(-50%);
 }
 /* 파도 없이 쓰는 변형(FootNote wave={false}). 위쪽 104px 은 파도가 서던 자리
    이므로, 파도를 그리지 않으면 코발트 빈 띠로만 남습니다. */
 .pd-dk-foot.is-flat {
   padding-top: 28px;
 }
-/* 물결 · 파도는 절대배치이므로, 본문은 z-index 로 그 위에 올려 둡니다. */
+/* 물결 · 파도는 절대배치이므로, 본문은 z-index 로 그 위에 올려 둡니다.
+   가로 여백(var(--dk-pad))도 여기로 옮겼습니다 -- 푸터 자체는 100vw 로
+   튀어나갔으므로, 안의 글만 다른 본문 행과 같은 1600 상한 + 여백으로
+   가운데 정렬합니다. */
 .pd-dk-foot-body {
   position: relative;
   z-index: 1;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 var(--dk-pad);
+  box-sizing: border-box;
 }
 .pd-dk-foot-wave {
   position: absolute;
