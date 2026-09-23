@@ -47,6 +47,7 @@ import {
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useAction } from "./useAction";
+import { suppressLoginRequired } from "./authError";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
 import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
 import { isInitialLoad, useResource } from "./useResource";
@@ -192,10 +193,15 @@ export function MapDesktop() {
   const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
     "plan_id",
   );
-  const savedPlan = useResource<TripPlan>(
-    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
-      ? `travel/plans/${planId}`
-      : null,
+  // 공유 코스 링크(plan_id)도 개인정보 자원입니다. 익명 방문자에게는
+  // 「로그인 필요」를 알림으로 띄우지 않고, 다른 저장 자원과 같이 조용히
+  // 처리합니다(authError.suppressLoginRequired).
+  const savedPlan = suppressLoginRequired(
+    useResource<TripPlan>(
+      planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+        ? `travel/plans/${planId}`
+        : null,
+    ),
   );
   useEffect(() => {
     if (savedPlan.data)

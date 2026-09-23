@@ -6,6 +6,7 @@ import { setTravelSession, useTravelSession } from "./travelSession";
 import { useAction } from "./useAction";
 import { useResource } from "./useResource";
 import { useTravelLanguage } from "./travelLanguage";
+import { isLoginRequiredMessage, suppressLoginRequired } from "./authError";
 
 /** Both detail layouts add the selected real place through the same draft API. */
 export function useSpotActions(place: Place | undefined, { queryFavorites = true } = {}) {
@@ -14,9 +15,14 @@ export function useSpotActions(place: Place | undefined, { queryFavorites = true
   const action = useAction();
   const [signalRevision, setSignalRevision] = useState(0);
   const [feedback, setFeedback] = useState<{ text: string; draft?: boolean } | null>(null);
-  const favorites = useResource<{ rows: { id: string; payload: { kind: string; spot_id: number } }[] }>(
+  const favoritesResource = useResource<{ rows: { id: string; payload: { kind: string; spot_id: number } }[] }>(
     place && queryFavorites ? `travel/signals?spot_id=${place.id}&kind=favorite` : null, signalRevision,
   );
+  // 즐겨찾기 조회도 개인정보 자원이라 익명 방문자에겐 로그인 필요가 뜹니다.
+  // 상세 화면을 열자마자 알림을 띄우지 않습니다 -- 저장 버튼을 실제로
+  // 눌렀을 때(toggleFavorite → useAction)만 로그인 팝오버로 안내합니다.
+  const favoritesLoginRequired = isLoginRequiredMessage(favoritesResource.error);
+  const favorites = suppressLoginRequired(favoritesResource);
   const saved = favorites.data?.rows.find((row) => row.payload.kind === "favorite" && row.payload.spot_id === place?.id);
   const add = () => {
     setFeedback(null);
@@ -45,7 +51,10 @@ export function useSpotActions(place: Place | undefined, { queryFavorites = true
   const toggleFavorite = () => {
     setFeedback(null);
     void action.run(async (signal) => {
-      if (!place || !favorites.data) return;
+      // 익명 방문자는 favorites.data 가 없습니다(위 로그인 필요 처리). 그래도
+      // 누를 수는 있어야 합니다 -- 저장을 시도하면 travelJson 이 401 을 던지고
+      // useAction 이 로그인 팝오버로 안내합니다(gate only personal-data actions).
+      if (!place || (!favorites.data && !favoritesLoginRequired)) return;
       await travelJson(import.meta.env.BASE_URL,
         saved ? `travel/signals/${saved.id}` : "travel/signals",
         saved ? "DELETE" : "POST",
@@ -56,5 +65,5 @@ export function useSpotActions(place: Place | undefined, { queryFavorites = true
       }
     });
   };
-  return { action, favorites, saved, message: feedback ? t(feedback.text) : "", showDraftLink: feedback?.draft ?? false, add, toggleFavorite };
+  return { action, favorites, favoritesLoginRequired, saved, message: feedback ? t(feedback.text) : "", showDraftLink: feedback?.draft ?? false, add, toggleFavorite };
 }

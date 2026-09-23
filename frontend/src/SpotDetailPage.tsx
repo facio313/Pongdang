@@ -64,7 +64,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 「없음」과 구분해 그립니다.
   const placeLoading = !place && lookup.loading;
-  const { action, favorites, saved, message, showDraftLink, add, toggleFavorite } = useSpotActions(place);
+  const { action, favorites, favoritesLoginRequired, saved, message, showDraftLink, add, toggleFavorite } = useSpotActions(place);
 
   return (
     <article className="spots-page spot-detail">
@@ -180,7 +180,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           <div className="sd-actions">
             <button type="button" className="pd-primary sd-add" disabled={action.busy} onClick={add}>{t("내 코스에 추가")}</button>
             <button type="button" className="pd-secondary sd-save"
-              disabled={action.busy || favorites.loading || !favorites.data}
+              disabled={action.busy || favorites.loading || (!favorites.data && !favoritesLoginRequired)}
               aria-pressed={Boolean(saved)} aria-label={saved ? t("저장 해제") : t("저장")}
               onClick={toggleFavorite}>
               <Icon name="save" size={19} />

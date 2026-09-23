@@ -1,5 +1,6 @@
 import { useResource } from "./useResource";
 import type { TripPlan } from "./travelApi";
+import { suppressLoginRequired } from "./authError";
 
 export interface PlanWithAlarm {
   plan: TripPlan;
@@ -13,16 +14,21 @@ export interface PlanWithAlarm {
  *  일치 && state === "active" && notifications.enabled)을 한 곳으로 모읍니다
  *  -- 조건 세 개짜리 매핑이라 손으로 두 번 옮기면 어긋나기 쉽습니다. */
 export function useMyPlansWithAlarm() {
-  const myPlans = useResource<{ rows: TripPlan[] }>(
+  const myPlansResource = useResource<{ rows: TripPlan[] }>(
     "travel/plans?limit=100&offset=0",
   );
-  const sessions = useResource<{
+  const sessionsResource = useResource<{
     rows: {
       plan_id: string;
       state: string;
       notifications: { enabled: boolean };
     }[];
   }>("travel/sessions?limit=100&offset=0");
+  // 저장 코스 · 동행 세션 둘 다 개인정보라 익명 방문자는 로그인 필요를
+  // 받습니다. 그건 실패가 아니라 「저장한 코스 없음」과 같은 사실이므로,
+  // 코스 뷰를 열자마자 알림으로 띄우지 않고 빈 목록으로 다룹니다.
+  const myPlans = suppressLoginRequired(myPlansResource);
+  const sessions = suppressLoginRequired(sessionsResource);
   const plans: PlanWithAlarm[] = (myPlans.data?.rows ?? []).map((plan) => ({
     plan,
     alarm:

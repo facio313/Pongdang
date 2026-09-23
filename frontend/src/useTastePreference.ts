@@ -1,5 +1,6 @@
 import { forgetResource, useResource } from "./useResource";
 import { travelJson, type Preference } from "./travelApi";
+import { isLoginRequiredMessage } from "./authError";
 
 // 취향 한 벌을 읽고 쓰는 곳입니다. 예전에는 모바일 추천(RecommendPage)과
 // 데스크탑 추천(RecommendDesktop)이 **각자** 서버 카탈로그를 조회하고, 각자
@@ -64,6 +65,12 @@ export function useTastePreference(): TastePreference {
     ),
   );
   const labelOf = (id: string) => optionIndex.get(id)?.label ?? id;
+  // preferences 는 개인정보라 nginx 에서 SSO 게이트가 걸려 있습니다. 익명
+  // 방문자에게는 「로그인 필요」가 실패가 아니라 그냥 「저장된 취향 없음」과
+  // 같은 사실입니다 -- 홈에 들어오자마자 로그인 화면으로 튕기거나 경고를
+  // 띄우면 안 됩니다(둘러보기는 로그인 없이도 됩니다). 쓰기 행동에서의
+  // 로그인 요구는 useAction 의 팝오버가 따로 처리합니다.
+  const profileLoginRequired = isLoginRequiredMessage(profile.error);
   // 저장된 취향은 라벨로 쌓여 있습니다. 같은 이름의 서버 항목이 있으면 그 id 로
   // 되읽고, 없는 이름은 버립니다 -- 서버가 모르는 값을 다시 보내지 않습니다.
   const savedIds = (profile.data?.preference.tags ?? []).flatMap((tag) => {
@@ -104,7 +111,7 @@ export function useTastePreference(): TastePreference {
     // 카탈로그가 아직 없으면 저장된 라벨을 id 로 되읽을 수 없습니다. 그동안은
     // 「없음」이 아니라 「모름」입니다.
     profileLoading: profile.loading || catalogue.loading,
-    profileError: profile.error,
+    profileError: profileLoginRequired ? undefined : profile.error,
     savePreference,
   };
 }
