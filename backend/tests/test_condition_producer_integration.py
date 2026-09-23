@@ -89,7 +89,7 @@ def ids(settings, station):
 
 def inputs(settings, now):
     start = now.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=32)
+    end = start + timedelta(days=8)
     with connect(settings) as c:
         c.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         return _load_inputs(c, now, start, end), start, end
@@ -488,13 +488,13 @@ def test_mapping_authority_and_expiry_boundaries_publish_same_condition_set(data
     assert stored.metrics == ()
 
 
-def test_saved_forecasts_preserve_31_day_query_window_and_real_evidence(database):
+def test_saved_forecasts_cover_next_seven_days_but_not_day_eight(database):
     base = datetime.now(UTC) - timedelta(seconds=1)
     start = base.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
     targets = (
-        base + timedelta(days=10),
-        base + timedelta(days=31),
-        start + timedelta(days=31, hours=23),
+        start + timedelta(days=7, hours=1),
+        start + timedelta(days=7, hours=23),
+        start + timedelta(days=8),
     )
     for index, target in enumerate(targets):
         put(
@@ -521,27 +521,24 @@ def test_saved_forecasts_preserve_31_day_query_window_and_real_evidence(database
     assert produce_conditions(database, now=now) > 0
     loaded, _, _ = inputs(database, now)
     _, spot = ids(database, "fixture-month-forecast")
-    late_cutoff = start + timedelta(days=1) - timedelta(microseconds=1)
-    for at, cutoff, has_score in (
-        (targets[0] + timedelta(minutes=30), now, True),
-        (now + timedelta(days=31), now, True),
-        (late_cutoff + timedelta(days=31), late_cutoff, True),
-        (targets[0] - timedelta(seconds=1), now, False),
-        (targets[0] + timedelta(hours=1), now, False),
-        (base + timedelta(days=15), now, False),
+    for at, has_score in (
+        (targets[0] + timedelta(minutes=30), True),
+        (targets[1] + timedelta(minutes=30), True),
+        (targets[0] - timedelta(seconds=1), False),
+        (targets[0] + timedelta(hours=1), False),
+        (targets[2], False),
     ):
         q = ConditionQuery(spot_id=spot, activity="relax", mode="forecast", at=at)
-        expected = assert_parity(database, loaded, q, at, cutoff)
-        stored = asyncio.run(read_condition_set(DataReader(database), [q], now=cutoff))[
-            0
-        ]
-        assert stored.model_dump(exclude={"projection"}) == expected.model_dump(
-            exclude={"projection"}
-        )
+        stored = asyncio.run(read_condition_set(DataReader(database), [q], now=now))[0]
+        if at < start + timedelta(days=8):
+            expected = assert_parity(database, loaded, q, at, now)
+            assert stored.model_dump(exclude={"projection"}) == expected.model_dump(
+                exclude={"projection"}
+            )
         assert (stored.condition_score.score is not None) is has_score
     with connect(database) as c:
         latest_observation_end = c.execute(
-            "SELECT max(target_end) FROM pongdang_data.condition_snapshot "
+            "SELECT max(target_end) FROM pongdang_data.condition_result "
             "WHERE mode='observation'"
         ).fetchone()[0]
     assert latest_observation_end == start + timedelta(days=7)

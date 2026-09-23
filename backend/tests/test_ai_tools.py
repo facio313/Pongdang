@@ -11,6 +11,7 @@ from fastapi import HTTPException
 
 from app.ai import tools
 from app.config import Settings
+from app.water_index.condition_api import ConditionQuery, read_conditions
 from app.water_index.engine import diagnostic_assessment
 from app.water_index.models import Context, Target
 
@@ -77,13 +78,28 @@ class Cursor:
 
 
 class FixtureReader:
-    """SQL fixtures underneath actual read_conditions and Water Twin services."""
+    """SQL fixtures underneath publication and Water Twin services."""
 
     def __init__(self, *, records=None, places=None):
         self.records = [metric_record()] if records is None else records
         self.places = [place()] if places is None else places
         self.queries = []
         self.open_connections = 0
+        self.condition_reads = 0
+        self.published = {}
+        asyncio.run(self.publish())
+
+    async def publish(self):
+        """Simulate an earlier worker publication before a tool request."""
+        self.published = {
+            mode: await read_conditions(
+                self,
+                ConditionQuery(spot_id=1, activity="swim", mode=mode),
+                now=NOW,
+            )
+            for mode in ("observation", "forecast")
+        }
+        self.queries.clear()
 
     @asynccontextmanager
     async def connection(self):
@@ -247,12 +263,26 @@ def install_tool_services(monkeypatch):
             range_semantics="target_overlap",
         )
 
+    async def stored(reader, queries, *, now=None, connection=None):
+        reader.condition_reads += 1
+        return [
+            reader.published[q.mode].model_copy(
+                update={
+                    "spot_id": q.spot_id,
+                    "at": q.at or now,
+                    "as_of": q.as_of or now,
+                }
+            )
+            for q in queries
+        ]
+
     monkeypatch.setattr("app.water_index.condition_api.station_links", links)
     monkeypatch.setattr("app.twin.api.station_links", links)
     monkeypatch.setattr("app.twin.api.read_projection", projection)
     monkeypatch.setattr("app.twin.api.select_forecasts", forecast)
     monkeypatch.setattr(tools, "read_projection", projection)
     monkeypatch.setattr(tools, "select_forecasts", forecast)
+    monkeypatch.setattr(tools, "read_condition_set", stored)
 
 
 @pytest.fixture
@@ -362,6 +392,26 @@ def test_kst_midnight_tomorrow_afternoon_weekend_and_bounds():
         )
 
 
+def test_place_conditions_rejects_dates_outside_published_kst_window(session):
+    day_start = NOW.astimezone(tools.KST).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    for target in (day_start - timedelta(days=8), day_start + timedelta(days=8)):
+        with pytest.raises(tools.ToolError, match="unsupported_time_range"):
+            run(
+                session.execute(
+                    "place_conditions",
+                    {
+                        "spot_ids": [1],
+                        "when": "custom",
+                        "start": target,
+                        "end": target + timedelta(hours=1),
+                    },
+                )
+            )
+    assert session.reader.condition_reads == 0
+
+
 def test_search_uses_parameterized_actual_travel_catalog_and_bounded_first_page(
     session,
 ):
@@ -396,7 +446,8 @@ def test_real_conditions_and_twin_services_preserve_facts_and_release_connection
     assert evidence["issued_at"] is None and evidence["unit"] == "°C"
     assert evidence["source_state"] == "recorded"
     assert session.reader.open_connections == 0
-    assert any("WITH known AS" in sql for sql, _ in session.reader.queries)
+    assert session.reader.condition_reads == 1
+    assert not any("WITH known AS" in sql for sql, _ in session.reader.queries)
     assert any("WITH revisions AS" in sql for sql, _ in session.reader.queries)
     warning = next(
         f for f in result["facts"] if "current_place_warning_status" in f["metadata"]
@@ -407,6 +458,19 @@ def test_real_conditions_and_twin_services_preserve_facts_and_release_connection
     )
     safety = next(f for f in result["facts"] if "environment_score" in f["metadata"])
     assert safety["mandatory"] and safety["metadata"]["environment_score"] is None
+
+
+def test_place_conditions_reads_three_published_results_in_one_batch(session):
+    session.reader.places.extend([place(2), place(3)])
+    result = run(session.execute("place_conditions", {"spot_ids": [1, 2, 3]}))
+    assert result["status"] == "available", result
+    assert session.reader.condition_reads == 1
+    assert {row["candidate_id"] for row in result["candidates"]} == {
+        "spot:1",
+        "spot:2",
+        "spot:3",
+    }
+    assert session.reader.open_connections == 0
 
 
 @pytest.mark.parametrize(
@@ -423,6 +487,7 @@ def test_missing_stale_unknown_units_and_revisions_are_not_confirmed(
     session, change, status
 ):
     session.reader.records = [dict(metric_record(), **change)]
+    run(session.reader.publish())
     result = run(
         session.execute(
             "place_conditions", {"spot_ids": [1], "temperature_confirmed_only": True}
@@ -516,7 +581,7 @@ def test_database_failure_is_sanitized_and_rolls_back_partial_candidates(
     async def failure(*_args, **_kwargs):
         raise HTTPException(503, "credential-secret should never leave service")
 
-    monkeypatch.setattr(tools, "read_conditions", failure)
+    monkeypatch.setattr(tools, "read_condition_set", failure)
     result = run(session.execute("place_conditions", {"spot_ids": [1]}))
     assert result["status"] == "query_failed"
     assert "credential-secret" not in json.dumps(result)

@@ -45,8 +45,8 @@ def test_expired_snapshot_survives_multiple_publications_and_new_clients(databas
     produce_conditions(database, now=original.fetched_at)
     first = read(database, spot, original.fetched_at)
     assert first.condition_score.available_components == 2
-    # Each subsequent collection only has one component. Even after the original
-    # generation is pruned, the new DB publication must retain the complete set.
+    # Each subsequent collection only has one component. Publish its new value
+    # while retaining the independent wind component and original provenance.
     for offset in (3, 2, 1):
         fetched = now - timedelta(hours=offset)
         store_batch(
@@ -59,6 +59,15 @@ def test_expired_snapshot_survives_multiple_publications_and_new_clients(databas
             ),
         )
         assert produce_conditions(database, now=fetched) > 0
+        latest = read(database, spot, fetched)
+        assert latest.condition_score.score == 100.0
+        assert latest.condition_score.available_components == 2
+        components = {c.metric: c for c in latest.condition_score.components}
+        assert components["air_temperature"].value == 26.0
+        assert components["wind_speed"].value == 2.0
+        wind = next(m for m in latest.metrics if m.name == "wind_speed")
+        assert wind.status == "stale"
+        assert wind.evidence[0].observed_at == original.readings[0].observed_at
     with connect(database) as c:
         assert c.execute(
             "SELECT count(*) FROM pongdang_data.condition_snapshot "
@@ -68,14 +77,13 @@ def test_expired_snapshot_survives_multiple_publications_and_new_clients(databas
     with TestClient(create_app(database)) as client:
         params = dict(spot_id=spot, activity="swim", mode="observation")
         body = client.get(BASE + "/conditions", params=params).json()
-        assert body["condition_score"] == first.condition_score.model_dump(mode="json")
+        assert body["condition_score"] == latest.condition_score.model_dump(mode="json")
         assert body["retained"] is True
-        assert body["retained_at"] == first.at.isoformat().replace("+00:00", "Z")
-        assert body["projection"][
-            "computed_at"
-        ] == first.projection.computed_at.astimezone(UTC).isoformat().replace(
+        assert body["retained_at"] == latest.retained_at.isoformat().replace(
             "+00:00", "Z"
         )
+        assert body["projection"]["status"] == "ready"
+        assert body["projection"]["refresh_after"] is None
         summary = client.get(
             BASE + "/conditions/summary",
             params=dict(spot_ids=str(spot), activity="swim"),
@@ -91,8 +99,8 @@ def test_expired_snapshot_survives_multiple_publications_and_new_clients(databas
     # Collector downtime beyond the precomputed observation horizon still reads
     # the saved observation, without relabelling it as a new measurement.
     later = read(database, spot, now + timedelta(days=9))
-    assert later.condition_score == first.condition_score
-    assert later.retained_at == first.at
+    assert later.condition_score == latest.condition_score
+    assert later.retained_at == latest.retained_at
 
 
 def test_complete_lower_score_replaces_retained_values(database):
@@ -131,7 +139,8 @@ def test_v17_upgrade_preserves_publication_and_classifies_source_corrections(dat
         )
     pending = read(database, spot, datetime.now(UTC))
     assert pending.condition_score == first.condition_score
-    assert pending.projection.status == "refreshing"
+    assert pending.projection.status == "ready"
+    assert pending.projection.refresh_after is None
     assert pending.projection.retention_allowed is True
 
 

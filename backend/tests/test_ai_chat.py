@@ -709,7 +709,8 @@ def test_conversation_executes_real_services_then_assembles_current_evidence(
     assert not result.fallback, result.reason_codes
     assert result.features == ["search_places", "place_conditions"]
     assert any("18.2 °C" in f["text"] for f in result.facts)
-    assert any("WITH known AS" in query for query, _ in reader.queries)
+    assert reader.condition_reads == 1
+    assert not any("WITH known AS" in query for query, _ in reader.queries)
     assert any("WITH revisions AS" in query for query, _ in reader.queries)
     assert all(size <= settings.ai_max_input_bytes for size in account.sizes)
     assert len(account.sizes) == 3 and reader.open_connections == 0

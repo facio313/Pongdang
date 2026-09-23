@@ -3,6 +3,22 @@ from dataclasses import dataclass
 
 from app.ingestion.models import SourceBatch
 
+FORECAST_JOBS = frozenset(
+    {
+        "kma_ultra_forecast",
+        "kma_short_forecast",
+        "kma_mid_forecast",
+        "kma_uv_forecast",
+        "khoa_beach",
+        "khoa_surfing",
+        "khoa_mudflat",
+        "khoa_tide_extrema",
+        "khoa_tide_timeseries",
+        "khoa_current_timeseries",
+        "khoa_roms",
+    }
+)
+
 
 @dataclass(frozen=True)
 class Job:
@@ -16,7 +32,10 @@ class Job:
 
 
 def scheduled_interval(job: Job) -> int:
-    """External collection runs at most every ten minutes automatically."""
+    """Check forecasts every 30 minutes; retain faster observation schedules."""
     if job.external_collection or job.fetch is not None:
-        return max(600, job.interval_seconds)
+        interval = job.interval_seconds
+        if job.name in FORECAST_JOBS:
+            interval = min(1800, interval)
+        return max(600, interval)
     return job.interval_seconds

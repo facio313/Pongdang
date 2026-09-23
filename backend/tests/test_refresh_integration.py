@@ -269,6 +269,68 @@ def test_external_continuations_and_existing_fast_schedules_obey_minimum(db):
         ).fetchone() == (600, 600)
 
 
+def test_forecast_interval_shortening_preserves_failure_backoff(db):
+    forecast = Job("kma_short_forecast", 3600, lambda: batch())
+    run_due(db, [forecast])
+    with connect(db) as c:
+        c.execute(
+            "UPDATE pongdang_data.collection_job SET interval_seconds=3600,"
+            "next_run_at=finished_at+interval '1 hour' "
+            "WHERE task_name='kma_short_forecast'"
+        )
+    synchronize_jobs(db, [forecast])
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT interval_seconds,extract(epoch FROM next_run_at-finished_at) "
+            "FROM pongdang_data.collection_job WHERE task_name='kma_short_forecast'"
+        ).fetchone() == (1800, 1800)
+        c.execute(
+            "UPDATE pongdang_data.collection_job SET interval_seconds=3600,"
+            "consecutive_failures=1,next_run_at=finished_at+interval '2 hours' "
+            "WHERE task_name='kma_short_forecast'"
+        )
+    synchronize_jobs(db, [forecast])
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT interval_seconds,extract(epoch FROM next_run_at-finished_at) "
+            "FROM pongdang_data.collection_job WHERE task_name='kma_short_forecast'"
+        ).fetchone() == (1800, 7200)
+    assert run_due(db, [forecast]) == []
+
+
+@pytest.mark.parametrize("source_state", ["failed", "no_data"])
+def test_one_unavailable_provider_does_not_block_independent_source_or_score(
+    db, source_state
+):
+    calls = []
+
+    def unavailable():
+        if source_state == "failed":
+            raise ProviderError("NETWORK_ERROR")
+        return SourceBatch(provider="EMPTY_TEST", fetched_at=datetime.now(UTC))
+
+    def project():
+        with connect(db) as c:
+            assert c.execute(
+                "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
+            ).fetchone() == (1,)
+        calls.append("projection")
+        return dict(received=1, inserted=1, state="succeeded")
+
+    jobs = [
+        Job("unavailable_source", 600, unavailable),
+        Job("independent_source", 600, lambda: batch()),
+        Job("condition_projection", 600, process=project),
+    ]
+    outcomes = run_due(db, jobs)
+    assert [outcome["state"] for outcome in outcomes] == [
+        source_state,
+        "succeeded",
+        "succeeded",
+    ]
+    assert calls == ["projection"]
+
+
 def test_changed_score_inputs_run_before_interval_but_not_during_backoff(
     db, monkeypatch
 ):

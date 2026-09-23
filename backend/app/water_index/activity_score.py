@@ -416,20 +416,31 @@ def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
                 source_ids=curve.source_ids if curve else (),
             )
         )
-    available = [c for c in components if c.score is not None]
-    blocked = (
-        evidence.safety_status == "restricted"
-        or evidence.support_status == "unsupported"
+    return aggregate_activity_score(
+        components,
+        activity=evidence.activity,
+        support_status=evidence.support_status,
+        safety_status=evidence.safety_status,
     )
+
+
+def aggregate_activity_score(components, *, activity, support_status, safety_status):
+    """Combine independent stored components, including publication fallbacks.
+
+    This v1 activity model averages single-metric preferences. Reusing one
+    component does not synthesize simultaneous inputs for a coupled formula.
+    """
+    available = [c for c in components if c.score is not None]
+    blocked = safety_status == "restricted" or support_status == "unsupported"
     reasons = ["provisional_product_defaults", "not_a_safety_score"]
     reasons.extend(dict.fromkeys(code for c in available for code in c.reason_codes))
-    if evidence.support_status == "unknown":
+    if support_status == "unknown":
         reasons.append("activity_support_unknown")
     if blocked:
         reasons.append("official_restriction_or_unsupported_activity")
     if len(available) < len(components):
         reasons.append("partial_components" if available else "no_available_components")
-    if evidence.activity in {"onsen", "mudflat", "rafting"}:
+    if activity in {"onsen", "mudflat", "rafting"}:
         reasons.append("operating_conditions_require_separate_confirmation")
     return ActivityScore(
         status="blocked"

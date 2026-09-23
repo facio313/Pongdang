@@ -35,7 +35,8 @@ from app.tides.service import tide_event
 from app.tides.storage import read_windows
 from app.twin.api import SpatialQuery, spatial_view
 from app.water_index.api import QueryParams, _public_rows
-from app.water_index.condition_api import ConditionQuery, read_conditions
+from app.water_index.condition_api import ConditionQuery
+from app.water_index.condition_storage import read_condition_set
 from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity
 from app.water_index.sources import AuthorityRecord
 from app.water_index.storage import read_projection
@@ -466,6 +467,16 @@ class ToolSession:
             if isinstance(args, TimeArgs)
             else {"as_of": self.now.isoformat(), "timezone": "Asia/Seoul"}
         )
+        if name == "place_conditions":
+            try:
+                ConditionQuery(
+                    spot_id=args.spot_ids[0],
+                    activity=args.activity,
+                    mode=scope["mode"],
+                    at=scope["at"],
+                ).product_times(self.now)
+            except ValueError:
+                raise ToolError("unsupported_time_range") from None
         if hasattr(args, "spot_id"):
             scope["spot_id"] = args.spot_id
         if hasattr(args, "spot_ids"):
@@ -641,16 +652,22 @@ class ToolSession:
 
     async def _place_conditions(self, args, scope):
         retained = 0
-        for sid in dict.fromkeys(args.spot_ids):
-            place = await self._place(sid)
-            q = ConditionQuery(
+        spots = tuple(dict.fromkeys(args.spot_ids))
+        places = [await self._place(sid) for sid in spots]
+        queries = [
+            ConditionQuery(
                 spot_id=sid,
                 activity=args.activity,
                 mode=scope["mode"],
                 at=scope["at"],
-                as_of=self.now,
             )
-            conditions = _json(await read_conditions(self.reader, q, now=self.now))
+            for sid in spots
+        ]
+        results = await read_condition_set(self.reader, queries, now=self.now)
+        for sid, place, result in zip(spots, places, results, strict=True):
+            if isinstance(result, HTTPException):
+                raise result
+            conditions = _json(result)
             self._count(conditions["metrics"])
             # Water Twin retains additional mapped marine/weather metrics and
             # provider lineage outside the activity's selectable conditions.

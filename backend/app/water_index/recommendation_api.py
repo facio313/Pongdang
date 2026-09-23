@@ -21,11 +21,7 @@ from app.tides.context import mark_context, nearby_tide_station
 from app.tides.service import tide_event
 from app.travel.catalog import ROLE_CODES, VISIT_KINDS
 from app.water_index.api import WaterIndexRoute, error_response
-from app.water_index.condition_api import (
-    ConditionQuery,
-    is_historical_query,
-    read_conditions,
-)
+from app.water_index.condition_api import ConditionQuery
 from app.water_index.condition_storage import read_condition_set
 from app.water_index.conditions import ConditionsEnvelope
 from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity, Record
@@ -93,6 +89,7 @@ class RecommendationQuery(BaseModel):
         ConditionQuery.offset_iso_time.__func__
     )
     times = ConditionQuery.times
+    product_times = ConditionQuery.product_times
 
     def for_activity(self, activity: Activity) -> ConditionQuery:
         return ConditionQuery(
@@ -292,21 +289,17 @@ async def read_activity(
     번씩 왕복하던 것을 한 응답에 담기 위한 것이며, 규칙은 그대로입니다 --
     공식 제한·활동 미지원·계산 보류는 예보로 우회하지 않습니다.
     """
-    if stored is None and not is_historical_query(q, now):
+    if stored is None:
         queries = [q.for_activity(activity)]
         if q.mode == "observation" and q.at is None:
             queries.append(
-                queries[0].model_copy(update={"mode": "forecast", "at": now})
+                queries[0].model_copy(update={"mode": "forecast", "at": q.as_of or now})
             )
         stored = await read_condition_set(reader, queries, now=now)
         for result in stored:
             if isinstance(result, HTTPException):
                 raise result
-    evidence = (
-        stored[0]
-        if stored is not None
-        else await read_conditions(reader, q.for_activity(activity), now=now)
-    )
+    evidence = stored[0]
     score = evidence.condition_score
     if (
         q.mode == "forecast"
@@ -318,17 +311,7 @@ async def read_activity(
         or evidence.support_status == "unsupported"
     ):
         return evidence
-    forecast = (
-        stored[1]
-        if stored is not None
-        else await read_conditions(
-            reader,
-            q.for_activity(activity).model_copy(
-                update={"mode": "forecast", "at": evidence.at}
-            ),
-            now=now,
-        )
-    )
+    forecast = stored[1]
     # 예보로 점수가 나오거나 근거가 더 많을 때만 바꿉니다. 빈 예보로 관측
     # 근거를 덮지 않습니다.
     forecast_score = forecast.condition_score
@@ -342,16 +325,11 @@ async def read_activity(
 
 async def read_activities(reader, q, now, *, fallback=True):
     activities = RECOMMENDED_ACTIVITIES
-    if is_historical_query(q, now):
-        return {
-            activity: await read_activity(reader, q, activity, now)
-            for activity in activities
-        }
     queries = [q.for_activity(activity) for activity in activities]
     needs_fallback = fallback and q.mode == "observation" and q.at is None
     if needs_fallback:
         queries += [
-            query.model_copy(update={"mode": "forecast", "at": now})
+            query.model_copy(update={"mode": "forecast", "at": q.as_of or now})
             for query in queries[:]
         ]
     rows = await read_condition_set(reader, queries, now=now)
@@ -396,7 +374,7 @@ async def optional_lookup(
 
 async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
     now = now or datetime.now(UTC)
-    at, as_of = q.times(now)
+    at, as_of = q.product_times(now)
     envelopes = await read_activities(reader, q, now)
     first = envelopes[RECOMMENDED_ACTIVITIES[0]]
 
@@ -529,7 +507,7 @@ def create_recommendation_router(settings):
                 422, "invalid_request", "중복 조회 조건은 허용하지 않습니다."
             )
         try:
-            q.times(datetime.now(UTC))
+            q.product_times(datetime.now(UTC))
         except ValueError:
             return error_response(
                 422, "invalid_request", "조회 시각이 올바르지 않습니다."

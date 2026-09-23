@@ -31,6 +31,7 @@ def registered_jobs(settings):
     from app.ingestion.water_tour_extra import water_tour_extra_jobs
     from app.ingestion.weather import weather_jobs
     from app.place_details.collector import place_detail_jobs
+    from app.refresh.service import DYNAMIC_JOBS
 
     external_jobs = (
         weather_jobs(settings)
@@ -42,10 +43,10 @@ def registered_jobs(settings):
         + water_tour_extra_jobs(settings)
         + administrative_jobs(settings)
     )
-    jobs = [
+    sources = [
         replace(
             job,
-            interval_seconds=max(600, job.interval_seconds),
+            interval_seconds=scheduled_interval(job),
             external_collection=True,
         )
         for job in external_jobs
@@ -65,8 +66,10 @@ def registered_jobs(settings):
     # Publish product conditions immediately after collecting their inputs.
     # Optional assessment/history and catalogue enrichment can take longer;
     # they must not hold up the generation read by the home/today screens.
+    jobs = [job for job in sources if job.name in DYNAMIC_JOBS]
     jobs += [job for job in features if job.name == "condition_projection"]
-    jobs += [job for job in features if job.name != "condition_projection"] + [
+    jobs += [job for job in features if job.name != "condition_projection"]
+    jobs += [job for job in sources if job.name not in DYNAMIC_JOBS] + [
         replace(
             job,
             interval_seconds=max(600, job.interval_seconds),
@@ -103,6 +106,11 @@ def synchronize_jobs(settings, jobs):
                 "AND collection_job.finished_at IS NOT NULL "
                 "AND EXCLUDED.interval_seconds>collection_job.interval_seconds "
                 "THEN GREATEST(collection_job.next_run_at,"
+                "collection_job.finished_at+EXCLUDED.interval_seconds*interval "
+                "'1 second') WHEN collection_job.consecutive_failures=0 "
+                "AND collection_job.finished_at IS NOT NULL "
+                "AND EXCLUDED.interval_seconds<collection_job.interval_seconds "
+                "THEN LEAST(collection_job.next_run_at,"
                 "collection_job.finished_at+EXCLUDED.interval_seconds*interval "
                 "'1 second') ELSE collection_job.next_run_at END,"
                 "state=CASE WHEN EXCLUDED.state='disabled' THEN 'disabled' "

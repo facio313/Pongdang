@@ -1,4 +1,4 @@
-"""Explicit past targets preserve the raw API while current reads use snapshots."""
+"""Recent past targets read finalized published results, never raw evidence."""
 
 import asyncio
 from contextlib import asynccontextmanager
@@ -15,7 +15,6 @@ from app.ingestion.models import Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect
-from app.water_index.condition_api import ConditionQuery, read_conditions
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.recommendation_api import (
     RecommendationQuery,
@@ -30,32 +29,33 @@ def published_counts(settings):
     with connect(settings) as c:
         return tuple(
             c.execute(f"SELECT count(*) FROM pongdang_data.{table}").fetchone()[0]
-            for table in ("condition_generation", "condition_snapshot")
+            for table in ("condition_generation", "condition_result")
         )
 
 
 @pytest.mark.parametrize("mode", ["observation", "forecast"])
-def test_explicit_past_target_matches_raw_conditions_and_recommendation(database, mode):
+def test_explicit_past_target_reads_published_conditions_and_recommendation(
+    database, mode, monkeypatch
+):
     now = datetime.now(UTC)
     day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
-    target = (
-        now - min(timedelta(minutes=10), (now - day_start) / 2)
-        if mode == "observation"
-        else day_start - timedelta(hours=12)
-    )
+    source_time = day_start - timedelta(hours=12)
+    target = source_time + timedelta(minutes=10)
     store_batch(
         database,
         source(
             source_id="historical-target",
             mode=mode,
-            observed_at=target - timedelta(minutes=1),
-            fetched_at=target,
-            issued_at=target - timedelta(hours=1) if mode == "forecast" else None,
-            valid_until=target + timedelta(minutes=30),
+            observed_at=source_time - timedelta(minutes=1),
+            fetched_at=source_time,
+            issued_at=source_time - timedelta(hours=1) if mode == "forecast" else None,
+            valid_until=source_time + timedelta(minutes=30),
         ),
     )
+    _, spot = station(database)
+    assert produce_conditions(database, now=source_time + timedelta(minutes=5)) > 0
     # A newer, different value must not replace the explicitly selected target.
     store_batch(
         database,
@@ -68,23 +68,15 @@ def test_explicit_past_target_matches_raw_conditions_and_recommendation(database
             values=[Value(name="air_temperature", numeric_value=28, unit="degC")],
         ),
     )
-    _, spot = station(database)
+    assert produce_conditions(database) > 0
     before = counts(database)
     published_before = published_counts(database)
     params = dict(spot_id=spot, mode=mode, at=target.isoformat())
 
-    async def expected(views):
-        reader = DataReader(database)
-        return [
-            (
-                await read_conditions(
-                    reader,
-                    ConditionQuery(**params, activity=view["activity"]),
-                    now=datetime.fromisoformat(view["as_of"]),
-                )
-            ).model_dump(mode="json")
-            for view in views
-        ]
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("Past product reads must use published results")
+
+    monkeypatch.setattr("app.water_index.condition_api.read_conditions", forbidden)
 
     with TestClient(create_app(database)) as client:
         response = client.get(
@@ -93,8 +85,7 @@ def test_explicit_past_target_matches_raw_conditions_and_recommendation(database
         assert response.status_code == 200, response.text
         assert response.headers["cache-control"] == "no-store"
         body = response.json()
-        assert [body] == asyncio.run(expected([body]))
-        assert body["projection"] is None
+        assert body["projection"] is not None
         assert body["condition_score"]["score"] is not None
         assert body["metrics"][0]["value"] == 22
 
@@ -102,8 +93,7 @@ def test_explicit_past_target_matches_raw_conditions_and_recommendation(database
         assert response.status_code == 200, response.text
         assert response.headers["cache-control"] == "no-store"
         activities = response.json()["conditions"]
-        assert activities == asyncio.run(expected(activities))
-        assert all(row["projection"] is None for row in activities)
+        assert all(row["projection"] is not None for row in activities)
         assert all(row["metrics"][0]["value"] == 22 for row in activities)
 
     assert counts(database) == before
@@ -137,7 +127,7 @@ def test_current_recommendation_activity_reads_use_one_select(
     def forbidden(*args, **kwargs):
         raise AssertionError("Current activity reads must not calculate raw evidence")
 
-    monkeypatch.setattr("app.water_index.recommendation_api.read_conditions", forbidden)
+    monkeypatch.setattr("app.water_index.condition_api.read_conditions", forbidden)
     now = datetime.now(UTC)
     query = RecommendationQuery(
         spot_id=spot, mode=mode, at=now if mode == "forecast" else None
