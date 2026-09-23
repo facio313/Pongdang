@@ -99,8 +99,10 @@ def projection_revision(connection):
 
 def projection_is_current(connection, source_revision, day_start):
     row = connection.execute(
-        "SELECT EXISTS(SELECT 1 FROM pongdang_data.condition_generation "
-        "WHERE source_revision=%s AND model_version=%s AND computed_at>=%s) AS ready",
+        "SELECT EXISTS(SELECT 1 FROM pongdang_data.condition_generation g "
+        "WHERE source_revision=%s AND model_version=%s AND computed_at>=%s "
+        "AND EXISTS(SELECT 1 FROM pongdang_data.condition_snapshot s "
+        "WHERE s.generation_id=g.id)) AS ready",
         [source_revision, MODEL_VERSION, day_start],
     ).fetchone()
     return row["ready"] if isinstance(row, dict) else row[0]
@@ -112,7 +114,9 @@ def projection_due(connection):
         "JOIN pongdang_data.condition_source_revision r "
         "ON r.id=1 AND g.source_revision=r.revision WHERE g.model_version=%s "
         "AND g.computed_at >= date_trunc('day',now() AT TIME ZONE 'Asia/Seoul') "
-        "AT TIME ZONE 'Asia/Seoul') AS due",
+        "AT TIME ZONE 'Asia/Seoul' "
+        "AND EXISTS(SELECT 1 FROM pongdang_data.condition_snapshot s "
+        "WHERE s.generation_id=g.id)) AS due",
         [MODEL_VERSION],
     ).fetchone()
     return row["due"] if isinstance(row, dict) else row[0]
@@ -120,8 +124,9 @@ def projection_due(connection):
 
 def _prune_generations(connection):
     cutoff = connection.execute(
-        "SELECT id FROM pongdang_data.condition_generation "
-        "ORDER BY id DESC OFFSET %s LIMIT 1",
+        "SELECT g.id FROM pongdang_data.condition_generation g "
+        "WHERE EXISTS(SELECT 1 FROM pongdang_data.condition_snapshot s "
+        "WHERE s.generation_id=g.id) ORDER BY g.id DESC OFFSET %s LIMIT 1",
         [RETAIN_GENERATIONS - 1],
     ).fetchone()
     if cutoff is None:
@@ -157,7 +162,9 @@ def publish_conditions(settings, *, records, computed_at, source_revision):
             "pongdang_data.condition_generation g CROSS JOIN "
             "pongdang_data.condition_source_revision r WHERE r.id=1 "
             "AND g.source_revision>=r.invalidated_revision "
-            "AND g.model_version=%s ORDER BY g.id DESC LIMIT 1",
+            "AND g.model_version=%s "
+            "AND EXISTS(SELECT 1 FROM pongdang_data.condition_snapshot s "
+            "WHERE s.generation_id=g.id) ORDER BY g.id DESC LIMIT 1",
             [MODEL_VERSION],
         ).fetchone()
         generation = c.execute(
@@ -305,12 +312,14 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
                 "r.invalidated_revision,g.source_revision,g.id AS "
                 "generation_id,g.computed_at,s.payload FROM wanted q "
                 "CROSS JOIN revision r LEFT JOIN pongdang_data.spots_waterspot p "
-                "ON p.id=q.spot_id LEFT JOIN LATERAL (SELECT id,computed_at,"
-                "source_revision FROM pongdang_data.condition_generation "
-                "WHERE source_revision>=r.invalidated_revision "
-                "AND source_revision<=r.revision "
-                "AND model_version=%s AND computed_at<=q.as_of "
-                "ORDER BY id DESC LIMIT 1) g ON true "
+                "ON p.id=q.spot_id LEFT JOIN LATERAL (SELECT cg.id,cg.computed_at,"
+                "cg.source_revision FROM pongdang_data.condition_generation cg "
+                "WHERE cg.source_revision>=r.invalidated_revision "
+                "AND cg.source_revision<=r.revision "
+                "AND cg.model_version=%s AND cg.computed_at<=q.as_of "
+                "AND EXISTS(SELECT 1 FROM pongdang_data.condition_snapshot legacy "
+                "WHERE legacy.generation_id=cg.id) "
+                "ORDER BY cg.id DESC LIMIT 1) g ON true "
                 "LEFT JOIN LATERAL (SELECT payload FROM "
                 "pongdang_data.condition_snapshot WHERE generation_id=g.id "
                 "AND spot_id=q.spot_id AND activity=q.activity AND mode=q.mode "

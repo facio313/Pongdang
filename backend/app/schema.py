@@ -188,7 +188,9 @@ def initialize(settings: Settings) -> bool:
             if row in {(15,), (16,), (17,), (18,)}:
                 migrate_condition_continuity(connection)
                 return True
-            if row != (VERSION,):
+            # v20 keeps the legacy tables readable. Accept it unchanged so this
+            # v19 release can restore the previous apps after a v20 rollout.
+            if row not in {(VERSION,), (20,)}:
                 raise ValueError("Unrecognized Pongdang schema version")
             return False
         connection.execute("CREATE SCHEMA pongdang_data")
