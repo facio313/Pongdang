@@ -5,10 +5,11 @@ from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from itertools import batched
+from time import monotonic, sleep
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from psycopg import sql
+from psycopg import errors, sql
 from psycopg.types.json import Jsonb
 
 from app.water_index.activity_score import ActivityScore
@@ -103,8 +104,31 @@ def migrate_conditions(connection):
         )
 
 
+def _lock_result_migration(connection):
+    """Wait for legacy publishers without blocking readers behind a DDL wait."""
+    # Start the outer transaction so each failed attempt rolls back a savepoint,
+    # releasing even the table locks acquired before a later table was busy.
+    connection.execute("SELECT 1")
+    deadline = monotonic() + 600
+    while True:
+        try:
+            with connection.transaction():
+                connection.execute(
+                    "LOCK TABLE pongdang_data.condition_generation, "
+                    "pongdang_data.condition_source_revision, "
+                    "pongdang_data.condition_snapshot "
+                    "IN ACCESS EXCLUSIVE MODE NOWAIT"
+                )
+            return
+        except errors.LockNotAvailable:
+            if monotonic() >= deadline:
+                raise
+            sleep(0.5)
+
+
 def migrate_condition_results(connection):
     """Add the directly readable result table without changing collected evidence."""
+    _lock_result_migration(connection)
     connection.execute(
         "ALTER TABLE pongdang_data.condition_generation "
         "ADD COLUMN IF NOT EXISTS reused_count integer NOT NULL DEFAULT 0, "

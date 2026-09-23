@@ -49,6 +49,10 @@ def connect(settings: Settings):
 
 def initialize(settings: Settings) -> bool:
     with connect(settings) as connection:
+        # Deployment DDL can wait for an in-flight collector transaction. Keep
+        # ordinary application connections on their short read/write limits.
+        connection.execute("SET LOCAL lock_timeout = 60000")
+        connection.execute("SET LOCAL statement_timeout = 300000")
         connection.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-schema'))")
         if connection.execute("SELECT to_regnamespace('pongdang_data')").fetchone()[0]:
             # Never adopt an unknown schema or overwrite existing tables/data.
@@ -542,9 +546,14 @@ def main():
             if args.retire_condition_snapshots
             else None
         )
-    except Exception:
+    except Exception as error:
+        # Provider payloads and SQL parameters may contain private data. Report
+        # only the error category and SQLSTATE, never the exception message.
+        sqlstate = getattr(error, "sqlstate", None) or "unknown"
         raise SystemExit(
-            "Pongdang schema initialization failed; no partial changes committed"
+            "Pongdang schema initialization failed "
+            f"({type(error).__name__}, SQLSTATE {sqlstate}); "
+            "no partial changes committed"
         ) from None
     if aliases is not None:
         print(f"Pongdang place aliases reconciled: {aliases}")
