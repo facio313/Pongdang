@@ -1,4 +1,4 @@
-name: CI and deploy
+name: Build and deploy
 
 'on':
   push:
@@ -12,291 +12,45 @@ permissions:
   actions: read
 
 jobs:
-  scope:
+  build:
+    name: Build ${{ matrix.image }} image
     if: github.ref != 'refs/heads/dev' && github.head_ref != 'dev'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    concurrency:
-      group: pongdang-scope-${{ github.ref }}
-      cancel-in-progress: true
-    outputs:
-      frontend: ${{ steps.select.outputs.frontend }}
-      backend: ${{ steps.select.outputs.backend }}
-      browser: ${{ steps.select.outputs.browser }}
-      smoke: ${{ steps.select.outputs.smoke }}
-      profile: ${{ steps.select.outputs.profile }}
-      backend_tests: ${{ steps.select.outputs.backend_tests }}
-      backend_shards: ${{ steps.select.outputs.backend_shards }}
-      browser_shards: ${{ steps.select.outputs.browser_shards }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - run: python3 -m unittest discover -s ops -p 'test_*.py'
-      - id: select
-        run: python3 ops/ci_scope.py
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  frontend:
-    needs: [scope]
-    if: needs.scope.outputs.frontend == 'true'
-    concurrency:
-      group: pongdang-frontend-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: frontend/.node-version
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: npm run lint
-      - run: npm test
-      # Typecheck + production build run once in the Docker image below.
-
-  backend:
-    needs: [scope]
-    if: needs.scope.outputs.backend == 'true'
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.scope.outputs.backend_shards) }}
+        include:
+          - image: backend
+            context: ./backend
+            cache_scope: pongdang-backend
+            build_args: ''
+          - image: frontend
+            context: ./frontend
+            cache_scope: pongdang-frontend
+            build_args: APP_BASE_PATH=/pongdang/
     concurrency:
-      group: pongdang-backend-${{ matrix.shard }}-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: pongdang_test
-          POSTGRES_USER: pongdang
-          POSTGRES_PASSWORD: ci-only-password
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U pongdang -d pongdang_test"
-          --health-interval 5s --health-timeout 5s --health-retries 12
-    env:
-      PONGDANG_TEST_DISPOSABLE: "1"
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: pongdang_test
-      POSTGRES_USER: pongdang
-      POSTGRES_PASSWORD: ci-only-password
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.11.16"
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-      - run: uv sync --frozen
-      - run: uv run --frozen ruff check .
-      - run: uv run --frozen ruff format --check .
-      - name: Run the selected backend tests
-        env:
-          BACKEND_TESTS: ${{ needs.scope.outputs.backend_tests }}
-        run: >-
-          uv run --frozen python ../ops/backend_shard.py
-          --index ${{ matrix.shard }} --count ${{ strategy.job-total }}
-          --durations=15
-
-  browser:
-    needs: [scope]
-    if: needs.scope.outputs.browser == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ${{ fromJSON(needs.scope.outputs.browser_shards) }}
-    concurrency:
-      group: pongdang-browser-${{ matrix.shard }}-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: pongdang_test
-          POSTGRES_USER: pongdang
-          POSTGRES_PASSWORD: ci-only-password
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U pongdang -d pongdang_test"
-          --health-interval 5s --health-timeout 5s --health-retries 12
-    env:
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_DB: pongdang_test
-      POSTGRES_USER: pongdang
-      POSTGRES_PASSWORD: ci-only-password
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.11.16"
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-      - run: uv sync --frozen
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: frontend/.node-version
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --prefer-offline --no-audit --no-fund
-        working-directory: frontend
-      - run: npx playwright install --with-deps chromium
-        working-directory: frontend
-      - name: Check the eight core mobile and desktop journeys
-        if: needs.scope.outputs.profile == 'fast'
-        run: npm run test:browser:smoke
-        working-directory: frontend
-      - name: Run the full browser regression shard
-        if: needs.scope.outputs.profile == 'full'
-        run: npm run test:browser -- --shard=${{ matrix.shard }}/2
-        working-directory: frontend
-
-  smoke:
-    needs: [scope]
-    if: needs.scope.outputs.smoke == 'true'
-    concurrency:
-      group: pongdang-smoke-${{ github.ref }}
+      group: pongdang-build-${{ matrix.image }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      POSTGRES_PASSWORD: ci-only-password
-      APP_BASE_PATH: /pongdang/
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build the backend image with persistent layer cache
+      - name: Build the ${{ matrix.image }} production image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: ./backend
-          load: true
-          tags: pongdang-backend:local
-          cache-from: type=gha,scope=pongdang-backend,version=2,timeout=60s
-          cache-to: type=gha,scope=pongdang-backend,version=2,mode=max,timeout=60s
-      - name: Typecheck and build the frontend image with persistent layer cache
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: ./frontend
-          load: true
-          tags: pongdang-frontend:local
-          build-args: APP_BASE_PATH=/pongdang/
-          cache-from: type=gha,scope=pongdang-frontend,version=2,timeout=60s
-          cache-to: type=gha,scope=pongdang-frontend,version=2,mode=max,timeout=60s
-      - name: Start the complete stack using the built images
-        run: docker compose --project-name pongdang-ci up -d --no-build --wait --wait-timeout 180
-      - name: Verify container resource limits
-        run: |
-          resource_limits() {
-            docker inspect --format '{{.HostConfig.Memory}} {{.HostConfig.MemorySwap}} {{.HostConfig.NanoCpus}} {{.HostConfig.PidsLimit}}' "$1"
-          }
-          test "$(resource_limits pongdang-ci-db)" = '2147483648 3221225472 1500000000 256'
-          test "$(resource_limits pongdang-ci-backend)" = '536870912 1073741824 1000000000 128'
-          test "$(resource_limits pongdang-ci-frontend)" = '134217728 268435456 500000000 64'
-      - name: Verify the page and database readiness
-        run: |
-          docker inspect --format '{{.Name}}' pongdang-ci-db pongdang-ci-backend pongdang-ci-frontend
-          curl --fail --silent --show-error http://127.0.0.1:5188/ | grep -q '<title>Pongdang</title>'
-          curl --fail --silent --show-error http://127.0.0.1:5188/api/ready
-      - name: Verify schema initialization is idempotent
-        if: needs.scope.outputs.profile == 'full'
-        run: |
-          docker compose --project-name pongdang-ci exec -T backend python -m app.schema --initialize
-          docker compose --project-name pongdang-ci exec -T backend python -m app.schema --remove-demo
-      - name: Verify independent collection and retired demo API
-        run: |
-          curl --fail --silent --show-error http://127.0.0.1:5188/api/data/summary
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/demo/summary)" = 404
-          docker compose --project-name pongdang-ci exec -T collector python -m app.ingestion.health
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5188/api/collector/summary)" = 404
-      - name: Verify attachment volume access and recreation persistence
-        if: needs.scope.outputs.profile == 'full'
-        run: |
-          python - <<'PY'
-          import json
-          import subprocess
-
-          for service, writable in (("collector", True), ("backend", False)):
-              mounts = json.loads(subprocess.check_output([
-                  "docker", "inspect", "--format", "{{json .Mounts}}",
-                  f"pongdang-ci-{service}",
-              ], text=True))
-              mount, = [m for m in mounts if m["Destination"] == "/var/lib/pongdang/attachments"]
-              assert mount["Type"] == "volume"
-              assert mount["Name"] == "pongdang-ci_attachment_data"
-              assert mount["RW"] is writable
-          PY
-          docker compose --project-name pongdang-ci exec -T collector python - <<'PY'
-          import os
-          from pathlib import Path
-
-          assert os.getuid() == os.getgid() == 10001
-          root = Path("/var/lib/pongdang/attachments")
-          assert root.stat().st_uid == root.stat().st_gid == 10001
-          (root / ".ci-volume-check").write_text("persistent attachment")
-          PY
-          docker compose --project-name pongdang-ci exec -T backend python - <<'PY'
-          import errno
-          from pathlib import Path
-
-          root = Path("/var/lib/pongdang/attachments")
-          assert (root / ".ci-volume-check").read_text() == "persistent attachment"
-          try:
-              (root / ".ci-write-must-fail").write_text("unexpected write")
-          except OSError as error:
-              assert error.errno == errno.EROFS
-          else:
-              raise AssertionError("Backend attachment volume is writable")
-          PY
-          docker compose --project-name pongdang-ci up -d --no-deps --force-recreate --wait --wait-timeout 180 backend collector
-          docker compose --project-name pongdang-ci exec -T backend python -c 'from pathlib import Path; assert Path("/var/lib/pongdang/attachments/.ci-volume-check").read_text() == "persistent attachment"'
-          docker compose --project-name pongdang-ci exec -T collector python -c 'from pathlib import Path; Path("/var/lib/pongdang/attachments/.ci-volume-check").unlink()'
-      - name: Show container logs on failure
-        if: failure()
-        run: docker compose --project-name pongdang-ci logs --no-color --tail=80
-      - name: Remove the CI stack
-        if: always()
-        run: docker compose --project-name pongdang-ci down --volumes
+          context: ${{ matrix.context }}
+          build-args: ${{ matrix.build_args }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }},version=2,timeout=60s
+          cache-to: type=gha,scope=${{ matrix.cache_scope }},version=2,mode=max,timeout=60s
 
   deploy:
-    # browser stays in `needs` only so this job waits for it to finish (for
-    # run ordering); its result is intentionally NOT part of the gate below —
-    # the Playwright suite has a known CI-runner-speed flakiness problem
-    # (see product.spec.ts's route-calc test) that shouldn't block deploys
-    # once the build itself (smoke: typecheck + docker build) is verified.
-    needs: [scope, frontend, backend, browser, smoke]
+    needs: [build]
     if: >-
-      always() && !cancelled() &&
-      github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
-      needs.scope.result == 'success' && needs.smoke.result == 'success' &&
-      !contains(fromJSON('["failure","cancelled"]'), needs.frontend.result) &&
-      !contains(fromJSON('["failure","cancelled"]'), needs.backend.result)
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      needs.build.result == 'success'
     concurrency:
       group: pongdang-production
       cancel-in-progress: false

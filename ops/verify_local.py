@@ -87,7 +87,8 @@ def plan(paths, tests=()):
         elif path.startswith("backend/app/") and not tests:
             raise ValueError(
                 "Backend behavior changes require related --test "
-                "backend/tests/test_….py paths; full regression runs in CI."
+                "backend/tests/test_….py paths; run broader related regressions "
+                "locally when needed."
             )
     if targets:
         for target in targets:
@@ -148,8 +149,8 @@ def main():
         )
     if any(not documentation(p) for p in paths):
         print(
-            "Run the affected UI test when needed; Docker/build and "
-            "full release checks remain in CI."
+            "Run affected UI and any other related behavioral checks locally "
+            "when needed; release CI only builds images."
         )
 
 

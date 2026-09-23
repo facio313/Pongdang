@@ -46,7 +46,7 @@ TourAPI 관광지 ID가 연결된 장소는 그 ID로 조회한다. 카카오 �
 
 운영 Compose 프로젝트가 `pongdang`이면 실제 볼륨 이름은
 `pongdang_attachment_data`이다. `COMPOSE_PROJECT_NAME`이나 `--project-name`으로
-격리한 CI에는 해당 프로젝트 접두사가 붙는다. 볼륨에 공통 `name:`이나
+격리한 Compose 검사 프로젝트에는 해당 프로젝트 접두사가 붙는다. 볼륨에 공통 `name:`이나
 `external: true`를 지정하지 않아 다른 프로젝트의 파일 저장소와 공유하지 않는다.
 DB는 기존 `postgres_data` 볼륨을 그대로 사용한다.
 
@@ -90,7 +90,8 @@ macOS `ops/install-local-collector.py`는 설치 시 원래 `backend`의 Setting
 
 ## 운영 배포와 수집 설정
 
-검증된 코드가 기존 CI와 `main` 배포 절차를 거쳐 적용되면 Compose가 새 첨부파일
+관련 동작을 폐기 가능한 로컬 환경에서 확인하고 Actions의 이미지 빌드가
+성공한 코드가 `main` 배포 절차로 적용되면 Compose가 새 첨부파일
 볼륨을 만든다. 이미지 빌드 시 `/var/lib/pongdang/attachments`를 `10001:10001`,
 권한 `0750`으로 준비하므로 빈 named volume의 최초 생성 시 Docker copy-up으로
 소유권이 설정된다. 이미 존재하는 볼륨이나 bind mount의 소유권은 이미지 재빌드로
@@ -127,8 +128,8 @@ named volume은 Desktop VM 안에 있으므로 macOS 호스트의 같은 경로�
 
 첨부파일은 컨테이너 재생성·이미지 재빌드·정상 재배포 이후에도 volume에 남는다.
 이것은 디스크 장애에 대비한 백업을 대신하지 않는다. 운영에서 `down -v`,
-`volume rm`, 사용 중인 볼륨을 지우는 prune을 실행하지 않는다. CI의 전용 프로젝트
-정리만 폐기 가능한 볼륨 삭제 대상이다.
+`volume rm`, 사용 중인 볼륨을 지우는 prune을 실행하지 않는다. 자신이 만든 폐기 가능한
+전용 Compose 검사 프로젝트의 정리만 볼륨 삭제 대상이다.
 
 DB 메타데이터와 파일은 **같은 백업 세트**로 관리한다. 운영자가 승인된 점검 시간에
 collector를 중지하고 진행 중인 작업 종료를 확인한 뒤 PostgreSQL의 일관된 dump와
@@ -145,7 +146,11 @@ collector를 중지하고 진행 중인 작업 종료를 확인한 뒤 PostgreSQ
 
 ## 검증 범위
 
-CI의 독립 Compose 스택은 collector UID/GID와 실제 파일 쓰기, backend의 읽기 및
-쓰기 거절, 프로젝트별 볼륨 이름, backend·collector 재생성 후 파일 유지를 검사한다.
-이는 폐기 가능한 `pongdang-ci` 환경에서 수행한다. 로컬에서 Docker가 없는 경우
-설정 파일 정적 검증만으로 이 런타임 검사를 통과했다고 간주하지 않는다.
+2026-09-23 이전 CI의 독립 Compose 스택은 collector UID/GID와 실제 파일 쓰기,
+backend의 읽기 및 쓰기 거절, 프로젝트별 볼륨 이름, backend·collector 재생성 후
+파일 유지를 폐기 가능한 `pongdang-ci` 환경에서 검사했다. 이는 기존 검증
+구성의 기록이다. 2026-09-23 이후 Actions는 배포 이미지만 빌드하고 Compose를
+기동하지 않으므로, 향후 첨부파일 저장소를 변경할 때는 자신이 만든 폐기 가능한
+로컬 Compose 프로젝트에서 위 속성을 명시적으로 재검증한다. 운영 DB·환경 파일·볼륨은
+사용하지 않는다. Docker가 없는 경우 설정 파일 정적 검증만으로 이 런타임 검사를
+통과했다고 간주하지 않는다.

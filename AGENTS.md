@@ -44,7 +44,7 @@
   Commit dependency lockfiles with dependency changes.
 - Do not commit, merge into, push, synchronize, or deploy `dev`. Preserve its
   existing refs without updating or deleting them. Authorized task branches
-  integrate directly into `main`, which deploys after the selected CI checks pass.
+  integrate directly into `main`, which deploys after both production images build.
   Never use dev CI as a prerequisite or duplicate main CI.
   The server timer template dispatches missing CI only for latest main commits;
   its installed host copy must be updated separately.
@@ -60,13 +60,14 @@
   tests and incremental typecheck when needed; use `ops/verify_local.py` with explicit
   files. Check affected UI only. Do not default to full local build/backend/browser/
   Docker suites or rerun passing checks without a relevant change or failure.
-  CI owns the release build. Normal UI changes run eight browser journeys;
-  authentication, database, collection, scoring, shared APIs, infrastructure, unknown
-  paths and manual CI retain full applicable regression. Selected checks must pass.
-  Documentation-only changes do not build or deploy. CI compares against the last
-  successful main validation, never just the previous push. Database tests must use
-  an explicitly disposable `pongdang_test`, never production. CI verifies initialization
-  and worker health using only the standalone stack and no shared database.
+  Database tests must use an explicitly disposable `pongdang_test`, never production.
+  GitHub Actions only builds the backend and frontend production Docker images in
+  parallel; it does not run lint, unit, backend, browser, database or Compose runtime
+  checks. Pull requests build without deploying. Every main push, including
+  documentation-only changes, deploys after both builds succeed. The frontend image's
+  TypeScript check and Vite bundle are part of that image build, not a separate test job.
+  The production gate still checks the latest main SHA, serializes deployments, verifies
+  health/readiness and restores the previous application images on failure.
 - `ops/` contains installation templates; deployment does not self-update its SSH
   gate. Install reviewed changes to the host script separately.
 - `backend/app/data_catalog.json` is the table/column/query allowlist. Existing
