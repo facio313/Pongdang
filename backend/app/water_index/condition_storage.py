@@ -228,6 +228,20 @@ def projection_due(connection):
     return row["due"] if isinstance(row, dict) else row[0]
 
 
+def projection_urgent(connection):
+    """Bypass the durable schedule only when no safe result can be served."""
+    row = connection.execute(
+        "SELECT latest.source_revision IS NULL OR "
+        "r.invalidated_revision>latest.source_revision AS urgent FROM "
+        "pongdang_data.condition_source_revision r LEFT JOIN LATERAL ("
+        "SELECT g.source_revision FROM pongdang_data.condition_generation g "
+        "WHERE g.result_published AND g.model_version=%s "
+        "ORDER BY g.id DESC LIMIT 1) latest ON true WHERE r.id=1",
+        [MODEL_VERSION],
+    ).fetchone()
+    return row["urgent"] if isinstance(row, dict) else row[0]
+
+
 def _create_result_stage(connection):
     connection.execute(
         "CREATE TEMP TABLE condition_result_stage "

@@ -17,6 +17,7 @@ from app.water_index.condition_storage import (
     migrate_conditions,
     projection_due,
     projection_revision,
+    projection_urgent,
 )
 from app.water_index.models import SafetyEvidence
 from app.water_index.sources import AuthorityRecord, EvidenceBundle, register_evidence
@@ -65,6 +66,30 @@ def test_duplicate_fetch_keeps_published_conditions_and_original_evidence(databa
             == original
         )
     assert produce_conditions(database) == 0
+
+
+def test_only_missing_publication_or_hard_revocation_is_urgent(database):
+    with connect(database) as c:
+        assert projection_urgent(c)
+
+    first = source()
+    store_batch(database, first)
+    assert produce_conditions(database) > 0
+    with connect(database) as c:
+        assert not projection_urgent(c)
+
+    store_batch(
+        database,
+        source(
+            source_id="fixture-reading-routine-refresh",
+            observed_at=first.readings[0].observed_at + timedelta(minutes=1),
+        ),
+    )
+    with connect(database) as c:
+        assert projection_due(c)
+        assert not projection_urgent(c)
+        c.execute("UPDATE pongdang_data.spots_waterspot SET lat=coalesce(lat,0)+0.1")
+        assert projection_urgent(c)
 
 
 @pytest.mark.parametrize(

@@ -148,6 +148,45 @@ def publication_time(connection):
     return connection.execute("SELECT clock_timestamp()").fetchone()[0]
 
 
+def _assessment_fingerprint(*, spot_id, activity, mode, items, authorities):
+    """Hash only values consumed by ``build_request`` and the evaluator.
+
+    ``read_normalized`` also returns the mutable collection-station row. Its
+    ``fetched_at`` is a collection heartbeat and changes even when an identical
+    source record is deduplicated. The assessment does not read that row, so it
+    must not turn an unchanged evidence set into new immutable artifacts.
+    """
+
+    def ordered(values):
+        return sorted(values, key=lambda value: stable_id("", value))
+
+    sources = ordered(
+        [
+            {
+                "snapshot": source["snapshot"],
+                "metrics": ordered(
+                    [metric for metric in source["metrics"] if metric["mode"] == mode]
+                ),
+                "mapping": mapping.model_dump(mode="json") if mapping else None,
+            }
+            for source, mapping in items
+        ]
+    )
+    return stable_id(
+        "",
+        {
+            "spot_id": spot_id,
+            "activity": activity,
+            "mode": mode,
+            "sources": sources,
+            "authorities": ordered(
+                [authority.model_dump(mode="json") for authority in authorities]
+            ),
+            "model": provenance_manifest(),
+        },
+    )
+
+
 def _produce_assessments(settings, *, now=None, max_seconds=None):
     started = monotonic()
     inserted = 0
@@ -253,16 +292,12 @@ def _produce_assessments(settings, *, now=None, max_seconds=None):
                 for a in authorities
                 if a.evidence.spot_id == spot_id and a.evidence.activity == activity
             )
-            fingerprint = stable_id(
-                "",
-                {
-                    "sources": [s for s, _ in items],
-                    "mappings": [
-                        m.model_dump(mode="json") if m else None for _, m in items
-                    ],
-                    "authorities": [a.model_dump(mode="json") for a in authority],
-                    "model": provenance_manifest(),
-                },
+            fingerprint = _assessment_fingerprint(
+                spot_id=spot_id,
+                activity=activity,
+                mode=mode,
+                items=items,
+                authorities=authority,
             )
             previous = previous_runs.get((spot_id, activity, mode))
             if previous and previous[1] == fingerprint:

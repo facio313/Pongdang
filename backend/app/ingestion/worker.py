@@ -203,11 +203,12 @@ def run_due(
                 elif not force and row[0] and row[0] > datetime.now(UTC):
                     if job.name != "condition_projection" or row[1]:
                         continue
-                    from app.water_index.condition_storage import projection_due
+                    from app.water_index.condition_storage import projection_urgent
 
-                    # A source change or new target day makes the persisted
-                    # score generation due immediately, without upstream I/O.
-                    if not projection_due(guard):
+                    # Routine source changes and the KST day rollover coalesce
+                    # behind the durable interval. Only the absence of any
+                    # published result or a hard revocation bypasses it.
+                    if not projection_urgent(guard):
                         continue
                 started = datetime.now(UTC)
                 with connect(settings) as c:

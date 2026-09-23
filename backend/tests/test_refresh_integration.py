@@ -24,7 +24,7 @@ def db(monkeypatch):
 
     # These tests isolate worker scheduling with a deliberately stubbed score
     # processor. Real source-generation invalidation has its own integration tests.
-    monkeypatch.setattr(condition_storage, "projection_due", lambda _: False)
+    monkeypatch.setattr(condition_storage, "projection_urgent", lambda _: False)
     conf = Settings()
     if conf.postgres_db != "pongdang_test":
         pytest.fail("Requires disposable pongdang_test")
@@ -331,7 +331,7 @@ def test_one_unavailable_provider_does_not_block_independent_source_or_score(
     assert calls == ["projection"]
 
 
-def test_changed_score_inputs_run_before_interval_but_not_during_backoff(
+def test_routine_score_changes_coalesce_but_urgent_revocation_bypasses_interval(
     db, monkeypatch
 ):
     from app.water_index import condition_storage
@@ -341,6 +341,8 @@ def test_changed_score_inputs_run_before_interval_but_not_during_backoff(
     assert run_due(db, [job])[0]["state"] == "succeeded"
     assert run_due(db, [job]) == []
     monkeypatch.setattr(condition_storage, "projection_due", lambda _: True)
+    assert run_due(db, [job]) == []
+    monkeypatch.setattr(condition_storage, "projection_urgent", lambda _: True)
     assert run_due(db, [job])[0]["state"] == "succeeded"
     assert calls == ["projection", "projection"]
     broken = projection(calls, state="failed")

@@ -16,7 +16,7 @@ from app.schema import connect, initialize
 from app.tides.service import OperatingWindow
 from app.tides.storage import register_window
 from app.water_index.models import SupportEvidence
-from app.water_index.producer import produce_assessments
+from app.water_index.producer import _assessment_fingerprint, produce_assessments
 from app.water_index.sources import (
     AuthorityRecord,
     EvidenceBundle,
@@ -99,6 +99,88 @@ def params(spot, start, end):
         "profile_id": "general",
         "page_size": 100,
     }
+
+
+def test_assessment_fingerprint_tracks_only_evaluation_dependencies():
+    now = datetime.now(UTC)
+    source = {
+        "snapshot": {"id": 1, "provider": "fixture", "source_record_id": "record"},
+        "station": {"id": 1, "fetched_at": (now - timedelta(minutes=2)).isoformat()},
+        "metrics": [
+            {"id": 10, "mode": "forecast", "numeric_value": 1.0},
+            {"id": 11, "mode": "observation", "numeric_value": 2.0},
+        ],
+    }
+
+    def fingerprint(value=source, *, mapping=None, authorities=()):
+        return _assessment_fingerprint(
+            spot_id=1,
+            activity="mudflat",
+            mode="forecast",
+            items=[(value, mapping)],
+            authorities=authorities,
+        )
+
+    heartbeat = {
+        **source,
+        "station": {"id": 1, "fetched_at": now.isoformat()},
+    }
+    unrelated_mode = {
+        **source,
+        "metrics": [
+            source["metrics"][0],
+            {**source["metrics"][1], "numeric_value": 3.0},
+        ],
+    }
+    changed_value = {
+        **source,
+        "metrics": [
+            {**source["metrics"][0], "numeric_value": 4.0},
+            source["metrics"][1],
+        ],
+    }
+    assert fingerprint(heartbeat) == fingerprint()
+    assert fingerprint(unrelated_mode) == fingerprint()
+    assert fingerprint(changed_value) != fingerprint()
+
+    mapping = StationMapping(
+        mapping_id="fixture-map",
+        spot_id=1,
+        station_id=1,
+        spatial_scope="Fixture relation",
+        mapping_version="fixture-v1",
+        evidence_ref="fixture-report",
+        source_url="https://www.khoa.go.kr/",
+        authority="Fixture operator",
+        reviewed_by="fixture",
+        activities=["mudflat"],
+        valid_from=now,
+        valid_until=now + timedelta(days=1),
+    )
+    support = AuthorityRecord(
+        evidence_id="fixture-authority",
+        source_url="https://www.khoa.go.kr/",
+        reviewed_by="fixture",
+        evidence=SupportEvidence(
+            evidence_ref="fixture-support",
+            provider="fixture_operator",
+            provider_record_id="fixture-open",
+            spot_id=1,
+            activity="mudflat",
+            authority="Fixture operator",
+            authoritative=True,
+            source_status="active",
+            state="current",
+            fetched_at=now,
+            valid_from=now,
+            valid_until=now + timedelta(days=1),
+            status="supported",
+            scope="Fixture area",
+            mapping_version="fixture-v1",
+        ),
+    )
+    assert fingerprint(mapping=mapping) != fingerprint()
+    assert fingerprint(authorities=(support,)) != fingerprint()
 
 
 def test_tide_lookup_stays_bounded_with_unrelated_forecast_history(db):
@@ -229,6 +311,37 @@ def test_real_storage_publication_correction_and_readonly_http(db):
     with connect(db) as c:
         with pytest.raises(Exception, match="immutable"):
             c.execute("UPDATE pongdang_data.forecast_revision SET digest='changed'")
+
+
+def test_station_refetch_does_not_duplicate_unchanged_assessment_artifacts(db):
+    wall_clock = datetime.now(UTC)
+    target_at = wall_clock + timedelta(hours=2)
+    first_fetched = wall_clock - timedelta(minutes=2)
+    first_evaluated = wall_clock - timedelta(minutes=1)
+    source = batch(at=target_at, fetched=first_fetched)
+    assert store_batch(db, source) > 0
+    assert produce_assessments(db, now=first_evaluated) > 0
+
+    def artifact_counts():
+        with connect(db) as c:
+            return c.execute(
+                "SELECT "
+                "(SELECT count(*) FROM pongdang_data.water_index_input_manifest),"
+                "(SELECT count(*) FROM pongdang_data.water_index_assessment),"
+                "(SELECT count(*) FROM pongdang_data.water_index_read_manifest),"
+                "(SELECT count(*) FROM pongdang_data.water_index_production_run)"
+            ).fetchone()
+
+    before = artifact_counts()
+    refetched_at = wall_clock - timedelta(seconds=30)
+    assert store_batch(db, source.model_copy(update={"fetched_at": refetched_at})) == 0
+    with connect(db) as c:
+        assert c.execute(
+            "SELECT fetched_at FROM pongdang_data.collection_station"
+        ).fetchone() == (refetched_at,)
+
+    assert produce_assessments(db, now=wall_clock - timedelta(seconds=1)) == 0
+    assert artifact_counts() == before
 
 
 @pytest.mark.parametrize("correction_kind", ["activity_removed", "period_shortened"])
