@@ -1,5 +1,6 @@
 import { t } from "./i18n.ts";
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import "./mapSheet.css";
 
 // 풀스크린 지도 화면(모바일 지도 · 내 코스)의 바텀 시트입니다.
@@ -11,12 +12,17 @@ import "./mapSheet.css";
 // 이제 지도가 프레임을 다 쓰고, 이 시트가 그 위에 뜹니다. 시트는 두 높이를
 // 오가며 **안에서만** 스크롤합니다.
 //
-// 드래그 핸들은 두지 않습니다. 예전에는 38×4 막대가 있었지만 시트는 드래그되지
-// 않았습니다 -- 할 수 없는 조작을 모양으로 약속하지 않습니다(SpotsPage 의 같은
-// 결정). 대신 실제로 동작하는 토글 버튼을 둡니다.
+// 손끝을 따라가는 연속 드래그는 두지 않습니다. 높이는 dvh/clamp 로 CSS 가
+// 정하고(useSheetHeight 참고), 그 값을 JS 로 베껴 매 프레임 계산하면 화면
+// 크기가 바뀔 때 조용히 어긋납니다. 대신 토글 버튼 영역에서 위/아래 스와이프를
+// 인식해 기존 두 상태(접힘 · 펼침) 사이를 그대로 토글합니다 -- 탭 토글과
+// 같은 전환(180ms)을 씁니다.
 //
 // 시트는 밝은 레이어입니다. 근거 · 표 · 폼 · 상태 칩은 전부 여기 들어오고,
 // 지도 위 코발트 띠에는 한 줄 문장까지만 둡니다(디자인 시스템 v2 §07).
+
+/** 스와이프로 인정할 최소 수직 이동 거리(px). 이보다 짧으면 탭으로 본다. */
+const SWIPE_THRESHOLD = 40;
 
 export function MapSheet({
   title,
@@ -39,6 +45,7 @@ export function MapSheet({
   sheetRef?: (element: HTMLElement | null) => void;
   children: ReactNode;
 }) {
+  const touchStartY = useRef<number | null>(null);
   return (
     <section
       className={"pd-sheet" + (expanded ? " is-expanded" : "")}
@@ -50,6 +57,18 @@ export function MapSheet({
         className="pd-sheet-toggle"
         aria-expanded={expanded}
         onClick={onToggle}
+        onTouchStart={(event) => {
+          touchStartY.current = event.touches[0].clientY;
+        }}
+        onTouchEnd={(event) => {
+          const startY = touchStartY.current;
+          touchStartY.current = null;
+          if (startY === null) return;
+          const deltaY = event.changedTouches[0].clientY - startY;
+          if (Math.abs(deltaY) < SWIPE_THRESHOLD) return;
+          if (deltaY < 0 && !expanded) onToggle();
+          else if (deltaY > 0 && expanded) onToggle();
+        }}
       >
         <span className="pd-sheet-title">{title}</span>
         <span className="pd-sheet-toggle-label">
