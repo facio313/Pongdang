@@ -53,10 +53,12 @@ def test_loopback_without_sso_opens_travel_and_ai_not_notifications(app):
 
 
 def test_remote_peer_and_forwarded_loopback_stay_closed(app):
+    # /keywords is a public catalogue read now, so it cannot tell "open" from
+    # "closed" here; /preferences is personal data and always needs auth.
     with TestClient(app, base_url=ORIGIN, client=("192.0.2.5", 45678)) as remote:
-        assert remote.get("/api/data/travel/keywords").status_code == 503
+        assert remote.get("/api/data/travel/preferences").status_code == 503
         response = remote.get(
-            "/api/data/travel/keywords", headers={"x-forwarded-for": "127.0.0.1"}
+            "/api/data/travel/preferences", headers={"x-forwarded-for": "127.0.0.1"}
         )
         assert response.status_code == 503
         assert response.json()["detail"] == "AUTH_NOT_CONFIGURED"
@@ -97,7 +99,9 @@ def test_configured_sso_still_required(settings, monkeypatch):
     with TestClient(
         create_app(locked), base_url=ORIGIN, client=("127.0.0.1", 49152)
     ) as client:
-        assert client.get("/api/data/travel/keywords").status_code == 401
+        # /keywords is a public catalogue read now; /preferences is personal
+        # data and stays behind SSO even for the loopback origin.
+        assert client.get("/api/data/travel/preferences").status_code == 401
         assert client.get("/api/data/ai/status").status_code == 401
 
 

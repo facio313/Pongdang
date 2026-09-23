@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "./i18n";
 import { isLoginRequiredError } from "./authError";
-import { useRequireLogin } from "./loginPopover";
+import { useRequireLogin } from "./loginPopoverState";
 export function useAction({ replace = false }: { replace?: boolean } = {}) {
   const { t } = useI18n();
   const requireLogin = useRequireLogin();
