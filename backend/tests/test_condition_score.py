@@ -1,7 +1,9 @@
 """Software contracts for explicit condition matching, not field validation."""
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException
@@ -11,12 +13,13 @@ from pydantic import ValidationError
 from app.config import Settings
 from app.main import create_app
 from app.water_index import condition_api as api
-from app.water_index import condition_storage
+from app.water_index import condition_storage, recommendation_api
 from app.water_index.conditions import (
     ACTIVITIES,
     METRICS,
     ConditionMetric,
     ConditionsEnvelope,
+    ConditionSummary,
     Criterion,
     SourceValue,
     calculate_conditions,
@@ -294,22 +297,180 @@ def body():
     )
 
 
-@pytest.mark.parametrize(
-    "mode,at,as_of,historical",
-    [
-        ("observation", None, None, False),
-        ("observation", NOW - timedelta(minutes=10), None, True),
-        ("forecast", datetime(2026, 1, 1, 14, 59, 59, tzinfo=UTC), None, True),
-        ("forecast", datetime(2026, 1, 1, 15, tzinfo=UTC), None, False),
-        ("forecast", NOW, None, False),
-        ("forecast", NOW, NOW, True),
-    ],
-)
-def test_historical_target_routing_uses_kst_day_boundary(mode, at, as_of, historical):
+def test_product_target_window_uses_kst_calendar_days():
+    day_start = datetime(2026, 1, 1, 15, tzinfo=UTC)
+    earliest = day_start - timedelta(days=7)
+    latest = day_start + timedelta(days=8)
+    for target in (earliest, NOW, latest - timedelta(microseconds=1)):
+        query = api.ConditionQuery(
+            spot_id=1, activity="swim", mode="forecast", at=target
+        )
+        assert query.product_times(NOW)[0] == target
+    for target in (earliest - timedelta(microseconds=1), latest):
+        query = api.ConditionQuery(
+            spot_id=1, activity="swim", mode="forecast", at=target
+        )
+        with pytest.raises(ValueError, match="7-day window"):
+            query.product_times(NOW)
+
+
+def test_product_future_forecast_rejects_historical_cutoff():
     query = api.ConditionQuery(
-        spot_id=1, activity="swim", mode=mode, at=at, as_of=as_of
+        spot_id=1,
+        activity="swim",
+        mode="forecast",
+        at=NOW + timedelta(days=1),
+        as_of=NOW - timedelta(hours=1),
     )
-    assert api.is_historical_query(query, NOW) is historical
+    with pytest.raises(ValueError, match="historical cutoffs"):
+        query.product_times(NOW)
+
+
+def test_explicit_raw_calculation_keeps_its_31_day_window():
+    query = api.ScoreRequest.model_validate(
+        body() | {"mode": "forecast", "at": (NOW + timedelta(days=20)).isoformat()}
+    )
+    assert query.times(NOW)[0] == NOW + timedelta(days=20)
+    with pytest.raises(ValueError, match="7-day window"):
+        query.product_times(NOW)
+
+
+def test_explicit_past_get_reads_published_result(monkeypatch):
+    now = datetime.now(UTC)
+    target = now - timedelta(days=1)
+    calls = []
+
+    async def projected(reader, query, *, now=None, connection=None):
+        calls.append(query)
+        return envelope(metrics=(), mode="forecast", at=target, as_of=now)
+
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("Product GET must not query raw evidence")
+
+    monkeypatch.setattr(condition_storage, "read_projected_conditions", projected)
+    monkeypatch.setattr(api, "read_conditions", forbidden)
+    with TestClient(
+        create_app(Settings(_env_file=None, postgres_password="test-only"))
+    ) as client:
+        response = client.get(
+            BASE + "/conditions",
+            params={
+                "spot_id": 1,
+                "activity": "swim",
+                "mode": "forecast",
+                "at": target.isoformat(),
+                "as_of": now.isoformat(),
+            },
+        )
+    assert response.status_code == 200, response.text
+    assert len(calls) == 1
+    assert response.json()["at"] == target.isoformat().replace("+00:00", "Z")
+
+
+def test_summary_uses_compact_reader_for_all_spots(monkeypatch):
+    calls = []
+
+    async def summaries(reader, queries, *, now=None, connection=None):
+        calls.append(tuple(query.spot_id for query in queries))
+        return [
+            ConditionSummary(
+                spot_id=1,
+                place_name="Software fixture",
+                support_status="unknown",
+                safety_status="unknown",
+                expires_at=None,
+            ),
+            HTTPException(404, "place_not_found"),
+        ]
+
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("Summary must not load detailed results")
+
+    monkeypatch.setattr(condition_storage, "read_condition_summaries", summaries)
+    monkeypatch.setattr(condition_storage, "read_condition_set", forbidden)
+    monkeypatch.setattr(api, "read_conditions", forbidden)
+    with TestClient(
+        create_app(Settings(_env_file=None, postgres_password="test-only"))
+    ) as client:
+        response = client.get(
+            BASE + "/conditions/summary",
+            params={"spot_ids": "1,2", "activity": "swim"},
+        )
+    assert response.status_code == 200, response.text
+    assert calls == [(1, 2)]
+    assert [row["spot_id"] for row in response.json()["rows"]] == [1]
+    assert response.json()["unavailable"] == [
+        {"spot_id": 2, "reason": "place_not_found"}
+    ]
+
+
+def test_product_get_rejects_day_eight_without_reading_database(monkeypatch):
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("An out-of-window GET must not read the database")
+
+    monkeypatch.setattr(condition_storage, "read_projected_conditions", forbidden)
+    monkeypatch.setattr(condition_storage, "read_condition_summaries", forbidden)
+    monkeypatch.setattr(condition_storage, "read_condition_set", forbidden)
+    day_start = (
+        datetime.now(UTC)
+        .astimezone(ZoneInfo("Asia/Seoul"))
+        .replace(hour=0, minute=0, second=0, microsecond=0)
+    )
+    past = (day_start - timedelta(days=8)).isoformat()
+    future = (day_start + timedelta(days=8)).isoformat()
+    current = datetime.now(UTC)
+    historical_future = {
+        "at": (current + timedelta(days=1)).isoformat(),
+        "as_of": (current - timedelta(hours=1)).isoformat(),
+    }
+    with TestClient(
+        create_app(Settings(_env_file=None, postgres_password="test-only"))
+    ) as client:
+        condition_params = {"spot_id": 1, "activity": "swim", "mode": "forecast"}
+        requests = (
+            ("/conditions", condition_params | {"at": past}),
+            ("/conditions", condition_params | {"at": future}),
+            ("/conditions", condition_params | historical_future),
+            (
+                "/conditions/summary",
+                {"spot_ids": "1", "activity": "swim", "as_of": past},
+            ),
+            (
+                "/conditions/series",
+                {"spot_id": 1, "activity": "swim", "targets": future},
+            ),
+            ("/recommendation", {"spot_id": 1, "mode": "forecast", "at": past}),
+        )
+        for path, params in requests:
+            response = client.get(BASE + path, params=params)
+            assert response.status_code == 422, (path, response.text)
+
+
+def test_past_recommendation_forecast_fallback_uses_requested_cutoff(monkeypatch):
+    now = datetime.now(UTC)
+    cutoff = now - timedelta(days=1)
+    batches = []
+
+    async def saved(reader, queries, *, now=None, connection=None):
+        batches.append(queries)
+        return [
+            envelope(
+                activity=query.activity,
+                mode=query.mode,
+                at=query.at or query.as_of or now,
+                as_of=query.as_of or now,
+                metrics=(),
+            )
+            for query in queries
+        ]
+
+    monkeypatch.setattr(recommendation_api, "read_condition_set", saved)
+    query = recommendation_api.RecommendationQuery(spot_id=1, as_of=cutoff)
+    result = asyncio.run(recommendation_api.read_activities(None, query, now))
+    count = len(recommendation_api.RECOMMENDED_ACTIVITIES)
+    assert len(result) == count
+    assert len(batches) == 1
+    assert all(row.at == cutoff for row in batches[0][count:])
 
 
 def test_http_catalog_calculation_no_store_and_openapi(client):

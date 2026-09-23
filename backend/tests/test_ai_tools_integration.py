@@ -11,6 +11,7 @@ from app.config import Settings
 from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.schema import connect, initialize
+from app.water_index.condition_producer import produce_conditions
 
 
 def database_snapshot(settings):
@@ -102,6 +103,8 @@ def real_tool_db():
             "SELECT spot_id FROM pongdang_data.collection_station "
             "WHERE provider='AI_SQL_TEST'"
         ).fetchone()[0]
+    assert produce_conditions(settings) > 0
+    now = datetime.now(UTC)
     baseline = database_snapshot(settings)
     yield settings, now, places, station_spot
     assert database_snapshot(settings) == baseline

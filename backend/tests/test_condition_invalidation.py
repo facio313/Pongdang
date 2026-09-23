@@ -152,6 +152,11 @@ def test_v16_upgrade_does_not_revive_previously_invalidated_scores(database):
     assert produce_conditions(database) > 0
     with connect(database) as c:
         migrate_conditions(c)
+        # A v16 database predates the v20 invalidation clock trigger.
+        c.execute(
+            "DROP TRIGGER condition_invalidation_clock ON "
+            "pongdang_data.condition_source_revision"
+        )
         c.execute(
             "ALTER TABLE pongdang_data.condition_source_revision "
             "DROP COLUMN invalidated_revision"

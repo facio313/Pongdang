@@ -38,7 +38,6 @@ from app.water_index.conditions import (
     SourceValue,
     SummaryFailure,
     calculate_conditions,
-    summarize_conditions,
     validate_criteria,
 )
 from app.water_index.models import Activity, SafetyEvidence, SupportEvidence
@@ -79,15 +78,23 @@ class ConditionQuery(BaseModel):
             raise ValueError("Observations cannot evaluate a future target")
         return at, as_of
 
-
-def is_historical_query(q, now: datetime) -> bool:
-    """Keep explicit observations and forecasts before today on the raw path."""
-    day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    return q.as_of is not None or (
-        q.at is not None and (q.mode == "observation" or q.at < day_start)
-    )
+    def product_times(self, now: datetime):
+        """The published product covers seven KST dates in either direction."""
+        at, as_of = self.times(now)
+        day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        earliest = day_start - timedelta(days=7)
+        latest = day_start + timedelta(days=8)
+        if not earliest <= at < latest or as_of < earliest:
+            raise ValueError("Target or cutoff is outside the published 7-day window")
+        # Future result rows are reconciled in place on every publication. They
+        # therefore represent the latest published view, not a point-in-time
+        # archive of every prior forecast revision. Reject that unsupported
+        # contract explicitly instead of returning an unexplained empty result.
+        if self.as_of is not None and at > as_of:
+            raise ValueError("Published forecasts do not support historical cutoffs")
+        return at, as_of
 
 
 #: 한 요청이 요약할 수 있는 지점 수. 지점마다 관측소 연결과 관측 선별 질의가
@@ -683,6 +690,7 @@ def score_request_schema():
 def create_condition_router(settings):
     from app.water_index.condition_storage import (
         read_condition_set,
+        read_condition_summaries,
         read_projected_conditions,
     )
 
@@ -709,16 +717,12 @@ def create_condition_router(settings):
             )
         now = datetime.now(UTC)
         try:
-            q.times(now)
+            q.product_times(now)
         except ValueError:
             return error_response(
                 422, "invalid_request", "조회 시각이 올바르지 않습니다."
             )
         try:
-            # Historical targets and knowledge cutoffs retain the bounded raw
-            # query. Normal product reads use only worker-published results.
-            if is_historical_query(q, now):
-                return await read_conditions(reader, q, now=now)
             return await read_projected_conditions(reader, q, now=now)
         except ValueError, KeyError:
             return error_response(
@@ -735,35 +739,22 @@ def create_condition_router(settings):
         now = datetime.now(UTC)
         try:
             ids = q.ids
-            as_of = q.query(ids[0]).times(now)[1]
+            as_of = q.query(ids[0]).product_times(now)[1]
         except ValueError:
             return error_response(
                 422, "invalid_request", "조회할 지점과 시각을 확인해 주세요."
             )
         rows, unavailable = [], []
-        if q.as_of is not None:
-            results = []
-            async with reader.connection() as c:
-                for spot_id in ids:
-                    try:
-                        results.append(
-                            await read_conditions(
-                                reader, q.query(spot_id), now=now, connection=c
-                            )
-                        )
-                    except HTTPException as error:
-                        results.append(error)
-        else:
-            results = await read_condition_set(
-                reader, [q.query(spot_id) for spot_id in ids], now=now
-            )
+        results = await read_condition_summaries(
+            reader, [q.query(spot_id) for spot_id in ids], now=now
+        )
         for spot_id, result in zip(ids, results, strict=True):
             if isinstance(result, HTTPException):
                 unavailable.append(
                     SummaryFailure(spot_id=spot_id, reason=str(result.detail))
                 )
             else:
-                rows.append(summarize_conditions(result))
+                rows.append(result)
         return ConditionSummaries(
             activity=q.activity,
             as_of=as_of,
@@ -781,7 +772,7 @@ def create_condition_router(settings):
         try:
             queries = q.queries()
             for query in queries:
-                query.times(now)
+                query.product_times(now)
         except ValueError:
             return error_response(422, "invalid_request", "조회 시각을 확인해 주세요.")
         try:

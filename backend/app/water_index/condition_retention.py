@@ -1,9 +1,13 @@
 """Carry the last usable display and its evidence into each atomic publication."""
 
 from collections import defaultdict
+from datetime import timedelta
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+
+from app.water_index.activity_score import ScoreComponent, aggregate_activity_score
+from app.water_index.condition_result import result_payload
 
 
 def _blocked(payload):
@@ -14,12 +18,24 @@ def _blocked(payload):
     )
 
 
-def _available(payload):
-    names = {
+def _scored(payload):
+    return {
         component["metric"]
         for component in (payload.get("condition_score") or {}).get("components", ())
         if component.get("score") is not None
     }
+
+
+def _displayed(payload):
+    return {
+        metric["name"]
+        for metric in payload.get("display_metrics", ())
+        if metric.get("value") is not None or metric.get("text_value")
+    }
+
+
+def _available(payload):
+    names = _scored(payload)
     names.update(
         metric["name"]
         for metric in (
@@ -36,15 +52,93 @@ def _available(payload):
     return names
 
 
+def _retain_independent_fields(previous, current, lost):
+    """Refresh valid fields while retaining only unavailable independent inputs."""
+    before = previous.get("condition_score") or {}
+    after = current.get("condition_score") or {}
+    if any(
+        score.get("model_id") != "pongdang-activity-conditions"
+        or score.get("model_version") != "1.0.0"
+        for score in (before, after)
+    ):
+        # Only this model declares single-metric, independent components.
+        # Coupled/custom formula results must retain their complete input set.
+        return None
+    if not (_scored(current) | _displayed(current)) - lost:
+        return None
+    prior_components = {c["metric"]: c for c in before["components"]}
+    components = []
+    for component in after["components"]:
+        prior = prior_components.get(component["metric"])
+        if component["metric"] in lost and prior and prior["score"] is not None:
+            component = prior
+        components.append(ScoreComponent.model_validate(component))
+
+    result = {
+        **current,
+        "condition_score": aggregate_activity_score(
+            components,
+            activity=current["activity"],
+            support_status=current["support_status"],
+            safety_status=current["safety_status"],
+        ).model_dump(mode="json"),
+        "retained": True,
+        # Fresh metrics are validated at this calculation's original target.
+        # Borrowed metrics keep their source timestamps and an explicit stale
+        # state, so this timestamp never extends their measurement validity.
+        "retained_at": current["at"],
+    }
+    for field in ("metrics", "context_metrics", "display_metrics"):
+        kept = [m for m in current.get(field, ()) if m["name"] not in lost]
+        for metric in previous.get(field, ()):
+            if metric["name"] not in lost:
+                continue
+            # Display contracts have no stale status. Provisional explicitly
+            # identifies its retained numeric value without changing the UI.
+            status = (
+                ("text" if metric["status"] == "text" else "provisional")
+                if field == "display_metrics"
+                else "stale"
+            )
+            kept.append({**metric, "status": status})
+        result[field] = kept
+    clocks = {
+        "at",
+        "as_of",
+        "retained_at",
+        "projection",
+        "contract_version",
+        "model",
+        "environment_score",
+    }
+    if {k: v for k, v in result.items() if k not in clocks} == {
+        k: v for k, v in previous.items() if k not in clocks
+    }:
+        # Rechecking an unchanged partial result must not churn its stored JSON
+        # or claim a new evidence time. Changed provider timestamps still differ.
+        return previous
+    return result
+
+
 def retain_payload(previous, current, origin):
-    """Keep scores and their inputs together; a lower complete score is valid."""
+    """Retain failed independent fields; a lower valid new score is published."""
     if not previous or _blocked(previous) or _blocked(current):
         return current
     lost_score = (previous.get("condition_score") or {}).get("score") is not None and (
         current.get("condition_score") or {}
     ).get("score") is None
-    if not lost_score and not (_available(previous) - _available(current)):
+    # Raw availability alone is insufficient: a numeric value may still fail
+    # domain checks or conflict during station selection. Preserve the complete
+    # prior component/evidence/display group when either selected product fails.
+    lost = (
+        (_available(previous) - _available(current))
+        | (_scored(previous) - _scored(current))
+        | (_displayed(previous) - _displayed(current))
+    )
+    if not lost_score and not lost:
         return current
+    if partial := _retain_independent_fields(previous, current, lost):
+        return partial
     return {
         **previous,
         "retained": True,
@@ -77,26 +171,72 @@ class RetainedPublication:
     def records(self, batch):
         old = defaultdict(list)
         if self.previous:
-            keys = sorted({(r["spot_id"], r["activity"], r["mode"]) for r in batch})
+            keys = {}
+            for record in batch:
+                key = record["spot_id"], record["activity"], record["mode"]
+                if key not in keys:
+                    keys[key] = [record["target_start"], record["target_end"]]
+                else:
+                    keys[key][0] = min(keys[key][0], record["target_start"])
+                    keys[key][1] = max(keys[key][1], record["target_end"])
             with self.connection.cursor(row_factory=dict_row) as cursor:
                 rows = cursor.execute(
-                    "SELECT s.* FROM jsonb_to_recordset(%s::jsonb) "
-                    "AS k(spot_id bigint,activity text,mode text) JOIN "
-                    "pongdang_data.condition_snapshot s ON "
-                    "s.generation_id=%s AND s.spot_id=k.spot_id "
+                    "SELECT s.*,origin.source_revision,origin.computed_at "
+                    "FROM jsonb_to_recordset(%s::jsonb) "
+                    "AS k(spot_id bigint,activity text,mode text,"
+                    "min_start timestamptz,max_end timestamptz) JOIN "
+                    "pongdang_data.condition_result s ON "
+                    "s.spot_id=k.spot_id "
                     "AND s.activity=k.activity AND s.mode=k.mode "
+                    "JOIN pongdang_data.condition_generation origin "
+                    "ON origin.id=s.generation_id AND origin.result_published "
+                    "WHERE origin.source_revision >= "
+                    "(SELECT invalidated_revision FROM "
+                    "pongdang_data.condition_source_revision WHERE id=1) "
+                    "AND ((k.mode='forecast' AND s.target_start<k.max_end "
+                    "AND s.target_end>k.min_start) OR "
+                    "(k.mode='observation' AND ("
+                    "s.target_start BETWEEN k.min_start AND k.max_end OR "
+                    "s.target_start=(SELECT max(prior.target_start) "
+                    "FROM pongdang_data.condition_result prior JOIN "
+                    "pongdang_data.condition_generation valid ON "
+                    "valid.id=prior.generation_id AND valid.result_published WHERE "
+                    "prior.spot_id=k.spot_id AND prior.activity=k.activity "
+                    "AND prior.mode=k.mode AND prior.target_start<=k.min_start "
+                    "AND valid.source_revision >= (SELECT "
+                    "invalidated_revision FROM "
+                    "pongdang_data.condition_source_revision WHERE id=1))))) "
                     "ORDER BY s.spot_id,s.activity,s.mode,s.target_start",
                     [
                         Jsonb(
                             [
-                                dict(spot_id=spot, activity=activity, mode=mode)
-                                for spot, activity, mode in keys
+                                dict(
+                                    spot_id=spot,
+                                    activity=activity,
+                                    mode=mode,
+                                    min_start=times[0].isoformat(),
+                                    max_end=times[1].isoformat(),
+                                )
+                                for (spot, activity, mode), times in sorted(
+                                    keys.items()
+                                )
                             ]
                         ),
-                        self.previous["generation_id"],
                     ],
                 ).fetchall()
             for row in rows:
+                row["payload"] = result_payload(row)
+                if not row["payload"].get("projection"):
+                    row["payload"]["projection"] = dict(
+                        generation_id=row["generation_id"],
+                        source_revision=row["source_revision"],
+                        computed_at=row["computed_at"].isoformat(),
+                        refresh_after=(
+                            row["computed_at"] + timedelta(minutes=10)
+                        ).isoformat(),
+                        status="ready",
+                        retention_allowed=True,
+                    )
                 old[(row["spot_id"], row["activity"], row["mode"])].append(row)
         for record in batch:
             key = (record["spot_id"], record["activity"], record["mode"])

@@ -592,9 +592,9 @@ def produce_conditions(settings, *, now=None):
         start = now.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
         if projection_is_current(c, source_revision, start):
             return 0
-        # The same generation is reused throughout this KST day. Cover the
-        # public 31-day target window even for a query near the end of the day.
-        end = start + timedelta(days=32)
+        # Today and the next seven KST calendar days are the live projection.
+        # Older days belong to the retained daily results, not this rebuild.
+        end = start + timedelta(days=8)
         inputs = _load_inputs(c, now, start, end)
     records = inputs.iter_records(now, start, end)
     return publish_conditions(

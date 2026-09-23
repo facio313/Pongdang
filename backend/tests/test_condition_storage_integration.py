@@ -21,7 +21,9 @@ from app.water_index.condition_storage import (
     projection_revision,
     publish_conditions,
     read_condition_set,
+    read_condition_summaries,
 )
+from app.water_index.conditions import summarize_conditions
 
 BASE = "/api/data/water-index"
 
@@ -53,7 +55,7 @@ def test_product_get_never_calculates_or_populates_missing_results(
         patch.setattr(
             "app.water_index.condition_api.calculate_activity_score", forbidden
         )
-        patch.setattr("app.water_index.recommendation_api.read_conditions", forbidden)
+        patch.setattr("app.water_index.condition_api.read_conditions", forbidden)
         with TestClient(create_app(database)) as client:
             response = client.get(BASE + "/conditions", params=query(spot))
             assert response.status_code == 200, response.text
@@ -97,12 +99,14 @@ def test_missing_refresh_preserves_published_scores_before_and_after_worker(data
         store_batch(database, revised)
         pending = client.get(BASE + "/conditions", params=query(spot)).json()
         assert pending["condition_score"] == first["condition_score"]
-        assert pending["projection"]["status"] == "refreshing"
+        assert pending["projection"]["status"] == "ready"
+        assert pending["projection"]["refresh_after"] is None
         assert pending["projection"]["retention_allowed"] is True
         produce_conditions(database)
         replacement = client.get(BASE + "/conditions", params=query(spot)).json()
         assert replacement["condition_score"] == first["condition_score"]
-        assert replacement["projection"]["status"] == "refreshing"
+        assert replacement["projection"]["status"] == "ready"
+        assert replacement["projection"]["refresh_after"] is None
         assert replacement["retained"] is True
         assert replacement["metrics"] == first["metrics"]
         assert (
@@ -137,13 +141,14 @@ def test_new_observations_keep_published_scores_for_cold_clients_until_replaced(
         ),
     )
     # A new client has no browser cache. The API must supply the old complete
-    # result, its real calculation time and explicit refresh state itself.
+    # result and its real calculation time without exposing worker progress.
     with TestClient(create_app(database)) as client:
         pending = client.get(BASE + "/conditions", params=params).json()
         assert pending["condition_score"] == first["condition_score"]
-        assert pending["retained"] is True
+        assert pending["retained"] == first["retained"]
         projection = pending["projection"]
-        assert projection["status"] == "refreshing"
+        assert projection["status"] == "ready"
+        assert projection["refresh_after"] is None
         assert projection["generation_id"] == first["projection"]["generation_id"]
         assert projection["computed_at"] == first["projection"]["computed_at"]
         assert projection["source_revision"] < projection["latest_source_revision"]
@@ -153,12 +158,12 @@ def test_new_observations_keep_published_scores_for_cold_clients_until_replaced(
             params={"spot_ids": str(spot), "activity": "swim"},
         ).json()["rows"][0]
         assert summary["condition_score"] == first["condition_score"]
-        assert summary["retained"] is True
+        assert summary["retained"] == first["retained"]
         recommendation = client.get(
             BASE + "/recommendation", params={"spot_id": spot}
         ).json()
         swim = next(c for c in recommendation["conditions"] if c["activity"] == "swim")
-        assert swim["retained"] is True
+        assert swim["retained"] == first["retained"]
         assert swim["condition_score"] == first["condition_score"]
         assert produce_conditions(database) > 0
         current = client.get(BASE + "/conditions", params=params).json()
@@ -192,10 +197,25 @@ def test_one_select_reads_multiple_activities_and_reports_missing_place(database
         ConditionQuery(spot_id=spot, activity=activity, mode="observation")
         for activity in ("swim", "surf", "relax")
     ]
-    results = asyncio.run(read_condition_set(CountedReader(database), queries))
+    now = datetime.now(UTC)
+    results = asyncio.run(read_condition_set(CountedReader(database), queries, now=now))
     assert len(statements) == 1
     assert len(results) == 3
+    assert "condition_result" in statements[0]
+    assert "condition_snapshot" not in statements[0]
+    assert "conditions_observation" not in statements[0]
     assert len({r.projection.generation_id for r in results}) == 1
+    statements.clear()
+    summaries = asyncio.run(
+        read_condition_summaries(CountedReader(database), queries, now=now)
+    )
+    assert len(statements) == 1
+    assert "condition_result" in statements[0]
+    assert "payload" not in statements[0]
+    assert "detail" not in statements[0]
+    assert [row.model_dump(mode="json") for row in summaries] == [
+        summarize_conditions(row).model_dump(mode="json") for row in results
+    ]
     with TestClient(create_app(database)) as client:
         response = client.get(
             BASE + "/conditions/summary",
@@ -260,14 +280,24 @@ def test_replaced_display_sets_are_bounded_and_source_evidence_is_preserved(data
             ).fetchone()[0]
             == 3
         )
-        retained = c.execute(
-            "SELECT DISTINCT generation_id FROM pongdang_data.condition_snapshot "
-            "ORDER BY generation_id"
-        ).fetchall()
-        newest = c.execute(
-            "SELECT id FROM pongdang_data.condition_generation ORDER BY id DESC LIMIT 2"
-        ).fetchall()
-        assert retained == list(reversed(newest))
+        assert (
+            c.execute(
+                "SELECT count(*) FROM pongdang_data.condition_result "
+                "WHERE target_end<=(date_trunc('day',now() AT TIME ZONE "
+                "'Asia/Seoul') AT TIME ZONE 'Asia/Seoul')-interval '7 days'"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            c.execute(
+                "SELECT count(*) FROM pongdang_data.condition_result a "
+                "JOIN pongdang_data.condition_result b ON a.ctid<b.ctid "
+                "AND a.spot_id=b.spot_id AND a.activity=b.activity "
+                "AND a.mode=b.mode AND a.target_start<b.target_end "
+                "AND b.target_start<a.target_end"
+            ).fetchone()[0]
+            == 0
+        )
         assert (
             c.execute(
                 "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"

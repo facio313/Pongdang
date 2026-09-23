@@ -1,6 +1,12 @@
 """Domain jobs share persisted scheduling, locks, backoff and heartbeat."""
 
+from datetime import datetime, timedelta
+from math import ceil
+from zoneinfo import ZoneInfo
+
 from app.ingestion.jobs import Job
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 def feature_jobs(settings):
@@ -9,6 +15,7 @@ def feature_jobs(settings):
     from app.notifications.delivery import run_notifications
     from app.quality.service import run_quality_job
     from app.water_index.condition_producer import produce_conditions
+    from app.water_index.condition_storage import prune_condition_results
     from app.water_index.producer import produce_assessment_batch
 
     def projection(function):
@@ -31,7 +38,24 @@ def feature_jobs(settings):
             error="",
         )
 
+    def condition_result_retention():
+        changed = prune_condition_results(settings)
+        now = datetime.now(KST)
+        next_midnight = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        return dict(
+            received=changed,
+            inserted=0,
+            state="succeeded",
+            error="",
+            next_run_seconds=min(
+                86400, max(30, ceil((next_midnight - now).total_seconds()))
+            ),
+        )
+
     return [
+        Job("condition_result_retention", 600, process=condition_result_retention),
         Job("forecast_projection", 600, process=lambda: projection(project_forecasts)),
         Job(
             "water_index_evaluation",

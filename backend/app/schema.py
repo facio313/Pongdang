@@ -16,7 +16,7 @@ from app.water_index.condition_invalidation import migrate_condition_invalidatio
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 19
+VERSION = 20
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -188,9 +188,10 @@ def initialize(settings: Settings) -> bool:
             if row in {(15,), (16,), (17,), (18,)}:
                 migrate_condition_continuity(connection)
                 return True
-            # v20 keeps the legacy tables readable. Accept it unchanged so this
-            # v19 release can restore the previous apps after a v20 rollout.
-            if row not in {(VERSION,), (20,)}:
+            if row == (19,):
+                migrate_condition_result_storage(connection)
+                return True
+            if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
             return False
         connection.execute("CREATE SCHEMA pongdang_data")
@@ -280,6 +281,15 @@ def migrate_condition_continuity(connection):
             "SET revision=revision+1 WHERE id=1"
         )
     connection.execute("UPDATE pongdang_data.schema_version SET version=19 WHERE id=1")
+    migrate_condition_result_storage(connection)
+
+
+def migrate_condition_result_storage(connection):
+    """Explicit v19 -> v20: direct display results and bounded history."""
+    from app.water_index.condition_storage import migrate_condition_results
+
+    migrate_condition_results(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=20 WHERE id=1")
 
 
 def migrate_windy_thumbnails(connection):
@@ -442,6 +452,54 @@ def remove_demo(settings: Settings) -> bool:
         return present
 
 
+def retire_condition_snapshots(settings: Settings) -> int:
+    """Explicitly release legacy result storage after a verified v20 publish."""
+    from app.water_index.condition_storage import RESULT_LOCK
+
+    with connect(settings) as connection:
+        connection.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-schema'))")
+        connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK])
+        version_table = connection.execute(
+            "SELECT to_regclass('pongdang_data.schema_version')"
+        ).fetchone()[0]
+        if version_table is None:
+            raise ValueError("Condition snapshot retirement requires schema v20")
+        version = connection.execute(
+            "SELECT version FROM pongdang_data.schema_version WHERE id=1"
+        ).fetchone()
+        if version != (20,):
+            raise ValueError("Condition snapshot retirement requires schema v20")
+        # Freeze legacy writers before checking the handover generation. New
+        # result publishers share the advisory lock above.
+        connection.execute(
+            "LOCK TABLE pongdang_data.condition_snapshot IN ACCESS EXCLUSIVE MODE"
+        )
+        legacy_count, legacy_generation = connection.execute(
+            "SELECT count(*),max(generation_id) FROM pongdang_data.condition_snapshot"
+        ).fetchone()
+        if legacy_count == 0:
+            return 0
+        latest = connection.execute(
+            "SELECT id,record_count FROM pongdang_data.condition_generation "
+            "WHERE result_published ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        if latest is None or latest[0] <= legacy_generation:
+            raise ValueError(
+                "Condition snapshot retirement requires a newer result generation"
+            )
+        if latest[1] <= 0:
+            raise ValueError(
+                "Condition snapshot retirement requires a nonempty result generation"
+            )
+        result_exists = connection.execute(
+            "SELECT EXISTS(SELECT 1 FROM pongdang_data.condition_result)"
+        ).fetchone()[0]
+        if not result_exists:
+            raise ValueError("Condition snapshot retirement requires stored results")
+        connection.execute("TRUNCATE pongdang_data.condition_snapshot")
+        return legacy_count
+
+
 def reconcile_places(settings: Settings) -> int:
     """Apply only catalogue identity metadata, preserving unrelated migrations."""
     from app.place_identity import initialize_place_identity
@@ -461,27 +519,43 @@ def main():
     parser.add_argument("--initialize", action="store_true")
     parser.add_argument("--remove-demo", action="store_true")
     parser.add_argument("--reconcile-places", action="store_true")
+    parser.add_argument("--retire-condition-snapshots", action="store_true")
     args = parser.parse_args()
-    if not (args.initialize or args.remove_demo or args.reconcile_places):
-        parser.error("Specify --initialize, --remove-demo or --reconcile-places")
+    if not (
+        args.initialize
+        or args.remove_demo
+        or args.reconcile_places
+        or args.retire_condition_snapshots
+    ):
+        parser.error(
+            "Specify --initialize, --remove-demo, --reconcile-places "
+            "or --retire-condition-snapshots"
+        )
     try:
         settings = Settings()
         created = initialize(settings) if args.initialize else False
         if args.remove_demo:
             remove_demo(settings)
         aliases = reconcile_places(settings) if args.reconcile_places else None
+        retired = (
+            retire_condition_snapshots(settings)
+            if args.retire_condition_snapshots
+            else None
+        )
     except Exception:
         raise SystemExit(
             "Pongdang schema initialization failed; no partial changes committed"
         ) from None
     if aliases is not None:
         print(f"Pongdang place aliases reconciled: {aliases}")
-    else:
+    elif args.initialize or args.remove_demo:
         print(
             "Pongdang schema initialized"
             if created
             else "Pongdang schema already initialized"
         )
+    if retired is not None:
+        print(f"Pongdang condition snapshots retired: {retired}")
 
 
 if __name__ == "__main__":
