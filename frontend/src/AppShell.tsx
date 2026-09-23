@@ -2,6 +2,7 @@ import { t } from "./i18n";
 import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
+import { LoginPopoverOutlet, LoginPopoverProvider } from "./loginPopover";
 import { LOGO_ALT, logoUrl } from "./brand";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
@@ -137,23 +138,26 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <SideMenuProvider>
-      <div className={"pd-app" + (fullscreen ? " is-fullscreen" : "")}>
-        <div className={"pd-frame" + (fullscreen ? " is-fullscreen" : "")}>
-          {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
-          {bare ? (
-            children
-          ) : (
-            <div className="pd-body">
-              {children}
-              <AppFootNote />
-            </div>
-          )}
-          <AppTabBar active={tab} floating={fullscreen} />
-          {/* 토큰이 .pd-app 에 있으므로 메뉴 패널도 그 안에서 그립니다. */}
-          <SideMenuOutlet />
+    <LoginPopoverProvider>
+      <SideMenuProvider>
+        <div className={"pd-app" + (fullscreen ? " is-fullscreen" : "")}>
+          <div className={"pd-frame" + (fullscreen ? " is-fullscreen" : "")}>
+            {hero === undefined ? <AppHeader title={title ?? ""} /> : hero}
+            {bare ? (
+              children
+            ) : (
+              <div className="pd-body">
+                {children}
+                <AppFootNote />
+              </div>
+            )}
+            <AppTabBar active={tab} floating={fullscreen} />
+            {/* 토큰이 .pd-app 에 있으므로 메뉴 패널도 그 안에서 그립니다. */}
+            <SideMenuOutlet />
+            <LoginPopoverOutlet />
+          </div>
         </div>
-      </div>
-    </SideMenuProvider>
+      </SideMenuProvider>
+    </LoginPopoverProvider>
   );
 }

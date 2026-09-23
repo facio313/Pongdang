@@ -114,7 +114,6 @@ def create_router(settings):
             original = super().get_route_handler()
 
             async def bounded(request: Request):
-                auth(request)
                 if request.method not in {"GET", "HEAD"}:
                     body = bytearray()
                     async for chunk in request.stream():
@@ -137,7 +136,7 @@ def create_router(settings):
     Actor = Annotated[Principal, Depends(auth)]
 
     @router.get("/capabilities")
-    async def capabilities(actor: Actor):
+    async def capabilities():
         from app.travel.directions import availability
 
         return {
@@ -181,7 +180,7 @@ def create_router(settings):
         }
 
     @router.get("/keywords")
-    def keyword_options(actor: Actor):
+    def keyword_options():
         from app.travel.keywords import catalogue
 
         return catalogue()

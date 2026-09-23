@@ -2,6 +2,7 @@ import { t } from "./i18n";
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
+import { LoginPopoverOutlet, LoginPopoverProvider } from "./loginPopover";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
@@ -416,16 +417,19 @@ export function DesktopShell({
   children: ReactNode;
 }) {
   return (
-    <SideMenuProvider>
-      <div className={"pd-desktop" + (fullscreen ? " is-fullscreen" : "")}>
-        <div className="pd-desktop-page">{children}</div>
-        {/* 메뉴 패널의 색 토큰(--pd-*)은 `.pd-app` 에 선언돼 있습니다. 여기는
-            `--dk-*` 팔레트라 그 안에 그대로 두면 흰 패널이 투명해집니다.
-            패널은 position: fixed 라 이 껍데기가 자리를 차지하지 않습니다. */}
-        <div className="pd-app pd-desktop-menu-root">
-          <SideMenuOutlet />
+    <LoginPopoverProvider>
+      <SideMenuProvider>
+        <div className={"pd-desktop" + (fullscreen ? " is-fullscreen" : "")}>
+          <div className="pd-desktop-page">{children}</div>
+          {/* 메뉴 패널의 색 토큰(--pd-*)은 `.pd-app` 에 선언돼 있습니다. 여기는
+              `--dk-*` 팔레트라 그 안에 그대로 두면 흰 패널이 투명해집니다.
+              패널은 position: fixed 라 이 껍데기가 자리를 차지하지 않습니다. */}
+          <div className="pd-app pd-desktop-menu-root">
+            <SideMenuOutlet />
+            <LoginPopoverOutlet />
+          </div>
         </div>
-      </div>
-    </SideMenuProvider>
+      </SideMenuProvider>
+    </LoginPopoverProvider>
   );
 }

@@ -1,0 +1,64 @@
+.pd-login-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  background: rgba(15, 47, 122, 0.32);
+  cursor: pointer;
+}
+
+.pd-login-popover {
+  position: fixed;
+  z-index: 9;
+  inset: auto 12px 12px;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 16px;
+  background: var(--pd-card, #fff);
+  color: var(--pd-ink, #1b2430);
+}
+
+.pd-login-popover h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.pd-login-popover p {
+  margin: 0 0 16px;
+  color: var(--pd-ink-soft, #4b5563);
+}
+
+.pd-login-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pd-login-close,
+.pd-login-submit {
+  min-height: var(--pd-touch, 44px);
+  padding: 0 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pd-login-close {
+  border: 1px solid var(--pd-line, #c2ccd6);
+  background: transparent;
+  color: inherit;
+}
+
+.pd-login-submit {
+  border: 1px solid transparent;
+  background: var(--pd-brand, #0f2f7a);
+  color: #fff;
+}
+
+@media (min-width: 1080px) {
+  .pd-login-popover {
+    inset: 30% 35%;
+  }
+}
