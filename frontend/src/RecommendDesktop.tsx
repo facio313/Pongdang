@@ -28,6 +28,7 @@ import {
 import type { Activity } from "./aiApi";
 import { useAction } from "./useAction";
 import { isInitialLoad, useResource } from "./useResource";
+import { suppressLoginRequired } from "./authError";
 import {
   kakaoRouteLink,
   routePaths,
@@ -351,10 +352,15 @@ export function RecommendDesktop() {
       }
     });
 
-  const requestedPlan = useResource<TripPlan>(
-    planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
-      ? `travel/plans/${planId}`
-      : null,
+  // 공유 코스 링크(plan_id)도 개인정보 자원입니다. 익명 방문자에게는
+  // 「로그인 필요」를 알림으로 띄우지 않고, 다른 저장 자원과 같이 조용히
+  // 처리합니다(authError.suppressLoginRequired).
+  const requestedPlan = suppressLoginRequired(
+    useResource<TripPlan>(
+      planId && /^(?:[a-f0-9]{32}|[a-f0-9-]{36})$/i.test(planId)
+        ? `travel/plans/${planId}`
+        : null,
+    ),
   );
   // 방금 저장한 코스는 다시 싣지 않습니다. 저장이 해시에 plan_id 를 남기므로
   // 이 조회가 곧장 따라 도는데, 그때 recommendation 을 비우면 **화면에 떠 있던
