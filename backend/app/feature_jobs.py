@@ -66,7 +66,7 @@ def feature_jobs(settings):
             result = prune_water_index_history(settings, batch_size=10000)
             deleted += result["deleted"]
             if not result["pending"]:
-                sources = prune_source_history(settings)
+                sources = prune_source_history(settings, batch_size=10000)
                 deleted += sources["deleted"]
                 pending = sources["pending"]
                 break

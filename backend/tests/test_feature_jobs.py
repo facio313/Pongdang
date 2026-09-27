@@ -138,7 +138,7 @@ def test_evidence_retention_waits_for_reference_cleanup(monkeypatch):
     )
     monkeypatch.setattr(
         "app.ingestion.retention.prune_source_history",
-        lambda _: calls.append("raw") or dict(deleted=3, pending=False),
+        lambda _, **options: calls.append(options) or dict(deleted=3, pending=False),
     )
     job = next(
         job for job in registered_jobs(Settings()) if job.name == "evidence_retention"
@@ -155,7 +155,7 @@ def test_evidence_retention_waits_for_reference_cleanup(monkeypatch):
     assert job.process() == dict(
         received=5, inserted=0, state="succeeded", error="", next_run_seconds=3600
     )
-    assert calls == ["raw"]
+    assert calls == [{"batch_size": 10000}]
 
 
 def test_domain_job_restarts_due_backoff_and_sanitized_errors():
