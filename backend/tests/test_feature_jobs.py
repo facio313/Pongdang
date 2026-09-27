@@ -155,7 +155,7 @@ def test_evidence_retention_waits_for_reference_cleanup(monkeypatch):
     assert job.process() == dict(
         received=5, inserted=0, state="succeeded", error="", next_run_seconds=3600
     )
-    assert calls == [{"batch_size": 10000}]
+    assert calls == [{"batch_size": 10000, "max_batches": 20, "max_seconds": 20}]
 
 
 def test_domain_job_restarts_due_backoff_and_sanitized_errors():

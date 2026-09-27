@@ -327,6 +327,135 @@ def test_reference_pages_and_bounded_batches_preserve_last_page_reference(databa
     assert protected in saved(database)
 
 
+def test_multiple_batches_reuse_references_and_start_budget_after_scan(
+    database, monkeypatch
+):
+    now = datetime.now(UTC)
+    protected, _ = put(database, "protected", now - timedelta(days=80))
+    values = [
+        Value(name="air_temperature", numeric_value=22, unit="degC"),
+        Value(name="wind_speed", numeric_value=4, unit="m/s"),
+    ]
+    obsolete = {
+        put(database, f"obsolete-{i}", now - timedelta(days=50 + i), values=values)[0]
+        for i in range(5)
+    }
+    current, _ = put(database, "current", now - timedelta(minutes=1), values=values)
+    with connect(database) as c:
+        c.execute(
+            "INSERT INTO pongdang_data.water_index_input_manifest "
+            "(manifest_id,payload,digest) VALUES ('protected',%s,'fixture')",
+            [Jsonb({"inputs": [{"snapshot_id": protected}]})],
+        )
+    reference_scans, batches = [], []
+    elapsed = 0
+    original_references = retention._keep_references
+    original_batch = retention._delete_snapshot_batch
+
+    def references(connection):
+        nonlocal elapsed
+        reference_scans.append(1)
+        original_references(connection)
+        elapsed += 300
+
+    def batch(connection, batch_size):
+        nonlocal elapsed
+        counts = original_batch(connection, batch_size)
+        batches.append(counts["conditions_observationsnapshot"])
+        elapsed += 1
+        return counts
+
+    monkeypatch.setattr(retention, "_keep_references", references)
+    monkeypatch.setattr(retention, "_delete_snapshot_batch", batch)
+    monkeypatch.setattr(retention, "monotonic", lambda: elapsed)
+    result = retention.prune_source_history(
+        database, batch_size=2, max_batches=4, max_seconds=20
+    )
+    assert reference_scans == [1]
+    assert batches == [2, 2, 1]
+    assert result == {
+        "deleted": 15,
+        "pending": False,
+        "skipped": False,
+        "counts": {
+            "forecast_revision": 0,
+            "conditions_observationmetric": 10,
+            "conditions_observationsnapshot": 5,
+        },
+    }
+    assert saved(database) == {protected, current}
+    assert not obsolete & saved(database)
+
+
+@pytest.mark.parametrize("limit", ["batches", "time"])
+def test_multi_batch_limits_report_pending_and_resume(database, monkeypatch, limit):
+    now = datetime.now(UTC)
+    obsolete = {
+        put(database, f"obsolete-{i}", now - timedelta(days=50 + i))[0]
+        for i in range(5)
+    }
+    current, _ = put(database, "current", now - timedelta(minutes=1))
+    original_monotonic = retention.monotonic
+    if limit == "time":
+        times = iter((0, 21))
+        monkeypatch.setattr(retention, "monotonic", lambda: next(times))
+        max_batches, expected = 20, 2
+    else:
+        monkeypatch.setattr(retention, "monotonic", lambda: 0)
+        max_batches, expected = 2, 4
+    result = retention.prune_source_history(
+        database, batch_size=2, max_batches=max_batches, max_seconds=20
+    )
+    assert result["pending"] and not result["skipped"]
+    assert result["counts"]["conditions_observationsnapshot"] == expected
+    assert result["counts"]["conditions_observationmetric"] == expected
+    assert result["deleted"] == expected * 2
+    assert len(obsolete & saved(database)) == 5 - expected
+    monkeypatch.setattr(retention, "monotonic", original_monotonic)
+    resumed = retention.prune_source_history(database, batch_size=2, max_batches=4)
+    assert not resumed["pending"]
+    assert resumed["counts"]["conditions_observationsnapshot"] == 5 - expected
+    assert saved(database) == {current}
+
+
+def test_later_batch_sql_failure_rolls_back_all_source_deletions(database, monkeypatch):
+    now = datetime.now(UTC)
+    for i in range(5):
+        put(database, f"obsolete-{i}", now - timedelta(days=50 + i))
+    put(database, "current", now - timedelta(minutes=1))
+    before = saved(database)
+    revision = clock_state(database)
+    with connect(database) as c:
+        metrics_before = c.execute(
+            "SELECT id,snapshot_id FROM pongdang_data.conditions_observationmetric "
+            "ORDER BY id"
+        ).fetchall()
+    original_batch = retention._delete_snapshot_batch
+    batches = []
+
+    def fail_second_batch(connection, batch_size):
+        counts = original_batch(connection, batch_size)
+        batches.append(counts["conditions_observationsnapshot"])
+        if len(batches) == 2:
+            connection.execute("SELECT 1/0")
+        return counts
+
+    monkeypatch.setattr(retention, "_delete_snapshot_batch", fail_second_batch)
+    with pytest.raises(errors.DivisionByZero):
+        retention.prune_source_history(database, batch_size=2, max_batches=4)
+    assert batches == [2, 2]
+    assert saved(database) == before
+    assert clock_state(database) == revision
+    with connect(database) as c:
+        assert (
+            c.execute(
+                "SELECT id,snapshot_id FROM pongdang_data.conditions_observationmetric "
+                "ORDER BY id"
+            ).fetchall()
+            == metrics_before
+        )
+
+
 @pytest.mark.parametrize(
     "name,external",
     [("fixture_external_process", True), ("water_index_evaluation", False)],

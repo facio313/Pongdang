@@ -1,6 +1,7 @@
 """Bound source history without removing live, referenced or correction evidence."""
 
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 
 from psycopg import errors, sql
 
@@ -249,15 +250,46 @@ def _keep_inputs(connection, now, start, end):
     connection.execute("ANALYZE source_retention_keep")
 
 
-def prune_source_history(settings, *, now=None, batch_size=2000):
-    """Run only after Water Index pruning finishes; retire a bounded source batch.
+def _delete_snapshot_batch(connection, batch_size):
+    connection.execute("DELETE FROM source_retention_delete")
+    connection.execute(
+        "INSERT INTO source_retention_delete "
+        "SELECT s.id FROM pongdang_data.conditions_observationsnapshot s "
+        "WHERE NOT EXISTS(SELECT 1 FROM source_retention_keep k WHERE k.id=s.id) "
+        "ORDER BY s.id LIMIT %s",
+        [batch_size],
+    )
+    connection.execute("ANALYZE source_retention_delete")
+    counts = {}
+    for table, key in (
+        ("conditions_observationmetric", "snapshot_id"),
+        ("conditions_observationsnapshot", "id"),
+    ):
+        counts[table] = connection.execute(
+            sql.SQL(
+                "DELETE FROM {} r USING source_retention_delete d WHERE r.{}=d.id"
+            ).format(sql.Identifier("pongdang_data", table), sql.Identifier(key))
+        ).rowcount
+    return counts
+
+
+def prune_source_history(
+    settings, *, now=None, batch_size=2000, max_batches=1, max_seconds=20
+):
+    """Run after Water Index pruning; reuse locked references for bounded batches.
 
     A forecast identity's complete revision chain is one indivisible deletion
-    unit. Raw snapshots are capped by batch_size and retain all their metrics.
+    unit. Each raw snapshot batch is capped by batch_size, with all its metrics.
+    The deletion budget starts after reference preparation and is checked after
+    each complete batch. All batches share one transaction and roll back together.
     A skipped/pending pass can resume without weakening any evidence contract.
     """
     if type(batch_size) is not int or not 1 <= batch_size <= 10000:
         raise ValueError("Retention batch size must be between 1 and 10000")
+    if type(max_batches) is not int or not 1 <= max_batches <= 20:
+        raise ValueError("Retention batch count must be between 1 and 20")
+    if not 0 < max_seconds <= 60:
+        raise ValueError("Retention time budget must be between 0 and 60 seconds")
     from app.ingestion.worker import registered_jobs
 
     # Gate jobs before their fetch/process step. Otherwise a new worker could
@@ -309,24 +341,20 @@ def prune_source_history(settings, *, now=None, batch_size=2000):
         result["counts"]["forecast_revision"] = forecast_count
         _keep_inputs(connection, now, start, end)
         connection.execute(
-            "CREATE TEMP TABLE source_retention_delete ON COMMIT DROP AS "
-            "SELECT s.id FROM pongdang_data.conditions_observationsnapshot s "
-            "WHERE NOT EXISTS(SELECT 1 FROM source_retention_keep k WHERE k.id=s.id) "
-            "ORDER BY s.id LIMIT %s",
-            [batch_size],
+            "CREATE TEMP TABLE source_retention_delete (id bigint PRIMARY KEY) "
+            "ON COMMIT DROP"
         )
-        for table, key in (
-            ("conditions_observationmetric", "snapshot_id"),
-            ("conditions_observationsnapshot", "id"),
-        ):
-            result["counts"][table] = connection.execute(
-                sql.SQL(
-                    "DELETE FROM {} r USING source_retention_delete d WHERE r.{}=d.id"
-                ).format(sql.Identifier("pongdang_data", table), sql.Identifier(key))
-            ).rowcount
+        # Keep the producer/reference locks throughout: these references cannot
+        # change while multiple batches reuse the expensive JSON scan.
+        deadline = monotonic() + max_seconds
+        for _ in range(max_batches):
+            counts = _delete_snapshot_batch(connection, batch_size)
+            for table, count in counts.items():
+                result["counts"][table] = result["counts"].get(table, 0) + count
+            snapshots_pending = counts["conditions_observationsnapshot"] == batch_size
+            if not snapshots_pending or monotonic() >= deadline:
+                break
         result["deleted"] = sum(result["counts"].values())
-        result["pending"] = forecast_pending or (
-            result["counts"]["conditions_observationsnapshot"] == batch_size
-        )
+        result["pending"] = forecast_pending or snapshots_pending
         connection.execute("SET LOCAL pongdang.retention.sources = 'off'")
     return result

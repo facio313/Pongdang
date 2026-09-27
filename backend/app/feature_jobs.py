@@ -58,7 +58,7 @@ def feature_jobs(settings):
         )
 
     def evidence_retention():
-        # Each batch commits independently. The persisted job lock excludes
+        # Each retention pass commits independently. The persisted job lock excludes
         # duplicate runners; producer locks exclude active evaluation writes.
         deadline = monotonic() + 20
         deleted = 0
@@ -66,7 +66,9 @@ def feature_jobs(settings):
             result = prune_water_index_history(settings, batch_size=10000)
             deleted += result["deleted"]
             if not result["pending"]:
-                sources = prune_source_history(settings, batch_size=10000)
+                sources = prune_source_history(
+                    settings, batch_size=10000, max_batches=20, max_seconds=20
+                )
                 deleted += sources["deleted"]
                 pending = sources["pending"]
                 break
