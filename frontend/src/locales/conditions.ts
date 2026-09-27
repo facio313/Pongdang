@@ -1,6 +1,13 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const conditionsMessages: Record<string, MessageTranslations> = {
+  "운영시간 안내": ["Opening hours", "开放时间", "営業時間の案内"],
+  "이용시간": ["Hours", "使用时间", "利用時間"],
+  "기본 안내": ["Published guidance", "基本信息", "基本案内"],
+  "이전 안내": ["Previous guidance", "此前信息", "以前の案内"],
+  "운영 제한": ["Operating restriction", "运营受限", "営業制限"],
+  "{mode} 기준": ["Based on {mode}", "以{mode}为准", "{mode}基準"],
+  "이제 어디로 떠나볼까요?": ["Where shall we go next?", "接下来去哪儿？", "次はどこへ出かけましょうか？"],
   "다음 간조·만조": ["Next low and high tides", "下一次低潮与高潮", "次の干潮・満潮"],
   "간조·만조 조회에 실패해 물때 기준은 적용하지 않았습니다. 표시된 점수는 안전 판정이 아닙니다.": ["Tide lookup failed, so tide-based rules were not applied. The displayed scores are not safety assessments.", "潮汐查询失败，因此未应用潮汐规则。显示的分数不是安全评估。", "干潮・満潮の取得に失敗したため、潮汐の基準は適用していません。表示スコアは安全判定ではありません。"],
   "추천 보조 자료 일부를 불러오지 못했습니다. 확인된 활동 점수와 지표를 표시합니다.": ["Some recommendation context could not be loaded. Available activity scores and measurements are shown.", "部分推荐辅助资料无法加载。已获取的活动评分和指标仍会显示。", "おすすめの補足情報の一部を取得できませんでした。確認できた活動スコアと観測値を表示しています。"],

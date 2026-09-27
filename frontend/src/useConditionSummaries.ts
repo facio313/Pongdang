@@ -85,6 +85,7 @@ export function useConditionSummaries(
     /** 아직 아무 묶음도 도착하지 않은 첫 조회인지. 조회 중을 「자료 없음」으로
      *  그리면 거짓말이 되므로, 부르는 쪽이 이걸 보고 스켈레톤을 씁니다. */
     loading: chunks.some((chunk) => chunk.loading) && !rows.length,
+    settled: chunks.every((chunk) => !chunk.loading),
     error: chunks.find((chunk) => chunk.error)?.error,
   };
 }

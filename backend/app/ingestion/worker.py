@@ -26,6 +26,7 @@ def registered_jobs(settings):
     from app.ingestion.environment import environment_jobs
     from app.ingestion.marine import marine_jobs
     from app.ingestion.marine_extra import marine_extra_jobs
+    from app.ingestion.nifs import nifs_jobs
     from app.ingestion.places import place_jobs
     from app.ingestion.water import water_jobs
     from app.ingestion.water_tour_extra import water_tour_extra_jobs
@@ -36,6 +37,7 @@ def registered_jobs(settings):
     external_jobs = (
         weather_jobs(settings)
         + marine_jobs(settings)
+        + nifs_jobs(settings)
         + water_jobs(settings)
         + place_jobs(settings)
         + marine_extra_jobs(settings)

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ACTIVITY_LABEL, headlineOf, routePreference, routeRecommendation, serverRecommendation } from "./recommendation";
+import { headlineOf, routePreference, routeRecommendation, serverRecommendation } from "./recommendation";
 
 test("home and today render calculated server condition scores and their evidence", { tag: "@smoke" }, async ({
   page,
@@ -22,7 +22,6 @@ test("home and today render calculated server condition scores and their evidenc
   // 그대로 읽습니다.
   const recommendation = await serverRecommendation(page, place.id);
   const best = recommendation.choice!;
-  const bestLabel = ACTIVITY_LABEL[best.activity];
   // 고른 활동의 조건 응답. 아래 항목 막대가 이 구성을 따릅니다.
   const bestConditions = await (
     await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=${best.activity}&mode=observation`)
@@ -31,7 +30,7 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-hero-score-num")).toHaveText(String(best.score));
   // 무엇의 점수인지를 화면이 말해야 합니다. 예전에는 「퐁당 72」뿐이었습니다.
   await expect(page.locator(".hm-hero-sentence")).toContainText(headlineOf(best.activity));
-  await expect(page.locator(".hm-hero-score .pd-grade-chip")).toContainText(`${bestLabel} 적합도`);
+  await expect(page.locator(".hm-hero-score .pd-grade-chip")).toHaveCount(0);
   // 척도 위 상대 위치. 색만으로 전하지 않으므로 aria-label 에 점수와 등급이 함께 있습니다.
   await expect(page.locator(".pd-hero .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
   // 왜 이 활동인가. 서버가 사유 코드를 준 경우에만 줄이 섭니다 -- 없으면 화면이

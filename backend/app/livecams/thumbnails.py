@@ -20,6 +20,7 @@ from app.ingestion.http import NoRedirect, ProviderError
 MAX_BYTES = 512 * 1024
 CAMERA_ID = r"[1-9][0-9]{0,19}"
 HOST = "images-webcams.windy.com"
+PROXY_HOST = "imgproxy.windy.com"
 
 
 def migrate_thumbnails(connection):
@@ -51,15 +52,24 @@ def image_url(value, camera_id):
             or not re.fullmatch(CAMERA_ID, camera_id)
             or any(ord(ch) < 33 for ch in value)
             or p.scheme != "https"
-            or p.hostname != HOST
+            or p.hostname not in {HOST, PROXY_HOST}
             or p.port not in (None, 443)
             or p.username
             or p.password
             or p.fragment
-            or not re.fullmatch(
-                rf"/[0-9]{{2}}/{camera_id}/(?:current|daylight)/"
-                rf"(?:thumbnail|preview|icon)/{camera_id}\.(?:jpg|png|webp)",
-                p.path,
+            or not (
+                p.hostname == HOST
+                and re.fullmatch(
+                    rf"/[0-9]{{2}}/{camera_id}/(?:current|daylight)/"
+                    rf"(?:thumbnail|preview|icon)/{camera_id}\.(?:jpg|png|webp)",
+                    p.path,
+                )
+                or p.hostname == PROXY_HOST
+                and re.fullmatch(
+                    rf"/_/(?:thumbnail|preview|icon)/plain/(?:current|daylight)/"
+                    rf"{camera_id}/original\.(?:jpg|png|webp)",
+                    p.path,
+                )
             )
         ):
             raise ValueError
@@ -132,7 +142,7 @@ class ThumbnailStore:
         self.settings, self.downloader, self.clock = settings, downloader, clock
 
     def capture(self, cameras, sources):
-        """Persist admission before I/O: failures and interrupted attempts stay put."""
+        """Save newly available sources on import; never replace a saved image."""
         now = datetime.fromtimestamp(self.clock(), UTC)
         pending = []
         with schema.connect(self.settings) as connection:
@@ -142,7 +152,11 @@ class ThumbnailStore:
                 row = connection.execute(
                     "INSERT INTO pongdang_data.windy_thumbnail "
                     "(camera_id,status,attempted_at,source_updated_at) "
-                    "VALUES (%s,%s,%s,%s) ON CONFLICT (camera_id) DO NOTHING "
+                    "VALUES (%s,%s,%s,%s) ON CONFLICT (camera_id) DO UPDATE "
+                    "SET status=EXCLUDED.status,attempted_at=EXCLUDED.attempted_at, "
+                    "source_updated_at=EXCLUDED.source_updated_at "
+                    "WHERE windy_thumbnail.status='unavailable' "
+                    "AND EXCLUDED.status='pending' "
                     "RETURNING camera_id",
                     [
                         camera_id,

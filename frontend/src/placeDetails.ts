@@ -27,6 +27,28 @@ export interface PlaceDetails {
   details: PlaceDetailEntry[];
 }
 
+/** Keep published opening guidance, including older stored notices, as text.
+ * It describes this place; it is not an activity-specific permission or a window
+ * calculated from tides. Extra schedule fields retain the provider's own label. */
+export function placeOperatingSchedule(detail?: PlaceDetails): { label: string; value: string }[] {
+  if (!detail) return [];
+  const rows: { label: string; value: string }[] = [];
+  for (const [label, value] of [
+    ["이용시간", detail.opening_hours],
+    ["개장 기간", detail.opening_period],
+    ["휴무일", detail.rest_days],
+  ] as const) {
+    if (value?.trim()) rows.push({ label, value });
+  }
+  for (const entry of detail.details) {
+    if (entry.section === "info" && /(?:이용|운영|입장|체험).*시간|휴무|개장.*기간/.test(entry.label)
+      && entry.value.trim() && !rows.some(row => row.value === entry.value)) {
+      rows.push({ label: entry.label, value: entry.value });
+    }
+  }
+  return rows;
+}
+
 /** Displayed places share one read of stored details, bounded like the list. */
 export function placeDetailsPath(ids: number[]) {
   const selected = [...new Set(ids)]

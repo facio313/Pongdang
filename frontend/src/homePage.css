@@ -3,18 +3,22 @@
 
 /* ── 히어로 ─────────────────────────────────────────────── */
 
-/* 물결과 숨쉬는 빛을 담을 면입니다. 둘 다 절대배치라 기준이 필요하고, 히어로
-   아래 모서리 밖으로 삐져나가지 않게 잘라 둡니다. 바닥 여백은 물결이 CTA 줄을
-   덮지 않을 만큼 둡니다. */
+/* 배경 효과만 잘라 장소 말풍선은 히어로 경계를 넘어 표시되게 합니다. */
 .home-page .pd-hero {
   position: relative;
-  overflow: hidden;
+  z-index: 2;
   padding-bottom: 52px;
+}
+.home-page .hm-hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 /* 코발트 면 위에서 아주 느리게 부푸는 빛 한 겹. 합성 가능한 속성(transform ·
    opacity)만 움직입니다 -- background-position 을 애니메이션하면 매 프레임
    배경을 다시 칠합니다. */
-.home-page .pd-hero::before {
+.home-page .hm-hero-background::before {
   content: "";
   position: absolute;
   inset: -30% -20% auto -20%;
@@ -39,7 +43,7 @@
     opacity: 1;
   }
 }
-/* 히어로 하단의 물결 2겹. 데스크탑과 같은 굴곡(waveShape.ts)을 2880 폭으로
+/* 히어로 하단의 물결 2겹. 같은 곡선 두 주기 중 한 주기(-50%)를
    흘립니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. 색은 히어로 아래 본문
    바탕과 같아야 경계가 물러납니다. */
 .home-page .hm-hero-anim {
@@ -53,8 +57,9 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 1920px;
+  width: max(200%, 1920px);
   height: 64px;
+  transform-box: border-box;
 }
 .home-page .hm-hero-anim path {
   fill: var(--pd-mist);
@@ -68,18 +73,18 @@
 }
 @keyframes hm-wave-back {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-640px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 @keyframes hm-wave-front {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-480px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
@@ -100,9 +105,12 @@
 .home-page .hm-hero-place {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
   color: var(--pd-sky);
 }
+.home-page .hm-hero-place .product-place-popover-panel { left: -17px; right: auto; }
+.home-page .hm-hero-place .product-place-popover-panel::before { left: 35px; right: auto; }
 /* 실제 수집값이 들어가는 패널입니다. 예전에는 점선 pd-slot 이라 「미구현」으로
    읽혔습니다. 코발트 위이므로 글래스 레이어 토큰을 씁니다. */
 .home-page .hm-hero-visual {
@@ -143,6 +151,21 @@
   line-height: 1.4;
   margin: 0;
 }
+.home-page .hm-hero-title-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.home-page .hm-hero-title-activity {
+  display: block;
+  margin-top: 6px;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
+}
 .home-page .hm-hero-score {
   text-align: right;
   flex: none;
@@ -155,12 +178,6 @@
 /* 게이지 마커가 0점·100점에서 좌우로 넘치므로 히어로 안쪽에 여백을 줍니다. */
 .home-page .pd-gauge {
   margin: 12px 12px 0;
-}
-.home-page .hm-hero-verdict {
-  margin: 10px 0 0;
-  font-size: var(--pd-fs-sm);
-  font-weight: 700;
-  color: var(--pd-on-cobalt);
 }
 .home-page .hm-hero-actions {
   display: flex;

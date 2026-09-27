@@ -1,12 +1,15 @@
 import { displayTime } from "./aiApi";
+import { isLoginRequiredMessage } from "./authError";
 import { t } from "./i18n";
+import { useRequireLogin } from "./loginPopoverState";
 import { kstDate } from "./productData";
 import { NotificationEvidence } from "./NotificationEvidence";
 import { notificationConditionLabel, notificationDeliveryLabel, type NotificationSubscription, type NotificationEvent, type NotificationEvaluation, type NotificationPage } from "./notificationApi";
 import { useNotificationResource } from "./useNotificationResource";
 import "./notifications.css";
 
-export function NotificationSummary({ spotId, appearance }: { spotId?: number; appearance?: "mobile" | "desktop" }) {
+export function NotificationSummary({ spotId, appearance, loginPrompt = false }: { spotId?: number; appearance?: "mobile" | "desktop"; loginPrompt?: boolean }) {
+  const requireLogin = useRequireLogin();
   const subscriptions = useNotificationResource<NotificationPage<NotificationSubscription>>(spotId ? `notifications/subscriptions?limit=1&offset=0&spot_id=${spotId}&year=${kstDate().slice(0, 4)}` : null);
   const subscription = subscriptions.data?.rows[0];
   const events = useNotificationResource<NotificationPage<NotificationEvent>>(subscription ? `notifications/events?limit=1&offset=0&subscription_id=${encodeURIComponent(subscription.id)}` : null);
@@ -15,6 +18,14 @@ export function NotificationSummary({ spotId, appearance }: { spotId?: number; a
   const evaluation = evaluations.data?.rows[0];
   const currentEvaluation = evaluation?.subscription_revision === subscription?.revision ? evaluation : undefined;
   const refresh = () => { subscriptions.refresh(); events.refresh(); evaluations.refresh(); };
+  const needsLogin = loginPrompt && [subscriptions.error, events.error, evaluations.error].some(error =>
+    isLoginRequiredMessage(error) || error === t("Pongdang의 SSO 로그인 연동이 설정되지 않았습니다. 운영자의 로그인 연동 설정이 필요합니다."),
+  );
+  if (needsLogin) return <div className="notification-summary">
+    <div className="notification-summary-actions">
+      <button type="button" className={appearance === "desktop" ? "pd-dk-button" : "pd-primary"} onClick={() => requireLogin()}>{t("로그인")}</button>
+    </div>
+  </div>;
   return <div className="notification-summary">
     {!spotId && <p>{t("장소를 선택하면 수온 알림을 확인합니다.")}</p>}
     {subscriptions.loading && <p role="status">{t("알림 구독을 조회하고 있습니다.")}</p>}

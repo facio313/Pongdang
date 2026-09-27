@@ -48,6 +48,23 @@
   margin: 12px 0 0;
 }
 
+.pd-desktop .td-notifications .notification-summary { padding: 0; }
+.pd-desktop .td-notifications .notification-summary > :first-child { margin-top: 0; }
+.pd-desktop .td-notifications .notification-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.pd-desktop .td-notifications .notification-summary button { margin: 0; }
+.pd-desktop .td-notifications .notification-summary a { text-decoration: none; }
+.pd-desktop .td-notifications .notification-summary > .sk-note {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--dk-ink-2);
+  margin-top: 12px;
+}
+
 /* ── 히어로 ────────────────────────────────────────────── */
 
 .pd-desktop .td-hero {
@@ -61,14 +78,42 @@
   min-width: 0;
   padding-bottom: 12px;
 }
-.pd-desktop .td-hero-kick {
-  color: var(--dk-sky);
+.pd-desktop .td-place-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+.pd-desktop .td-place-context time {
+  white-space: nowrap;
 }
 .pd-desktop .td-hero-title {
   font-weight: 700;
-  font-size: 44px;
-  line-height: 1.24;
+  font-size: 48px;
+  line-height: 1.18;
   margin: 12px 0 0;
+}
+.pd-desktop .td-hero-title:has(.td-hero-title-activity) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.pd-desktop .td-hero-title-label {
+  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.pd-desktop .td-hero-title-activity {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(44px, 4vw, 64px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
 }
 /* 점수 옆이 아니라 제목 아래에 둡니다 -- 「예시 데이터」라는 사실이 점수보다
    먼저 읽혀야 하기 때문입니다. */
@@ -99,11 +144,7 @@
   line-height: 0.9;
   letter-spacing: -0.04em;
 }
-/* ── 근거 데이터 (접힌 두 줄) ──────────────────────────────
-   1줄: 관측 요약 + 안전 상태 칩. 2줄: 「근거 보기」 · 「퐁당 점수란?」.
-   펴기 전에는 여기서 끝납니다. 결론을 읽는 데 쓰는 정보가 아니라 따져
-   보려는 사람이 펴 보는 자료라, 결론 옆에서 두 줄 넘게 차지하지 않습니다.
-   펴면 전문이 그대로 나옵니다 -- 줄인 것은 자리이지 문장이 아닙니다. */
+/* ── 근거 보기 · 점수 설명 ─────────────────────────────── */
 .pd-desktop .td-hero-evidence {
   display: flex;
   flex-wrap: wrap;
@@ -124,13 +165,9 @@
   gap: 4px 18px;
   margin-top: 6px;
 }
-/* 요약은 한 줄로 끊습니다 -- 「근거 보기」가 그 아래 줄에 서야 두 손잡이가
-   한 줄에 나란히 놓입니다. */
+/* 데스크톱 오늘에서 지정된 요약 문구와 안전 배지만 숨깁니다. */
 .pd-desktop .td-hero-evidence .pd-evidence-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
+  display: none;
 }
 /* 히어로는 코발트 위입니다. 근거 줄과 「퐁당 점수란?」이 --dk-blue 로 나오면
    어두운 배경에 묻히므로 밝은 쪽으로 덮습니다. 예전에는 이 덮는 규칙이
@@ -456,6 +493,13 @@
 .pd-desktop .td-tide-row.is-unfit .td-tide-fit {
   color: #4b5563;
 }
+.pd-desktop .td-operating-hours { grid-template-columns: 1fr; }
+.pd-desktop .td-operating-hours > :last-child { border-left: 0; padding-left: 0; }
+.pd-desktop .td-place-hours { align-items: start; }
+.pd-desktop .td-place-hours .td-tide-name { flex: 0 1 160px; }
+.pd-desktop .td-place-hours .td-tide-reason { flex: 1; min-width: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.pd-desktop .td-place-hours .td-tide-fit { white-space: nowrap; }
+.pd-desktop .td-hours-label { margin-right: 10px; font-weight: 700; }
 
 /* ── 첫 입수 ───────────────────────────────────────────── */
 

@@ -107,6 +107,73 @@ def assert_parity(settings, loaded, q, at, cutoff):
     return projected
 
 
+def test_nifs_surface_storage_nearby_projection_and_missing_revision(database):
+    from test_nifs import NOW, Client, observation, settings
+
+    from app.ingestion.nifs import NifsProvider
+
+    provider = NifsProvider(settings(), Client(), lambda: NOW)
+    batch = provider.fetch()
+    assert store_batch(database, batch) == 2
+    assert store_batch(database, batch) == 0
+    with connect(database) as c:
+        (near,) = c.execute(
+            "INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng) "
+            "VALUES ('Nearby fixture beach','beach',38.369,128.525) RETURNING id"
+        ).fetchone()
+        (far,) = c.execute(
+            "INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng) "
+            "VALUES ('Far fixture beach','beach',37.5,128.5) RETURNING id"
+        ).fetchone()
+        assert (
+            c.execute(
+                "SELECT count(*) FROM pongdang_data.water_index_station_mapping"
+            ).fetchone()[0]
+            == 0
+        )
+    cutoff = NOW + timedelta(minutes=1)
+    loaded, _, _ = inputs(database, cutoff)
+    result = assert_parity(
+        database,
+        loaded,
+        ConditionQuery(spot_id=near, activity="swim", mode="observation"),
+        cutoff,
+        cutoff,
+    )
+    metric = next(m for m in result.context_metrics if m.name == "water_temperature")
+    assert metric.value == 22.9
+    assert metric.relation == "nearby_station_context"
+    assert 0 < metric.distance_km < 1
+    assert metric.evidence[0].provider == "nifs_risa"
+    assert "5m" in metric.evidence[0].spatial_scope
+    assert not result.metrics  # no fabricated representative link
+    far_result = assert_parity(
+        database,
+        loaded,
+        ConditionQuery(spot_id=far, activity="swim", mode="observation"),
+        cutoff,
+        cutoff,
+    )
+    assert not far_result.context_metrics
+    # Same provider identity corrected to maintenance supersedes old evidence,
+    # rather than silently keeping its valid numeric temperature.
+    corrected = NifsProvider(
+        settings(), Client(readings=[observation(rpr_yn="Y")]), lambda: cutoff
+    ).fetch()
+    assert store_batch(database, corrected) == 1
+    loaded, _, _ = inputs(database, cutoff)
+    result = assert_parity(
+        database,
+        loaded,
+        ConditionQuery(spot_id=near, activity="swim", mode="observation"),
+        cutoff,
+        cutoff,
+    )
+    metric = next(m for m in result.context_metrics if m.name == "water_temperature")
+    assert metric.value is None
+    assert metric.status == "missing"
+
+
 def test_bulk_selection_preserves_missing_revisions_conflicts_units_and_context(
     database,
 ):

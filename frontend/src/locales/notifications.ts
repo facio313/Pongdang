@@ -1,4 +1,8 @@
 export const notificationMessages: Record<string, readonly [string, string, string]> = {
+  "수온이 확인되는 해변이 아직 없습니다.": ["No beaches with observed water temperatures are available yet.", "暂无有水温观测数据的海滩。", "水温観測のあるビーチはまだありません。"],
+  "주변 수온": ["Nearby water", "周边水温", "周辺の水温"],
+  "장소에서 거리": ["Distance from place", "距此地点", "場所からの距離"],
+  "주변 수온은 참고 자료이며, 이 장소의 첫 입수 알림 기준에는 사용하지 않습니다.": ["Nearby water temperature is a reference and is not used for this place's first swim alerts.", "周边水温仅供参考，不用于此地点的首次下水提醒。", "周辺の水温は参考資料で、この場所の初泳ぎ通知の判定には使用しません。"],
   "수온 조회 중": ["Loading temperature", "正在查询水温", "水温を読み込み中"],
   "수온 조회 실패": ["Temperature request failed", "水温查询失败", "水温の取得に失敗"],
   "수온 갱신 대기": ["Awaiting fresh temperature", "等待水温更新", "水温の更新待ち"],
@@ -75,6 +79,7 @@ export const notificationMessages: Record<string, readonly [string, string, stri
   "발송 상태 확인 필요": ["Delivery status unconfirmed", "发送状态待确认", "送信状態未確認"],
   "관측 수온": ["Observed temperature", "观测水温", "観測水温"],
   "관측 출처": ["Observation source", "观测来源", "観測元"],
+  "관측 범위": ["Observation scope", "观测范围", "観測範囲"],
   "대표 관측소 자료": ["Representative station data", "代表观测站数据", "代表観測所の資料"],
   "설정한 연도가 아닙니다.": ["Outside the selected year.", "不在所选年份内。", "設定した年の範囲外です。"],
   "이 장소를 대표하는 수온 관측소 연결이 없거나 모호합니다.": ["A representative temperature station is missing or ambiguous for this place.", "此地点缺少明确的代表水温观测站关联。", "この場所の代表水温観測所の対応がないか不明確です。"],

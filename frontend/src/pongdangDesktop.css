@@ -148,6 +148,8 @@ main:has(.pd-desktop.is-fullscreen) {
    모바일 하단 탭바와 같은 목록(appNav.ts)을 다르게 그린 것입니다. */
 
 .pd-dk-nav {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 30px;
@@ -429,8 +431,9 @@ main:has(.pd-desktop.is-fullscreen) {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 2880px;
+  width: max(200%, 2880px);
   height: 96px;
+  transform-box: border-box;
 }
 .pd-dk-hero-anim .pd-dk-wave-back {
   opacity: 0.34;
@@ -441,18 +444,18 @@ main:has(.pd-desktop.is-fullscreen) {
 }
 @keyframes pd-dk-wave-back {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-960px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 @keyframes pd-dk-wave-front {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-720px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
@@ -773,8 +776,9 @@ main:has(.pd-desktop.is-fullscreen) {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 2880px;
+  width: max(200%, 2880px);
   height: 96px;
+  transform-box: border-box;
 }
 .pd-dk-foot-anim .pd-dk-wave-back {
   opacity: 0.34;

@@ -345,8 +345,9 @@ main:has(.pd-app.is-fullscreen) {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 1920px;
+  width: max(200%, 1920px);
   height: 64px;
+  transform-box: border-box;
 }
 .pd-foot-anim path {
   fill: var(--pd-mist);
@@ -363,18 +364,18 @@ main:has(.pd-app.is-fullscreen) {
 }
 @keyframes pd-foot-wave-back {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-640px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 @keyframes pd-foot-wave-front {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-480px);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
@@ -813,6 +814,16 @@ main:has(.pd-app.is-fullscreen) {
 .pd-cbar-label {
   color: var(--pd-ink-2);
   white-space: nowrap;
+}
+.pd-cbar-label-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+  cursor: pointer;
 }
 .pd-cbar-value {
   color: var(--pd-ink);

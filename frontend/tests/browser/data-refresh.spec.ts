@@ -63,7 +63,7 @@ test("expired scores and hourly values remain until the thirty-minute update", a
   expect(mocked.reads.filter((path) => path.endsWith("/conditions"))).toHaveLength(0);
   await page.clock.fastForward(10001);
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
-  await expect(page.locator(".pd-retained-note").first()).toContainText("이전 결과");
+  await expect(page.locator(".home-condition-time")).toContainText("12:00");
   await expect(page.getByRole("table", { name: "오늘 시간대별 수집 예보" })).toContainText("21°C");
   await page.clock.fastForward(1780000);
   expect(mocked.recommendationReads()).toBe(1);
@@ -123,7 +123,7 @@ for (const width of [390, 1440]) {
     incomplete = true;
     extra.conditions = [conditions(null, NOW.toISOString()), unsupported];
     await page.clock.fastForward(1800100);
-    await expect(page.locator(".pd-retained-note").first()).toContainText("이전 결과");
+    await expect(page.locator(".home-condition-time")).toContainText("12:00");
     await expect(hero).toHaveText("75");
     await expect(page.locator(width < 1080 ? ".hm-hero-metrics" : ".hd-hero-metrics")).toContainText("21°C");
     await page.goto("#today");
@@ -159,10 +159,11 @@ for (const width of [390, 1440]) {
     const hero = page.locator(width === 390 ? ".hm-hero-score-num" : ".hd-hero-score-num");
     await page.goto("#home");
     await expect(hero).toHaveText("75");
-    await expect(page.locator(".pd-retained-note").first()).toContainText("11:55");
+    await expect(page.locator(".home-condition-time")).toHaveText("9월 21일 11:55");
+    await expect(page.locator(".hd-hero .pd-retained-note, .hm-hero-inner .pd-retained-note")).toHaveCount(0);
     await page.reload();
     await expect(hero).toHaveText("75");
-    await expect(page.locator(".pd-retained-note").first()).toContainText("11:55");
+    await expect(page.locator(".home-condition-time")).toHaveText("9월 21일 11:55");
 
     await routeRecommendation(page, { activity: "swim", score: 55 }, { conditions: [{
       ...conditions(55, "2026-09-22T03:00:00Z"), retained: false,
@@ -170,7 +171,8 @@ for (const width of [390, 1440]) {
     }] });
     await page.clock.fastForward(1800100);
     await expect(hero).toHaveText("55");
-    await expect(page.locator(".hd-hero .pd-retained-note, .hm-hero .pd-retained-note")).toHaveCount(0);
+    await expect(page.locator(".home-condition-time")).toHaveText("9월 21일 12:00");
+    await expect(page.locator(".hd-hero .pd-retained-note, .hm-hero-inner .pd-retained-note")).toHaveCount(0);
 
     await routeRecommendation(page, null, { conditions: [{
       ...conditions(null, "2026-09-22T03:00:00Z"),
@@ -211,7 +213,7 @@ for (const width of [390, 1440]) {
     await expect(page.locator("#pd-menu-refresh-status")).toContainText("자료 확인 완료");
     await page.getByRole("button", { name: "닫기", exact: true }).click();
     await expect(hero).toHaveText("75");
-    await expect(page.locator(".pd-retained-note").first()).toContainText("기준");
+    await expect(page.locator(".home-condition-time")).toContainText("12:00");
     // The shared cache survives a tab unmount even after an insufficient read.
     await page.goto("#today");
     await page.goto("#home");
@@ -386,7 +388,7 @@ test("manual refresh waits for completion, refreshes common reads and preserves 
   });
   await page.goto("#home");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
-  await page.getByText("장소 바꾸기", { exact: true }).click();
+  await page.getByRole("button", { name: `${place.name} · 장소 바꾸기`, exact: true }).click();
   await page.getByRole("searchbox", { name: "장소 검색" }).fill("아직 검색하지 않은 입력");
   await page.getByRole("button", { name: "사이드 메뉴 열기" }).click();
   const panel = page.getByRole("dialog", { name: "사이드 메뉴", exact: true });
@@ -408,6 +410,7 @@ test("manual refresh waits for completion, refreshes common reads and preserves 
   expect(mocked.recommendationReads()).toBe(3);
   expect(mocked.reads.filter((path) => path.endsWith("/water-index/default-place"))).toHaveLength(3);
   await panel.getByRole("button", { name: "닫기", exact: true }).click();
+  await page.getByRole("button", { name: `${place.name} · 장소 바꾸기`, exact: true }).click();
   await expect(page.getByRole("searchbox", { name: "장소 검색" })).toHaveValue("아직 검색하지 않은 입력");
 });
 

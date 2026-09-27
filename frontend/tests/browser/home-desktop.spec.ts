@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ACTIVITY_LABEL, headlineOf, serverRecommendation } from "./recommendation";
+import { headlineOf, serverRecommendation } from "./recommendation";
 
 // 데스크탑 홈(≥1080px)은 모바일과 같은 라우트(#home)이고 같은 데이터 훅을
 // 쓰지만 마크업이 다릅니다. 폭에 따라 **다른 사실**을 말하지 않는지가 이
@@ -23,7 +23,6 @@ test("desktop home renders the same server-chosen activity and score as mobile",
   // 모바일과 같은 응답을 읽어, 폭이 달라도 같은 사실을 말하는지 봅니다.
   const recommendation = await serverRecommendation(page, place.id);
   const best = recommendation.choice!;
-  const bestLabel = ACTIVITY_LABEL[best.activity];
   const swimConditions = await (
     await page.request.get(`api/data/water-index/conditions?spot_id=${place.id}&activity=swim&mode=observation`)
   ).json();
@@ -34,7 +33,7 @@ test("desktop home renders the same server-chosen activity and score as mobile",
   await expect(page.locator(".hd-hero-score-num")).toHaveText(String(best.score));
   // 무엇의 점수인지를 화면이 말해야 합니다.
   await expect(page.locator(".hd-hero-title")).toContainText(headlineOf(best.activity));
-  await expect(page.locator(".hd-hero-score .pd-grade-chip")).toContainText(`${bestLabel} 적합도`);
+  await expect(page.locator(".hd-hero-score .pd-grade-chip")).toHaveCount(0);
   // 척도 위 상대 위치. 색만으로 전하지 않으므로 점수와 등급이 이름에 함께 있습니다.
   await expect(page.locator(".hd-hero-lead .pd-gauge")).toHaveAttribute("aria-label", new RegExp(`^${best.score}점 .+ · 100점 만점$`));
   if (recommendation.reasons.length) {

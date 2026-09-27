@@ -1,78 +1,25 @@
+import { conditionPath } from "./productData";
+import { selectPlaceTemperature, selectNearbyTemperature, type TemperaturePage, type NearbyTemperatureConditions } from "./firstSwimTemperature";
 import { useExpired } from "./useExpiry";
 import { useResource } from "./useResource";
 
-interface TemperatureObservation {
-  station_id: number;
-  provider: string;
-  name: string;
-  numeric_value: number | null;
-  unit: string | null;
-  mode: "observation" | "forecast";
-  is_missing: boolean;
-  observed_at: string;
-  valid_until: string | null;
-  status: "missing" | "unknown" | "stale" | "forecast" | "observation";
-}
+export type { TemperaturePage } from "./firstSwimTemperature";
 
-interface TemperatureStation {
-  station_id: number;
-  spot_id: number;
-  source_id: string;
-  name: string | null;
-  relation: "station_observation_point" | "representative_station";
-  mapping: { valid_from: string; valid_until: string } | null;
-}
-
-export interface TemperaturePage {
-  retained?: boolean;
-  rows: {
-    spot_id: number;
-    stations: TemperatureStation[];
-    layers: TemperatureObservation[];
-  }[];
-}
-
-/** Read only this place's observations; never borrow a nearby beach or forecast. */
 export function useFirstSwimTemperature(spotId: number) {
-  const resource = useResource<TemperaturePage>(
+  const primary = useResource<TemperaturePage>(
     `water-temperature?spot_id=${spotId}&mode=observation&page_size=1`,
   );
-  const place = resource.data?.rows.find(row => row.spot_id === spotId);
-  const observations = place?.layers.filter(row =>
-    row.mode === "observation" && ["water_temperature", "sea_water_temperature"].includes(row.name),
-  ) ?? [];
-  // Multiple sources are not a license to choose or average a temperature.
-  const observation = observations.length === 1 ? observations[0] : undefined;
-  const stations = place?.stations.filter(row => row.spot_id === spotId && row.station_id === observation?.station_id) ?? [];
-  const station = stations.length === 1 ? stations[0] : undefined;
-  const observationExpiry = observation?.valid_until ? Date.parse(observation.valid_until) : undefined;
-  const mappingExpiry = station?.mapping ? Date.parse(station.mapping.valid_until) : undefined;
-  const expired = useExpired(observationExpiry);
-
-  let state: "loading" | "error" | "missing" | "stale" | "available" = "missing";
-  let reason = "사용할 수 있는 실제 수온 관측이 없습니다.";
-  if (resource.loading) state = "loading";
-  else if (resource.error) state = "error";
-  else if (observations.length > 1) reason = "수온 관측이 여러 개여서 하나의 수온으로 표시하지 않습니다.";
-  else if (observation && !station) reason = "이 장소를 대표하는 수온 관측소 연결이 없거나 모호합니다.";
-  else if (observation && station) {
-    if (station.relation === "representative_station" && (!station.mapping ||
-      !Number.isFinite(mappingExpiry) ||
-      !(Date.parse(observation.observed_at) >= Date.parse(station.mapping.valid_from)) ||
-      !(Date.parse(observation.observed_at) < Date.parse(station.mapping.valid_until)))) {
-      reason = "관측 시각이 관측소 연결의 유효기간 밖입니다.";
-    } else if (observation.is_missing || observation.numeric_value === null || !Number.isFinite(observation.numeric_value)) {
-      reason = "관측 자료에 수온 값이 없습니다.";
-    } else if (!["degC", "°C"].includes(observation.unit ?? "")) {
-      reason = "수온 단위를 비교할 수 없습니다.";
-    } else if ((observation.status === "stale" || expired || resource.data?.retained) &&
-      ["observation", "stale"].includes(observation.status) && Number.isFinite(observationExpiry)) {
-      state = "stale";
-      reason = "갱신 자료 부족 · 이전 값 유지";
-    } else if (observation.status === "observation" && Number.isFinite(observationExpiry)) {
-      state = "available";
-    }
-  }
-  const value = state === "available" || state === "stale" ? observation?.numeric_value : undefined;
-  return { state, reason, value, observation, station, error: resource.error };
+  const place = selectPlaceTemperature(primary.data, spotId);
+  const needsNearby = !primary.loading && !primary.error && place.needsNearby;
+  const nearby = useResource<NearbyTemperatureConditions>(
+    needsNearby ? conditionPath(spotId, "swim", undefined, "observation") : null,
+  );
+  const selected = needsNearby ? selectNearbyTemperature(nearby.data, spotId) : place;
+  const reading = selected.reading;
+  const expired = useExpired(reading ? Date.parse(reading.validUntil) : undefined);
+  const error = primary.error ?? (needsNearby ? nearby.error : undefined);
+  const state = primary.loading || (needsNearby && nearby.loading) ? "loading"
+    : error ? "error" : !reading ? "missing"
+    : reading.stale || expired ? "stale" : "available";
+  return { state, reason: selected.reason, reading, error };
 }

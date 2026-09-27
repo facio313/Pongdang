@@ -1,22 +1,24 @@
 .first-swim-name-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 2px 8px;
 }
 .home-page .first-swim-name-row { margin-top: 7px; }
 .home-page .first-swim-name-row > .hm-pick-name { margin-top: 0; min-width: 0; overflow-wrap: anywhere; }
 .first-swim-preview {
   display: inline;
-  flex: none;
-  white-space: nowrap;
+  max-width: 100%;
   color: var(--pd-blue-deep);
   font-size: var(--pd-fs-cap);
   line-height: 1.55;
   font-variant-numeric: tabular-nums;
 }
+.first-swim-preview > span { display: inline-block; }
 .pd-desktop .first-swim-preview { color: var(--dk-deep); font-size: var(--dk-fs-cap); }
 .first-swim-observation { margin: 12px 0 20px; }
 .first-swim-observation > p { margin: 0 0 8px; }
+.first-swim-observation > .first-swim-context-note { margin-top: 12px; font-size: var(--pd-fs-sm); }
 
 .first-swim-guide {
   scroll-margin-top: 96px;

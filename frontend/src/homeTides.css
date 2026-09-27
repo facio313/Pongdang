@@ -27,3 +27,12 @@
   color: var(--pd-ink-2);
   font-size: var(--pd-fs-cap);
 }
+.pd-home-tides-events time {
+  color: var(--pd-ink);
+  font-size: clamp(18px, 1.5vw, 24px);
+  font-weight: 800;
+  line-height: 1.4;
+}
+.pd-home-tides-events strong {
+  font-size: var(--pd-fs-md);
+}

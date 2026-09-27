@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeHomepageUrl } from '../src/placeDetails.ts';
+import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeHomepageUrl, placeOperatingSchedule } from '../src/placeDetails.ts';
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from '../src/placeDistance.ts';
 
 test('stored detail reads batch stable unique positive IDs and enforce the page bound', () => {
@@ -29,6 +29,45 @@ test('provider website links require an unauthenticated HTTPS URL', () => {
   for (const value of [null, '', 'javascript:alert(1)', 'data:text/html,test', 'http://example.test', '//example.test', 'https://user:pass@example.test', '<a href="https://example.test">homepage</a>']) {
     assert.equal(placeHomepageUrl(value), undefined);
   }
+});
+
+test('published hours retain seasonal, holiday and older stored guidance during refresh failures', () => {
+  const detail = {
+    status: 'available', refresh_failed: true, refresh_pending: true,
+    fetched_at: '2025-06-01T00:00:00Z',
+    opening_hours: '09:00–18:00\n매표 마감 17:00',
+    opening_period: '7월–8월', rest_days: '매주 월요일', details: [],
+  };
+  assert.deepEqual(placeOperatingSchedule(detail), [
+    { label: '이용시간', value: '09:00–18:00\n매표 마감 17:00' },
+    { label: '개장 기간', value: '7월–8월' },
+    { label: '휴무일', value: '매주 월요일' },
+  ]);
+});
+
+test('additional activity schedules preserve provider labels without duplicating hours or including unrelated info', () => {
+  const detail = {
+    opening_hours: '상시 개방', opening_period: null, rest_days: '연중무휴',
+    details: [
+      { section: 'info', label: '이용시간', value: '상시 개방' },
+      { section: 'info', label: '래프팅 운영시간', value: '10:00, 14:00 / 사전 예약' },
+      { section: 'info', label: '튜브 체험시간', value: '11:00–16:00' },
+      { section: 'info', label: '이용요금', value: '10,000원' },
+      { section: 'room', label: '입장시간', value: '15:00' },
+      { section: 'info', label: '운영시간', value: '  ' },
+    ],
+  };
+  assert.deepEqual(placeOperatingSchedule(detail), [
+    { label: '이용시간', value: '상시 개방' },
+    { label: '휴무일', value: '연중무휴' },
+    { label: '래프팅 운영시간', value: '10:00, 14:00 / 사전 예약' },
+    { label: '튜브 체험시간', value: '11:00–16:00' },
+  ]);
+});
+
+test('missing schedules remain empty instead of acquiring generic opening times', () => {
+  assert.deepEqual(placeOperatingSchedule(), []);
+  assert.deepEqual(placeOperatingSchedule({ opening_hours: null, opening_period: '', rest_days: ' ', details: [] }), []);
 });
 
 test('straight-line distances use coordinates including zero and never manufacture missing locations', () => {

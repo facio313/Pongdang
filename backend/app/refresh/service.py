@@ -20,6 +20,7 @@ DYNAMIC_JOBS = frozenset(
         "kma_warnings",
         "kma_aws",
         "kma_buoy",
+        "nifs_risa",
         "khoa_beach",
         "khoa_surfing",
         "khoa_mudflat",

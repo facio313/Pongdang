@@ -1,5 +1,13 @@
 import type { MessageTranslations } from "../i18n";
 export const commonMessages: Record<string, MessageTranslations> = {
+  "로그인": ["Sign in", "登录", "ログイン"],
+  "로그인 닫기": ["Close sign-in", "关闭登录", "ログインを閉じる"],
+  "아이디": ["Username", "用户名", "ユーザー名"],
+  "비밀번호": ["Password", "密码", "パスワード"],
+  "로그인 중…": ["Signing in…", "正在登录…", "ログイン中…"],
+  "아이디 또는 비밀번호를 확인해 주세요.": ["Check your username or password.", "请检查用户名或密码。", "ユーザー名またはパスワードを確認してください。"],
+  "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.": ["Too many sign-in attempts. Please try again later.", "登录尝试次数过多，请稍后重试。", "ログイン試行が多すぎます。しばらくしてからお試しください。"],
+  "로그인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.": ["Unable to connect to the sign-in service. Please try again later.", "无法连接登录服务，请稍后重试。", "ログインサービスに接続できませんでした。しばらくしてからお試しください。"],
   "본문으로 이동": ["Skip to content", "跳转到正文", "本文へ移動"],
   "홈": ["Home", "首页", "ホーム"],
   "오늘": ["Today", "今日", "今日"],

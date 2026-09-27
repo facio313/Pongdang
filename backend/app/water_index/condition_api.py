@@ -312,6 +312,7 @@ async def context_station_links(c, place, q, at, as_of, metric_names=None):
         "kma_short_forecast",
         "kma_aws",
         "kma_buoy",
+        "nifs_risa",
         "khoa_buoy_recent",
         "khoa_water_temperature",
         "khoa_tide_recent",

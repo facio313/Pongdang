@@ -10,6 +10,7 @@ HTTP 조회가 외부 수집·시드·쓰기 작업을 실행하지 않는다.
 - 기상 실황·특보·부이: 5~10분
 - 초단기예보: 30분, 단기·중기예보: 1시간
 - 해양 최신 관측 및 이안류: 제공처별 짧은 주기
+- 국립수산과학원 RISA 표층 수온: 30분 (`nifs_risa`)
 - 해양 예측·수질·관측소·장소 카탈로그: 각 작업의 등록 주기
 
 정확한 현재 간격은 `/api/data/datasets/collection-jobs`의 `interval_seconds`와
@@ -80,12 +81,34 @@ uv run python -m app.ingestion.health
 - [기상청 단기예보](https://www.data.go.kr/data/15084084/openapi.do)
 - [기상청 특보](https://www.data.go.kr/data/15000415/openapi.do)
 - [기상청 API허브](https://apihub.kma.go.kr/)
+- [국립수산과학원 RISA API](https://www.nifs.go.kr/openApi/actionOpenapiInfoList.do)
 - [국립해양조사원 관측부이](https://www.data.go.kr/data/15155516/openapi.do)
 - [해양환경공단 관측](https://www.data.go.kr/data/15059973/openapi.do)
 - [카카오 로컬 API](https://developers.kakao.com/docs/ko/local/dev-guide)
 
 신청 직후 인증 확인은 `api-recheck4-2026-09-14.md`, 실제 자동수집 연결·DB 저장·화면 조회
 결과는 `api-connection-2026-09-14.md`에 있다.
+
+## 국립수산과학원 RISA 수온
+
+`NIFS_API_KEY`는 서버 수집기 전용이다. 기본 `NIFS_STATION_CODES`는 고성 가진
+`fggo3`, 양양 `byy87`, 강릉 `bgna3`, 삼척 `bsc87`이다. 동해의 사용 중인 관측소를
+`risaCode(gru_nam=E,use_yn=Y)`로 확인하고 `risaList`의 해당 지점 표층(`obs_lay=1`)만
+저장한다. 한 실행은 두 요청이며, 지점 설정은 최대20곳·응답은 최대5,000행으로 제한한다.
+문서 URL의 동일 기관 리디렉션 목적지인 `https://www.nifs.go.kr/api/OpenAPI_json`을
+직접 호출하며 공통 HTTP 클라이언트의 리디렉션 금지는 유지한다.
+
+관측 시각은 KST, 발표 시각은 미제공으로 유지한다. 관측소 좌표·설치/종료일과
+측정 수심(`water_temperature_depth`, m)·층(`water_temperature_layer`, surface)을 보존한다.
+수온은 degC로 저장하며 중층/저층 값을 표층 결측의 대체값으로 쓰지 않는다.
+정상 상태(`repair_gbn=1`, `rpr_yn=N`; 문서의 `repaire_gbn` 철자도 지원)만 수온으로
+사용한다. 점검/알 수 없는 상태, 결측·비유한 값·물리 범위(-5~50°C)를 벗어난 값은
+명시적 결측으로 저장한다. 같은 지점·시각의 상충 응답은 배치 전체를 거부한다.
+
+30분 생성 주기에 맞춰 수집하며, 앱의 신선도 창은 관측 시각부터60분이다. 이 기간은
+기관이 발급한 유효기간이 아니며 재조회로 연장하지 않는다. 관측소 위치에서10km 이내의
+해변에 기존 주변 관측 경로로 제공하고, 대표 관측소 매핑은 만들지 않는다. 카드에서는
+수온만 표시하고 상세에는 관측소·거리·시각·출처와 표층/측정 수심을 표시한다.
 
 ## 2026-09-14 추가 연결
 

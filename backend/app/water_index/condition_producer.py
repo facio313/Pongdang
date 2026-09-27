@@ -34,6 +34,7 @@ CONTEXT_PROVIDERS = {
     "kma_short_forecast",
     "kma_aws",
     "kma_buoy",
+    "nifs_risa",
     "khoa_buoy_recent",
     "khoa_water_temperature",
     "khoa_tide_recent",

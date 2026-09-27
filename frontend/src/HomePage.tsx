@@ -1,13 +1,11 @@
-import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
 import { useState, type ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
-import { gradeOf } from "./groupAGrade";
 import {
   AiSuggestion,
   ComponentBars,
-  GradeChip,
   Icon,
   MetricValue,
   ScoreGauge,
@@ -16,8 +14,7 @@ import {
   StateChip,
 } from "./pongdangUi";
 import { activities, recommendedActivities, type Activity } from "./aiApi";
-import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
-import { conditionRetentionText } from "./productData";
+import { componentBars, scoreReason } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
@@ -45,7 +42,8 @@ import {
   type WaterQualityGrade,
 } from "./productData";
 import { spotLink } from "./spotsRoute";
-import { useWaterPlaces } from "./useWaterPlaces";
+import { useHomeBeaches } from "./useHomeBeaches";
+import type { TemperatureReading } from "./firstSwimTemperature";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { WAVE_LOOP_PATH } from "./waveShape";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
@@ -86,20 +84,23 @@ function Hero({
   baselineLoading?: boolean;
   placeRequired?: boolean;
 }) {
-  const verdict =
-    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+  const conditions = best?.data ?? baseline;
+  const at = conditions?.projection?.computed_at ?? conditions?.retained_at ?? conditions?.at;
   return (
     <header className="pd-hero">
+      <div className="hm-hero-background" aria-hidden="true" />
       <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
-          <span className="pd-lbl hm-hero-place">
+          <div className="pd-lbl hm-hero-place">
             <Icon name="pin" size={12} />
-            {placeName} · {dateLabel()}
-          </span>
+            <ProductPlacePopover placeName={placeName} />
+            <span aria-hidden="true">·</span>
+            <time className="home-condition-time" dateTime={at}>
+              {at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}
+            </time>
+          </div>
         </div>
-
-        <ProductPlaceSelector placeName={placeName} />
 
         {/* 예전에는 이 자리가 점선 pd-slot 이었습니다. 실제 수집한 기온 ·
             수온 · 파고 · 강수가 들어 있는데도 「미구현」으로 읽혔습니다.
@@ -178,8 +179,8 @@ function Hero({
               <Skeleton width="7em" glass label={t("오늘의 활동 조회 중")} />
             ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
-                {t("오늘 가장 좋은 활동")}<br />
-                <b>{activityHeadline(best.activity)}</b>
+                <span className="hm-hero-title-label">{t("오늘 가장 좋은 활동")}</span>{" "}
+                <span className="hm-hero-title-activity">{activityHeadline(best.activity)}</span>
               </>
             ) : (
               // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
@@ -198,22 +199,10 @@ function Hero({
                 (best?.score ?? "–")
               )}
             </div>
-            <GradeChip
-              score={best?.score ?? null}
-              prefix={best ? scoreTitle(best.activity) : undefined}
-              loading={loading}
-              glass
-              bare
-            />
           </div>
         </div>
 
         <ScoreGauge score={best?.score ?? null} loading={loading} glass />
-        {best?.data?.retained && <p className="pd-retained-note" role="status">{conditionRetentionText(best.data)}</p>}
-        {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 「양호」 옆에 그래서
-            뭘 해도 되는지를 한 줄로 붙입니다. 값이 없으면 문장을 지어내지 않고
-            비워 둡니다 -- 모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */}
-        {verdict && <p className="hm-hero-verdict">{verdict}</p>}
         {/* 히어로에는 「왜 이 활동인가」 **한 줄만** 얹습니다. 예전에는 뺀 이유 ·
             물때 · 대신 갈 곳 · 근거 전문 · 점수 설명이 모두 이 코발트 면 안에
             있어서, 결론(무엇을 · 몇 점)이 감사 기록에 묻혔습니다. 나머지는
@@ -324,15 +313,13 @@ function SpotScroller({
   note,
   link,
   places,
-  firstSwim = false,
   chips,
   children,
 }: {
   title: string;
   note?: string;
   link: { href: string; label: string };
-  places: { id: number; name: string; meta: string; photo?: Photo }[];
-  firstSwim?: boolean;
+  places: { id: number; name: string; meta: string; photo?: Photo; temperature?: TemperatureReading }[];
   /** 목록 위에 붙는 칩 줄. 「고른 취향의 명소」가 취향을 싣는 자리입니다. */
   chips?: ReactNode;
   children?: ReactNode;
@@ -352,9 +339,9 @@ function SpotScroller({
           <div className="hm-pick" key={place.id}>
             <a className="place-photo-link" href={spotLink(place)}>
               <PlacePhoto className="hm-pick-photo" name={place.name} photo={place.photo} />
-              <span className={firstSwim ? "first-swim-name-row" : undefined}>
+              <span className={place.temperature ? "first-swim-name-row" : undefined}>
                 <span className="hm-pick-name">{place.name}</span>
-                {firstSwim && <FirstSwimPreview spotId={place.id} />}
+                {place.temperature && <FirstSwimPreview reading={place.temperature} />}
               </span>
               <span className="hm-pick-meta">{place.meta}</span>
             </a>
@@ -369,38 +356,35 @@ function SpotScroller({
   );
 }
 
-/** 예전에는 이 줄이 spotsCatalog 의 해변 4곳이었고 거리 · 점수가 지어낸
- *  값이었습니다. 이제 서버가 분류한 실제 해변을 싣습니다. */
+/** 수온 관측이 있는 실제 해변 중 네 곳을 뽑습니다. */
 function BeachPicksCard() {
-  const places = useWaterPlaces("");
+  const places = useHomeBeaches();
   const beaches = (places.rows ?? [])
-    .filter((place) => place.type === "beach")
-    .slice(0, 4)
     .map((place) => ({
       id: place.id,
       name: place.name,
       meta: placeRegionLabel(place),
       photo: place.photo,
+      temperature: place.temperature,
     }));
   if (!beaches.length)
     return (
       <div className="pd-card">
-        <div className="pd-card-title">{t("해변 명소")} · {t("첫 입수")}</div>
+        <div className="pd-card-title">{t("해변 명소")}</div>
         <p className="pd-note" role={places.error ? "alert" : "status"}>
           <StateChip kind={places.rows ? "no_data" : "partial"} />{" "}
           {places.error ??
             (places.loading
               ? t("해변 목록을 조회하고 있습니다.")
-              : t("수집된 해변이 아직 없습니다."))}
+              : t("수온이 확인되는 해변이 아직 없습니다."))}
         </p>
       </div>
     );
   return (
     <SpotScroller
-      title={`${t("해변 명소")} · ${t("첫 입수")}`}
+      title={t("해변 명소")}
       link={{ href: "#spots", label: t("명소 전체") }}
       places={beaches}
-      firstSwim
     />
   );
 }
@@ -592,6 +576,7 @@ function HomeScreen() {
     <article className="home-page">
       <AppShell
         tab="home"
+        showFooterNote={false}
         hero={
           <Hero
             placeName={displayName}

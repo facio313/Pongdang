@@ -22,6 +22,7 @@ from app.livecams.thumbnails import (
 )
 
 URL = "https://images-webcams.windy.com/42/42/current/thumbnail/42.jpg?token=TEMPORARY"
+PROXY_URL = "https://imgproxy.windy.com/_/thumbnail/plain/current/42/original.jpg?token=TEMPORARY"
 
 
 def image_bytes(color="blue"):
@@ -182,6 +183,33 @@ def test_existing_catalog_requires_explicit_refresh_to_populate_images(tmp_path,
     assert original.rows[0].provider_camera_id == "42"
 
 
+def test_explicit_refresh_saves_newly_available_proxy_image_once(tmp_path, db):
+    calls = []
+
+    def fetch(camera_id, url):
+        calls.append((camera_id, url))
+        return image_bytes(), "image/jpeg", "jpg"
+
+    provider = Client([camera(images={})])
+    s = service(tmp_path, provider=provider, downloader=fetch)
+    assert s.query().rows[0].thumbnail_url is None
+    provider.rows[0]["images"] = {"current": {"thumbnail": PROXY_URL}}
+    assert s.query().rows[0].thumbnail_url is None
+    assert calls == []
+    saved = s.query(refresh=True).rows[0]
+    assert saved.thumbnail_url == "/api/data/livecams/thumbnails/42"
+    assert calls == [("42", PROXY_URL)]
+    s.query(refresh=True)
+    assert calls == [("42", PROXY_URL)]
+    assert app_client(s).get(saved.thumbnail_url).content == image_bytes()
+    with schema.connect(db) as connection:
+        record = connection.execute(
+            "SELECT to_jsonb(t) FROM pongdang_data.windy_thumbnail t"
+        ).fetchone()[0]
+    assert record["status"] == "saved"
+    assert "TEMPORARY" not in str(record) + saved.model_dump_json()
+
+
 def test_v14_migration_preserves_catalog_and_never_downloads(tmp_path, db, monkeypatch):
     original = service(tmp_path).query()
     with schema.connect(db) as connection:
@@ -232,6 +260,41 @@ def test_selection_keeps_signed_url_and_omits_secrets():
     row = camera(images={"current": {"thumbnail": URL}})
     assert source_image(row, "42") == URL
     assert source_image(row, "42", secret="TEMPORARY") is None
+
+
+@pytest.mark.parametrize("period", ["current", "daylight"])
+@pytest.mark.parametrize("size", ["icon", "thumbnail", "preview"])
+def test_provider_proxy_image_preserves_signed_url(period, size):
+    url = PROXY_URL.replace("/current/", f"/{period}/").replace(
+        "/thumbnail/", f"/{size}/"
+    )
+    assert image_url(url, "42") == url
+    assert source_image(camera(images={period: {size: url}}), "42") == url
+    assert (
+        source_image(camera(images={period: {size: url}}), "42", secret="TEMPORARY")
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        PROXY_URL.replace("https:", "http:"),
+        PROXY_URL.replace("imgproxy.windy.com", "imgproxy.windy.com.evil.test"),
+        PROXY_URL.replace("imgproxy.windy.com", "secret@imgproxy.windy.com"),
+        PROXY_URL.replace("imgproxy.windy.com", "imgproxy.windy.com:8443"),
+        PROXY_URL.replace("/42/", "/43/"),
+        PROXY_URL.replace("/thumbnail/", "/full/"),
+        PROXY_URL.replace(
+            "/plain/current/42/original.jpg", "/plain/https://evil.test/image.jpg"
+        ),
+        PROXY_URL.replace("/current/", "/../current/"),
+        PROXY_URL + "#fragment",
+    ],
+)
+def test_proxy_sources_remain_bound_to_provider_camera_and_size(url):
+    with pytest.raises(ProviderError, match="THUMBNAIL_URL_NOT_ALLOWED"):
+        image_url(url, "42")
 
 
 class Response(io.BytesIO):

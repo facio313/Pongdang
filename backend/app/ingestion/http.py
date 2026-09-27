@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 HOSTS = {
     "apis.data.go.kr",
     "apihub.kma.go.kr",
+    "www.nifs.go.kr",
     "dapi.kakao.com",
     "api.hrfco.go.kr",
     "www.hrfco.go.kr",

@@ -1,39 +1,39 @@
 import { useEffect, useRef } from "react";
 import { displayTime } from "./aiApi";
 import { t } from "./i18n";
+import { distanceLabel } from "./placeDistance";
 import { NotificationSummary } from "./NotificationSummary";
 import { Icon } from "./pongdangUi";
 import { useFirstSwimTemperature } from "./useFirstSwimTemperature";
+import type { TemperatureReading } from "./firstSwimTemperature";
 import "./firstSwimGuide.css";
 
-export function FirstSwimPreview({ spotId }: { spotId: number }) {
-  const temperature = useFirstSwimTemperature(spotId);
-  const text = typeof temperature.value === "number"
-    ? `${temperature.value}°C`
-    : temperature.state === "loading" ? t("수온 조회 중")
-    : temperature.state === "error" ? t("수온 조회 실패")
-    : temperature.state === "stale" ? t("수온 갱신 대기")
-    : t("수온 미확인");
-  return <span className="first-swim-preview" title={`${t("관측 수온")} · ${displayTime(temperature.observation?.observed_at ?? null)}`}>
-    {text}{temperature.state === "stale" && typeof temperature.value === "number" && <> · {t("이전 관측")}</>}
+export function FirstSwimPreview({ reading }: { reading: TemperatureReading }) {
+  const label = t("수온");
+  return <span className="first-swim-preview" title={`${label} · ${reading.stationName} · ${distanceLabel(reading.distanceKm)} · ${displayTime(reading.observedAt)}`}>
+    <span>{label} {reading.value}°C</span>
   </span>;
 }
 
 function FirstSwimObservation({ spotId }: { spotId: number }) {
-  const { state, reason, value, observation, station, error } = useFirstSwimTemperature(spotId);
+  const { state, reason, reading, error } = useFirstSwimTemperature(spotId);
   return <div className="first-swim-observation">
     {state === "loading" ? <p role="status">{t("수온 조회 중")}</p>
       : state === "error" ? <p role="alert">{error}</p>
       : <>
-        <p>{typeof value === "number"
-          ? <strong>{t("관측 수온")} {value}°C</strong>
+        <p>{reading
+          ? <strong>{t(reading.relation === "station_observation_point" ? "수온" : "주변 수온")} {reading.value}°C</strong>
           : t(reason)}</p>
-        {state === "stale" && <p role="status">{t(reason)}</p>}
-        {observation && station && <dl className="first-swim-explanation">
-          <div><dt>{t("관측 출처")}</dt><dd>{observation.provider} · {station.name ?? station.source_id}{station.relation === "representative_station" && <> · {t("대표 관측소 자료")}</>}</dd></div>
-          <div><dt>{t("관측 시각")}</dt><dd>{displayTime(observation.observed_at)}</dd></div>
-          <div><dt>{t("수온 유효 시각")}</dt><dd>{displayTime(observation.valid_until)}</dd></div>
+        {state === "stale" && <p role="status">{t("이전 관측")}</p>}
+        {reading && <dl className="first-swim-explanation">
+          <div><dt>{t("관측소")}</dt><dd>{reading.stationName}{reading.relation === "representative_station" && <> · {t("대표 관측소 자료")}</>}</dd></div>
+          <div><dt>{t("장소에서 거리")}</dt><dd>{distanceLabel(reading.distanceKm)}{reading.distanceKm !== null && <> · {t("직선거리")}</>}</dd></div>
+          <div><dt>{t("관측 시각")}</dt><dd>{displayTime(reading.observedAt)}</dd></div>
+          <div><dt>{t("수온 유효 시각")}</dt><dd>{displayTime(reading.validUntil)}</dd></div>
+          <div><dt>{t("관측 출처")}</dt><dd>{reading.provider}</dd></div>
+          {reading.observationScope && <div><dt>{t("관측 범위")}</dt><dd>{reading.observationScope}</dd></div>}
         </dl>}
+        {reading?.relation === "nearby_station_context" && <p className="first-swim-context-note">{t("주변 수온은 참고 자료이며, 이 장소의 첫 입수 알림 기준에는 사용하지 않습니다.")}</p>}
       </>}
   </div>;
 }

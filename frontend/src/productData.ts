@@ -73,6 +73,11 @@ export interface Metric {
   distance_km?: number | null;
   evidence: {
     provider: string;
+    spatial_scope?: string | null;
+    mode?: "observation" | "forecast";
+    numeric_value?: number | null;
+    is_missing?: boolean;
+    unit?: string | null;
     observed_at: string;
     issued_at: string | null;
     fetched_at: string;

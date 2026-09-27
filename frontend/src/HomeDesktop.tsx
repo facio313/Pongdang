@@ -1,4 +1,4 @@
-import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { HomeTides } from "./HomeTides";
 import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
@@ -14,7 +14,6 @@ import {
 } from "./pongdangDesktop";
 import {
   ComponentBars,
-  GradeChip,
   Icon,
   MetricValue,
   ScoreGauge,
@@ -27,8 +26,6 @@ import { gradeOf } from "./groupAGrade";
 import {
   componentBars,
   scoreReason,
-  scoreTitle,
-  verdictOf,
 } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
@@ -39,6 +36,7 @@ import { usePlacePhotos } from "./usePlacePhotos";
 import {
   conditionModeLabel,
   dateLabel,
+  timeLabel,
   placeRegionLabel,
   waterQualityLabel,
   type Conditions,
@@ -48,10 +46,10 @@ import {
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { useHourlyScores } from "./useHourlyScores";
-import { conditionRetentionText } from "./productData";
 import type { ActivityCondition } from "./useBestActivity";
 import { spotLink } from "./spotsRoute";
-import { useWaterPlaces } from "./useWaterPlaces";
+import { useHomeBeaches } from "./useHomeBeaches";
+import type { TemperatureReading } from "./firstSwimTemperature";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
@@ -110,14 +108,21 @@ function HomeHero({
   baselineLoading?: boolean;
   placeRequired?: boolean;
 }) {
-  const verdict =
-    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+  const conditions = best?.data ?? baseline;
+  const at = conditions?.projection?.computed_at ?? conditions?.retained_at ?? conditions?.at;
   return (
     <DesktopHero
       nav={
         <DesktopNav
           active="home"
-          context={t("{place} · {date} · {mode} 기준", { place: placeName, date: dateLabel(), mode: conditionModeLabel(baseline) })}
+          context={<div className="hd-place-context">
+            <ProductPlacePopover placeName={placeName} />
+            <span aria-hidden="true">·</span>
+            <time className="home-condition-time" dateTime={at}>
+              {at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}
+            </time>
+            <span>· {t("{mode} 기준", { mode: conditionModeLabel(baseline) })}</span>
+          </div>}
         />
       }
       wave="animated"
@@ -125,8 +130,6 @@ function HomeHero({
     >
       <div className="hd-hero">
         <div className="hd-hero-lead">
-          <ProductPlaceSelector placeName={placeName} />
-          <div className="pd-dk-kick hd-hero-kick">{t("강원도 물놀이")}</div>
           {/* 조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 떼어 둡니다.
               「수영」·「갯벌」처럼 받침이 갈립니다. */}
           <h1 className="hd-hero-title">
@@ -134,8 +137,8 @@ function HomeHero({
               <Skeleton width="8em" glass label={t("오늘의 활동 조회 중")} />
             ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
-                {t("오늘 가장 좋은 활동")}<br />
-                {activityHeadline(best.activity)}
+                <span className="hd-hero-title-label">{t("오늘 가장 좋은 활동")}</span>{" "}
+                <span className="hd-hero-title-activity">{activityHeadline(best.activity)}</span>
               </>
             ) : (
               // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
@@ -154,19 +157,8 @@ function HomeHero({
                 (best?.score ?? "–")
               )}
             </span>
-            <GradeChip
-              score={best?.score ?? null}
-              prefix={best ? scoreTitle(best.activity) : undefined}
-              loading={loading}
-              glass
-              bare
-            />
           </div>
           <ScoreGauge score={best?.score ?? null} loading={loading} glass />
-          {best?.data?.retained && <p className="pd-retained-note" role="status">{conditionRetentionText(best.data)}</p>}
-          {/* 등급명은 상태어라 가도 되는지가 읽히지 않습니다. 값이 없으면
-              문장을 지어내지 않고 비워 둡니다. */}
-          {verdict && <p className="hd-hero-verdict">{verdict}</p>}
           {/* 히어로에는 「왜 이 활동인가」 한 줄만 얹습니다. 뺀 이유 · 물때 ·
               대신 갈 곳 · 근거 전문 · 수질 상세 · 점수 읽는 법은 홈에서 다시
               펼치지 않고 오늘 탭에서 읽습니다 -- 같은 내용을 두 화면에 두 번
@@ -303,14 +295,14 @@ function HourBars({
   );
 }
 
-function BeachCard({ place }: { place: Place }) {
+function BeachCard({ place }: { place: Place & { temperature: TemperatureReading } }) {
   return (
     <div className="hd-beach">
       <a className="place-photo-link" href={spotLink(place)}>
         <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} />
         <span className="hd-beach-head first-swim-name-row">
           <b className="hd-beach-name">{place.name}</b>
-          <FirstSwimPreview spotId={place.id} />
+          <FirstSwimPreview reading={place.temperature} />
         </span>
         <span className="hd-beach-foot">
           <span className="hd-beach-operating">
@@ -334,10 +326,8 @@ export function HomeDesktop() {
   );
   // 아래 네 덩어리는 모바일 홈이 이미 쓰는 것과 같은 소스입니다. 예전에는 이
   // 자리들이 전부 파일 안 상수였습니다.
-  const catalog = useWaterPlaces("");
-  const beaches = (catalog.rows ?? [])
-    .filter((item) => item.type === "beach")
-    .slice(0, 4);
+  const catalog = useHomeBeaches();
+  const beaches = catalog.rows ?? [];
   const session = useTravelSession();
   const tastePhotos = usePlacePhotos((session.recommendation?.recommendations ?? [])
     .slice(0, 3).map((item) => ({ ...item, id: item.spot_id })));
@@ -390,9 +380,12 @@ export function HomeDesktop() {
       <LabelRow
         kick={t("오늘 한눈에")}
         title={
-          best
-            ? t("{place} · {activity} 점수를 이루는 것들", { place: displayName, activity: t(activities[best.activity]) })
-            : t("{place} · 시간대별", { place: displayName })
+          <span className="hd-overview-title">
+            {displayName}<br />
+            {best
+              ? t("{activity} 점수를 이루는 것들", { activity: t(activities[best.activity]) })
+              : t("시간대별")}
+          </span>
         }
         chip={<StateChip kind={conditions.data ? "live" : "no_data"} />}
         desc={t("더 자세한 비교와 예보, 수질 근거가 궁금하다면 오늘 탭을 살펴보세요!")}
@@ -424,10 +417,10 @@ export function HomeDesktop() {
         kick={t("바다가 좋은 오늘")}
         title={
           <>
-            {t("해변 명소")} · {t("첫 입수")}<br />
+            {t("해변 명소")}<br />
             {t("바로 이어가기")}</>
         }
-        chip={<StateChip kind={catalog.rows ? "live" : "no_data"} />}
+        chip={<StateChip kind={beaches.length ? "live" : "no_data"} />}
         link={{ href: "#spots", label: t("명소 탭 전체 보기") }}
       >
         <div className="hd-beaches">
@@ -440,7 +433,7 @@ export function HomeDesktop() {
             {catalog.error ??
               (catalog.loading
                 ? t("해변 목록을 조회하고 있습니다.")
-                : t("수집된 해변이 아직 없습니다."))}
+                : t("수온이 확인되는 해변이 아직 없습니다."))}
           </p>
         )}
       </LabelRow>
@@ -462,7 +455,7 @@ export function HomeDesktop() {
             <div className="hd-taste-lead" role={taste.profileError ? "alert" : "status"}>
               {taste.profileError ??
                 (tags.length
-                  ? t("{tags}을 고르셨습니다", { tags: tags.map((tag) => t(tag)).join(" · ") })
+                  ? t("이제 어디로 떠나볼까요?")
                   : taste.profileLoading
                     ? t("저장된 취향을 조회하고 있습니다.")
                     : t("아직 고른 취향이 없습니다"))}
@@ -708,7 +701,7 @@ export function HomeDesktop() {
       {/* 시간대별 예보와 코스는 이제 연동됐으므로 목록에서 뺐습니다. 남은
           것만 적습니다 -- 다 고친 뒤에도 미연동이라고 적어 두면 그것도
           거짓말입니다. */}
-      <FootNote missing={t("운영시간 · 장소까지의 거리")} />
+      <FootNote note={null} />
     </DesktopShell>
   );
 }

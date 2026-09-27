@@ -1,4 +1,4 @@
-import { ProductPlaceSelector } from "./ProductPlaceSelector";
+import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { t } from "./i18n.ts";
 import { gradeOf } from "./groupAGrade";
 import { mascotUrl } from "./mascots";
@@ -23,8 +23,10 @@ import {
 import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import { NotificationSummary } from "./NotificationSummary";
-import { activities, type Activity } from "./aiApi";
-import { componentBars, scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
+import { activities, displayTime, type Activity } from "./aiApi";
+import { placeDetailsMissingText, placeOperatingSchedule } from "./placeDetails";
+import { usePlaceDetails } from "./usePlaceDetails";
+import { componentBars, scoreReason, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
@@ -33,6 +35,7 @@ import {
   conditionModeLabel,
   dataStatusText,
   dateLabel,
+  timeLabel,
   metricText,
   periodPath,
   scoreCoverageText,
@@ -73,7 +76,7 @@ const ACTIVITY_ROWS = [
   { id: "onsen", mascot: "hotspring" },
 ] as const;
 
-/** 물때 운영 시간대를 묻는 활동. 모바일과 같은 두 가지입니다. */
+/** 별도의 공식 운영 시간대가 있는 활동. */
 const TIDE_ACTIVITIES = [
   { name: "래프팅", icon: "rafting" },
   { name: "튜브 물놀이", icon: "tube" },
@@ -113,30 +116,33 @@ function TodayHero({
   const grade = gradeOf(score);
   const verdict =
     best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+  const displayedConditions = best?.data ?? baseline;
+  const at = displayedConditions?.projection?.computed_at ?? displayedConditions?.retained_at ?? displayedConditions?.at;
   return (
     <DesktopHero
       nav={
         <DesktopNav
           active="today"
-          context={`${placeName} · ${dateLabel()}`}
+          context={<div className="td-place-context">
+            <ProductPlacePopover placeName={placeName} />
+            <span aria-hidden="true">·</span>
+            <time dateTime={at}>{at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}</time>
+            <span>· {t("{mode} 기준", { mode: conditionModeLabel(baseline) })}</span>
+          </div>}
         />
       }
       mascot="surf"
     >
       <div className="td-hero">
         <div className="td-hero-lead">
-          <ProductPlaceSelector placeName={placeName} />
-          <div className="pd-dk-kick td-hero-kick">
-            {best ? scoreTitle(best.activity) : t("오늘의 판정")}
-          </div>
           {/* 조사(이/가)를 붙이지 않으려고 활동 이름을 줄로 떼어 둡니다. */}
           <h1 className="td-hero-title">
             {loading ? (
               <Skeleton width="8em" glass label={t("오늘의 활동 조회 중")} />
             ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
-                {t("오늘 가장 좋은 활동")}<br />
-                {activityHeadline(best.activity)}
+                <span className="td-hero-title-label">{t("오늘 가장 좋은 활동")}</span>{" "}
+                <span className="td-hero-title-activity">{activityHeadline(best.activity)}</span>
               </>
             ) : (
               // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.
@@ -214,17 +220,7 @@ function TodayHero({
           </div>
         </div>
       </div>
-      <p className="td-tile-name" role={baselineError ? "alert" : "status"}>
-        {t("장소 {mode} · 활동 점수 입력과 별도.", { mode: conditionModeLabel(baseline) })}{" "}{baselineError
-          ? baselineError
-          : baselineLoading ? t("장소 자료를 조회하고 있습니다.")
-          : baseline ? t("–는 해당 자료가 없다는 뜻입니다.") : t("장소 자료 없음.")}
-      </p>
-      {/* 근거 「데이터」만 남은 자리입니다 -- 관측 요약 한 줄과, 접힌 「근거
-          보기」 · 「퐁당 점수란?」 두 손잡이. 출처 · 격자 번호 · 방법론 · 면책
-          전문은 한 글자도 지우지 않고 그 안에 그대로 있습니다. 펴지 않은
-          상태에서 두 줄을 넘기지 않습니다 -- 사용자가 결론을 읽는 데 쓰는
-          정보가 아니라, 따져 보려는 사람이 펴 보는 자료이기 때문입니다. */}
+      {/* 요약 줄은 숨기고 기존 근거 보기·점수 설명은 그대로 둡니다. */}
       <div className="td-hero-evidence">
         <EvidenceNote
           data={conditions}
@@ -453,7 +449,7 @@ function WeekForecast({
   );
 }
 
-/** 활동별 공식 운영 시간대. 모바일 오늘 탭의 OperatingRow 와 같은 계약입니다. */
+/** Confirmed activity windows remain separate from published place hours. */
 function OperatingRow({
   activity,
   id,
@@ -470,11 +466,13 @@ function OperatingRow({
       ? null
       : periodPath("tides/windows", id, now, 1, activity.icon),
   );
-  const active = windows.data?.rows.find(
+  const restricted = windows.data?.rows.find(row => row.state === "restricted");
+  const active = restricted ?? windows.data?.rows.find(
     (row) => row.state === "official_operating_window",
   );
+  if (!active && !windows.error) return null;
   return (
-    <div className={"td-tide-row" + (active ? "" : " is-unfit")}>
+    <div className={"td-tide-row" + (active && !restricted ? "" : " is-unfit")}>
       <Icon name={activity.icon} size={22} />
       <b className="td-tide-name">{t(activity.name)}</b>
       <span className="td-tide-reason" title={active?.scope}>
@@ -484,7 +482,7 @@ function OperatingRow({
             ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
             : t("운영정보 없음")}
       </span>
-      <span className="td-tide-fit">{active ? t("공식 운영") : t("확인 필요")}</span>
+      <span className="td-tide-fit">{restricted ? t("운영 제한") : active ? t("공식 운영") : t("확인 필요")}</span>
     </div>
   );
 }
@@ -496,6 +494,9 @@ export function TodayDesktop() {
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   const comparison = useComparisonPlaces(place);
+  const placeDetails = usePlaceDetails(place ? [place.id] : []);
+  const detail = place ? placeDetails.byId.get(place.id) : undefined;
+  const schedule = placeOperatingSchedule(detail);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
   const activity: Activity = best?.activity ?? "swim";
@@ -558,13 +559,7 @@ export function TodayDesktop() {
 
       <LabelRow
         kick={t("물때")}
-        title={
-          <>
-            {t("간조")} {" "}{tideTimeLabel(tides.data?.next_low?.event_at)}
-            <br />
-            {t("만조")} {" "}{tideTimeLabel(tides.data?.next_high?.event_at)}
-          </>
-        }
+        title={t("다음 간조·만조")}
         chip={<StateChip kind={tides.data?.rows.length ? "live" : "no_data"} />}
         desc={t("공식 조석 예측의 간조·만조 시각입니다.")}
       >
@@ -585,11 +580,10 @@ export function TodayDesktop() {
         {/* 예전에는 여기 손으로 그린 조위 곡선 SVG 가 있었습니다(x=337 이
             간조인 그림). 실제 조위 시계열을 내려주는 API 가 없어 다시 그릴 수
             없으므로, 그림 대신 위 수치와 아래 운영 시간대만 둡니다. */}
-        <div className="td-tide-lists">
+        <div className="td-tide-lists td-operating-hours" aria-label={t("운영시간 안내")}>
           <div>
             <div className="td-tide-head">
-              <b>{t("활동별 공식 운영 시간대")}</b>
-              <span className="td-tide-when">{t("조위 조건만 기준")}</span>
+              <b>{t("운영시간 안내")}</b>
             </div>
             {TIDE_ACTIVITIES.map((item) => (
               <OperatingRow
@@ -599,12 +593,28 @@ export function TodayDesktop() {
                 now={now}
               />
             ))}
+            <div className={"td-tide-row td-place-hours" + (schedule.length ? "" : " is-unfit")}>
+              <Icon name="pin" size={22} />
+              <b className="td-tide-name">{place?.name ?? t("기본 안내")}</b>
+              <div className="td-tide-reason" role={placeDetails.error ? "alert" : undefined}>
+                {schedule.length ? schedule.map((row, index) => <div key={`${row.label}-${index}`}>
+                  <span className="td-hours-label">{t(row.label)}</span>{row.value}
+                </div>) : placeDetails.loading ? t("조회 중") : placeDetails.error ? t("조회 실패") : t(placeDetailsMissingText(detail?.status))}
+              </div>
+              <span className="td-tide-fit" title={[
+                detail?.provider && t("한국관광공사 관광 정보"),
+                detail?.source_modified_at && t("원천 수정일: {date}", { date: displayTime(detail.source_modified_at) }),
+                detail?.fetched_at && t("수집일: {date}", { date: displayTime(detail.fetched_at) }),
+              ].filter(Boolean).join(" · ")}>
+                {t(schedule.length && (detail?.refresh_failed || detail?.refresh_pending) ? "이전 안내" : "기본 안내")}
+              </span>
+            </div>
           </div>
         </div>
         <p className="td-note" role={tides.error ? "alert" : "status"}>
           {tides.error}{" "}
           {event?.station_name &&
-            `${event.spatial_relation === "nearby_station_context" ? t("주변") : t("관측소")} ${event.station_name}${typeof event.distance_km === "number" ? ` ${event.distance_km.toFixed(1)}km` : ""} · ${event.provider}. `}
+            `${event.spatial_relation === "nearby_station_context" ? t("주변") : t("관측소")} ${event.station_name}${typeof event.distance_km === "number" ? ` ${event.distance_km.toFixed(1)}km` : ""}. `}
           {dataStatusText(tides.data?.status)} {t("물때 조건만 기준이며 점수 · 안전 판정과 다른 값입니다.")}</p>
       </LabelRow>
 
@@ -636,13 +646,17 @@ export function TodayDesktop() {
         </SplitBody>
       </LabelRow>
 
-      <section className="td-section" aria-label={t("첫 입수 · 수온 알림")}>
-        <h2>{t("첫 입수 · 수온 알림")}</h2>
-        <NotificationSummary spotId={place?.id} />
+      <section className="pd-dk-row td-notifications" aria-label={t("첫 입수 · 수온 알림")}>
+        <div className="pd-dk-row-label">
+          <h2 className="pd-dk-row-title">{t("첫 입수 · 수온 알림")}</h2>
+        </div>
+        <div className="pd-dk-row-body">
+          <NotificationSummary spotId={place?.id} appearance="desktop" loginPrompt />
+        </div>
       </section>
       <FootNote
         missing={t("조위 시계열")}
-        note={t("점수는 물놀이 조건 참고값이며 안전 판정이 아닙니다. 값이 없으면 «–» 로 두며 0 점 · 정상 · 안전으로 치환하지 않습니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}
+        note={null}
       />
     </DesktopShell>
   );

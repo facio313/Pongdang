@@ -52,6 +52,7 @@ export function AppHeader({
  *  데스크탑의 대응물은 pongdangDesktop.tsx 의 FootNote 입니다. */
 export function AppFootNote({
   wave = true,
+  showNote = true,
 }: {
   /** 물결 · 흐르는 파도를 그릴지. 본문 맨 아래 전체 폭 푸터에서는 히어로와
    *  대칭이 되지만, 지도 · 내 코스처럼 바텀시트 안에 들어가는 자리에서는
@@ -59,6 +60,7 @@ export function AppFootNote({
    *  false. 숨기지 않고 **그리지 않습니다**: display:none 은 애니메이션을
    *  멈추지 않습니다. */
   wave?: boolean;
+  showNote?: boolean;
 } = {}) {
   return (
     <footer className={"pd-foot" + (wave ? "" : " is-flat")}>
@@ -96,7 +98,7 @@ export function AppFootNote({
 
       <div className="pd-foot-body">
         {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
-        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />{t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</div>
+        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />{showNote && t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</div>
     </footer>
   );
 }
@@ -122,12 +124,14 @@ export function AppShell({
   hero,
   bare = false,
   fullscreen = false,
+  showFooterNote = true,
   children,
 }: {
   tab: TabKey;
   title?: string;
   hero?: ReactNode;
   bare?: boolean;
+  showFooterNote?: boolean;
   /** 지도가 프레임을 다 쓰는 화면(지도 · 내 코스). 프레임 높이를 뷰포트에
    *  고정하고 페이지 스크롤을 끕니다 -- 넘치는 내용은 지도 위에 뜬 바텀 시트
    *  **안에서만** 스크롤합니다. 탭바 슬롯도 자리를 비웁니다.
@@ -148,7 +152,7 @@ export function AppShell({
             ) : (
               <div className="pd-body">
                 {children}
-                <AppFootNote />
+                <AppFootNote showNote={showFooterNote} />
               </div>
             )}
             <AppTabBar active={tab} floating={fullscreen} />

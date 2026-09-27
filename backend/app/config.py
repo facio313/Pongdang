@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     api_root_path: str = ""
     data_go_kr_key: SecretStr = SecretStr("")
     kma_api_hub_key: SecretStr = SecretStr("")
+    nifs_api_key: SecretStr = SecretStr("")
+    nifs_station_codes: str = "fggo3,byy87,bgna3,bsc87"
     kakao_rest_key: SecretStr = SecretStr("")
     # Route-only key, using the same environment name as Pilgrimage.
     kakao_rest_api_key: SecretStr = SecretStr("")

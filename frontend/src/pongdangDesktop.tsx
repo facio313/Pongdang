@@ -106,7 +106,7 @@ export function DesktopNav({
       </span>
       <DesktopLanguageSwitcher />
       {context !== undefined && (
-        <span className="pd-dk-nav-context">{context}</span>
+        <div className="pd-dk-nav-context">{context}</div>
       )}
     </nav>
   );
@@ -397,7 +397,7 @@ export function FootNote({
         {/* {missing && <div className="pd-dk-foot-missing">
           {alert && <Icon name="warning" size={14} />}{t("아직 실연동되지 않은 항목 — {items}", { items: t(missing) })}
         </div>} */}
-        <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>
+        {note && <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>}
       </div>
     </footer>
   );

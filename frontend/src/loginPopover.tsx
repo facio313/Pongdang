@@ -1,22 +1,27 @@
 import { t } from "./i18n";
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { LoginPopoverControl, goToLogin } from "./loginPopoverState";
+import { Icon } from "./pongdangUi";
+import { invalidateResources } from "./resourceRefresh";
+import { signInSso, SsoLoginError } from "./ssoLogin";
 import "./loginPopover.css";
 
 function LoginPopoverPanel({
-  reason,
   onClose,
 }: {
-  reason?: string;
   onClose: () => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const loginButton = useRef<HTMLButtonElement>(null);
+  const usernameInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const request = useRef<AbortController | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string>();
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
-    loginButton.current?.focus();
+    usernameInput.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -25,7 +30,7 @@ function LoginPopoverPanel({
       }
       if (event.key !== "Tab" || !panel.current) return;
       const focusable = panel.current.querySelectorAll<HTMLElement>(
-        "button:not([disabled]), [tabindex]:not([tabindex='-1'])",
+        "button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])",
       );
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -40,18 +45,53 @@ function LoginPopoverPanel({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      request.current?.abort();
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
   }, [onClose]);
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (request.current || !usernameInput.current || !passwordInput.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setPending(true);
+    setError(undefined);
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]);
+    try {
+      const result = await signInSso(
+        usernameInput.current.value,
+        passwordInput.current.value,
+        new URL(`${import.meta.env.BASE_URL}auth/continue`, window.location.origin).href,
+        signal,
+      );
+      if (controller.signal.aborted) return;
+      if (result === "continue") {
+        goToLogin();
+        return;
+      }
+      invalidateResources();
+      onClose();
+    } catch (failure: unknown) {
+      if (!controller.signal.aborted) {
+        setError(failure instanceof SsoLoginError && !signal.aborted
+          ? failure.message : "로그인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        passwordInput.current?.focus();
+      }
+    } finally {
+      if (passwordInput.current) passwordInput.current.value = "";
+      request.current = null;
+      if (!controller.signal.aborted) setPending(false);
+    }
+  };
   return (
     <>
       <button
         type="button"
         className="pd-login-backdrop"
         onClick={onClose}
-        aria-label={t("로그인 안내 닫기")}
+        aria-label={t("로그인 닫기")}
         tabIndex={-1}
       />
       <div
@@ -61,21 +101,20 @@ function LoginPopoverPanel({
         aria-labelledby="pd-login-title"
         ref={panel}
       >
-        <h2 id="pd-login-title">{t("로그인이 필요합니다")}</h2>
-        <p>{t(reason ?? "이 기능은 로그인한 이용자만 사용할 수 있습니다.")}</p>
-        <div className="pd-login-actions">
-          <button
-            type="button"
-            className="pd-login-close"
-            onClick={onClose}
-          >{t("닫기")}</button>
-          <button
-            type="button"
-            className="pd-login-submit"
-            onClick={goToLogin}
-            ref={loginButton}
-          >{t("로그인")}</button>
-        </div>
+        <button type="button" className="pd-login-close" onClick={onClose} aria-label={t("닫기")}>
+          <Icon name="close" size={20} />
+        </button>
+        <h2 id="pd-login-title">{t("로그인")}</h2>
+        <form className="pd-login-form" onSubmit={submit} aria-busy={pending}>
+          <label>{t("아이디")}
+            <input name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required readOnly={pending} ref={usernameInput} />
+          </label>
+          <label>{t("비밀번호")}
+            <input type="password" name="password" autoComplete="current-password" required readOnly={pending} ref={passwordInput} />
+          </label>
+          {error && <p className="pd-login-error" role="alert">{t(error)}</p>}
+          <button type="submit" className="pd-login-submit" disabled={pending}>{t(pending ? "로그인 중…" : "로그인")}</button>
+        </form>
       </div>
     </>
   );
@@ -102,6 +141,6 @@ export function LoginPopoverOutlet() {
   const control = useContext(LoginPopoverControl);
   if (!control || control.reason == null) return null;
   return (
-    <LoginPopoverPanel reason={control.reason || undefined} onClose={control.close} />
+    <LoginPopoverPanel onClose={control.close} />
   );
 }
