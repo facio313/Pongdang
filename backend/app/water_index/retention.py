@@ -120,10 +120,12 @@ def _keep_dependencies(connection, now):
 def _delete_obsolete(connection, table, key, kept, limit):
     # Victims remain immutable under the producer lock. Resolve their physical
     # tuples once instead of re-probing the large primary key for every delete.
+    # Keep membership checks correlated: a merge anti-join reads scattered heap
+    # pages in primary-key order just to obtain a small victim batch.
     return connection.execute(
         sql.SQL(
             "WITH obsolete AS MATERIALIZED (SELECT r.ctid FROM {table} r "
-            "WHERE NOT EXISTS (SELECT 1 FROM {kept} k WHERE k.id=r.{key}) "
+            "WHERE NOT EXISTS (SELECT 1 FROM {kept} k WHERE k.id=r.{key} OFFSET 0) "
             "LIMIT %s) DELETE FROM {table} r "
             "WHERE r.ctid=ANY(ARRAY(SELECT ctid FROM obsolete))"
         ).format(
