@@ -86,7 +86,9 @@ local wrapper 또는 기존 게이트 설치본을 자동으로 갱신하지 않
 호스트 전환 시에는 설치본과 unit을 먼저 root 전용 위치에 백업한다. watcher와 local
 wrapper는 `/usr/local/libexec/`에 root:root 0755, service와 timer는
 `/etc/systemd/system/`에 root:root 0644로 설치한다. unit 구문과 mock 검증 결과를
-확인한 뒤 `systemctl daemon-reload`한다. 기존 CI watcher는 그대로 유지한다. 새 timer를
+확인한 뒤 `systemctl daemon-reload`한다. service는 홈을 읽기 전용으로 격리하되 서버
+이미지 빌드에 필요한 `~/.docker/buildx`만 쓰기 허용한다. 기존 CI watcher는 그대로
+유지한다. 새 timer를
 활성화하기 전 실행 중 service가 없는지 확인하고, 첫 자연스러운 main CI에서 build
 job·배포 SHA·컨테이너 health·readiness를 확인한다. 전환 성공 전에는 기존 SSH 자격을
 회수하지 않으며, 성공 후 별도 승인된 운영 단계에서만 GitHub deploy secret과 전용

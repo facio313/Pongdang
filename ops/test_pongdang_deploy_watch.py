@@ -333,6 +333,11 @@ class ContractTests(unittest.TestCase):
         timer = (OPS / "pongdang-deploy-watch.timer").read_text()
         self.assertIn("ExecStart=/usr/local/libexec/pongdang-deploy-watch", service)
         self.assertIn("User=cks", service)
+        self.assertIn(
+            "ReadWritePaths=/home/cks/.local/share/pongdang-deploy "
+            "/home/cks/.docker/buildx",
+            service,
+        )
         self.assertIn("Unit=pongdang-deploy-watch.service", timer)
 
 
