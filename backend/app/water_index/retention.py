@@ -8,6 +8,7 @@ from psycopg import sql
 
 KST = ZoneInfo("Asia/Seoul")
 RETENTION_POLICY = "latest-current-window.v1"
+DELETE_ROWS_PER_STATEMENT = 1000
 TABLES = (
     ("water_index_production_run", "run_id", "wi_retention_runs"),
     ("water_index_read_manifest", "manifest_id", "wi_retention_reads"),
@@ -117,12 +118,14 @@ def _keep_dependencies(connection, now):
 
 
 def _delete_obsolete(connection, table, key, kept, limit):
+    # Victims remain immutable under the producer lock. Resolve their physical
+    # tuples once instead of re-probing the large primary key for every delete.
     return connection.execute(
         sql.SQL(
-            "WITH obsolete AS (SELECT r.{key} FROM {table} r "
+            "WITH obsolete AS MATERIALIZED (SELECT r.ctid FROM {table} r "
             "WHERE NOT EXISTS (SELECT 1 FROM {kept} k WHERE k.id=r.{key}) "
-            "LIMIT %s) DELETE FROM {table} r USING obsolete o "
-            "WHERE r.{key}=o.{key}"
+            "LIMIT %s) DELETE FROM {table} r "
+            "WHERE r.ctid=ANY(ARRAY(SELECT ctid FROM obsolete))"
         ).format(
             key=sql.Identifier(key),
             table=sql.Identifier("pongdang_data", table),
@@ -165,15 +168,20 @@ def prune_water_index_history(settings, *, now=None, batch_size=2000, max_second
         _keep_dependencies(connection, now)
         connection.execute("SET LOCAL pongdang.retention.water_index = 'on'")
         for table, key, kept in TABLES:
-            remaining = batch_size - result["deleted"]
-            if not remaining or monotonic() - started >= max_seconds:
-                result["pending"] = True
-                break
-            deleted = _delete_obsolete(connection, table, key, kept, remaining)
-            result["counts"][table] = deleted
-            result["deleted"] += deleted
-            if deleted == remaining:
-                result["pending"] = True
+            while True:
+                remaining = batch_size - result["deleted"]
+                if not remaining or monotonic() - started >= max_seconds:
+                    result["pending"] = True
+                    break
+                # Large JSON/TOAST rows still incur per-row trigger and index
+                # work. Bound each statement as well as the whole transaction.
+                limit = min(remaining, DELETE_ROWS_PER_STATEMENT)
+                deleted = _delete_obsolete(connection, table, key, kept, limit)
+                result["counts"][table] = result["counts"].get(table, 0) + deleted
+                result["deleted"] += deleted
+                if deleted < limit:
+                    break
+            if result["pending"]:
                 break
         connection.execute("SET LOCAL pongdang.retention.water_index = 'off'")
     return result

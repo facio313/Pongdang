@@ -259,6 +259,58 @@ def test_cleanup_failure_rolls_back_the_current_batch(retained_db, monkeypatch):
     assert counts(settings) == before
 
 
+@pytest.mark.parametrize("exhaust_time", [False, True])
+def test_large_cleanup_bounds_each_statement_and_resumes_after_its_budget(
+    retained_db, monkeypatch, exhaust_time
+):
+    settings = retained_db
+    target, current = artifact(settings, "current")
+    # Build real FK-linked history around one current publication. Each seed
+    # statement is itself bounded, so this fixture does not need a larger limit.
+    for start in (1, 1001, 2001):
+        with connect(settings) as c:
+            c.execute(
+                "INSERT INTO pongdang_data.water_index_assessment "
+                "(assessment_id,target_id,input_manifest_id,as_of,evaluated_at,"
+                "payload,digest) SELECT 'obsolete:' || n,target_id,"
+                "input_manifest_id,as_of,evaluated_at,"
+                "jsonb_set(payload,'{assessment_id}',to_jsonb('obsolete:' || n)),"
+                "digest FROM pongdang_data.water_index_assessment "
+                "CROSS JOIN generate_series(%s::int,%s::int) n "
+                "WHERE assessment_id=%s",
+                [start, start + 999, current.assessment_id],
+            )
+    before = read(settings, target)
+    delete = retention._delete_obsolete
+    clock = [0.0]
+    limits = []
+
+    def observe_delete(c, table, key, kept, limit):
+        limits.append(limit)
+        deleted = delete(c, table, key, kept, limit)
+        if exhaust_time and table == "water_index_assessment" and deleted:
+            clock[0] = 11.0
+        return deleted
+
+    with monkeypatch.context() as patch:
+        patch.setattr(retention, "_delete_obsolete", observe_delete)
+        patch.setattr(retention, "monotonic", lambda: clock[0])
+        result = retention.prune_water_index_history(
+            settings, batch_size=2500, max_seconds=10
+        )
+    expected = 1000 if exhaust_time else 2500
+    assert result["deleted"] == expected
+    assert result["counts"]["water_index_assessment"] == expected
+    assert result["pending"] is True
+    assert max(limits) <= 1000
+    assert counts(settings)["water_index_assessment"] == 3001 - expected
+    assert complete_cleanup(settings) == 3000 - expected
+    assert counts(settings)["water_index_assessment"] == 1
+    after = read(settings, target)
+    assert after["rows"] == before["rows"]
+    assert after["coverage"] == before["coverage"]
+
+
 def test_retention_window_uses_kst_midnight_and_eight_calendar_dates():
     before = datetime(2026, 9, 27, 14, 59, tzinfo=UTC)
     after = before + timedelta(minutes=1)

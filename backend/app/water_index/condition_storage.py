@@ -964,6 +964,9 @@ async def read_condition_summaries(reader, queries, *, now=None, connection=None
     async with (
         nullcontext(connection) if connection is not None else reader.connection()
     ) as c:
+        # Keep generation validation dependent on each ordered result candidate.
+        # A flattened hash join sorts all matching history before LIMIT 1; the
+        # OFFSET 0 fence lets the primary-key scan stop at its first valid row.
         rows = await (
             await c.execute(
                 "WITH wanted AS (SELECT * FROM jsonb_to_recordset(%s::jsonb) AS q("
@@ -987,8 +990,10 @@ async def read_condition_summaries(reader, queries, *, now=None, connection=None
                 "cr.support_status,"
                 "cr.safety_status,cr.condition_score,cr.water_temperature,"
                 "cr.expires_at,cr.retained FROM pongdang_data.condition_result cr "
-                "JOIN pongdang_data.condition_generation origin "
-                "ON origin.id=cr.generation_id AND origin.result_published "
+                "JOIN LATERAL (SELECT source_revision,model_version,computed_at "
+                "FROM pongdang_data.condition_generation "
+                "WHERE id=cr.generation_id AND result_published OFFSET 0) "
+                "origin ON true "
                 "WHERE cr.spot_id=q.spot_id "
                 "AND cr.activity=q.activity AND cr.mode=q.mode "
                 "AND cr.target_start<=q.at "
