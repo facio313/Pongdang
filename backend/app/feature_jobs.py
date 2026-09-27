@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from math import ceil
+from time import monotonic
 from zoneinfo import ZoneInfo
 
 from app.ingestion.jobs import Job
@@ -11,12 +12,14 @@ KST = ZoneInfo("Asia/Seoul")
 
 def feature_jobs(settings):
     from app.forecast.storage import project_forecasts
+    from app.ingestion.retention import prune_source_history
     from app.livecams.service import run_checks
     from app.notifications.delivery import run_notifications
     from app.quality.service import run_quality_job
     from app.water_index.condition_producer import produce_conditions
     from app.water_index.condition_storage import prune_condition_results
     from app.water_index.producer import produce_assessment_batch
+    from app.water_index.retention import prune_water_index_history
 
     def projection(function):
         count = function(settings)
@@ -45,17 +48,42 @@ def feature_jobs(settings):
             hour=0, minute=0, second=0, microsecond=0
         )
         return dict(
-            received=changed,
+            received=changed or 0,
             inserted=0,
             state="succeeded",
             error="",
-            next_run_seconds=min(
-                86400, max(30, ceil((next_midnight - now).total_seconds()))
-            ),
+            next_run_seconds=30
+            if changed is None or changed >= 10000
+            else min(86400, max(30, ceil((next_midnight - now).total_seconds()))),
+        )
+
+    def evidence_retention():
+        # Each batch commits independently. The persisted job lock excludes
+        # duplicate runners; producer locks exclude active evaluation writes.
+        deadline = monotonic() + 20
+        deleted = 0
+        while True:
+            result = prune_water_index_history(settings, batch_size=10000)
+            deleted += result["deleted"]
+            if not result["pending"]:
+                sources = prune_source_history(settings)
+                deleted += sources["deleted"]
+                pending = sources["pending"]
+                break
+            pending = True
+            if result["skipped"] or monotonic() >= deadline:
+                break
+        return dict(
+            received=deleted,
+            inserted=0,
+            state="succeeded",
+            error="",
+            next_run_seconds=30 if pending else 3600,
         )
 
     return [
         Job("condition_result_retention", 600, process=condition_result_retention),
+        Job("evidence_retention", 600, process=evidence_retention),
         Job("forecast_projection", 600, process=lambda: projection(project_forecasts)),
         Job(
             "water_index_evaluation",

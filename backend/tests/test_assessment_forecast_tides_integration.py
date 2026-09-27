@@ -119,6 +119,7 @@ def test_assessment_fingerprint_tracks_only_evaluation_dependencies():
             mode="forecast",
             items=[(value, mapping)],
             authorities=authorities,
+            window_start=now.replace(hour=0, minute=0, second=0, microsecond=0),
         )
 
     heartbeat = {

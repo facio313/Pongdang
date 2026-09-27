@@ -750,10 +750,10 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "{at} · 已保存行程时刻的预报。",
     "{at}・保存した予定時刻の予報です。"
   ],
-  "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.": [
-    "The saved date is outside the query window of 31 days before or after today.",
-    "保存日期超出查询范围（当前日期前后 31 天）。",
-    "保存された日付が照会範囲（現在から前後 31 日）を超えています。"
+  "저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났습니다.": [
+    "The saved date is outside the score query window (today through seven days from today, KST).",
+    "保存日期超出评分查询范围（韩国时间今天至7天后）。",
+    "保存された日付がスコア照会範囲（韓国時間の今日から7日後まで）を超えています。"
   ],
   "{date} 물 코스": [
     "{date} water itinerary",
@@ -895,10 +895,10 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "暂无行程时刻",
     "予定時刻なし"
   ],
-  "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.": [
-    "The saved date is outside the 31-day query window before or after today, or the itinerary has no scheduled time.",
-    "保存日期超出当前日期前后 31 天的查询范围，或缺少行程时刻。",
-    "保存された日付が現在から前後 31 日の照会範囲を超えているか、予定時刻がありません。"
+  "저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났거나 일정 시각이 없습니다.": [
+    "The saved date is outside the score query window (today through seven days from today, KST), or the itinerary has no scheduled time.",
+    "保存日期超出评分查询范围（韩国时间今天至7天后），或缺少行程时刻。",
+    "保存された日付がスコア照会範囲（韓国時間の今日から7日後まで）を超えているか、予定時刻がありません。"
   ],
   "날짜 없음": [
     "No date",

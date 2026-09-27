@@ -299,7 +299,7 @@ def body():
 
 def test_product_target_window_uses_kst_calendar_days():
     day_start = datetime(2026, 1, 1, 15, tzinfo=UTC)
-    earliest = day_start - timedelta(days=7)
+    earliest = day_start
     latest = day_start + timedelta(days=8)
     for target in (earliest, NOW, latest - timedelta(microseconds=1)):
         query = api.ConditionQuery(
@@ -335,9 +335,13 @@ def test_explicit_raw_calculation_keeps_its_31_day_window():
         query.product_times(NOW)
 
 
-def test_explicit_past_get_reads_published_result(monkeypatch):
+def test_explicit_earlier_today_get_reads_published_result(monkeypatch):
     now = datetime.now(UTC)
-    target = now - timedelta(days=1)
+    target = (
+        now.astimezone(ZoneInfo("Asia/Seoul"))
+        .replace(hour=0, minute=0, second=0, microsecond=0)
+        .astimezone(UTC)
+    )
     calls = []
 
     async def projected(reader, query, *, now=None, connection=None):
@@ -416,7 +420,7 @@ def test_product_get_rejects_day_eight_without_reading_database(monkeypatch):
         .astimezone(ZoneInfo("Asia/Seoul"))
         .replace(hour=0, minute=0, second=0, microsecond=0)
     )
-    past = (day_start - timedelta(days=8)).isoformat()
+    past = (day_start - timedelta(microseconds=1)).isoformat()
     future = (day_start + timedelta(days=8)).isoformat()
     current = datetime.now(UTC)
     historical_future = {

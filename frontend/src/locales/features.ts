@@ -182,6 +182,7 @@ export const featureMessages: Record<string, MessageTranslations> = {
   "· 지역:": [" · Region: ", " · 地区：", " · 地域："],
   "장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.": ["Place search shows up to 100 results. Narrow the search by region or name.", "地点搜索最多显示100条结果。请按地区或名称缩小范围。", "場所の検索は最大100件を表示します。地域や名前で範囲を絞ってください。"],
   "시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.": ["Check the start and end times. Queries can cover up to 31 days.", "请确认开始和结束时间，查询范围最长31天。", "開始と終了を確認してください。照会期間は最大31日です。"],
+  "시작과 종료를 확인해 주세요. 한국시간 오늘부터 7일 뒤까지 조회할 수 있습니다.": ["Check the start and end times. Queries cover today through seven days from today, KST.", "请确认开始和结束时间。查询范围为韩国时间今天至7天后。", "開始と終了を確認してください。韓国時間の今日から7日後まで照会できます。"],
   "실제 장소를 선택하면 자료를 조회합니다.": ["Select a place to load its data.", "选择实际地点后即可查询资料。", "実在する場所を選択すると資料を照会します。"],
   "실제 자료 조회 중…": ["Loading real data…", "正在查询真实数据…", "実データを照会中…"],
   "조회 실패:": ["Query failed: ", "查询失败：", "照会失敗："],

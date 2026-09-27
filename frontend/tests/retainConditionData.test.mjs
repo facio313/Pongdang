@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { retainConditionData, retainConditions } from '../src/retainConditionData.ts';
+import { conditionDataInRange, retainConditionData, retainConditions } from '../src/retainConditionData.ts';
+
+test.beforeEach(t => t.mock.method(Date, 'now', () => Date.parse('2026-09-21T03:00:00Z')));
 
 function condition(score = 80, names = ['air_temperature', 'wave_height']) {
   return {
@@ -103,4 +105,25 @@ test('failed reads preserve public conditions, never private or unrelated resour
   assert.deepEqual(retainConditionData('water-index/conditions?spot_id=7', previous, undefined), { ...previous, retained: true });
   assert.equal(retainConditionData('travel/preferences', previous, undefined), undefined);
   assert.equal(retainConditionData('water-index/conditions?spot_id=7', undefined, undefined), undefined);
+});
+
+test('past score generations cannot survive successful, failed or cached reads after KST midnight', (t) => {
+  const previous = condition();
+  t.mock.method(Date, 'now', () => Date.parse('2026-09-21T15:00:00Z'));
+  const current = { ...condition(null, []), at: '2026-09-21T15:00:00Z' };
+  assert.equal(retainConditions(previous, current), current);
+  for (const [path, data] of [
+    ['water-index/conditions?spot_id=7', previous],
+    ['water-index/conditions/series?spot_id=7', { rows: [previous] }],
+    ['water-index/conditions/summary?spot_ids=7', { rows: [previous], as_of: previous.at }],
+    ['water-index/recommendation?spot_id=7', { at: previous.at, choice: { score: 80 }, conditions: [previous] }],
+  ]) {
+    assert.equal(conditionDataInRange(path, data), false);
+    assert.equal(retainConditionData(path, data, undefined), undefined);
+    assert.equal(retainConditionData(path, undefined, data), undefined);
+  }
+  assert.equal(retainConditionData('water-index/conditions?spot_id=7', previous, current), current);
+  for (const path of ['water-temperature?spot_id=7', 'quality/grade?spot_id=7', 'notifications/events?limit=25']) {
+    assert.equal(conditionDataInRange(path, previous), true);
+  }
 });

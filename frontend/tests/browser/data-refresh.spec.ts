@@ -89,6 +89,20 @@ test("a failed automatic refresh retains the score and waits another thirty minu
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
 });
 
+test("a failed refresh after KST midnight cannot restore yesterday's cached score", async ({ page }) => {
+  await mockCommon(page);
+  let requests = 0;
+  await page.route("**/api/data/water-index/recommendation?**", route => {
+    requests++;
+    return requests === 1 ? route.fallback() : route.fulfill({ status: 503, json: { detail: "unavailable" } });
+  });
+  await page.goto("#home");
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
+  await page.clock.fastForward(86400000);
+  await expect.poll(() => requests).toBeGreaterThan(1);
+  await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
+});
+
 for (const width of [390, 1440]) {
   test(`${width}px a failed recommendation keeps independent home and today measurements available`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

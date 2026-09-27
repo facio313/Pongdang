@@ -80,7 +80,7 @@ export const travelMessages: Record<string, MessageTranslations> = {
   "이 후보로 경로 계산": ["Calculate a route with these candidates","用这些候选地点计算路线","この候補で経路を計算"],
   "처음부터": ["Start over","重新开始","最初から"],
   " KST 예보 · ": [" KST forecast · "," KST 预报 · "," KST 予報 · "],
-  "저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.": ["The saved date is outside the query range (31 days before or after today).","保存日期超出查询范围（当前日期前后 31 天）。","保存した日付が照会範囲（現在の前後 31 日）を超えています。"],
+  "저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났습니다.": ["The saved date is outside the score query window (today through seven days from today, KST).","保存日期超出评分查询范围（韩国时间今天至7天后）。","保存した日付がスコア照会範囲（韓国時間の今日から7日後まで）を超えています。"],
   "경로를 계산하지 못했습니다": ["Could not calculate the route","未能计算路线","経路を計算できませんでした"],
   "경로 계산 조건을 확인해 주세요.": ["Check the route calculation conditions.","请检查路线计算条件。","経路計算の条件を確認してください。"],
   "계산한 방문 순서": ["Calculated visiting order","计算出的游览顺序","計算した訪問順序"],

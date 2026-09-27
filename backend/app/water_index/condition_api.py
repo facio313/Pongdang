@@ -79,12 +79,12 @@ class ConditionQuery(BaseModel):
         return at, as_of
 
     def product_times(self, now: datetime):
-        """The published product covers seven KST dates in either direction."""
+        """The published product covers today and the next seven KST dates."""
         at, as_of = self.times(now)
         day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        earliest = day_start - timedelta(days=7)
+        earliest = day_start
         latest = day_start + timedelta(days=8)
         if not earliest <= at < latest or as_of < earliest:
             raise ValueError("Target or cutoff is outside the published 7-day window")

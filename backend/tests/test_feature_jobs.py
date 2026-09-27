@@ -108,6 +108,56 @@ def test_result_retention_has_independent_backoff(database, monkeypatch):
         ).fetchone() == (1200,)
 
 
+def test_result_retention_resumes_bounded_catchup(monkeypatch):
+    monkeypatch.setattr(
+        "app.water_index.condition_storage.prune_condition_results", lambda _: 10000
+    )
+    job = next(
+        job
+        for job in registered_jobs(Settings())
+        if job.name == "condition_result_retention"
+    )
+    assert job.process()["next_run_seconds"] == 30
+    monkeypatch.setattr(
+        "app.water_index.condition_storage.prune_condition_results", lambda _: None
+    )
+    job = next(
+        job
+        for job in registered_jobs(Settings())
+        if job.name == "condition_result_retention"
+    )
+    assert job.process()["next_run_seconds"] == 30
+    assert job.process()["received"] == 0
+
+
+def test_evidence_retention_waits_for_reference_cleanup(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "app.water_index.retention.prune_water_index_history",
+        lambda *args, **kwargs: dict(deleted=0, pending=True, skipped=True),
+    )
+    monkeypatch.setattr(
+        "app.ingestion.retention.prune_source_history",
+        lambda _: calls.append("raw") or dict(deleted=3, pending=False),
+    )
+    job = next(
+        job for job in registered_jobs(Settings()) if job.name == "evidence_retention"
+    )
+    assert job.process()["next_run_seconds"] == 30
+    assert calls == []
+    monkeypatch.setattr(
+        "app.water_index.retention.prune_water_index_history",
+        lambda *args, **kwargs: dict(deleted=2, pending=False, skipped=False),
+    )
+    job = next(
+        job for job in registered_jobs(Settings()) if job.name == "evidence_retention"
+    )
+    assert job.process() == dict(
+        received=5, inserted=0, state="succeeded", error="", next_run_seconds=3600
+    )
+    assert calls == ["raw"]
+
+
 def test_domain_job_restarts_due_backoff_and_sanitized_errors():
     settings = Settings()
     if settings.postgres_db != "pongdang_test":

@@ -877,7 +877,7 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
           ))}
           <StateChip kind={conditions.data?.condition_score?.status === "evaluated" ? "live" : "partial"} />
         </div>
-        <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} {t(" KST 예보 · ")}{targetValid ? conditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났습니다.")}</p>
+        <p className="pd-note">{dateLabel(stop.at)} {timeLabel(stop.at)} {t(" KST 예보 · ")}{targetValid ? conditions.error : t("저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났습니다.")}</p>
         <ConditionScoreDetails data={conditions.data} className="pd-note" />
         {/* <PlacePhotoCredit photo={stop.photo} /> */}
       </div>

@@ -16,7 +16,7 @@ from app.water_index.condition_invalidation import migrate_condition_invalidatio
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 20
+VERSION = 21
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -195,6 +195,9 @@ def initialize(settings: Settings) -> bool:
             if row == (19,):
                 migrate_condition_result_storage(connection)
                 return True
+            if row == (20,):
+                migrate_bounded_storage(connection)
+                return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
             return False
@@ -294,6 +297,17 @@ def migrate_condition_result_storage(connection):
 
     migrate_condition_results(connection)
     connection.execute("UPDATE pongdang_data.schema_version SET version=20 WHERE id=1")
+    migrate_bounded_storage(connection)
+
+
+def migrate_bounded_storage(connection):
+    """Install bounded retention; the scheduled jobs perform the actual cleanup."""
+    from app.ingestion.retention import migrate_source_retention
+    from app.water_index.retention import migrate_bounded_retention
+
+    migrate_bounded_retention(connection)
+    migrate_source_retention(connection)
+    connection.execute("UPDATE pongdang_data.schema_version SET version=21 WHERE id=1")
 
 
 def migrate_windy_thumbnails(connection):

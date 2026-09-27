@@ -40,20 +40,21 @@ def _lock_inputs(connection):
             sleep(0.5)
 
 
-def migrate_condition_invalidation(connection):
+def migrate_condition_invalidation(connection, *, function_only=False):
     """Separate new observations from changes that revoke published evidence."""
-    _lock_inputs(connection)
-    connection.execute(
-        "ALTER TABLE pongdang_data.condition_source_revision "
-        "ADD COLUMN IF NOT EXISTS invalidated_revision bigint NOT NULL DEFAULT 0"
-    )
-    # Pre-migration changes were not classified. Do not revive an older result
-    # whose evidence may already have been corrected or restricted.
-    connection.execute(
-        "UPDATE pongdang_data.condition_source_revision "
-        "SET invalidated_revision=revision WHERE id=1 AND "
-        "(SELECT version FROM pongdang_data.schema_version WHERE id=1)<17"
-    )
+    if not function_only:
+        _lock_inputs(connection)
+        connection.execute(
+            "ALTER TABLE pongdang_data.condition_source_revision "
+            "ADD COLUMN IF NOT EXISTS invalidated_revision bigint NOT NULL DEFAULT 0"
+        )
+        # Pre-migration changes were not classified. Do not revive an older result
+        # whose evidence may already have been corrected or restricted.
+        connection.execute(
+            "UPDATE pongdang_data.condition_source_revision "
+            "SET invalidated_revision=revision WHERE id=1 AND "
+            "(SELECT version FROM pongdang_data.schema_version WHERE id=1)<17"
+        )
     connection.execute("""
         CREATE OR REPLACE FUNCTION pongdang_data.condition_input_content(
             content jsonb, refresh_fields text[], cutoff timestamptz
@@ -73,6 +74,12 @@ def migrate_condition_invalidation(connection):
         RETURNS trigger LANGUAGE plpgsql AS $$
         DECLARE changed boolean; revoke boolean;
         BEGIN
+            IF TG_OP='DELETE'
+               AND TG_TABLE_NAME IN (
+                   'conditions_observationsnapshot','conditions_observationmetric'
+               ) AND current_setting('pongdang.retention.sources',true)='on' THEN
+                RETURN NULL;
+            END IF;
             IF TG_OP = 'INSERT' THEN
                 SELECT EXISTS(SELECT 1 FROM new_inputs) INTO changed;
             ELSIF TG_OP = 'DELETE' THEN
@@ -118,6 +125,8 @@ def migrate_condition_invalidation(connection):
             RETURN NULL;
         END $$
     """)
+    if function_only:
+        return
     for table, refresh_fields in INPUT_TABLES:
         target = sql.Identifier("pongdang_data", table)
         connection.execute(
@@ -152,3 +161,8 @@ def migrate_condition_invalidation(connection):
         "WHERE id=1)=17"
     )
     connection.execute("UPDATE pongdang_data.schema_version SET version=18 WHERE id=1")
+
+
+def install_condition_invalidation(connection):
+    """Refresh the trigger body without replaying schema/version migrations."""
+    migrate_condition_invalidation(connection, function_only=True)

@@ -297,7 +297,9 @@ def _create_result_old_compare(connection):
         "pongdang_data.condition_generation origin "
         "ON origin.id=cr.generation_id AND origin.result_published "
         "CROSS JOIN pongdang_data.condition_source_revision revision "
-        "WHERE revision.id=1 AND ("
+        "WHERE revision.id=1 AND cr.target_end>"
+        "(date_trunc('day',now() AT TIME ZONE 'Asia/Seoul') "
+        "AT TIME ZONE 'Asia/Seoul') AND ("
         "origin.source_revision>=revision.invalidated_revision "
         "OR cr.target_start<revision.invalidated_at)"
     )
@@ -381,10 +383,9 @@ def _split_result_stage(connection):
 
 
 def _insert_missing_result_history(connection, computed_at):
-    """Fill only absent D-7 history, clipped at any hard invalidation boundary."""
+    """Fill only absent intervals today, clipped at hard invalidation boundaries."""
     now = connection.execute("SELECT clock_timestamp()").fetchone()[0]
     cutoff = now.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
-    cutoff -= timedelta(days=7)
     columns = RESULT_COLUMNS.split(",")
     history_values = ",".join(
         "candidate.begin"
@@ -551,22 +552,23 @@ def _lock_condition_results(connection):
     connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK])
 
 
-def _prune_result_history(connection):
-    """Retain KST D-7 through D+7, counting changed result rows."""
+def _prune_result_history(connection, *, batch_size=10000):
+    """Retain KST today through D+7 without a large catch-up transaction."""
     now = connection.execute("SELECT clock_timestamp()").fetchone()[0]
     today = now.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
-    cutoff = today - timedelta(days=7)
+    cutoff = today
     deleted_count = 0
-    while True:
+    while deleted_count < batch_size:
+        limit = min(2000, batch_size - deleted_count)
         deleted = connection.execute(
             "WITH obsolete AS (SELECT ctid FROM pongdang_data.condition_result "
-            "WHERE target_end<=%s LIMIT 2000) "
+            "WHERE target_end<=%s LIMIT %s) "
             "DELETE FROM pongdang_data.condition_result r USING obsolete o "
             "WHERE r.ctid=o.ctid",
-            [cutoff],
+            [cutoff, limit],
         ).rowcount
         deleted_count += deleted
-        if deleted < 2000:
+        if deleted < limit:
             break
     future_end = today + timedelta(days=8)
     deleted_count += connection.execute(
@@ -577,8 +579,9 @@ def _prune_result_history(connection):
         "UPDATE pongdang_data.condition_result "
         "SET target_start=greatest(target_start,%s), "
         "target_end=least(target_end,%s) "
-        "WHERE target_start<%s OR target_end>%s",
-        [cutoff, future_end, cutoff, future_end],
+        "WHERE target_end>%s AND target_start<%s "
+        "AND (target_start<%s OR target_end>%s)",
+        [cutoff, future_end, cutoff, future_end, cutoff, future_end],
     ).rowcount
     return deleted_count + clipped_count
 
@@ -588,7 +591,10 @@ def prune_condition_results(settings):
     from app.schema import connect
 
     with connect(settings) as connection:
-        _lock_condition_results(connection)
+        if not connection.execute(
+            "SELECT pg_try_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK]
+        ).fetchone()[0]:
+            return None
         return _prune_result_history(connection)
 
 
@@ -679,7 +685,7 @@ def _backfill_latest_result(connection):
 
 
 def repair_condition_result_history(settings):
-    """Fill missing D-7 legacy history without touching published live results."""
+    """Fill missing legacy intervals today without touching published live results."""
     from app.schema import connect
 
     with connect(settings) as connection:
@@ -687,8 +693,8 @@ def repair_condition_result_history(settings):
         version = connection.execute(
             "SELECT version FROM pongdang_data.schema_version WHERE id=1"
         ).fetchone()[0]
-        if version != 20:
-            raise ValueError("Condition history repair requires schema v20")
+        if version not in {20, 21}:
+            raise ValueError("Condition history repair requires schema v20 or v21")
         generations = connection.execute(
             "SELECT id,computed_at FROM pongdang_data.condition_generation "
             "WHERE result_published AND id IN (SELECT DISTINCT generation_id "

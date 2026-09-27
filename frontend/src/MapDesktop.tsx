@@ -789,7 +789,7 @@ export function MapDesktop() {
                       </div>
                       <p className="mk-note">
                         {courseFirst?.name ?? t("첫 장소 없음")} · {courseFirst?.at ?? t("일정 시각 없음")}.{" "}
-                        {courseFirstValid ? courseFirstConditions.error : t("저장 날짜가 조회 범위(현재 기준 앞뒤 31일)를 벗어났거나 일정 시각이 없습니다.")}
+                        {courseFirstValid ? courseFirstConditions.error : t("저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났거나 일정 시각이 없습니다.")}
                       </p>
                     </>
                   )}

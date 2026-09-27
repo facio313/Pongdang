@@ -2,10 +2,9 @@
 
 import argparse
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
-from zoneinfo import ZoneInfo
 
 from psycopg.errors import CheckViolation
 from psycopg.rows import dict_row
@@ -21,6 +20,7 @@ from app.water_index.adapters import input_from_records
 from app.water_index.engine import diagnostic_assessment, evaluate
 from app.water_index.models import EvaluationRequest, SupportEvidence, Target
 from app.water_index.registry import CONTEXT_PROFILES, PROFILES, provenance_manifest
+from app.water_index.retention import RETENTION_POLICY, retention_window
 from app.water_index.service import prepare_evaluation
 from app.water_index.sources import (
     AuthorityRecord,
@@ -148,7 +148,9 @@ def publication_time(connection):
     return connection.execute("SELECT clock_timestamp()").fetchone()[0]
 
 
-def _assessment_fingerprint(*, spot_id, activity, mode, items, authorities):
+def _assessment_fingerprint(
+    *, spot_id, activity, mode, items, authorities, window_start
+):
     """Hash only values consumed by ``build_request`` and the evaluator.
 
     ``read_normalized`` also returns the mutable collection-station row. Its
@@ -178,6 +180,8 @@ def _assessment_fingerprint(*, spot_id, activity, mode, items, authorities):
             "spot_id": spot_id,
             "activity": activity,
             "mode": mode,
+            "publication_policy": RETENTION_POLICY,
+            "publication_day": window_start.isoformat(),
             "sources": sources,
             "authorities": ordered(
                 [authority.model_dump(mode="json") for authority in authorities]
@@ -198,6 +202,7 @@ def _produce_assessments(settings, *, now=None, max_seconds=None):
         now = now or c.execute("SELECT clock_timestamp()").fetchone()[0]
         if now > datetime.now(UTC):
             raise ValueError("Producer cannot use future knowledge")
+        start, end = retention_window(now)
         sources = read_normalized(c, now, current_only=True)
         with c.cursor(row_factory=dict_row) as cursor:
             mapping_rows = cursor.execute(
@@ -224,7 +229,10 @@ def _produce_assessments(settings, *, now=None, max_seconds=None):
         selected = {}
         for source in sources:
             s = source["snapshot"]
-            if datetime.fromisoformat(s["valid_until"]) <= now:
+            if (
+                datetime.fromisoformat(s["valid_until"]) <= now
+                or datetime.fromisoformat(s["observed_at"]) >= end
+            ):
                 continue
             forecast = forecast_from_normalized(source)
             key = forecast.source_key if forecast else f"snapshot:{s['id']}"
@@ -298,6 +306,7 @@ def _produce_assessments(settings, *, now=None, max_seconds=None):
                 mode=mode,
                 items=items,
                 authorities=authority,
+                window_start=start,
             )
             previous = previous_runs.get((spot_id, activity, mode))
             if previous and previous[1] == fingerprint:
@@ -323,14 +332,8 @@ def _produce_assessments(settings, *, now=None, max_seconds=None):
                 for source, mapping in items
             ]
             results = [evaluate(request) for request in requests]
-            # Metadata publication covers a fixed local calendar range; only the
-            # real provider intervals below count as supported forecast windows.
-            start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            if mode == "observation":
-                start -= timedelta(days=1)
-            end = start + timedelta(days=31)
+            # Preserve real provider intervals, but publish only the current
+            # eight KST dates. The fingerprint rolls this scope over each day.
             expiry = min(
                 datetime.fromisoformat(s["snapshot"]["valid_until"]) for s, _ in items
             )

@@ -19,6 +19,8 @@ from app.water_index.condition_result import (
     result_payload,
 )
 from app.water_index.condition_storage import (
+    RESULT_LOCK,
+    _prune_result_history,
     _unavailable,
     projection_revision,
     prune_condition_results,
@@ -28,6 +30,12 @@ from app.water_index.condition_storage import (
 )
 
 KST = ZoneInfo("Asia/Seoul")
+
+
+def test_retention_skips_an_active_publisher(database):
+    with connect(database) as connection:
+        connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK])
+        assert prune_condition_results(database) is None
 
 
 def test_retention_runs_without_a_new_publication(database):
@@ -64,7 +72,7 @@ def test_retention_runs_without_a_new_publication(database):
     with connect(database) as connection:
         today = connection.execute("SELECT clock_timestamp()").fetchone()[0]
         today = today.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
-        cutoff = today - timedelta(days=7)
+        cutoff = today
         future_end = today + timedelta(days=8)
         bounds = {
             "swim": (cutoff - timedelta(hours=2), cutoff - timedelta(hours=1)),
@@ -74,7 +82,7 @@ def test_retention_runs_without_a_new_publication(database):
                 future_end + timedelta(hours=1),
                 future_end + timedelta(hours=2),
             ),
-            "onsen": (cutoff, cutoff + timedelta(hours=1)),
+            "onsen": (cutoff - timedelta(hours=1), cutoff),
             "rafting": (future_end - timedelta(hours=1), future_end),
         }
         for activity, (begin, end) in bounds.items():
@@ -90,7 +98,15 @@ def test_retention_runs_without_a_new_publication(database):
         evidence_count = connection.execute(
             "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
         ).fetchone()[0]
-    assert prune_condition_results(database) == 4
+    # Catch-up is bounded, but clipping may never create empty/negative ranges
+    # for old rows deliberately left to the next batch.
+    with connect(database) as connection:
+        assert _prune_result_history(connection, batch_size=1) == 4
+        assert connection.execute(
+            "SELECT count(*) FROM pongdang_data.condition_result WHERE target_end<=%s",
+            [cutoff],
+        ).fetchone() == (1,)
+    assert prune_condition_results(database) == 1
     assert prune_condition_results(database) == 0
     with connect(database) as connection:
         rows = connection.execute(
@@ -98,7 +114,6 @@ def test_retention_runs_without_a_new_publication(database):
             "FROM pongdang_data.condition_result ORDER BY activity"
         ).fetchall()
         assert rows == [
-            ("onsen", cutoff, cutoff + timedelta(hours=1)),
             ("rafting", future_end - timedelta(hours=1), future_end),
             ("relax", future_end - timedelta(hours=1), future_end),
             ("surf", cutoff, cutoff + timedelta(hours=1)),
@@ -208,7 +223,7 @@ def test_kst_d8_results_are_deleted_and_crossing_interval_is_clipped(database):
         .astimezone(KST)
         .replace(hour=0, minute=0, second=0, microsecond=0)
     )
-    cutoff = today - timedelta(days=7)
+    cutoff = today
     old_at = cutoff - timedelta(hours=4)
     with connect(database) as connection:
         revision = projection_revision(connection)

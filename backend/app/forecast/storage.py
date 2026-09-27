@@ -9,6 +9,7 @@ from app.ingestion.errors import SourceScopeTooLargeError
 from app.ingestion.weather import grid_coordinates
 from app.schema import connect
 from app.water_index.adapters import input_from_records
+from app.water_index.retention import retention_window
 from app.water_index.sources import stable_id
 
 from .models import ForecastRecord
@@ -63,7 +64,7 @@ def read_normalized(connection, now, *, forecast_only=False, current_only=False)
                 now,
                 now,
                 now - timedelta(days=31),
-                now + timedelta(days=31),
+                retention_window(now)[1] if current_only else now + timedelta(days=31),
                 current_only,
                 now,
                 forecast_only,

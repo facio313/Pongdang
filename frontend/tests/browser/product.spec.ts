@@ -217,7 +217,11 @@ test("saved course scores use its actual date and never query unsupported histor
   const item = { item_id: "today-stop", spot_id: 999, name: "선택 날짜 TEST", arrival_at: savedAt, departure_at: null, role: "visit", unknown_conditions: [] };
   const plan = { plan_id: "current-plan", request, days: [{ date: day, items: [item] }], input_stops: [], status: "partial", route_status: "unplanned", unresolved: [] };
   const oldPlan = { ...plan, plan_id: "old-plan", request: { ...request, dates: ["2000-01-01"] }, days: [{ date: "2000-01-01", items: [{ ...item, item_id: "old-stop", spot_id: 998, arrival_at: null }] }] };
-  await page.route("**/api/data/travel/plans?**", (route) => route.fulfill({ json: { rows: [plan, oldPlan] } }));
+  const unsupportedPlans = [-1, 8].map(offset => {
+    const date = new Date(Date.parse(day + "T12:00:00+09:00") + offset * 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+    return { ...plan, plan_id: `outside-${offset}`, request: { ...request, dates: [date] }, days: [{ date, items: [{ ...item, item_id: `outside-${offset}`, arrival_at: date + "T12:00:00+09:00" }] }] };
+  });
+  await page.route("**/api/data/travel/plans?**", (route) => route.fulfill({ json: { rows: [plan, oldPlan, ...unsupportedPlans] } }));
   const targets: string[] = [];
   await page.route("**/api/data/water-index/conditions?**", async (route) => {
     const url = new URL(route.request().url());
@@ -230,19 +234,21 @@ test("saved course scores use its actual date and never query unsupported histor
   });
   // 내 코스는 별도 화면이 아니라 지도 탭의 코스 뷰(#map?view=course)입니다.
   await page.goto("#map?view=course");
-  await expect(page.locator(".mp-saved-course")).toHaveCount(2);
+  await expect(page.locator(".mp-saved-course")).toHaveCount(4);
   expect(targets).toEqual([]);
   await page.locator(".mp-saved-course").first().click();
   await expect(page.locator(".mp-course-detail-meta .pd-grade-chip-num")).toHaveText("73.5");
   await expect(page.locator(".pd-card")).toContainText(savedAt);
   expect(targets.length).toBeGreaterThan(0);
   expect(targets.every((target) => target === savedAt)).toBe(true);
-  targets.length = 0;
-  await page.getByRole("button", { name: "← 코스 목록으로" }).click();
-  await page.locator(".mp-saved-course").nth(1).click();
-  await expect(page.locator(".mp-course-detail-meta .pd-grade-chip-num")).toHaveText("–");
-  await expect(page.locator(".pd-card")).toContainText("현재 기준 앞뒤 31일");
-  expect(targets).toEqual([]);
+  for (const index of [1, 2, 3]) {
+    targets.length = 0;
+    await page.getByRole("button", { name: "← 코스 목록으로" }).click();
+    await page.locator(".mp-saved-course").nth(index).click();
+    await expect(page.locator(".mp-course-detail-meta .pd-grade-chip-num")).toHaveText("–");
+    await expect(page.locator(".pd-card")).toContainText("한국시간 오늘부터 7일 뒤까지");
+    expect(targets).toEqual([]);
+  }
 });
 
 test("a current score survives expiry and an insufficient thirty-minute refresh", async ({ page }) => {

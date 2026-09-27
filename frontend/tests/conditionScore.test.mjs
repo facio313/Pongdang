@@ -106,18 +106,34 @@ test('server status enums reach the screen as sentences, and unknown never reads
   assert.match(dataStatusText('some_new_code'), /자료 상태 some_new_code/);
 });
 
-test('date scores request selected KST forecast rather than current observations', () => {
+test('date scores request selected KST forecast rather than current observations', (t) => {
+  const now = Date.parse('2026-09-17T12:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
   const path = conditionPath(42, 'surf', '2026-09-17T12:00:00+09:00');
   const params = new URLSearchParams(path.split('?')[1]);
   assert.equal(params.get('spot_id'), '42');
   assert.equal(params.get('activity'), 'surf');
   assert.equal(params.get('mode'), 'forecast');
   assert.equal(params.get('at'), '2026-09-17T12:00:00+09:00');
-  const now = Date.parse('2026-09-17T12:00:00+09:00');
   assert.equal(conditionTargetInRange(undefined, now), false);
   assert.equal(conditionTargetInRange('not-a-date', now), false);
   assert.equal(conditionTargetInRange('2026-08-01T12:00:00+09:00', now), false);
   assert.equal(conditionTargetInRange('2026-09-18T12:00:00+09:00', now), true);
+});
+
+test('score targets stay within the current KST day through the end of day seven', (t) => {
+  const now = Date.parse('2026-12-31T15:00:00Z'); // Jan 1 midnight in Korea.
+  t.mock.method(Date, 'now', () => now);
+  for (const at of ['2027-01-01T00:00:00+09:00', '2027-01-08T23:59:59.999+09:00']) {
+    assert.equal(conditionTargetInRange(at, now), true);
+    assert.match(conditionPath(42, 'surf', at), /mode=forecast/);
+  }
+  for (const at of ['2026-12-31T23:59:59.999+09:00', '2027-01-09T00:00:00+09:00', 'not-a-date']) {
+    assert.equal(conditionTargetInRange(at, now), false);
+    assert.equal(conditionPath(42, 'surf', at), null);
+  }
+  assert.match(conditionPath(42), /mode=observation/);
+  assert.equal(conditionPath(undefined), undefined);
 });
 
 test('nearby context scores show the actual context source and server-evaluated measurement', () => {

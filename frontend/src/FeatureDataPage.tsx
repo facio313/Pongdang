@@ -5,6 +5,7 @@ import { activities, displayTime, requestJson, safeSourceUrl, type Activity } fr
 import { contextLink, featurePages, featurePath, type FeaturePage } from "./featureRoutes";
 import { type RowsResult } from "./data";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { conditionTargetInRange, kstDate } from "./productData";
 
 type Envelope = { rows: Record<string, unknown>[]; status?: string; as_of?: string; queried_at?: string; at?: string; total?: number; has_more?: boolean; reason_codes?: string[]; coverage?: unknown };
 function localInput(iso: string) {
@@ -34,7 +35,11 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
   const [placesError, setPlacesError] = useState("");
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<{ key: string; data?: Envelope; error?: string }>();
-  const periodValid = Boolean(from && until && Number.isFinite(Date.parse(from + "+09:00")) && Date.parse(until + "+09:00") > Date.parse(from + "+09:00") && Date.parse(until + "+09:00") - Date.parse(from + "+09:00") <= 31 * 86400000);
+  const boundedScorePeriod = page === "water-index" || page === "water-forecast";
+  const firstTarget = `${kstDate()}T00:00`;
+  const lastTarget = localInput(new Date(Date.parse(`${firstTarget}:00+09:00`) + 8 * 86400000 - 60000).toISOString());
+  const periodValid = Boolean(from && until && Number.isFinite(Date.parse(from + "+09:00")) && Date.parse(until + "+09:00") > Date.parse(from + "+09:00") && Date.parse(until + "+09:00") - Date.parse(from + "+09:00") <= 31 * 86400000
+    && (!boundedScorePeriod || conditionTargetInRange(from + "+09:00") && conditionTargetInRange(until + "+09:00")));
   const path = periodValid ? featurePath(page, spotId, activity, isoInput(from), isoInput(until)) : null;
   const key = `${path}:${revision}`;
   const current = result?.key === key ? result : undefined;
@@ -80,12 +85,12 @@ export function FeatureDataPage({ page, spotId: initialSpotId, activity: initial
       {placesError && <p role="alert">{t(placesError)}</p>}
       <div className="toolbar"><label>{t("장소")}<select value={spotId ?? ""} onChange={(event) => setSpotId(event.target.value ? Number(event.target.value) : undefined)}><option value="">{t("장소 선택")}</option>{initialSpotId && !places?.rows.some((row) => row.id === initialSpotId) && <option value={initialSpotId}>{t("장소 ID")} {initialSpotId} {t("· 서버 조회로 확인")}</option>}{places?.rows.map((row) => <option key={String(row.id)} value={String(row.id)}>{String(row.name ?? t("이름 기록 없음"))} · ID {String(row.id)}</option>)}</select></label>
         <label>{t("활동")}<select value={activity} onChange={(event) => setActivity(event.target.value as Activity)}>{Object.entries(activities).map(([id, name]) => <option key={id} value={id}>{t(name)}</option>)}</select></label>
-        {["water-index", "water-forecast", "tide"].includes(page) && <><label>{t("시작 · KST")}<input type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} /></label><label>{t("종료 · KST")}<input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} /></label></>}
+        {["water-index", "water-forecast", "tide"].includes(page) && <><label>{t("시작 · KST")}<input type="datetime-local" min={boundedScorePeriod ? firstTarget : undefined} max={boundedScorePeriod ? lastTarget : undefined} value={from} onChange={(event) => setFrom(event.target.value)} /></label><label>{t("종료 · KST")}<input type="datetime-local" min={boundedScorePeriod ? firstTarget : undefined} max={boundedScorePeriod ? lastTarget : undefined} value={until} onChange={(event) => setUntil(event.target.value)} /></label></>}
       </div>
       {selectedPlace && <p>{t("선택 장소:")} {String(selectedPlace.name)} {t("· 유형:")} {String(selectedPlace.type ?? t("기록 없음"))} {t("· 지역:")} {String(selectedPlace.region ?? t("기록 없음"))}</p>}
       {(places?.total ?? 0) > 100 && <p className="table-note">{t("장소 검색은 최대 100건을 표시합니다. 지역이나 이름으로 범위를 좁혀 주세요.")}</p>}
     </>}
-    {!periodValid && <p role="alert">{t("시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.")}</p>}
+    {!periodValid && <p role="alert">{t(boundedScorePeriod ? "시작과 종료를 확인해 주세요. 한국시간 오늘부터 7일 뒤까지 조회할 수 있습니다." : "시작과 종료를 확인해 주세요. 조회 기간은 최대 31일입니다.")}</p>}
     {periodValid && !path && <p className="ai-notice">{t("실제 장소를 선택하면 자료를 조회합니다.")}</p>}
     {path && !current && <p role="status">{t("실제 자료 조회 중…")}</p>}
     {current?.error && <p role="alert">{t("조회 실패:")} {t(current.error)}</p>}

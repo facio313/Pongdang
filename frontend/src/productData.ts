@@ -457,6 +457,7 @@ export function conditionPath(
   at?: string,
   mode?: "observation" | "forecast",
 ) {
+  if (id && at && !conditionTargetInRange(at)) return null;
   return id
     ? "water-index/conditions?" +
         new URLSearchParams({
@@ -539,7 +540,9 @@ export function summariesExpiry(rows: ConditionSummary[]): number | undefined {
 }
 export function conditionTargetInRange(at: string | undefined, now = Date.now()) {
   const target = at ? Date.parse(at) : NaN;
-  return Number.isFinite(target) && Math.abs(target - now) <= 31 * 86400000;
+  if (!Number.isFinite(target) || !Number.isFinite(now)) return false;
+  const today = Date.parse(`${kstDate(new Date(now))}T00:00:00+09:00`);
+  return target >= today && target < today + 8 * 86400000;
 }
 export function periodPath(
   endpoint: string,

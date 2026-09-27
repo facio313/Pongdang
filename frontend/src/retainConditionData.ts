@@ -1,4 +1,4 @@
-import { conditionScore, type Conditions, type ConditionSeries, type ConditionSummaries, type ConditionSummary } from "./productData.ts";
+import { conditionScore, conditionTargetInRange, type Conditions, type ConditionSeries, type ConditionSummaries, type ConditionSummary } from "./productData.ts";
 import type { Recommendation } from "./recommendationApi.ts";
 import type { TemperaturePage } from "./useFirstSwimTemperature.ts";
 
@@ -14,6 +14,17 @@ function isPlaceRead(path: string) {
 
 export function retainsDisplayData(path: string) {
   return retainsConditionData(path) || isPlaceRead(path);
+}
+
+/** A cache may survive KST midnight. Score targets outside the published window
+ * must not reappear after a failed read or while a new request is in flight. */
+export function conditionDataInRange(path: string, value: unknown) {
+  if (!path.startsWith("water-index/") || !retainsConditionData(path) || !value || typeof value !== "object") return true;
+  const data = value as { at?: string; as_of?: string; rows?: { at?: string }[]; conditions?: { at?: string }[] };
+  const dates = path.startsWith("water-index/conditions/summary?") ? [data.as_of]
+    : path.startsWith("water-index/conditions/series?") ? data.rows?.map(row => row.at) ?? []
+    : [data.at, ...(data.conditions?.map(row => row.at) ?? [])];
+  return dates.every(at => at === undefined || conditionTargetInRange(at));
 }
 
 function blocked(data: { safety_status?: string; support_status?: string; condition_score?: { status: string } | null; retention_allowed?: boolean; projection?: { retention_allowed?: boolean } }) {
@@ -32,7 +43,7 @@ function availableMetrics(data: Conditions) {
 
 export function retainConditions(previous: Conditions | undefined, next: Conditions): Conditions {
   if (!previous || previous.spot_id !== next.spot_id || previous.activity !== next.activity || previous.mode !== next.mode ||
-      blocked(next) || blocked(previous)) return next;
+      !conditionTargetInRange(previous.at) || blocked(next) || blocked(previous)) return next;
   const oldMetrics = availableMetrics(previous);
   const newMetrics = availableMetrics(next);
   const lostScore = conditionScore(previous) !== null && conditionScore(next) === null;
@@ -59,6 +70,8 @@ function retainSummary(previous: ConditionSummary | undefined, next: ConditionSu
 /** The caller keys previous data by the complete query, including place,
  * activity and target dates. Never carry a value across a changed selection. */
 export function retainConditionData(path: string, previous: unknown, next: unknown): unknown {
+  if (!conditionDataInRange(path, previous)) previous = undefined;
+  if (!conditionDataInRange(path, next)) next = undefined;
   // These public catalogs determine the selected place. Losing them would
   // unmount its condition display even when the condition cache is intact.
   if (previous && isPlaceRead(path)) {

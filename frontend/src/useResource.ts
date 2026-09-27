@@ -3,7 +3,7 @@ import { travelJson } from "./travelApi";
 import { queueResourceRead } from "./resourceQueue";
 import { useI18n } from "./i18n";
 import { RESOURCE_REFRESH_INTERVAL, resourceRefreshInterval, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
-import { retainConditionData, retainsDisplayData } from "./retainConditionData";
+import { conditionDataInRange, retainConditionData, retainsDisplayData } from "./retainConditionData";
 
 /** Skeletons are for the first read; later reads keep the displayed result. */
 export function isInitialLoad(state: {
@@ -18,7 +18,7 @@ export function isInitialLoad(state: {
  *  - `undefined` — **대상을 아직 모름.** 기본 해수욕장을 조회하는 중이라 장소
  *    id 가 없는 동안이 여기입니다. 곧 경로가 정해지므로 「조회 중」입니다.
  *  - `null` — **해당 없음.** 관측이 막히지 않아 예보로 물러설 필요가 없거나
- *    (useConditions), 대상 시각이 31일 범위 밖이라 애초에 묻지 않는 경우
+ *    (useConditions), 대상 시각이 오늘~7일 뒤 범위 밖이라 애초에 묻지 않는 경우
  *    (MyCoursesPage)입니다. 조회가 끝난 것과 같아 「없음」입니다.
  *
  *  둘을 한 값으로 두면 첫 페인트에서 **아직 묻지도 않은 것을 「자료 없음」으로
@@ -121,8 +121,11 @@ function readResource(key: string, resourceKey: string, path: string, generation
       const previous = cache.get(resourceKey)?.data;
       if (previous !== undefined && retainsDisplayData(path)) {
         const data = retainConditionData(path, previous, undefined);
-        if (generation === resourceRefreshGeneration()) remember(resourceKey, data, generation, message);
-        return { data, refreshError: message };
+        if (data !== undefined) {
+          if (generation === resourceRefreshGeneration()) remember(resourceKey, data, generation, message);
+          return { data, refreshError: message };
+        }
+        if (generation === resourceRefreshGeneration()) cache.delete(resourceKey);
       }
       return { error: message };
     } finally {
@@ -158,7 +161,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
       const entry = cache.get(resourceKey);
-      const next = entry && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)
+      const next = entry && conditionDataInRange(path, entry.data) && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)
         ? await Promise.resolve({ data: entry.data, error: undefined, refreshError: entry.refreshError })
         : await readResource(key, resourceKey, path, generation);
       if (!alive) return;
@@ -176,7 +179,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
   }, [path, key, resourceKey, generation, stamp]);
   // 기억에 있는 값은 **첫 프레임부터** 보여줍니다. 리마운트했다는 것은 화면을
   // 다시 그렸다는 뜻이지 사실을 잊었다는 뜻이 아닙니다.
-  const hit =
+  const cached =
     result?.key === key
       ? result
       : cache.has(resourceKey)
@@ -184,6 +187,8 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
         // A manual refresh keeps the same screen and current selection visible.
         // A different path/revision must not borrow another query's result.
         : result?.resourceKey === resourceKey ? result : undefined;
+  const hit = cached && path != null && !conditionDataInRange(path, cached.data)
+    ? { ...cached, data: undefined } : cached;
   return path === undefined
     ? // 대상 미정. 요청은 나가지 않지만 화면에는 「조회 중」입니다.
       { loading: true, data: undefined, previousData: undefined, error: undefined }
@@ -194,7 +199,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     : {
         loading: true,
         data: undefined,
-        previousData: result?.data,
+        previousData: conditionDataInRange(path, result?.data) ? result?.data : undefined,
         error: undefined,
       };
 }
