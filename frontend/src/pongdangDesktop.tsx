@@ -2,7 +2,6 @@ import { t } from "./i18n";
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
-import { LoginPopoverOutlet, LoginPopoverProvider } from "./loginPopover";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
@@ -417,7 +416,6 @@ export function DesktopShell({
   children: ReactNode;
 }) {
   return (
-    <LoginPopoverProvider>
       <SideMenuProvider>
         <div className={"pd-desktop" + (fullscreen ? " is-fullscreen" : "")}>
           <div className="pd-desktop-page">{children}</div>
@@ -426,10 +424,8 @@ export function DesktopShell({
               패널은 position: fixed 라 이 껍데기가 자리를 차지하지 않습니다. */}
           <div className="pd-app pd-desktop-menu-root">
             <SideMenuOutlet />
-            <LoginPopoverOutlet />
           </div>
         </div>
       </SideMenuProvider>
-    </LoginPopoverProvider>
   );
 }

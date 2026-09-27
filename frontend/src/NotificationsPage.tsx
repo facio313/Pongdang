@@ -8,6 +8,8 @@ import { notificationConditionLabel, notificationDeliveryLabel, type Notificatio
 import { useNotificationResource } from "./useNotificationResource";
 import { useAction } from "./useAction";
 import { travelJson } from "./travelApi";
+import { isLoginRequiredMessage } from "./authError";
+import { useRequireLogin } from "./loginPopoverState";
 import "./notifications.css";
 
 const PAGE_SIZE = 25;
@@ -21,6 +23,7 @@ function Pages({ offset, count, loading, onChange }: { offset: number; count: nu
 }
 
 export function NotificationsPage() {
+  const requireLogin = useRequireLogin();
   const [revision, setRevision] = useState(0);
   const [offset, setOffset] = useState(0);
   const [eventOffset, setEventOffset] = useState(0);
@@ -53,6 +56,7 @@ export function NotificationsPage() {
       <div className="notification-heading"><h2>{t("내 알림 구독")}</h2><button type="button" onClick={refresh} disabled={subscriptions.loading || action.busy}>{t("상태 다시 확인")}</button></div>
       {subscriptions.loading && <p role="status">{t("알림 구독을 조회하고 있습니다.")}</p>}
       {subscriptions.error && <p role="alert">{subscriptions.error}</p>}
+      {isLoginRequiredMessage(subscriptions.error) && <button type="button" onClick={requireLogin}>{t("로그인")}</button>}
       {subscriptions.data && rows.length === 0 && <p>{t("이 페이지에 저장된 알림 구독이 없습니다.")}</p>}
       {rows.length > 0 && <div className="table-scroll" tabIndex={0} role="region" aria-label={t("구독 목록 표")}><table>
         <thead><tr>{["장소", "연도", "선호 수온", "최근 평가", "수신 방식", "구독 관리"].map(label => <th key={label} scope="col">{t(label)}</th>)}</tr></thead>

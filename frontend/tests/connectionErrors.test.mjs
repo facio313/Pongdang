@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { routeReasonsText, travelJson } from '../src/travelApi.ts';
+import { routeReasonsText, travelJson, TravelRequestError } from '../src/travelApi.ts';
 
 const call = (response) => travelJson('/pongdang/', 'travel/plans', 'POST', {}, undefined, async () => response);
 
@@ -9,6 +9,18 @@ test('an ingress login redirect cannot become a successful API result', async ()
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   })), /SSO 로그인/);
   await assert.rejects(call({ redirected: true, headers: new Headers() }), /SSO 로그인/);
+  for (const response of [
+    { type: 'opaqueredirect', status: 0 },
+    new Response(null, { status: 302, headers: { Location: 'https://sso.invalid/' } }),
+  ]) {
+    await assert.rejects(call(response), error => error instanceof TravelRequestError && error.status === 401);
+  }
+});
+
+test('a network failure is not confused with missing authentication or permission', async () => {
+  const failure = new TypeError('Network failure');
+  await assert.rejects(travelJson('/pongdang/', 'notifications/subscriptions', 'GET', undefined, undefined,
+    async () => { throw failure; }), error => error === failure);
 });
 
 test('known setup and storage failures retain an actionable diagnosis', async () => {
@@ -73,6 +85,7 @@ test('private writes retain same-origin credentials and let the browser supply O
   await travelJson('/pongdang/', 'travel/preferences', 'PUT', { tags: [] }, undefined, async (url, init) => {
     assert.equal(url, '/pongdang/api/data/travel/preferences');
     assert.equal(init.credentials, 'same-origin');
+    assert.equal(init.redirect, 'manual');
     assert.deepEqual(init.headers, { 'Content-Type': 'application/json' });
     return Response.json({});
   });

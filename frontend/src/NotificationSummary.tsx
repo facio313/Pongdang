@@ -8,7 +8,7 @@ import { notificationConditionLabel, notificationDeliveryLabel, type Notificatio
 import { useNotificationResource } from "./useNotificationResource";
 import "./notifications.css";
 
-export function NotificationSummary({ spotId, appearance, loginPrompt = false }: { spotId?: number; appearance?: "mobile" | "desktop"; loginPrompt?: boolean }) {
+export function NotificationSummary({ spotId, appearance, loginPrompt = true }: { spotId?: number; appearance?: "mobile" | "desktop"; loginPrompt?: boolean }) {
   const requireLogin = useRequireLogin();
   const subscriptions = useNotificationResource<NotificationPage<NotificationSubscription>>(spotId ? `notifications/subscriptions?limit=1&offset=0&spot_id=${spotId}&year=${kstDate().slice(0, 4)}` : null);
   const subscription = subscriptions.data?.rows[0];
@@ -19,9 +19,10 @@ export function NotificationSummary({ spotId, appearance, loginPrompt = false }:
   const currentEvaluation = evaluation?.subscription_revision === subscription?.revision ? evaluation : undefined;
   const refresh = () => { subscriptions.refresh(); events.refresh(); evaluations.refresh(); };
   const needsLogin = loginPrompt && [subscriptions.error, events.error, evaluations.error].some(error =>
-    isLoginRequiredMessage(error) || error === t("Pongdang의 SSO 로그인 연동이 설정되지 않았습니다. 운영자의 로그인 연동 설정이 필요합니다."),
+    isLoginRequiredMessage(error),
   );
   if (needsLogin) return <div className="notification-summary">
+    <p role="status">{t("기존 SSO 로그인이 필요합니다.")}</p>
     <div className="notification-summary-actions">
       <button type="button" className={appearance === "desktop" ? "pd-dk-button" : "pd-primary"} onClick={() => requireLogin()}>{t("로그인")}</button>
     </div>

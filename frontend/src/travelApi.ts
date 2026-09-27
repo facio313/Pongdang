@@ -302,6 +302,7 @@ export async function travelJson<T>(
   const response = await fetcher(`${base}api/data/${path}`, {
     method,
     credentials: "same-origin",
+    redirect: "manual",
     cache: "no-store",
     signal,
     ...(body === undefined
@@ -311,10 +312,11 @@ export async function travelJson<T>(
           body: JSON.stringify(body),
         }),
   });
-  // The ingress can redirect an expired session to an HTML login page with 200.
-  // Do not parse that page as API data or report a successful private operation.
-  if (response.redirected || (response.ok && response.headers.get("content-type")?.includes("text/html"))) {
-    throw new Error("SSO 로그인 화면으로 이동했습니다. 기존 로그인을 확인한 뒤 다시 시도해 주세요.");
+  // A legacy ingress redirect is opaque in browsers. Stop before following it
+  // across origins to SSO, which otherwise becomes an unhelpful CORS fetch error.
+  if (response.type === "opaqueredirect" || response.status >= 300 && response.status < 400
+    || response.redirected || (response.ok && response.headers.get("content-type")?.includes("text/html"))) {
+    throw new TravelRequestError(401, "기존 SSO 로그인이 필요합니다.");
   }
   if (!response.ok) {
     const payload: unknown = await response.json().catch(() => null);

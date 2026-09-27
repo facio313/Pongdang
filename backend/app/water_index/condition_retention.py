@@ -181,31 +181,39 @@ class RetainedPublication:
                     keys[key][1] = max(keys[key][1], record["target_end"])
             with self.connection.cursor(row_factory=dict_row) as cursor:
                 rows = cursor.execute(
+                    # Resolve the observation predecessor once per requested key.
+                    # An OR containing a correlated max() is evaluated against
+                    # every historical row for that key. Separate parameterized
+                    # ranges also put their time bounds into the PK lookup.
                     "SELECT s.*,origin.source_revision,origin.computed_at "
                     "FROM jsonb_to_recordset(%s::jsonb) "
                     "AS k(spot_id bigint,activity text,mode text,"
-                    "min_start timestamptz,max_end timestamptz) JOIN "
-                    "pongdang_data.condition_result s ON "
-                    "s.spot_id=k.spot_id "
-                    "AND s.activity=k.activity AND s.mode=k.mode "
+                    "min_start timestamptz,max_end timestamptz) "
+                    "CROSS JOIN LATERAL ("
+                    "SELECT r.* FROM pongdang_data.condition_result r "
+                    "WHERE k.mode='forecast' AND r.spot_id=k.spot_id "
+                    "AND r.activity=k.activity AND r.mode=k.mode "
+                    "AND r.target_start<k.max_end AND r.target_end>k.min_start "
+                    "UNION ALL "
+                    "SELECT r.* FROM pongdang_data.condition_result r "
+                    "WHERE k.mode='observation' AND r.spot_id=k.spot_id "
+                    "AND r.activity=k.activity AND r.mode=k.mode "
+                    "AND r.target_start>k.min_start AND r.target_start<=k.max_end "
+                    "UNION ALL ("
+                    "SELECT prior.* FROM pongdang_data.condition_result prior "
+                    "JOIN pongdang_data.condition_generation valid "
+                    "ON valid.id=prior.generation_id AND valid.result_published "
+                    "WHERE k.mode='observation' AND prior.spot_id=k.spot_id "
+                    "AND prior.activity=k.activity AND prior.mode=k.mode "
+                    "AND prior.target_start<=k.min_start "
+                    "AND valid.source_revision >= (SELECT invalidated_revision "
+                    "FROM pongdang_data.condition_source_revision WHERE id=1) "
+                    "ORDER BY prior.target_start DESC LIMIT 1)) s "
                     "JOIN pongdang_data.condition_generation origin "
                     "ON origin.id=s.generation_id AND origin.result_published "
                     "WHERE origin.source_revision >= "
                     "(SELECT invalidated_revision FROM "
                     "pongdang_data.condition_source_revision WHERE id=1) "
-                    "AND ((k.mode='forecast' AND s.target_start<k.max_end "
-                    "AND s.target_end>k.min_start) OR "
-                    "(k.mode='observation' AND ("
-                    "s.target_start BETWEEN k.min_start AND k.max_end OR "
-                    "s.target_start=(SELECT max(prior.target_start) "
-                    "FROM pongdang_data.condition_result prior JOIN "
-                    "pongdang_data.condition_generation valid ON "
-                    "valid.id=prior.generation_id AND valid.result_published WHERE "
-                    "prior.spot_id=k.spot_id AND prior.activity=k.activity "
-                    "AND prior.mode=k.mode AND prior.target_start<=k.min_start "
-                    "AND valid.source_revision >= (SELECT "
-                    "invalidated_revision FROM "
-                    "pongdang_data.condition_source_revision WHERE id=1))))) "
                     "ORDER BY s.spot_id,s.activity,s.mode,s.target_start",
                     [
                         Jsonb(

@@ -3,6 +3,7 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from test_condition_score_integration import database as database
 from test_condition_score_integration import source, station
@@ -12,9 +13,17 @@ from app.ingestion.models import Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
+from app.water_index import condition_retention
 from app.water_index.condition_api import ConditionQuery
 from app.water_index.condition_producer import produce_conditions
-from app.water_index.condition_storage import read_condition_set
+from app.water_index.condition_result import RESULT_COLUMNS
+from app.water_index.condition_storage import (
+    _copy_result_batch,
+    _create_result_stage,
+    _unavailable,
+    projection_revision,
+    read_condition_set,
+)
 
 BASE = "/api/data/water-index"
 
@@ -211,3 +220,124 @@ def test_forecast_retention_is_scoped_to_original_target_interval(database):
     assert after[0].at == start
     assert after[1].at == start + timedelta(minutes=30)
     assert after[2].condition_score.score is None
+
+
+@pytest.mark.parametrize("at_boundary", [False, True])
+def test_retention_lookup_bounds_and_valid_observation_predecessor(
+    database, monkeypatch, at_boundary
+):
+    """Batch lookups skip revoked/unpublished history and preserve exact edges."""
+    store_batch(database, source())
+    _, spot = station(database)
+    now = datetime.now(UTC)
+    end = now + timedelta(hours=1)
+
+    def record(mode, begin, finish):
+        return dict(
+            spot_id=spot,
+            activity="swim",
+            mode=mode,
+            target_start=begin,
+            target_end=finish,
+            payload=_unavailable(
+                ConditionQuery(spot_id=spot, activity="swim", mode=mode),
+                begin,
+                max(now, begin) if mode == "observation" else now,
+                {"latest_generation_id": None, "name": "Disposable place"},
+            ).model_dump(mode="json"),
+        )
+
+    with connect(database) as c:
+        revision = projection_revision(c)
+        generations = []
+        for offset, source_revision, published in (
+            (3, revision, True),
+            (2, revision - 1, True),
+            (1, revision, False),
+        ):
+            generations.append(
+                c.execute(
+                    "INSERT INTO pongdang_data.condition_generation "
+                    "(source_revision,model_version,computed_at,record_count,"
+                    "result_published) VALUES (%s,'1.0.0',%s,0,%s) RETURNING id",
+                    [source_revision, now - timedelta(hours=offset), published],
+                ).fetchone()[0]
+            )
+        c.execute(
+            "UPDATE pongdang_data.condition_source_revision "
+            "SET invalidated_revision=%s WHERE id=1",
+            [revision],
+        )
+        _create_result_stage(c)
+        for offset, generation in zip((3, 2, 1), generations, strict=True):
+            _copy_result_batch(
+                c,
+                [
+                    record(
+                        "observation",
+                        now - timedelta(hours=offset),
+                        now - timedelta(hours=offset - 1),
+                    )
+                ],
+                generation,
+            )
+        observation_starts = [
+            now + timedelta(minutes=30),
+            end,
+            end + timedelta(hours=1),
+        ]
+        if at_boundary:
+            observation_starts.insert(0, now)
+        _copy_result_batch(
+            c,
+            [
+                record("observation", start, start + timedelta(minutes=30))
+                for start in observation_starts
+            ]
+            + [
+                record("forecast", begin, finish)
+                for begin, finish in (
+                    (now - timedelta(hours=1), now),
+                    (now, now + timedelta(minutes=30)),
+                    (now + timedelta(minutes=30), end),
+                    (end, end + timedelta(hours=1)),
+                )
+            ],
+            generations[0],
+        )
+        c.execute(
+            "INSERT INTO pongdang_data.condition_result (" + RESULT_COLUMNS + ") "
+            "SELECT " + RESULT_COLUMNS + " FROM condition_result_stage"
+        )
+        seen = []
+        result_payload = condition_retention.result_payload
+
+        def inspect_row(row):
+            seen.append((row["mode"], row["target_start"], row["generation_id"]))
+            return result_payload(row)
+
+        monkeypatch.setattr(condition_retention, "result_payload", inspect_row)
+        retained = condition_retention.RetainedPublication(
+            c, {"generation_id": generations[0]}, {"generation_id": 999}
+        )
+        assert (
+            len(
+                list(
+                    retained.records(
+                        [record("observation", now, end), record("forecast", now, end)]
+                    )
+                )
+            )
+            == 2
+        )
+        assert seen == [
+            ("forecast", now, generations[0]),
+            ("forecast", now + timedelta(minutes=30), generations[0]),
+            (
+                "observation",
+                now if at_boundary else now - timedelta(hours=3),
+                generations[0],
+            ),
+            ("observation", now + timedelta(minutes=30), generations[0]),
+            ("observation", end, generations[0]),
+        ]
