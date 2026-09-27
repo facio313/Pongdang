@@ -148,6 +148,11 @@ def prune_water_index_history(settings, *, now=None, batch_size=2000, max_second
     started = monotonic()
     result = dict(deleted=0, pending=False, skipped=False, counts={})
     with connect(settings) as connection:
+        if not connection.execute(
+            "SELECT pg_try_advisory_xact_lock("
+            "hashtext('pongdang-job/water_index_evaluation'))"
+        ).fetchone()[0]:
+            return {**result, "pending": True, "skipped": True}
         acquired = connection.execute(
             "SELECT pg_try_advisory_xact_lock(hashtext('pongdang-water-index'))"
         ).fetchone()[0]

@@ -233,10 +233,11 @@ def test_cleanup_skips_an_active_producer_without_changing_any_rows(retained_db)
     artifact(settings, "old")
     artifact(settings, "new")
     before = counts(settings)
-    with connect(settings) as c:
-        c.execute("SELECT pg_advisory_xact_lock(hashtext('pongdang-water-index'))")
-        result = retention.prune_water_index_history(settings)
-    assert result == dict(deleted=0, pending=True, skipped=True, counts={})
+    for lock in ("pongdang-water-index", "pongdang-job/water_index_evaluation"):
+        with connect(settings) as c:
+            c.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock])
+            result = retention.prune_water_index_history(settings)
+        assert result == dict(deleted=0, pending=True, skipped=True, counts={})
     assert counts(settings) == before
 
 

@@ -33,9 +33,10 @@ KST = ZoneInfo("Asia/Seoul")
 
 
 def test_retention_skips_an_active_publisher(database):
-    with connect(database) as connection:
-        connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK])
-        assert prune_condition_results(database) is None
+    for lock in (RESULT_LOCK, "pongdang-job/condition_projection"):
+        with connect(database) as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [lock])
+            assert prune_condition_results(database) is None
 
 
 def test_retention_runs_without_a_new_publication(database):

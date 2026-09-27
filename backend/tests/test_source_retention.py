@@ -10,7 +10,8 @@ from test_condition_producer_integration import inputs
 from test_condition_score_integration import source, station
 
 from app.forecast.storage import project_forecasts
-from app.ingestion import retention
+from app.ingestion import retention, worker
+from app.ingestion.jobs import Job
 from app.ingestion.models import Value
 from app.ingestion.storage import store_batch
 from app.schema import connect
@@ -324,3 +325,71 @@ def test_reference_pages_and_bounded_batches_preserve_last_page_reference(databa
     assert deleted == 5
     assert not obsolete & saved(database)
     assert protected in saved(database)
+
+
+@pytest.mark.parametrize(
+    "name,external",
+    [("fixture_external_process", True), ("water_index_evaluation", False)],
+)
+def test_job_gates_skip_busy_cleanup_and_new_worker_without_backoff(
+    database, monkeypatch, name, external
+):
+    calls = []
+
+    def process():
+        calls.append(name)
+        return {"received": 0, "inserted": 0, "state": "succeeded"}
+
+    job = Job(name, 600, process=process, external_collection=external)
+    jobs = [
+        job,
+        Job("evidence_retention", 600, process=process),
+        Job("fixture_disabled", 600, process=process, enabled=False),
+    ]
+    monkeypatch.setattr(worker, "registered_jobs", lambda settings: jobs)
+    worker.synchronize_jobs(database, jobs)
+    now = datetime.now(UTC)
+    obsolete, _ = put(database, "old", now - timedelta(days=50))
+    put(database, "current", now - timedelta(minutes=1))
+    before_sources = saved(database)
+
+    def job_state():
+        with connect(database) as c:
+            return c.execute(
+                "SELECT state,consecutive_failures,last_error,started_at,finished_at,"
+                "last_success_at,next_run_at FROM pongdang_data.collection_job "
+                "WHERE task_name=%s",
+                [name],
+            ).fetchone()
+
+    before_job = job_state()
+    # A provider/projection already fetching or computing makes retention defer.
+    with connect(database) as guard:
+        guard.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))", ["pongdang-job/" + name]
+        )
+        assert retention.prune_source_history(database)["skipped"]
+    assert saved(database) == before_sources
+    original_keep = retention._keep_inputs
+
+    def collect_references(connection, *args):
+        # Exercise the real worker while cleanup holds its job and data locks.
+        # It must skip before process(), without recording failure or backoff.
+        assert worker.run_due(database, [job], force=True) == []
+        assert job_state() == before_job
+        assert calls == []
+        original_keep(connection, *args)
+
+    monkeypatch.setattr(retention, "_keep_inputs", collect_references)
+    with connect(database) as guard:
+        # The running maintenance job and disabled jobs must not block cleanup.
+        for held in ("evidence_retention", "fixture_disabled"):
+            guard.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", ["pongdang-job/" + held]
+            )
+        result = retention.prune_source_history(database)
+    assert not result["skipped"]
+    assert obsolete not in saved(database)
+    assert job_state() == before_job
+    assert worker.run_due(database, [job], force=True)[0]["state"] == "succeeded"
+    assert calls == [name]

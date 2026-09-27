@@ -258,9 +258,21 @@ def prune_source_history(settings, *, now=None, batch_size=2000):
     """
     if type(batch_size) is not int or not 1 <= batch_size <= 10000:
         raise ValueError("Retention batch size must be between 1 and 10000")
+    from app.ingestion.worker import registered_jobs
+
+    # Gate jobs before their fetch/process step. Otherwise a new worker could
+    # fetch successfully, then time out waiting for this transaction's data locks
+    # and unnecessarily back off. The worker already owns our own job's lock.
+    job_locks = sorted(
+        {
+            "pongdang-job/" + job.name
+            for job in registered_jobs(settings)
+            if job.enabled and job.name != "evidence_retention"
+        }
+    )
     result = dict(deleted=0, pending=False, skipped=False, counts={})
     with connect(settings) as connection:
-        for lock in LOCKS:
+        for lock in (*job_locks, *LOCKS):
             if not connection.execute(
                 "SELECT pg_try_advisory_xact_lock(hashtext(%s))", [lock]
             ).fetchone()[0]:

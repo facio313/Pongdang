@@ -592,6 +592,11 @@ def prune_condition_results(settings):
 
     with connect(settings) as connection:
         if not connection.execute(
+            "SELECT pg_try_advisory_xact_lock(hashtext(%s))",
+            ["pongdang-job/condition_projection"],
+        ).fetchone()[0]:
+            return None
+        if not connection.execute(
             "SELECT pg_try_advisory_xact_lock(hashtext(%s))", [RESULT_LOCK]
         ).fetchone()[0]:
             return None
