@@ -1,0 +1,26 @@
+[Unit]
+Description=Deploy verified latest-main Pongdang builds from the host
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/home/cks/.local/share/pongdang-deploy /usr/local/libexec/pongdang-deploy-watch /usr/local/libexec/pongdang-deploy-local /usr/local/libexec/pongdang-deploy
+
+[Service]
+Type=oneshot
+User=cks
+Group=cks
+Environment=HOME=/home/cks
+ExecStart=/usr/local/libexec/pongdang-deploy-watch
+TimeoutStartSec=45min
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/cks/.local/share/pongdang-deploy
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+RestrictSUIDSGID=true

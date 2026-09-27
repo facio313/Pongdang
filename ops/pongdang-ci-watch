@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Fallback for missing GitHub push events. It only dispatches the normal CI;
-# validation and deployment remain owned by .github/workflows/ci.yml.
+# Fallback for missing GitHub push events. It only dispatches the normal image
+# build; ops/pongdang-deploy-watch independently verifies it before deployment.
 set -Eeuo pipefail
 readonly repository=facio313/Pongdang
 

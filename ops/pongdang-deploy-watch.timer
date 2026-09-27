@@ -1,0 +1,12 @@
+[Unit]
+Description=Check verified Pongdang main builds for host-side deployment
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+RandomizedDelaySec=5s
+Unit=pongdang-deploy-watch.service
+
+[Install]
+WantedBy=timers.target

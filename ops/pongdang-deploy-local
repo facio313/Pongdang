@@ -1,0 +1,146 @@
+#!/usr/bin/python3
+# Install as root:root 0755 at /usr/local/libexec/pongdang-deploy-local.
+"""Serialize a local request through the existing restricted Pongdang gate."""
+
+from __future__ import annotations
+
+import fcntl
+import os
+import pwd
+import stat
+import subprocess
+import sys
+from collections.abc import Callable
+from pathlib import Path
+
+DEPLOY_GATE = Path("/usr/local/libexec/pongdang-deploy")
+STATE_DIRECTORY = Path("/home/cks/.local/share/pongdang-deploy")
+CURRENT_RELEASE = STATE_DIRECTORY / "current"
+RELEASES = STATE_DIRECTORY / "releases"
+LOCAL_LOCK = STATE_DIRECTORY / "deploy-local.lock"
+
+
+class LocalDeployError(RuntimeError):
+    """A local deployment request failed its safety contract."""
+
+
+Runner = Callable[..., subprocess.CompletedProcess]
+
+
+def valid_sha(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 40
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def current_release(current: Path) -> Path | None:
+    try:
+        return current.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+
+
+def require_root_owned_executable(path: Path) -> None:
+    info = path.lstat()
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != 0
+        or info.st_mode & 0o022
+        or not info.st_mode & stat.S_IXUSR
+    ):
+        raise LocalDeployError(f"unsafe installed executable: {path}")
+
+
+def require_state_directory(path: Path) -> None:
+    info = path.lstat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_mode & 0o077
+    ):
+        raise LocalDeployError("unsafe Pongdang deployment state directory")
+
+
+def lock_local(path: Path) -> int:
+    descriptor = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    info = os.fstat(descriptor)
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_nlink != 1
+        or info.st_mode & 0o077
+    ):
+        os.close(descriptor)
+        raise LocalDeployError("unsafe local deployment lock")
+    fcntl.flock(descriptor, fcntl.LOCK_EX)
+    return descriptor
+
+
+def deploy(
+    sha: str,
+    *,
+    gate: Path = DEPLOY_GATE,
+    state_directory: Path = STATE_DIRECTORY,
+    current: Path = CURRENT_RELEASE,
+    releases: Path = RELEASES,
+    lock_path: Path = LOCAL_LOCK,
+    runner: Runner = subprocess.run,
+    verify_security: bool = True,
+) -> int:
+    if not valid_sha(sha):
+        raise LocalDeployError("expected one lowercase 40-character commit SHA")
+    if verify_security:
+        require_root_owned_executable(Path(__file__))
+        require_root_owned_executable(gate)
+        require_state_directory(state_directory)
+
+    descriptor = lock_local(lock_path)
+    try:
+        expected = releases / sha
+        if current_release(current) == expected:
+            print(f"Pongdang {sha} is already current; local gate not called.")
+            return 0
+        environment = {
+            "HOME": "/home/cks",
+            "LOGNAME": "cks",
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "SSH_ORIGINAL_COMMAND": f"deploy pongdang {sha}",
+            "USER": "cks",
+        }
+        try:
+            result = runner([str(gate)], check=False, env=environment)
+        except OSError as error:
+            raise LocalDeployError(
+                "existing deployment gate could not start"
+            ) from error
+        if result.returncode:
+            return result.returncode
+        if current_release(current) != expected:
+            print(
+                "Pongdang gate returned success without making "
+                "the requested SHA current.",
+                file=sys.stderr,
+            )
+            return 1
+        return 0
+    finally:
+        os.close(descriptor)
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = sys.argv[1:] if argv is None else argv
+    try:
+        if pwd.getpwuid(os.getuid()).pw_name != "cks":
+            raise LocalDeployError("local deploy wrapper must run as cks")
+        if len(arguments) != 1:
+            raise LocalDeployError("expected exactly one commit SHA")
+        return deploy(arguments[0])
+    except (OSError, KeyError, LocalDeployError) as error:
+        print(f"Pongdang local deploy refused: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

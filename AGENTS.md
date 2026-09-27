@@ -44,10 +44,11 @@
   Commit dependency lockfiles with dependency changes.
 - Do not commit, merge into, push, synchronize, or deploy `dev`. Preserve its
   existing refs without updating or deleting them. Authorized task branches
-  integrate directly into `main`, which deploys after both production images build.
-  Never use dev CI as a prerequisite or duplicate main CI.
+  integrate directly into `main`, which the host deploys only after both production
+  image jobs succeed. Never use dev CI as a prerequisite or duplicate main CI.
   The server timer template dispatches missing CI only for latest main commits;
-  its installed host copy must be updated separately.
+  a separate host timer verifies the completed build and requests the local gate.
+  Their installed host copies must be updated separately.
 - Never commit secrets or `.env` files. Keep production DB/API ports private.
   The old db.bonifacio.work:15432 gateway still belongs to the legacy DB and is
   not managed by Pongdang. Changing that gateway requires a separate decision.
@@ -63,13 +64,16 @@
   Database tests must use an explicitly disposable `pongdang_test`, never production.
   GitHub Actions only builds the backend and frontend production Docker images in
   parallel; it does not run lint, unit, backend, browser, database or Compose runtime
-  checks. Pull requests build without deploying. Every main push, including
-  documentation-only changes, deploys after both builds succeed. The frontend image's
-  TypeScript check and Vite bundle are part of that image build, not a separate test job.
-  The production gate still checks the latest main SHA, serializes deployments, verifies
-  health/readiness and restores the previous application images on failure.
-- `ops/` contains installation templates; deployment does not self-update its SSH
-  gate. Install reviewed changes to the host script separately.
+  checks and it never opens an inbound deployment connection. Pull requests build
+  without deploying. For main, the host watcher requires the latest exact SHA's newest
+  completed `ci.yml` run and both image jobs to succeed before it requests deployment.
+  The frontend image's TypeScript check and Vite bundle are part of that image build,
+  not a separate test job. The local production gate rechecks latest main, serializes
+  deployments, verifies health/readiness and restores the previous application images
+  on failure. A failed gate attempt is not retried automatically for the same run attempt.
+- `ops/` contains installation templates; application deployment does not self-update
+  the CI watcher, deploy watcher, local wrapper or deployment gate. Install reviewed
+  host files separately.
 - `backend/app/data_catalog.json` is the table/column/query allowlist. Existing
   table identifiers and optional provider-specific columns are retained for demo
   history, not as dependencies on a legacy service or a safety scoring engine.

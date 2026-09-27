@@ -1,0 +1,423 @@
+#!/usr/bin/python3
+# Install as root:root 0755 at /usr/local/libexec/pongdang-deploy-watch.
+"""Deploy the latest main only after its complete production image build."""
+
+from __future__ import annotations
+
+import fcntl
+import json
+import os
+import pwd
+import stat
+import subprocess
+import sys
+import tempfile
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+REPOSITORY = "facio313/Pongdang"
+BRANCH = "main"
+WORKFLOW = "ci.yml"
+GH = Path("/usr/bin/gh")
+DEPLOY_WRAPPER = Path("/usr/local/libexec/pongdang-deploy-local")
+STATE_DIRECTORY = Path("/home/cks/.local/share/pongdang-deploy")
+CURRENT_RELEASE = STATE_DIRECTORY / "current"
+RELEASES = STATE_DIRECTORY / "releases"
+ATTEMPT_STATE = STATE_DIRECTORY / "deploy-watch-state.json"
+WATCH_LOCK = STATE_DIRECTORY / "deploy-watch.lock"
+MAX_API_BYTES = 2 * 1024 * 1024
+MAX_RUNS = 100
+REQUIRED_JOBS = frozenset({"Build backend image", "Build frontend image"})
+ALLOWED_EVENTS = frozenset({"push", "workflow_dispatch"})
+
+
+class WatchError(RuntimeError):
+    """A fail-closed watcher error that is safe to report without API payloads."""
+
+
+@dataclass(frozen=True)
+class Candidate:
+    sha: str
+    run_id: int
+    run_attempt: int
+
+
+@dataclass(frozen=True)
+class Selection:
+    candidate: Candidate | None
+    reason: str
+
+
+Api = Callable[[str], object]
+Deploy = Callable[[str], int]
+
+
+def valid_sha(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 40
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def github_api(endpoint: str) -> object:
+    prefix = f"repos/{REPOSITORY}/"
+    if not endpoint.startswith(prefix) or any(
+        character.isspace() for character in endpoint
+    ):
+        raise WatchError("refusing an unexpected GitHub API endpoint")
+    environment = {
+        "HOME": "/home/cks",
+        "LOGNAME": "cks",
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "USER": "cks",
+        "XDG_CONFIG_HOME": "/home/cks/.config",
+    }
+    try:
+        result = subprocess.run(
+            [str(GH), "api", endpoint],
+            capture_output=True,
+            check=True,
+            env=environment,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise WatchError("GitHub API request failed") from error
+    if not 0 < len(result.stdout) <= MAX_API_BYTES:
+        raise WatchError("GitHub API response is empty or too large")
+    try:
+        return json.loads(result.stdout)
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise WatchError("GitHub API returned invalid JSON") from error
+
+
+def latest_main(api: Api) -> str:
+    payload = api(f"repos/{REPOSITORY}/git/ref/heads/{BRANCH}")
+    try:
+        sha = payload["object"]["sha"]  # type: ignore[index]
+    except (KeyError, TypeError) as error:
+        raise WatchError("latest main response has no SHA") from error
+    if not valid_sha(sha):
+        raise WatchError("latest main response has an invalid SHA")
+    return sha
+
+
+def runs_for(api: Api, sha: str) -> object:
+    if not valid_sha(sha):
+        raise WatchError("refusing to query runs for an invalid SHA")
+    return api(
+        f"repos/{REPOSITORY}/actions/workflows/{WORKFLOW}/runs"
+        f"?branch={BRANCH}&head_sha={sha}&per_page={MAX_RUNS}"
+    )
+
+
+def select_run(payload: object, sha: str) -> Selection:
+    if not isinstance(payload, dict):
+        raise WatchError("workflow run response is not an object")
+    total = payload.get("total_count")
+    runs = payload.get("workflow_runs")
+    if (
+        isinstance(total, bool)
+        or not isinstance(total, int)
+        or total < 0
+        or not isinstance(runs, list)
+        or total != len(runs)
+        or total > MAX_RUNS
+    ):
+        raise WatchError("workflow run response is truncated or malformed")
+    if not runs:
+        return Selection(None, "no CI run exists for latest main")
+
+    normalized = []
+    for run in runs:
+        if not isinstance(run, dict):
+            raise WatchError("workflow run entry is malformed")
+        if run.get("head_sha") != sha or run.get("head_branch") != BRANCH:
+            raise WatchError("workflow run response includes a different revision")
+        run_id = run.get("id")
+        attempt = run.get("run_attempt")
+        created_at = run.get("created_at")
+        status = run.get("status")
+        if (
+            isinstance(run_id, bool)
+            or not isinstance(run_id, int)
+            or run_id <= 0
+            or isinstance(attempt, bool)
+            or not isinstance(attempt, int)
+            or attempt <= 0
+            or not isinstance(created_at, str)
+            or not created_at
+            or not isinstance(status, str)
+        ):
+            raise WatchError("workflow run entry has invalid identity or status")
+        normalized.append((created_at, run_id, attempt, run))
+
+    if any(item[3]["status"] != "completed" for item in normalized):
+        return Selection(None, "latest-main CI is queued or in progress")
+
+    _, run_id, attempt, latest = max(normalized, key=lambda item: item[:3])
+    if latest.get("conclusion") != "success":
+        return Selection(None, "newest completed latest-main CI did not succeed")
+    if latest.get("event") not in ALLOWED_EVENTS:
+        return Selection(None, "newest successful CI has a non-deploying event")
+    return Selection(Candidate(sha, run_id, attempt), "CI run is eligible")
+
+
+def jobs_succeeded(api: Api, candidate: Candidate) -> bool:
+    payload = api(
+        f"repos/{REPOSITORY}/actions/runs/{candidate.run_id}/jobs"
+        f"?filter=latest&per_page={MAX_RUNS}"
+    )
+    if not isinstance(payload, dict):
+        raise WatchError("workflow jobs response is not an object")
+    total = payload.get("total_count")
+    jobs = payload.get("jobs")
+    if (
+        isinstance(total, bool)
+        or not isinstance(total, int)
+        or not isinstance(jobs, list)
+        or total != len(jobs)
+        or total > MAX_RUNS
+    ):
+        raise WatchError("workflow jobs response is truncated or malformed")
+
+    build_jobs: dict[str, dict] = {}
+    for job in jobs:
+        if not isinstance(job, dict):
+            raise WatchError("workflow job entry is malformed")
+        name = job.get("name")
+        if name not in REQUIRED_JOBS:
+            raise WatchError("successful CI contains an unexpected job")
+        if name in build_jobs:
+            raise WatchError("successful CI contains duplicate build jobs")
+        run_attempt = job.get("run_attempt")
+        if run_attempt is not None and run_attempt != candidate.run_attempt:
+            raise WatchError("workflow job belongs to a different run attempt")
+        build_jobs[name] = job
+
+    return set(build_jobs) == REQUIRED_JOBS and all(
+        job.get("status") == "completed" and job.get("conclusion") == "success"
+        for job in build_jobs.values()
+    )
+
+
+def current_release(current: Path = CURRENT_RELEASE) -> Path | None:
+    try:
+        return current.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+
+
+def is_current(
+    sha: str,
+    current: Path = CURRENT_RELEASE,
+    releases: Path = RELEASES,
+) -> bool:
+    return current_release(current) == releases / sha
+
+
+def read_attempt(path: Path = ATTEMPT_STATE) -> dict | None:
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        return None
+    if not 0 < len(raw) <= 4096:
+        raise WatchError("deploy watch state is empty or too large")
+    try:
+        payload = json.loads(raw)
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise WatchError("deploy watch state is invalid") from error
+    if (
+        not isinstance(payload, dict)
+        or payload.get("version") != 1
+        or not valid_sha(payload.get("sha"))
+        or isinstance(payload.get("run_id"), bool)
+        or not isinstance(payload.get("run_id"), int)
+        or payload.get("run_id", 0) <= 0
+        or isinstance(payload.get("run_attempt"), bool)
+        or not isinstance(payload.get("run_attempt"), int)
+        or payload.get("run_attempt", 0) <= 0
+        or payload.get("outcome") not in {"started", "failed", "success"}
+    ):
+        raise WatchError("deploy watch state has an invalid schema")
+    return payload
+
+
+def write_attempt(
+    candidate: Candidate,
+    outcome: str,
+    path: Path = ATTEMPT_STATE,
+) -> None:
+    if outcome not in {"started", "failed", "success"}:
+        raise WatchError("refusing an invalid deploy outcome")
+    parent = path.parent
+    if not parent.is_dir() or parent.is_symlink():
+        raise WatchError("deploy state directory is unavailable")
+    content = (
+        json.dumps(
+            {"version": 1, **asdict(candidate), "outcome": outcome},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="ascii") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        directory = os.open(parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def already_attempted(candidate: Candidate, path: Path = ATTEMPT_STATE) -> str | None:
+    attempt = read_attempt(path)
+    if attempt is None:
+        return None
+    identity = (attempt["sha"], attempt["run_id"], attempt["run_attempt"])
+    if identity == (candidate.sha, candidate.run_id, candidate.run_attempt):
+        return str(attempt["outcome"])
+    return None
+
+
+def invoke_deploy(sha: str) -> int:
+    if not valid_sha(sha):
+        raise WatchError("refusing to deploy an invalid SHA")
+    try:
+        result = subprocess.run([str(DEPLOY_WRAPPER), sha], check=False)
+    except OSError as error:
+        raise WatchError("local deploy wrapper could not start") from error
+    return result.returncode
+
+
+def run_once(
+    *,
+    api: Api = github_api,
+    deploy: Deploy = invoke_deploy,
+    current: Path = CURRENT_RELEASE,
+    releases: Path = RELEASES,
+    attempt_state: Path = ATTEMPT_STATE,
+) -> int:
+    sha = latest_main(api)
+    if is_current(sha, current, releases):
+        print(f"Pongdang {sha} is already current; no deployment requested.")
+        return 0
+
+    selection = select_run(runs_for(api, sha), sha)
+    if selection.candidate is None:
+        print(f"Pongdang deployment deferred: {selection.reason}.")
+        return 0
+    candidate = selection.candidate
+
+    prior = already_attempted(candidate, attempt_state)
+    if prior is not None:
+        print(
+            "Pongdang deployment not repeated for "
+            f"run {candidate.run_id} attempt {candidate.run_attempt}: {prior}."
+        )
+        return 0
+    if not jobs_succeeded(api, candidate):
+        print(
+            "Pongdang deployment deferred: both production image jobs did not succeed."
+        )
+        return 0
+
+    if latest_main(api) != sha:
+        print("Pongdang deployment deferred: main changed during verification.")
+        return 0
+    confirmed = select_run(runs_for(api, sha), sha)
+    if confirmed.candidate != candidate:
+        print("Pongdang deployment deferred: CI state changed during verification.")
+        return 0
+    if is_current(sha, current, releases):
+        print(f"Pongdang {sha} became current during verification.")
+        return 0
+    prior = already_attempted(candidate, attempt_state)
+    if prior is not None:
+        print("Pongdang deployment deferred: this CI attempt was already handled.")
+        return 0
+
+    write_attempt(candidate, "started", attempt_state)
+    result = deploy(sha)
+    write_attempt(candidate, "success" if result == 0 else "failed", attempt_state)
+    if result:
+        print(
+            f"Pongdang local deployment failed for {sha}; "
+            "this CI attempt will not be retried automatically.",
+            file=sys.stderr,
+        )
+    return result
+
+
+def require_root_owned_executable(path: Path) -> None:
+    info = path.lstat()
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != 0
+        or info.st_mode & 0o022
+        or not info.st_mode & stat.S_IXUSR
+    ):
+        raise WatchError(f"unsafe installed file: {path}")
+
+
+def require_state_directory(path: Path = STATE_DIRECTORY) -> None:
+    info = path.lstat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_mode & 0o077
+    ):
+        raise WatchError("unsafe Pongdang deployment state directory")
+
+
+def watcher_lock(path: Path = WATCH_LOCK) -> int:
+    descriptor = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    info = os.fstat(descriptor)
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_nlink != 1
+        or info.st_mode & 0o077
+    ):
+        os.close(descriptor)
+        raise WatchError("unsafe deploy watch lock")
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(descriptor)
+        return -1
+    return descriptor
+
+
+def main() -> int:
+    try:
+        if pwd.getpwuid(os.getuid()).pw_name != "cks":
+            raise WatchError("deploy watcher must run as cks")
+        require_root_owned_executable(Path(__file__))
+        require_root_owned_executable(DEPLOY_WRAPPER)
+        require_state_directory()
+        descriptor = watcher_lock()
+        if descriptor < 0:
+            print("Pongdang deploy watcher is already active.")
+            return 0
+        try:
+            return run_once()
+        finally:
+            os.close(descriptor)
+    except (OSError, KeyError, WatchError) as error:
+        print(f"Pongdang deploy watch failed: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
