@@ -1,10 +1,197 @@
-# main 릴리스 진행 · 2026-09-23
+# main 통합·운영 배포 진행 · 2026-09-29
 
-- 사용자 승인: 로컬 화면 점검 후 main 병합·GitHub 푸시·운영 배포. fix/finale의 결과 저장 변경을 커밋하고 main에 직접 통합한다. dev refs와 로컬 산출물은 보존한다.
-- v20 이관 이후 이전 v19 앱으로 자동 복구할 때 초기화가 거부되는 문제를 막기 위해 v19의 v20 수용 호환 릴리스를 먼저 배포한다. 상세와 기존 검증은 [CONDITION-REFRESH.md](CONDITION-REFRESH.md). 실제 배포 결과는 완료 후 이 문서에 갱신한다.
-- 복구 호환 릴리스 `86c0460`은 Actions `35864038830`으로 운영 배포 성공. v20 초기화 수용과 legacy snapshot 세대만 읽는 복구 경로를 관련 7개 검사로 검증했다. 본 v20 병합은 검증한 `66ed89a` 제품 소스를 그대로 사용하며, 대체된 v19 전용 검사 3개는 v20 결과 저장·보존 검사로 대체하고 공통 초기화 계약 4개는 최종 코드에서 재검증했다.
-- 본 릴리스 `f29afb9`의 두 이미지 빌드는 성공했으나 Actions `35864259207` 배포가 스키마 초기화 약5초 뒤 실패했다. 부분 반영은 rollback, 앱 교체 전 중단. 실제 운영 브라우저에서 기존66.3점·수온23.75°C·시간별 점수 표시 유지 확인. 3초 DDL 잠금 경합이 유력하나 첫 로그에 오류분류가 없어 확정하지 않는다. 이관 잠금 확보 방식과 비밀정보 없는 오류분류를 보완 중이다.
-- 후속 보완: v20 이관은3개 관련테이블 NOWAIT 잠금을 savepoint에서 한번에 확보하고 busy면부분잠금을풀어최대600초 기다린다. 초기화 전용lock60초/statement300초, CLI는exception종류와SQLSTATE만기록한다. 별도폐기DB의잠금경합4개+기존이관6개 및초기화·진단6개 모두통과. 이보완을main에후속배포한다.
+- 사용자 승인: GitHub main의 새 변경 수신, 지금까지 작업한 제품 코드·관련 테스트·문서 커밋·push·운영 배포. 원격 main을 명시 fetch했고 기준 f2a471e와 동일하여 추가 병합 변경은 없다. fix/finale을 커밋한 뒤 기존의 깨끗한 main worktree로 fast-forward하고 main만 push한다. dev/원격 dev는 0f824a9에 보존한다.
+- 범위: 외부 기온 상세 접힘, 다른 지역의 서로 다른 값 비교와 모드 일치, 예보 대기 표시·높이 및 로그인/알림 버튼, 후보 번호 선택·전체 선택·애니메이션 정렬과 선택한 순서의 경로 계약. 운영 이미지에 포함되지 않는 backend/dev 로컬 테스트 도구와 경계 테스트도 보관한다. .env·비밀 설정·DB·.local·.byeori·.playwright-cli·output은 포함하지 않는다.
+- 검증 근거: 기존 수정 파일 검사 결과를 로그와 대조했다. 최종 프런트 lint/212개 Node/증분 TypeScript, 경로 회귀7개, 로컬 테스트 격리17개, disposable DB 비교 API8개 통과. 원격과 내용 병합이 없어 동일 검증을 반복하지 않는다. 실제 마우스·아이폰 터치 드래그 검증 제한은 아래 기록과 같다.
+- 배포는 최신 main의 ci.yml backend/frontend 이미지 빌드 성공 후 기존 호스트 watcher/local gate가 처리한다. 실패 시 기존 gate가 previous 이미지로 복구한다. 운영 SHA·health/readiness·대표 읽기를 확인할 예정이며 아직 배포 완료로 기록하지 않는다. 현재 기본 SSH 키와 bonifacio_deploy 키가 모두 거부되어 직접 운영 상태 확인용 접속 정보를 요청했다.
+
+# 추천 후보 자연스러운 순서 이동 · 2026-09-29
+
+- 후속 요청: 아이폰 목록 정렬처럼 드래그하는 행이 따라오고 주변 행이 부드럽게 자리를 비키도록 변경. RecommendDesktop의 native drag/drop과 터치 분기를 공통 pointer capture로 교체했다. 기존 행 DOM을 유지한 채 transform으로 미리 배치하고, 놓을 때220ms 정착 후 순서를 확정한다. 그림자·약한 확대, 화면 끝 자동 스크롤, Escape/포인터 취소 시 원위치, 목록 갱신·화면 이탈 시 정리, 동작 감소 설정을 포함한다. 방향키 이동도 같은 정착 애니메이션을 쓴다.
+- 구현: useCandidateReorder.ts가 제스처와 정리를 담당하고 candidateReorder.ts가 높이가 다른 행의 중간 지점 통과·끝 경계·정착 위치를 계산한다. 선택 spot_id/서명 rank/저장 계약은 기존 candidateCourse를 유지한다. 새 의존성·백엔드·DB·운영 변경 없음.
+- 검증: 명시 파일 ESLint·Node212개(위치 계산 회귀4개 포함)·증분 TypeScript·diff --check 통과. 로그 /tmp/pongdang-animated-reorder-checks-20260929.log. 실제 IAB 방향키 아래/위 이동, 이동 도중 화면, 정착 후 출발지·번호·지도 목록 갱신 및 임시 스타일 정리를 확인했다. 기존 강문→사근진→순긋→경포→순개울 순서와 마지막 제외 상태로 되돌려 유지. 화면 output/playwright/animated-reorder/moving.jpg 및 updated-recommendation.jpg.
+- 검증 제한: IAB 자동화의 native drag는 스크린샷 좌표와 DOM 좌표 모두에서 실제 제스처 결과가 나오지 않아 마우스 드래그 성공으로 보고하지 않는다. 실제 아이폰 터치·화면 끝 자동 스크롤·제스처 취소는 실기기 검증이 남는다. 키보드 이동과 위치 계산만 실제 실행으로 확인했다. 커밋·push·배포 없음.
+
+# 추천 후보 번호 토글·전체 선택 · 2026-09-29
+
+- 후속 요청 완료: 별도 체크박스를 제거하고 번호 원을 누르면 포함/제외 전환. 제외해도 1~5 번호를 유지하며 흰 배경·테두리로 표시한다. 드래그 손잡이는 행 맨 오른쪽, 안내 오른쪽에 전체 체크/전체 체크 해제 버튼 하나를 둔다.
+- 새 데스크톱 후보 목록은 마지막 항목만 기본 제외한다. 이후 사용자 선택·순서 변경은 보존하며, 첫 선택 장소에 출발 표시와 지도 목록/번호를 맞춘다. 현재 사용자 목록은 강문→사근진→순긋→경포→순개울 순서를 유지하고 마지막 순개울만 해제했다.
+- 검증: 명시한 프런트4파일의 ESLint·Node208개·증분 TypeScript 통과. 로그 /tmp/pongdang-candidate-toggles-checks-20260929.log. 실제 IAB 별도 탭에서 새 목록 4개 선택/마지막 제외, 번호 on/off, 전체 선택/해제, 빈 코스 저장·계산 비활성화, 첫 장소 해제 시 출발지·지도 번호 반영 확인 후 임시 탭을 닫았다. 화면 output/playwright/candidate-toggles/updated-recommendation.jpg.
+- 기존 격리 로컬 테스트 환경만 사용. 이번 변경은 RecommendDesktop.tsx, recommendDesktop.css, useTravelConcierge.ts, locales/travel.ts와 이 기록이며, 드래그 이벤트 처리·백엔드·DB·운영 설정·커밋·push·배포는 변경하지 않았다.
+
+# 추천 후보에서 방문 포함·순서 편집 · 2026-09-29
+
+- 사용자 요청: 데스크톱 추천의 위 후보 목록에서 체크박스로 방문 여부를 정하고, 드래그로 1~5 순서를 바꾼다. 아래의 출발지/방문 후보/방문 수 중복 폼은 제거한다. 운영에 영향 없는 기존 로컬 테스트 환경 유지.
+- 구현: RecommendDesktop 행마다 체크박스·드래그 손잡이·선택 순번, 첫 선택 장소에 출발 표시. 마우스는 native drag/drop, 터치/펜은 pointer capture, 키보드는 손잡이 위·아래 방향키. candidateCourse.ts가 실제 spot_id와 원본 서명 rank를 보존하며 화면 순서/선택과 PlanInput을 맞춘다. 전부 해제하면 저장/계산 불가. 수동 변경 시 낡은 경로·시각·저장 성공 표시를 초기화한다. 지도 목록도 선택한 순서만 반영한다.
+- 경로 계약: RouteCandidatesForm은 첫 선택 장소와 전체 선택 순서로 preserve_order=true를 보낸다. routing.py의 기본 최적화는 그대로, 명시 모드만 순열 없이 해당 순서 전체를 검증/계산한다. 자료가 부족한 장소를 임의로 빼거나 다른 장소로 교체하지 않는다. 첫 등록 장소=출발지인 구간은 same_registered_place로 명시하고 외부 도로 요청/가짜 제공자 근거 없이 처리한다. 원본 rank/토큰을 바꾸지 않으며, 토큰 만료 재조회도 선택 순서를 유지한다.
+- 로컬 검증: 수정 파일 ESLint·증분 TypeScript·Node208개, Ruff/format·외부 DB/네트워크를 사용하지 않는 경로 회귀7개 통과. 처음 전체 로그 /tmp/pongdang-candidate-order-checks-20260929.log, 최종 프런트 재검증 /tmp/pongdang-candidate-order-final-checks-20260929.log. 전체 릴리스 빌드/전체 DB suite 미실행.
+- 실제 내장 브라우저: 체크 해제→번호/지도 목록 반영, 전부 해제→계산/저장 비활성화, 방향키 순서 변경→출발지 변경, 경로 제공자 disabled 응답 뒤에도 선택 보존, 사근진해변→경포해수욕장→순긋해변3곳 저장 및 별도 IAB탭 재열기 확인. 저장 plan_id a432e181745248d89f26ab650bc14dde, DB는 기존 격리127.0.0.1:62022/pongdang_test. 임시 재조회 탭은 닫았고 원래 편집 화면 유지.
+- 검증 제한: IAB의 마우스 drag 호출은 화면에 이벤트 결과를 만들지 못해 실제 마우스 드래그 성공으로 보고하지 않는다. Codex 네이티브 앱 직접 제어는 도구 안전 정책으로 거부되었으며 우회하지 않았다. 새 마우스 drag/drop 핸들러와 터치 동작은 실제 포인터 검증이 남는다. 방향키·체크·저장·재조회는 실제 UI에서 검증했다. 외부 지도/도로 제공자는 계속 꺼져 있어 실제 도로 시간/경로는 단위 테스트 경계만 검증했다.
+- 실행: 테스트 backend18000만 PID21003으로 재시작하여 readiness200/isolated-local-test 확인, 다시 로컬 테스트 계정으로 로그인. 원본 backend8000·collector·운영 서버/DB·SSO 설정, dev refs, 커밋·push·배포 변경 없음. fix/finale의 이전 사용자 변경 전부 보존.
+
+# 운영 영향 없는 로컬 로그인·추천·코스 테스트 · 2026-09-29
+
+- 사용자 요청: 현재 로컬에서 로그인→추천→코스 등록까지 테스트하되 운영에 영향을 주지 않는다. 운영 SSO 검증 요청과 구분하여 별도 테스트 계정·DB로 구성했다.
+- 새 개발 전용 진입점 `backend/dev/local_preview.py` 및 경계 테스트 `backend/tests/test_local_preview.py`. 운영 Dockerfile은 app/만 복사하여 dev/를 포함하지 않고, 일반 create_app에는 로그인 테스트 경로가 없다. 기존 require_principal 인증 검사를 그대로 거치며, 유효한 로컬 HttpOnly/SameSite=Strict 쿠키에만 local-test-user 주체를 전달한다. 요청 peer/Host/Origin·위조 헤더·만료를 검사한다. 세션12시간, 재시작 시 재로그인 필요.
+- 기존 5432/pongdang은 로컬 postgres PID909 소유임을 재확인하고 읽기 전용 repeatable-read snapshot으로 복사했다. 새 소유 클러스터 `127.0.0.1:62022/pongdang_test`, 자료6,673장소/condition_result178,256행/약1.57GB. condition_result는 KST오늘 이후 target_end만 복사해 불필요한 과거 결과를 제외하고 시각·점수는 보존했다. travel/notification/ai 개인·예산 자료는 복사하지 않았다.
+- 준비·설정·운영정보: `/Users/cksmacbook/.local/share/pongdang/local-testing/20260929-014003/`의 config.json(0600), LOCAL-LOGIN.txt(0600), runtime.json, snapshot-report.json, verification.json. 비밀번호는 채팅/로그/문서에 기록하지 않는다. 설정 포인터 `.local/login-preview-config-path`, 재준비 스크립트 `.local/setup-login-preview.py`는 ignored. 실행 설명 backend/dev/README.md.
+- 현재 frontend5173 PID7832→테스트 backend18000 PID5921→test PG62022 PID4355로 연결, 모두 loopback만 listen. 기존 원본 backend8000 PID78413와 로컬 collector는 유지. 앱 시작 시 테스트 DB 표식 검증, 모든 외부 제공자 키는 기본 빈 값/AI·Kakao경로·발송 disabled, Python 외부 DNS/접속도 차단. 초기 추천 확인에서 기존 frontend 지도 SDK 키 로드를 발견하여 VITE_KAKAO_MAP_KEY도 빈 값으로 재시작했으며 최종 검증은 지도 키 없이 수행했다.
+- 검증: 명시2파일 ops/verify_local.py의 Ruff/format/17개 경계 테스트 통과(2.2초, 기존 의존성 경고2개). 로그 /tmp/pongdang-local-preview-checks-20260929.log. 실제 내장 브라우저에서 생성한 로컬 계정 로그인→취향4개 저장→강릉 해변5곳 추천→코스 저장→새로고침 후 저장 코스 재조회 완료. snapshot 가짜 값·mock API를 쓰지 않았다. 최종 화면 output/playwright/local-login-preview/saved-course.jpg.
+- 저장 코스 `9c5968c9c3b24a4e91257917f50744bc`, 소유자local-test-user, 테스트 취향1개가62022의 DB에만 존재함을 확인. 원본5432/pongdang에는 해당 코스가 없다. 브라우저는 로그인 상태의 저장 코스 화면을 유지한다.
+- 제한: 실제 운영 SSO 인증, AI 대화, 실시간 도로 경로·지도·메일 발송은 이 테스트 범위에서 검증하지 않는다. 수집 데이터는 복사 시점 스냅샷이며 자동 갱신하지 않는다. 운영 서버·운영 DB·계정 설정 변경·커밋·push·배포 없음. 기존 사용자/화면 변경 보존.
+
+# 오늘 다른 지역 비교 표시 · 2026-09-29
+
+- 사용자 요청: 가까운 곳의 중복 값을 제외하자 기준 장소만 남으므로, 다른 지역의 같은 유형 장소를 비교하도록 변경. 아래의 거리순 비교 기록을 대체한다.
+- 완료: 거리 기준 대신 수집 장소 목록에서 다른 시·군을 우선하고, 확보된 근거가 많은 순서로 최대2곳 선택. 기준 장소와 후보 사이의 동일 표시 점수·수온 조합, 중복 ID/별칭, 점수 미확인은 제외한다. 기준 장소는 상단 Conditions를 계속 공유하며, 후보는 같은 관측/예보 모드의 요약을 읽는다.
+- 조회는 기존100행 장소 목록과 최대4개의25개 요약 묶음으로 제한하고, 모든 묶음이 끝난 뒤 선정한다. 현재 해변93곳은 모두 포함되며, 목록이100곳을 넘으면 조회한 개수 기준이라는 안내를 표시한다. 데스크톱·모바일에 지역명·근거 수, 부분 점수 간 단순 우열 비교가 어렵다는 설명을 추가했다. 다른 장소의 전체 조건은 모바일에서 선택할 때만 읽는다.
+- 실제 내장 브라우저 확인: 경포해수욕장(강릉64.7/23.7°C/4개), 감추해변(동해62.3/23.9°C/3개), 가진해변(고성76.8/22.9°C/1개)3행 표시. 데스크톱·390px 모바일 확인, 감추 상세에서 실제 관측 근거·62.3점·3/4개 자료 로드 및 접힘 확인. viewport 원복, 오늘 화면 유지. 화면 output/playwright/regional-comparison/today-{desktop,mobile}.jpg.
+- 검증: 명시8파일 ops/verify_local.py의 수정 파일 ESLint·Node204개·증분 TypeScript 통과(6.4초), diff --check 통과. 로그 /tmp/pongdang-regional-comparison-checks-20260929.log. browser fixture는 갱신 후 lint/typecheck만 수행했고 CLI browser suite는 실행하지 않았다.
+- fix/finale의 미커밋 로컬 변경. 기존 사용자·외부 기온·예보·로그인 변경을 보존했고, 이번 요청에서 backend/DB·커밋·push·운영 배포는 변경하지 않았다. 남은 필수 작업 없음.
+
+# 오늘 마지막 예보·로그인 버튼 · 2026-09-29
+
+- 사용자 요청: 10월5일 주간 예보 점수를 표시하고, 오늘 알림 영역에 로그인 버튼 추가.
+- 원인 확인: 경포7/swim의 마지막 날짜 API는 condition_projection_unavailable_for_target, forecast 결과 구간이 그 날짜 정오를 덮지 않는다. 10월4일은 KHOA 수온20.1°C 근거의 부분 점수55.8, 10월5일은 실제 근거 없음. khoa_beach 수집이00:14에 HTTP_503으로 실패했고 condition_projection 자체는 정상 게시 중이었다.
+- 확인된 로컬127.0.0.1:5432/pongdang에서 기존 run_due 잠금을 이용해 khoa_beach만 한 차례 force 재수집했으나 HTTP_503/received0/inserted0. 전날 reqDate의 첫1건 읽기 진단도HTTP_503. 성공 처리·가짜 예보·유효기간 연장·재시도 횟수 초기화 없음. 정상 수집기의 기존 backoff 재시도 경로 유지.
+- 완료한 코드: forecastAwaitingData와 useConditionDays로 게시된 예보가 없는 타깃을 구분, 오늘 데스크톱·모바일에서 대기/예보 자료 대기 및 날짜별 사유를 표시. 숫자 점수의 원값과 계산은 바꾸지 않았다. NotificationSummary의 AUTH_NOT_CONFIGURED 안내에도 로그인 버튼 추가, 기존 SSO 팝업 연결. 로컬 미설정 오류·재확인·이력 링크와403 권한 처리 유지.
+- 검증: 명시7파일 ops/verify_local.py의 ESLint·Node201개·증분TypeScript 통과(8.3초), 마지막 대기 번역 추가 후 해당 파일 ESLint 통과. 로그 /tmp/pongdang-forecast-login-checks-20260929.log. 내장 브라우저 실제 desktop 및390px mobile에서10월5일 예보 자료 대기, 로그인 버튼 표시 확인. 버튼 Enter로 로그인 팝업/아이디·비밀번호 입력란 열림, 입력란 Escape로 닫힘 확인. 실제 자격 증명 제출 없음. viewport 원복, today 유지. 화면 output/playwright/forecast-login/.
+- 미해결: 10월5일의 실제 숫자 복구는 외부 KHOA API503 장애 해소와 성공한 수집·게시가 필요. 로컬 SSO bridge는 미설정이며 실제 인증 성공은 검증하지 않았다. 운영 서비스·설정은 수정하지 않았다.
+- 모든 이번 UI 변경은 fix/finale 미커밋 작업본. 이전 비교 목록·외부 기온 수정 및 기존 사용자 변경 보존. 커밋·push·운영 배포 없음.
+
+# 오늘 비교 목록의 동일 값 제외 · 2026-09-29
+
+- 사용자 요청: 오늘 지점 비교에 다른 값만 표시. 기준 장소는 상단 추천 Conditions를 공유하고, 가까운 동일 유형 후보 최대25곳 중 표시 점수·수온 조합이 다른 최대2곳만 거리순으로 선택한다. 후보 간 같은 조합·중복 ID와 점수 미확인/계산 불가 항목도 제외한다. 모두 같거나 자료가 없으면 기준 장소와 안내만 표시한다.
+- 공통 comparisonPlaces.ts/useComparisonPlaces.ts를 데스크톱·모바일에 적용. 후보별 전체 조건 조회 대신 요약 API1회 사용, 모바일 다른 장소 상세만 선택 시 조회한다. nearby의 선택적 limit은 기본2/최대25로 기존 계약을 유지했고, 요약은 기본 관측을 유지하면서 명시적 forecast를 지원해 기준 모드와 맞춘다. DB 수정·migration 없음.
+- 검증: Node24.19.0으로 명시 파일 ops/verify_local.py의 ESLint·Node200개·증분TypeScript 통과(9.9초). 백엔드5파일 Ruff/format 및 관련8개 테스트 통과(6.4초, 기존 의존성 deprecation경고2개). 본 작업에서 새로 만든 loopback51849/pongdang_test만 사용했고 검증 후 임시 PostgreSQL을 정상 종료했다. 로그 /tmp/pongdang-comparison-{frontend,backend}-20260929.log. 변경한 browser fixture는 lint/typecheck만 확인했고 CLI 브라우저 suite는 실행하지 않았다.
+- 로컬 backend만 PID78413으로 재시작, /api/ready200. 실행 cwd는 이 checkout의 backend, DB는127.0.0.1:5432/pongdang. frontend5173은 기존 Vite 유지. 새 실행 기록 .local/comparison-backend-20260929.json 및 동명.log.
+- 내장 브라우저 실제 오늘: 경포 주변25곳 중14곳은 기준과 같은64.7점/23.7°C, 나머지11곳은 점수 미확인임을 API와 화면에서 확인. 데스크톱·390px 모바일 모두 기준1행+중복 제외 안내. 모바일 선택 상세도 상단과64.7점 일치, Enter로 펼침/접힘 확인. 임시 viewport override 복원, 오늘 탭 유지. 화면 output/playwright/distinct-comparison/today-{desktop,mobile}.jpg.
+- fix/finale 작업 트리에 미커밋 상태. 이전 외부 기온 접힘 수정과 기존 문서/사용자 변경 보존. 이 요청에서는 커밋·push·운영 배포를 하지 않았다. 남은 필수 작업 없음.
+
+# 홈·오늘 외부 기온 상세 기본 접힘 수정 · 2026-09-29
+
+- 사용자 요청: 두 화면에서 외부 기온 설명은 제목을 눌렀을 때만 표시. 검증에는 사용자가 열어 둔 내장 브라우저를 사용한다.
+- 공통 ComponentBars의 0점 상시 노출 예외를 제거하고, 전체 설명을 감싸는 부모에 hidden과 aria-controls 대상을 모았다. 자식 pd-explainer-body의 display:grid가 hidden을 덮어쓰던 문제가 부모 숨김으로 해소된다. 제품 변경은 frontend/src/pongdangUi.tsx 한 파일, 미커밋.
+- Node24.19.0으로 ops/verify_local.py 명시 파일 검사: ESLint, Node193개, 증분 TypeScript 모두 통과(8.0초). 로그 /tmp/pongdang-air-temperature-checks-20260929.log. 기존 테스트 코드와 DB는 변경하지 않았다.
+- 내장 브라우저 실제 홈·오늘에서 기본 aria-expanded=false/panel display:none, Enter로 설명 전체 펼침·다시 접힘 확인. 마우스 자동 입력은 내장 브라우저에서 상태 변화를 만들지 못해 키보드로 확인했으며 실제 마우스 동작의 자동 검증 성공으로 보고하지 않는다. 홈 접힘 상태로 복귀. 화면은 output/playwright/air-temperature/에 저장. 별도로 시작했던 Playwright 브라우저 세션 daemon은 종료했다.
+
+# 보존 작업 배치 제한 운영 반영 완료 · 2026-09-28
+
+- 사용자 승인: 검토한 condition_storage.py 및 test_condition_result_storage.py 두 파일의 안전성 확인 후 커밋·push·운영 반영까지. 다른 작업물·dev 보존.
+- 최신 원격 main fc463e6(로그인 복구)과 겹치는 backend 변경 없음 확인 후 fix/finale에 fast-forward. 기존20개 관련 테스트/Ruff 통과 코드 그대로 두 파일만 f2a471e0f14d6cce0deea07cc3dabb4de7067662로 커밋하고 기존 main worktree도 fast-forward, main push 완료. 원격 main 동일SHA 확인, dev/origin/dev/원격dev0f824a9 그대로.
+- CI36390565426 backend/frontend 이미지 빌드 모두 success(16:14KST): https://github.com/facio313/Pongdang/actions/runs/36390565426 . 기존 호스트 watcher/local gate가 같은SHA/run_attempt1을 outcome=success로 배포했다. 중복 수동 배포 없음. 운영 current와 frontend/backend/collector 이미지 모두 f2a471e, previous는fc463e6.
+- 16:31KST 직접 확인: frontend/backend/collector/db 모두 running/healthy, 호스트5188의 /api/health와 /api/ready HTTP200. backend와 collector의 condition_storage.py SHA256 모두04846827dcd710cb1dd5dc662d1683dc7089296739c4a45da2341034eac3e118로 커밋 파일과 일치. DB pongdang/schema21을 명시적 read-only 연결로 조회했고 운영 DB 수정·강제 정리 실행 없음.
+- 배포 후 condition_projection이16:25:46KST succeeded/연속실패0, generation818/result_published=true/125237개 결과 게시. 정상 게시 경로에서 변경된 _prune_result_history도 실행된다. 기본 장소·경포470/swim 관측 API HTTP200, projection ready/generation818. 실제 운영 브라우저 로그인 흐름은 이번 DB 패치 확인 범위에 포함하지 않았다.
+- 자동 정리 상태: condition_result_retention 최근9월28일01:32KST 성공/실패0/다음9월29일00:00KST, evidence_retention 최근15:37:57KST 성공/실패0/다음16:37:57KST. 이 두 최근 성공은 배포 전 기록이며 새 버전 독립 정리 작업을 수동 실행한 것은 아니다. collector heartbeat8.98초/idle, 실제 컨테이너 실행과 함께 확인.
+- 접속 방식 정정: 이전 기록에서 cks@192.168.75.98:22022의 비밀번호 인증 성공을 확인했고 기존 사용자 제공 인증을 재사용하여 독립 SSH 연결 성공. 저장 배포키는 이전에도 거부됐으며 외부 주소 실패만으로 서버 접속 불가라고 판단한 것은 잘못이었다. 비밀번호는 출력·파일 저장하지 않았다. iTerm 접근 제한을 우회하지 않았다.
+- 상세 상태/패치: `/Users/cksmacbook/.local/share/pongdang/releases/20260928-bounded-retention/state.json`, `production-verification.json`, `release.patch`. 기존 로컬 DB 유지보수 기록은 아래에 당시 이력으로 보존. 운영 반영·확인 미완료 단계 없음.
+
+# 로컬 DB 보존 정책 정리 완료 · 2026-09-28
+
+- 사용자 스크린샷 범위의 전체 백업→기존 retention→실제 파일 축소→backend/collector 복구→로컬 홈·오늘 확인 완료. 운영·다른 서비스·dev·커밋/push는 변경하지 않았다.
+- 실제 로컬 Homebrew PostgreSQL18.3 PID909, datadir `/opt/homebrew/var/postgresql@18`, system_identifier7614899680775525797. 웹과 설치 collector 모두 `127.0.0.1:5432/pongdang` 동일 연결, 터널 아님. schema20→21 명시적 migration 완료.
+- `fix/finale`은 원격 main `1824fa0`까지 fast-forward, 요청한21c0782 포함. dev/origin/dev는0f824a9 그대로. 기존 문서·미추적 파일 보존. 제품 수정2파일은 미커밋.
+- DB 파일32,125,884,095→4,066,260,671bytes(32.13→4.07GB), 28,059,623,424bytes/87.34% 감소. 수집기 재개 직전 측정이며 이후 정상 수집·계산에 따른 증가는 별도. 보존 정책을 기준으로 정리했으며 운영 DB 크기에 맞추는 추가 삭제 없음.
+- 점수 결과2,130,055→589,877행, 기간 밖1,540,178행 삭제. 겹친9,572행은 시간 경계만 조정. 평가·입력 각각1,753,334→13,404, 생산·읽기 각각46,860→242, 대상112,637→13,404. 관측 snapshot121,603→20,828/metric465,120→120,025/예보revision25,086→8,649. 기존 잠금과 참조 보호로 두 retention 작업의 pending까지 모두 소진했다.
+- 보존 확인: KST 오늘~D+7 결과589,877개 내용 지문 동일, 최신 생산/읽기242묶음 및 평가/입력/대상각13,404개 ID 집합 동일·누락참조0. 올해 수온9,805개/최근31일 수질·조석 snapshot68개 및 무관한56테이블 행수·내용 지문 동일. 대상9테이블 VACUUM FULL/ANALYZE 전후 전체69테이블 행수·보존 지문 동일.
+- 백업: `~/.local/share/pongdang/backups/before-local-retention21-20260928-133644.dump`, 3,055,775,554bytes/0600/SHA256 `553182b37c5825a60232d59ece39a6273568e8437a2e4ba52ab74dc612295d6a`. archive411항목 전체 디코딩 및 자체50862/pongdang_test의 전체69테이블 스키마·대표2테이블 데이터 복원 통과. 모든 데이터의 전체 실복원 시험은 아님. 테스트 PG 종료.
+- 실행 중 발견한 무제한 경계 clipping UPDATE 타임아웃을 수정: `condition_storage._prune_result_history`의 과거/미래 삭제·경계 조정을 전체10,000행/statement2,000행 예산으로 제한하고 시작/끝 조건을 분리하여 기존 인덱스 사용. batch_size1의 실제4행 변경을 실패로 먼저 재현. 대량 삭제 후 오래된 통계로 인한 전체 스캔은 대상 ANALYZE로 해결. 시간 제한 확대·실패 이력 삭제·실패횟수 직접 초기화 없음.
+- 검증: 최종2파일 Ruff/format과 별도 폐기용 DB 관련20개 테스트 통과. 원격 변경의 frontend lint/Node186개/증분TypeScript와 원자료 보존 관련 테스트도 앞 단계에서 통과. 전체 릴리스 빌드·전체 suite 반복 없음.
+- 복구: backend8000 PID75515, frontend5173 PID47547, collector LaunchAgent PID75486/release218bb5bfa44f19bf. 설치 app139파일이 checkout과 일치하고 실제 cwd/최근 heartbeat 확인. backend health/ready·프런트 경유 ready·홈페이지HTTP200, 대표 conditions API와20개 catalog 확인. 브라우저 홈·오늘에서 경포 수영92.7/수온23.92°C, 시간대/주간예보/주변 비교/물때/사진/상시개방·연중무휴 표시 확인.
+- 자동 정리 활성: condition_result_retention succeeded/연속실패0/다음9월29일00:00KST, evidence_retention succeeded/연속실패0/다음9월28일15:38KST. 정리 전 condition_projection에는13:33 DATABASE_STATEMENT_TIMEOUT1회 기록이 있었고, 복구 후14:46부터 새 계산 실행 중(14:49확인, heartbeat23초 이내). 현재 표시되는 유지 결과는12:38 관측 기준이며 신규 계산 완료와 구분한다. 로컬 알림 SSO 미설정 안내도 남아 있으며 이번 DB 정리와 별도다.
+- 상세 결과·복구 절차·기계 검증: `/Users/cksmacbook/.local/share/pongdang/local-maintenance/20260928-133644/REPORT.md`, `RECOVERY.md`, `state.json`, `before.json`, `after-retention.json`, `after-vacuum.json`, `preservation-checks.json`, `vacuum-checks.json`, `runtime-checks.json`. 요청한 DB 유지보수의 미완료 단계는 없다.
+
+# 원격 main 수신·로컬 서버 재시작 완료 · 2026-09-28
+
+- 사용자 요청에 따라 원격 main만 fetch하고 `fix/finale`에 fast-forward 병합했다. `4149b54` → `ddd5aef93748f051e332b903d94139f05fa9c0d0`, 새 커밋 6개/49파일. HEAD와 origin/main 차이 0/0, 충돌 없음. 기존 미커밋 문서 2개와 미추적 산출물을 보존했다. 로컬 main과 dev refs, 원격 refs는 변경하지 않았다.
+- 로컬 웹 서버 재시작: backend `127.0.0.1:8000` PID47543, frontend `http://127.0.0.1:5173/pongdang/` PID47547. Python3.14/기존 Node24.19.0과 `/pongdang/` base를 유지했다. 로그는 `.local/dev-server-20260928-010808/`.
+- 확인: 페이지·backend health/ready·frontend 경유 ready 모두 HTTP200. 실제 브라우저 홈에서 경포 수영67.3/수온23.5°C와 시간대별 점수·장소 사진·물때 표시를 확인했다.
+- 검증: 변경 프런트 파일 ESLint, Node186개, 증분 TypeScript 통과. 변경 백엔드18파일 Ruff/format과 DB 연결 없는 날짜 범위·retention 스케줄 관련6개 테스트 통과(의존성 deprecation 경고2개). 병합 후 diff --check 통과. 전체 빌드·DB 통합 suite는 실행하지 않았다.
+- 로컬 DB는 읽기 전용 연결로 `5432/pongdang`, schema v20을 확인했다. 최신 코드의 v21 유지보수 migration과 수집기 재설치·재시작은 이번 웹 서버 재시작에서 실행하지 않았다. 운영 서버 접속·배포·push 없음.
+
+# main 병합·GitHub 푸시·운영 배포 완료 · 2026-09-27
+
+- 후속 실제 도메인 검토: 사용자가 지정한 https://pongdang.site/를 브라우저로 직접 확인. JS index-P8D2jWzU.js/CSS index-BieM4Bn9.css가4149b54 실행 컨테이너와 일치하며 장소 팝업·오늘 운영시간 상시 개방/연중무휴도 반영됨. 커밋 누락은 없음. 일반 urllib의403과 실제 브라우저 접근 결과를 혼동하면 안 됨.
+- 운영 미해결2건(읽기 전용 확인): condition_projection이 DATABASE_STATEMENT_TIMEOUT으로9회 연속 실패, 최근 성공2026-09-25T10:40:20Z/다음시도2026-09-27T16:52:15Z. 실제 화면의 관측 기준9/25 19:28·서핑64.8이 로컬과 다름. nifs_risa 수집 자체는9/27T10:54Z succeeded. 별도 점수 계산 timeout 조사가 필요하며 이번 확인에서 작업 재실행/DB 변경 안 함.
+- 인증 미해결: pongdang.site Nginx는 owner API에 auth_request 및401→/oauth2/start302를 적용한다. 브라우저 알림·취향은 Failed to fetch. 현 폼의 /sso/api/state는 해당 도메인에서200 text/html(앱 fallback)이라 로그인API가 아니다. 실제 domain OAuth 경로와 폼의 Authelia 경로가 불일치. 도메인/SSO 연동 수정이 필요하며 이번 검토에서 설정/코드 수정 안 함. 서버 세션 종료.
+- 사용자 승인 범위: 완료된 홈/오늘 화면, 실제 수온 연결, 로그인·알림 및 운영시간 표시 변경의 main 통합·push·배포. 제품/설정 템플릿/관련 테스트·문서58파일을 4149b54088b248b70fa2e1792a6931ffe7aecdf3으로 커밋했다. 기존 원격 main의 호스트 pull 배포 전환705bd65를 먼저 fast-forward하여 보존했다.
+- fix/finale → 기존 main worktree를 fast-forward하고 GitHub main에 push 완료. 최종 fix/finale/main/origin/main/원격 main은4149b54. dev/origin/dev/원격dev는0f824a9 그대로. 로컬 인수인계2개와 .byeori/.playwright-cli/output 산출물은 미커밋 상태로 보존, 비밀 설정은 커밋하지 않았다.
+- CI https://github.com/facio313/Pongdang/actions/runs/36313935051 : backend/frontend 이미지 빌드 모두 success. 직전 로컬 Node184개·lint·증분TypeScript 및 각 기능별 기존 검증 결과를 사용, 통과한 전체 검증을 반복하지 않았다. staged diff --check와 로컬 비밀값/개인키 미포함 검사 통과.
+- 운영 서버 직접 읽기: deploy-watch-state.json의 동일SHA/run36313935051/attempt1/outcome success, current release4149b54 확인. frontend/backend/collector의 이미지 태그가 모두4149b54이며 DB 포함 Healthy. health/ready200(status ok), 기본 장소470 경포와 상세의 상시 개방·연중무휴 확인. 프런트 자산 index-P8D2jWzU.js / index-BieM4Bn9.css. 운영 NIFS 키 설정 유무만 true 확인(값 출력 없음).
+- 감시기가 자연스럽게 배포했으며 수동 중복 배포·서버 설정 변경 없음. previous release705bd65 보존, 감시기 정상 종료상태0. 외부 비로그인 /pongdang 및 health/ready는 배포 전403이어서 운영 검증은 서버 loopback에서 수행했다. SSH 세션 종료. 이 완료 기록은 추가 문서 전용 배포 없이 로컬에 남긴다.
+
+# 오늘 기본 운영시간 연결 · 2026-09-27
+
+- 요청: 오늘 물때 아래 운영시간 영역에 기존 기본 시간 정보도 연결. 선택 장소의 저장된 TourAPI 상세를 기존 usePlaceDetails로 읽어 이용시간·개장 기간·휴무일과 추가 활동 시간 안내를 표시한다. 이전 수집 안내도 유지하며 출처·원천 수정일·수집일은 기본 안내 tooltip에 보존한다.
+- 기존의 항상 비어 있던 래프팅·튜브 행은 자료가 있을 때 표시한다. 별도 공식 운영시간/제한은 그대로 구분하며, 장소의 상시 개방 안내를 개별 활동의 운영 허가로 대입하지 않는다. 제목은 운영시간 안내. 변경 범위는 오늘 데스크톱 해당 영역과 데이터 표시 helper·번역·테스트.
+- 실제 경포(spot_id=7) 저장 자료에서 이용시간 상시 개방·휴무일 연중무휴 확인, 로컬 오늘 화면에 두 값이 표시되는 것과 배치 확인. 해당 장소의 별도 래프팅/튜브 시간은 현재 자료 없음. DB·수집기 변경 없음.
+- 검증: 수정 파일 ESLint, Node184개(시간 안내 관련3개 추가), 증분 TypeScript, diff --check 통과. 로그 /tmp/pongdang-operating-hours-verify.log. 기존 WIP 보존, 커밋·push·배포 없음.
+
+# 오늘 로그인 폼 · 2026-09-27
+
+- 요청: 로그인 버튼의 안내 팝업을 실제 로그인 폼과 X 닫기로 교체하고, 로그인 후 저장된 알림을 표시. 오늘 물때 설명의 내부 제공자 코드 제거.
+- 구현: 공통 loginPopover에 아이디/비밀번호 폼, 대기·실패·취소·포커스 복원 적용. 기존 same-origin Authelia `/sso/api/state` 확인 후 `/sso/api/firstfactor` 호출. 서버가 요청한 auth/continue callback을 승인한 경우에만 팝업을 닫고 invalidateResources로 알림 구독/평가/이벤트를 재조회한다. 추가 인증/정책 확인은 기존 SSO 화면으로 이어진다. 비밀번호는 저장/로그하지 않고 제출 종료·닫기에 입력 제거. 새 계정 체계, 서버 설정, 권한, DB 변경 없음.
+- 확인된 운영 읽기: bonifacio.work의 /sso/는 frame 삽입 차단, /sso/api/state는 기존 Authelia JSON 계약 제공, /pongdang/auth/continue는 SSO로302. 실제 자격증명 제출/로그인은 하지 않음. 로컬5173에는 /sso/가 연결되지 않아 실제 계정 인증은 불가하며 preflight 실패 시 비밀번호를 전송하지 않는다.
+- 검증: 수정 파일 ESLint·증분 TypeScript·Node181개(SSO 경계5개 추가) 통과. DB/외부 API 없는 별도57522 격리 UI에서 로그인 실패→성공→팝업 닫힘→구독 수온24°C/최근 알림/설정 링크 자동 표시 확인. 실제2370px 화면의 폼·X·키보드 순환·실패 후 비밀번호 포커스·제공자 코드 제거 확인. 최초 임시 검증 화면의 React import 경로 오류를 수정한 뒤 통합 흐름 통과. 격리 서버/탭은 검증 후 종료. 커밋·push·배포 없음.
+- 관련: frontend/src/loginPopover.tsx, loginPopover.css, ssoLogin.ts, locales/common.ts, TodayDesktop.tsx, frontend/tests/ssoLogin.test.mjs.
+
+# 홈 상단 장소 말풍선 · 2026-09-27
+
+- 후속2건: 홈의 중복 적합도/등급 칩을 데스크톱·모바일에서 제거. 파도는 실제 반복되지 않던 곡선과 잘못된 이동 거리(960/720px 등), 넓은 화면에서 고정 SVG 끝 노출이 원인이었다. 높이·접선·곡률이 이어지는1440주기를 두 번 그리고 SVG 폭을 컨테이너의2배 이상으로 확보해 정확히 -50%만 이동하도록 홈/공통 푸터에 적용. 수정 파일 lint·증분TypeScript·Node176개(곡선 연결/반복 동일성2개 추가) 통과,2370/390px 실제 화면과 최종 이동 시점의 폭 충족·가로 넘침 없음을 확인. 초기 lint의 미사용 테스트 변수2개를 제거한 뒤 통과. 관련 브라우저 기대값 갱신, 자동 브라우저 suite 미실행.
+- 홈 본문의 별도 기준 시각과 데스크톱 ‘강원도 물놀이’ 문구를 제거. 상단 장소명 옆에 표시 중인 조건의 computed_at → retained_at → at 순서로 날짜·시간을 표시하며 KST 표기는 생략한다.
+- 한국어 옆 장소 이름을 누르면 검색·지역·페이지·기준 장소 선택을 담은 말풍선이 열린다. 선택/기본 장소 복원 후 닫힘, Esc·바깥 클릭·키보드 포커스 이탈로 닫힘, 검색 초안 보존. 기존 오늘 화면의 selector는 유지한다. 모바일도 상단 장소명에서 같은 말풍선을 사용하며 배경만 잘라 팝업 하단이 가려지지 않도록 수정했다.
+- 검증: 변경 파일 ESLint·증분 TypeScript·Node174개 통과. 실제 로컬2370/1080/390px에서 표시·장소 변경/복원·Esc/바깥 클릭·초안 보존·모바일 팝업 잘림/가로 넘침 없음을 확인. 관련 브라우저 회귀 기대값과 팝업 동작 검사를 갱신했으며 자동 브라우저 suite는 미실행. 기본 경포 장소와 브라우저 기본 폭으로 복원. 기존 WIP 보존, 커밋·push·운영 배포 없음.
+
+# 국립수산과학원 RISA 수온 연결 · 2026-09-27
+
+- 제공받은 인증키는 ignored backend/.env의 NIFS_API_KEY에만 저장(0600). 실제 인증 성공. 최종 공식 HTTPS /api/OpenAPI_json 직접 호출로 문서 URL의302 리디렉션을 해소했으며 인증 URL·키·원본 응답은 로그/저장소에 남기지 않았다.
+- nifs_risa를30분 주기·수동 갱신·조건 결과 생성 전 수집 작업으로 등록. 기본 고성 가진 fggo3/양양 byy87/강릉 bgna3/삼척 bsc87의 표층만 수집하고 관측소 좌표·KST 시각·측정 수심5m·층을 보존. 점검/불명/결측 값은 missing, 상충 배치는 거부. 관측 시각부터60분인 앱 신선도 창을 재조회로 연장하지 않음. 기존10km 주변 경로에 연결, 대표 매핑/스키마 변경 없음. 상세에 관측 범위 표시.
+- 검증: 변경 파일 Ruff/lint/증분TypeScript와 Node174개 통과. 백엔드 최종 어댑터31개+저장/조건 원본·게시 계산 경로 통합11개=42개 통과, 앞선 refresh9개 통과. 초기 통합 테스트의 필수 쿼리 필드 누락을 수정한 뒤 통과. 폐기용57519/pongdang_test 종료. git diff --check 및 diff/새 소스의 키 미포함 확인.
+- 로컬 실행: 17:30 관측 강릉23.7/삼척24.1/양양23.3/고성 가진22.9°C 저장 성공(관측소4+관측4). backend8000 PID11506으로 재시작, health/ready200. 원본 조건 읽기에서 가진해변→고성 가진1.49km22.9°C, 낙산→양양7.08km23.3°C 확인.
+- 완료: 새 조건 결과114,238건 생성·게시 성공 후 LaunchAgent bootstrap 재개. 실제 API/홈에서 새 수온 확인: 순개울23.7°C·도직24.4°C·잔교리23.3°C·반암22.9°C, 중복 없이4곳. 반암 상세에서 고성 가진8.0km·17:30 관측·18:30 유효·표층 수심5m 표시 확인 후 홈으로 복귀. frontend5173/backend8000/자동 수집기 실행 유지. 커밋·push·운영 배포 없음.
+
+# 홈 해변 수온 기준 무작위 선택 · 2026-09-27
+
+- 최신 요청: 중복 수온을 완전히 제외한다. 동일한 표시 수온은 무작위 해변 한 곳만 선택하고, 서로 다른 값이4종 미만이면 확인된 개수만 보여준다. 아래의 부족분 중복 채우기 정책을 대체한다. 수정 파일 lint·Node174개·증분TypeScript·diff --check 통과, 실제 홈에서 안목23.53°C·증산24.4°C 두 카드만 표시 확인.
+- 추가 자료 조사(읽기 전용): NIFS RISA 공식 목록에 고성 가진·양양·강릉·삼척이 있고, 인증키 기반 risaList(30분 수온/관측 시각/층/점검 상태)와 risaCode(위경도/측정 수심)를 제공한다. https://www.nifs.go.kr/openApi/actionOpenapiInfoList.do 및 https://www.nifs.go.kr/risa/risa/risaZ/actionRisaBookMark.do 참조. 실제 인증 API 응답은 아직 확인하지 않았다. 기존 KHOA 설정은 DT_0006/TW_0089 각각 한 곳이며 KMA 부이는 코드에서22105 한 곳·좌표 미수집이어서 기존 관측소 범위 확대도 필요. 새 수집기·설정·DB 변경은 하지 않았다.
+- 후속 요청: 서로 다른 수온을 우선 선별하고, 서로 다른 값이4종 미만일 때만 남은 무작위 후보로4곳을 채운다. 같은 해변은 중복하지 않는다. 4종 이상/3종/2종 및 기존 랜덤 유지 회귀를 포함한 Node174개·lint·증분TypeScript 통과. 실제 홈에서23.53°C·24.4°C가 우선 배치되고 나머지 카드만 중복 수온으로 채워지는 것 확인.
+- 후속 요청: 홈 해변 카드의 ‘주변’·‘이전 관측’을 제거해 ‘수온 24.3°C’ 형태로 단순화. 관측소·거리·시각 tooltip 및 상세의 출처/이전 관측 구분은 유지. 변경 파일 lint·Node171개·증분TypeScript 통과, 실제 홈 카드 표시 확인.
+- 기존 이름순 앞4곳을 수온 관측이 확인되는 해변 중 최대4곳 무작위 선택으로 교체. 현재 강원 해변93곳은 kind=beach 100행 페이지에 모두 포함되며, 기존 요약 API를25개씩 최대4묶음으로 읽는다. 모든 묶음이 끝난 뒤 선별해 먼저 응답한 이름순 후보의 편향을 막는다. 선택된4곳만 사진을 읽고 카드별 수온 추가요청은 제거.
+- 직접·대표·주변 관측 수온만 포함하고 미확인·예보·상충·잘못된 단위/관측 근거·서버 무효화 자료는 제외. 오래된 실제 값은 이전 관측으로 표시. 후보가4곳 미만이면 확인된 곳만 표시한다.
+- 브라우저 페이지별 시드와 ID 정렬 후 Fisher–Yates 추첨으로 일반 재렌더·홈 왕복·데스크톱/모바일 전환 때 선택 유지, 페이지 새로고침 때 새 추첨. 웹캠 추첨과는 별개다.
+- 검증: 수정 파일 ESLint, Node171개(추첨 회귀7개 추가), 증분TypeScript, diff --check 통과. 기존 브라우저 fixture/기대값을 묶음조회·무작위 순서·미관측 제외에 맞춰 갱신하고 lint 통과; 자동 브라우저 suite 미실행. 실제 로컬 홈에서4개 전부 수온 표시,390px 가로 넘침 없음, 최종 코드 reload 후 모바일↔데스크톱 동일한4개 유지 확인.
+- 주요 파일: useHomeBeaches.ts, homeBeachPicks.ts, HomeDesktop/HomePage, FirstSwimGuide, firstSwimTemperature, useConditionSummaries 및 테스트. 백엔드·DB·수집 정책 변경 없음. 기존 WIP 보존, 커밋·push·운영 배포 없음.
+
+# 해변 카드 직접·주변 수온 구분 · 2026-09-27
+
+- 사용자 승인한 표시 방식 반영 완료. 장소 관측은 우선 사용하고, 관측이 없는 해변만 기존 observation 조건 응답의 nearby_station_context를 읽는다. 직접 관측 지점은 ‘수온’, 대표·주변 관측소는 ‘주변 수온’으로 구분. 관측값 오류·상충을 주변 값으로 가리지 않고 예보·임의 평균·DB 매핑 변경은 사용하지 않는다.
+- 카드에는 값과 ‘이전 관측’을 간단히 표시하며 모바일에서는 자연스럽게 줄바꿈한다. 상세에는 관측소 이름·직선거리·관측 시각·유효 시각·출처를 표시. 기존 useExpired 타이머로 유효기간이 지나면 이전 관측으로 전환한다. 주변 참고값은 알림 판정에 사용하지 않으며 상세에 이를 안내한다.
+- 실제 화면 확인 당시 감추→묵호 24.3°C·4.1km·15:30 관측, 강문→경포대해수욕장23.62°C·1.9km·15:20 관측(이전 관측). 가진·갯마을은 주변 자료도 없어 미확인 유지. 수집 중이므로 값은 계속 갱신된다.
+- 검증: 변경 TS/TSX ESLint, Node164개(새 수온 선택 회귀10개 포함), 증분 TypeScript, git diff --check 통과. 데스크톱 상세와 모바일390px 홈/상세에서 실제 자료·출처·만료 표시·가로 넘침 없음 확인. 기존 브라우저 회귀 기대값과 주변 자료/만료 시나리오를 갱신하고 lint 통과; 자동 브라우저 suite는 미실행.
+- 주요 파일: frontend/src/firstSwimTemperature.ts, useFirstSwimTemperature.ts, FirstSwimGuide.tsx, firstSwimGuide.css, locales/notifications.ts 및 관련 테스트. 기존 WIP 보존, 커밋·push·운영 배포 없음. 로컬 frontend5173/backend8000 계속 실행.
+
+# 홈 브라우저 피드백 8건 · 2026-09-27
+
+- 후속4건: 취향 영역 제목을 ‘이제 어디로 떠나볼까요?’로 재수정. 홈 상단 안내는 작게, 활동명은 크게 분리하고 중복 등급 문장을 데스크톱·모바일에서 제거. 변경 파일 ESLint/증분TypeScript/Node154개 통과, 실제2370px·390px 화면 및 가로 넘침 없음 확인.
+- 수온 질문 추가 조사(읽기 전용): 네 해변 모두 검증된 station_mapping은 없다. 다만 저장 조건 응답의 context_metrics에는 감추→묵호 약4.06km(24.3°C,9/27 15:00 관측), 강문→경포대해수욕장 약1.93km(23.58°C,9/27 14:50 관측)의 주변 수온이 있다. 가진·갯마을은 해당 응답도 비어 있다. 현재 카드의 water-temperature 조회는 이 주변 context를 읽지 않는다. ‘주변 관측 수온’으로 출처·거리·관측시각/오래된 값 표시를 붙여 활용하는 방안과 나머지 지역의 수집 범위 확대를 설명했으며, 아직 데이터 연결·수집 정책은 변경하지 않았다.
+- `fix/finale`에 GitHub main `217e39a`를 fast-forward한 뒤 홈 피드백을 로컬 반영했다. 기존 두 인수인계 문서 수정과 미추적 파일을 보존했으며 커밋·push·운영 배포·dev 변경은 없다.
+- 홈 해변 제목의 첫 입수 문구와 공통 하단 설명(데스크톱·모바일)을 제거. 외부 기온 제목 버튼으로 기존 점수 기준·출처를 펼치고 접으며, 별도 기준 summary는 제거. 만조·간조 시각을 확대·굵게 표시. 취향 제목은 ‘취향에 맞는 하루를 찾아보세요’로 변경.
+- 수온 미확인 원인: 실제 로컬 API에서 가진5477/감추2916/강문9/갯마을5609 모두 stations/layers가 비어 있고 `no_mapped_measurements`였다. 임의 관측소 연결이나 값 대입 없이 미확인을 유지하고 tooltip에 조회 사유를 표시한다.
+- 썸네일 원인: 공식 API가 `imgproxy.windy.com/_/thumbnail/plain/current/{camera_id}/original.jpg` 서명 URL을 반환하지만 기존 허용 목록은 옛 이미지 호스트만 수용했다. 정확한 신규 호스트·경로를 추가하고 unavailable만 명시적 refresh에서 최초 저장 가능하게 수정. 저장 성공 파일과 실패·중단 기록은 재다운로드하지 않는다. 서명 URL은 저장·응답·로그에 남기지 않았다.
+- 로컬 CLI 목록 refresh 완료: 현재 카탈로그27개, 썸네일27개 저장. 과거 카탈로그의 unavailable1개는 그대로 유지. 프록시 경유 대표 이미지3개 HTTP200/image/jpeg와 브라우저 실제 이미지 로딩을 확인했다. 운영에는 적용하지 않았다.
+- 검증: 변경 파일 ESLint/증분 TypeScript/Node154개, Ruff와 신규 폐기용 PostgreSQL18 `pongdang_test`에서 썸네일42개 통과. 관련 브라우저 회귀 기대값을 갱신했고 자동 브라우저 suite는 실행하지 않았다. 실제 로컬 브라우저 데스크톱2370px·모바일390px에서 클릭/Enter 접기·펼치기, 문구 제거, 물때 시각 강조, 이미지 표시 및 모바일 가로 넘침 없음을 확인. 임시 PG는 종료했다.
+- 로컬 실행 유지: frontend5173(PID69751), 최신 backend8000(PID76903), readiness200. 변경 파일은 HomeDesktop/HomePage/AppShell/pongdangUi/pongdangDesktop/FirstSwimGuide 및 관련 스타일·번역, backend/app/livecams/thumbnails.py와 관련 테스트, docs/webcams.md.
+
+# main 릴리스 완료 · 2026-09-23 22:20 KST
+
+- 사용자 승인에 따라 `fix/finale`의 백엔드 결과 저장 변경을 커밋하고 main에 병합·GitHub push·운영 배포 완료. 최종 main/origin/main/fix/finale은 `308070dd848f6d5a369e5c3c061f902ca7f58696`. dev/origin/dev/원격 dev는 기존 `0f824a9ccecbd7ed5332919c99b03920b769000c` 유지. frontend 제품 소스와 로컬 미추적 산출물은 변경하지 않았다.
+- 복구 호환 릴리스 `86c0460`을 Actions `35864038830`으로 먼저 배포했다. v20 DB 수용과 legacy snapshot이 있는 세대만 읽는 v19 복구 경로를 관련 7개 검사로 검증했다. 본 변경 `66ed89a`는 main 병합 `f29afb9`에 포함됐다.
+- `f29afb9`의 두 이미지 빌드는 성공했으나 Actions `35864259207` 배포가 초기화 약 5초 뒤 실패했다. 트랜잭션 rollback, 앱 교체 전 중단했으며 기존 운영 점수 표시를 확인했다. 당시 로그에 오류 종류가 없어 3초 DDL 잠금 경합은 유력 가설로 남는다.
+- 후속 `308070d`: v20 이관에서 세 관련 테이블의 NOWAIT 잠금을 savepoint 안에서 모두 확보하고, 경합 시 부분 잠금을 풀어 최대 600초 기다린다. 초기화 전용 lock timeout 60초 / statement timeout 300초, CLI 오류 로그는 예외 종류와 SQLSTATE만 포함한다. 폐기 가능한 별도 DB에서 잠금 경합 4개 + 기존 이관 6개, 초기화·진단 6개 및 Ruff 통과.
+- 최종 Actions `35864993519` 성공: backend/frontend 이미지 빌드, 스키마 초기화, backend/frontend/collector/db Healthy, readiness `{"status":"ok"}`, 로그의 배포 SHA `308070dd848f6d5a369e5c3c061f902ca7f58696` 확인. 운영 초기화는 약 11분 5초 걸렸고 배포 완료는 22:20:16 KST. https://github.com/facio313/Pongdang/actions/runs/35864993519
+- 이관 중 운영 홈 점수 조회의 일시 오류를 직접 확인했다. 완료 후 컴퓨터 유즈로 운영 홈의 경포 수영 66.2, 수온 23.71°C, 09/12/15/18시 55.7/86.8/91.2/74.5, 명소 사진 복구를 확인했다. 오늘 화면에도 수영 66.2 / 서핑 58.3 / 휴식 62와 이전 값 유지 표시가 나왔다. 자료 없는 온천·래프팅은 결측을 유지한다. 별도의 운영 부하 시험이나 새 수집 주기 전체 완료 검증은 하지 않았다.
+- 운영의 옛 결과 snapshot은 복구용으로 보존하며 retirement는 실행하지 않았다. 로컬에서 이미 확인한 추천 활동 불일치·지도 행 수온 누락·물때 표 중복 key는 이번 범위에 포함하지 않은 기존 미해결 사항이다.
+- 상세 로그/실행 결과: `/Users/cksmacbook/.local/share/pongdang/releases/20260923-condition-results/`. 이 완료 메모는 로컬 인수인계용으로만 갱신하며 문서 전용 재배포를 유발하는 추가 push는 하지 않는다. 아래 항목은 당시 작업 이력이다.
 
 # 조건 결과 백그라운드 갱신 · 2026-09-23
 

@@ -60,13 +60,13 @@ export function TodayForecast({ id, now, activity, placeSettled = false }: {
                 data-grade={grade.key}
                 aria-pressed={day.id === selected.id}
                 aria-label={`${day.weekday} ${day.dateLabel} · ${
-                  day.loading ? t("조회 중") : day.error ? t("조회 실패") : day.score === null
+                  day.loading ? t("조회 중") : day.error ? t("조회 실패") : day.awaitingForecast ? t("예보 자료 대기") : day.score === null
                     ? t("평가값 없음") : t("{score}점 {grade}", { score: day.score, grade: t(grade.label) })
                 }${dayCoverage ? ` · ${dayCoverage}` : ""}`}
                 onClick={() => setForecastDayId(day.id)}
               >
                 <span className="td-bar-score">
-                  {day.loading ? t("조회 중") : day.error ? t("조회 실패") : day.score === null ? "–" : day.score}
+                  {day.loading ? t("조회 중") : day.error ? t("조회 실패") : day.awaitingForecast ? t("대기") : day.score === null ? "–" : day.score}
                 </span>
                 <span className="td-bar-fill" style={{
                   height: day.score === null ? "4px" : `${Math.max(8, (day.score / maxScore) * 46)}px`,
@@ -82,12 +82,14 @@ export function TodayForecast({ id, now, activity, placeSettled = false }: {
           <span>{selected.weekday} · {selected.dateLabel}</span>
           {selected.loading ? <span role="status">{t("예보 점수 조회 중")}</span>
             : selected.error ? <span>{t("예보 점수 조회 실패")}</span>
+            : selected.awaitingForecast ? <span role="status">{t("예보 자료 대기")}</span>
             : <><GradeChip score={selected.score} />
               {selected.score === null && <StateChip kind="no_data" />}
             </>}
           {coverage && <span>{coverage}</span>}
         </div>
         {selected.error && <p className="pd-note" role="alert">{t("예보 점수 조회 실패: {error}", { error: t(selected.error) })}</p>}
+        {selected.awaitingForecast && !selected.error && <p className="pd-note">{t("해당 날짜의 예보 자료를 아직 받지 못했습니다. 자료가 수집되면 점수를 표시합니다.")}</p>}
         {selected.data && <ConditionScoreDetails data={selected.data} className="pd-note" />}
 
         <div aria-label={t("선택 날짜 예보 목록")}>

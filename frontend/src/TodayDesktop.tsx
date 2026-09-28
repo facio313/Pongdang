@@ -31,23 +31,22 @@ import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import {
-  conditionScore,
   conditionModeLabel,
   dataStatusText,
   dateLabel,
   timeLabel,
   metricText,
   periodPath,
+  placeRegionLabel,
   scoreCoverageText,
   tideTimeLabel,
   waterQualityLabel,
   type Conditions,
-  type Place,
 } from "./productData";
 import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
-import { useConditions } from "./useConditions";
 import { useComparisonPlaces } from "./useComparisonPlaces";
+import type { ComparisonPlace } from "./comparisonPlaces";
 import { useConditionDays } from "./useConditionDays";
 import type { ActivityCondition } from "./useBestActivity";
 import "./todayDesktop.css";
@@ -233,24 +232,20 @@ function TodayHero({
   );
 }
 
-/** 지점 한 줄. 모바일 오늘 탭의 SpotComparisonRow 와 같은 규칙으로, 지점마다
- *  자기 조건을 따로 조회합니다. */
+/** 지점 한 줄. 모바일과 같은 필터 결과를 추가 조회 없이 표시합니다. */
 function SpotRow({
   place,
-  activity,
   max,
 }: {
-  place: Place;
-  activity: Activity;
+  place: ComparisonPlace;
   max: number;
 }) {
-  const conditions = useConditions(place.id, activity);
-  const score = conditionScore(conditions.data);
+  const score = place.score;
   const grade = gradeOf(score);
   return (
     <div className="td-spot" data-grade={grade.key}>
       <span className="pd-dk-num td-spot-score">
-        {isInitialLoad(conditions) ? (
+        {place.loading ? (
           <Skeleton width="1.6em" label={t("점수 조회 중")} />
         ) : (
           (score ?? "–")
@@ -262,8 +257,8 @@ function SpotRow({
       </span>
       <span className="td-spot-body">
         <span className="td-spot-name">{place.name}</span>
-        <span className="td-spot-address">{place.address ?? t("주소 없음")}</span>
-        {score !== null && <small className="td-score-coverage">{scoreCoverageText(conditions.data)}</small>}
+        <span className="td-spot-address">{placeRegionLabel(place)} · {place.address ?? t("주소 없음")}</span>
+        {score !== null && <small className="td-score-coverage">{scoreCoverageText(place.conditions)}</small>}
       </span>
       <span className="td-spot-bar">
         {/* 값이 없으면 막대를 그리지 않습니다 -- 폭 0 인 막대는 「0 점」과
@@ -276,7 +271,7 @@ function SpotRow({
         )}
       </span>
       <span className="pd-dk-num td-spot-temp">
-        {metricText(conditions.data, "water_temperature")}
+        {place.waterTemperature}
       </span>
     </div>
   );
@@ -288,7 +283,7 @@ function SpotComparison({
   status,
   statusIsError,
 }: {
-  rows: Place[];
+  rows: ComparisonPlace[];
   activity: Activity;
   status: string;
   statusIsError?: boolean;
@@ -298,19 +293,21 @@ function SpotComparison({
     <div>
       <div className="td-head">
         <span className="pd-dk-kick">
-          {t("지점 비교 · {activity} 점수", { activity: t(activities[activity]) })}</span>
+          {t("다른 지역 비교 · {activity} 점수", { activity: t(activities[activity]) })}</span>
         <StateChip kind={resolved.length ? "live" : "no_data"} />
         <a className="td-head-link" href="#map">
           {t("전체 지도 →")}</a>
       </div>
       {resolved.map((place) => (
-        <SpotRow key={place.id} place={place} activity={activity} max={100} />
+        <SpotRow key={place.id} place={place} max={100} />
       ))}
       {status && (
         <p className="td-note" role={statusIsError ? "alert" : "status"}>
           {status}
         </p>
       )}
+      {resolved.some((place) => place.conditions?.condition_score?.status === "partial") &&
+        <p className="td-note">{t("부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.")}</p>}
     </div>
   );
 }
@@ -395,6 +392,7 @@ function WeekForecast({
 }) {
   const days = useConditionDays(id, now, activity);
   const errors = [...new Set(days.flatMap((day) => day.error ? [day.error] : []))];
+  const waitingDates = days.filter((day) => day.awaitingForecast && !day.error).map((day) => day.dateLabel);
   const max = Math.max(
     ...days.flatMap((day) => (day.score === null ? [] : [day.score])),
     1,
@@ -412,7 +410,7 @@ function WeekForecast({
           return (
             <div className="td-day" data-grade={grade.key} key={day.at}>
               <div className="pd-dk-num td-day-score">
-                {day.loading ? <Skeleton width="1.6em" label={t("예보 조회 중")} /> : (day.score ?? "–")}
+                {day.loading ? <Skeleton width="1.6em" label={t("예보 조회 중")} /> : day.awaitingForecast ? t("대기") : (day.score ?? "–")}
               </div>
               {day.score !== null && scoreCoverageText(day.data) && (
                 <div className="td-score-coverage"><small>{scoreCoverageText(day.data)}</small></div>
@@ -436,13 +434,14 @@ function WeekForecast({
               {/* 숫자 · 등급명 · 아이콘 · 색 네 겹을 좁은 칸에서도 지킵니다. */}
               <div className="td-day-grade">
                 <GradeIcon gradeKey={grade.key} size={11} />
-                {day.loading ? t("조회 중") : day.error ? t("조회 실패") : t(grade.label)}
+                {day.loading ? t("조회 중") : day.error ? t("조회 실패") : day.awaitingForecast ? t("예보 자료 대기") : t(grade.label)}
               </div>
             </div>
           );
         })}
       </div>
       {errors.length > 0 && <p className="td-note" role="alert">{t("예보 조회 실패: {error}", { error: errors.map((error) => t(error)).join(" · ") })}</p>}
+      {waitingDates.length > 0 && <p className="td-note" role="status">{waitingDates.join(" · ")} · {t("해당 날짜의 예보 자료를 아직 받지 못했습니다. 자료가 수집되면 점수를 표시합니다.")}</p>}
       <p className="td-note">
         {t("날짜별 12:00 KST에 유효한 수집 예보로 계산합니다. 일부 근거만 있는 날짜는 부분 점수이며, 해당 시각의 근거가 없으면 –입니다. 안전 판정은 별도입니다.")}</p>
     </section>
@@ -493,13 +492,13 @@ export function TodayDesktop() {
     recommendation, displayName, selectionMessage, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
-  const comparison = useComparisonPlaces(place);
   const placeDetails = usePlaceDetails(place ? [place.id] : []);
   const detail = place ? placeDetails.byId.get(place.id) : undefined;
   const schedule = placeOperatingSchedule(detail);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
   const activity: Activity = best?.activity ?? "swim";
+  const comparison = useComparisonPlaces(place, activity, conditions.data, isInitialLoad(conditions));
   const event = tides.data?.next_high ?? tides.data?.next_low;
 
   return (

@@ -64,12 +64,14 @@ class PlacePage(BaseModel):
 
 
 class NearbyPlaces(BaseModel):
-    rows: list[PreviewPlace] = Field(max_length=2)
+    rows: list[PreviewPlace] = Field(max_length=25)
     status: Literal["ready", "coordinates_unavailable"]
 
 
-async def read_nearby_places(reader, spot_id):
-    """Two distinct places of the selected kind, ordered by great-circle distance."""
+async def read_nearby_places(reader, spot_id, limit=2):
+    """Bounded distinct places of the selected kind, nearest first."""
+    if not 1 <= limit <= 25:
+        raise ValueError("Nearby place limit must be between 1 and 25")
     async with reader.connection() as c:
         reference = await (
             await c.execute(
@@ -105,7 +107,7 @@ async def read_nearby_places(reader, spot_id):
                 # No page, name, score or district preference may outrank distance.
                 "ORDER BY power(sin(radians(p.lat-%s)/2),2) + "
                 "cos(radians(%s))*cos(radians(p.lat))*"
-                "power(sin(radians(p.lng-%s)/2),2), p.id LIMIT 2",
+                "power(sin(radians(p.lng-%s)/2),2), p.id LIMIT %s",
                 [
                     reference["place_kind"],
                     reference["canonical_id"],
@@ -113,6 +115,7 @@ async def read_nearby_places(reader, spot_id):
                     lat,
                     lat,
                     lng,
+                    limit,
                 ],
             )
         ).fetchall()
@@ -196,8 +199,10 @@ def create_places_router(settings, *, reader=None):
         return region_options()
 
     @router.get("/places/nearby", response_model=NearbyPlaces)
-    async def nearby_places(spot_id: int = Query(..., gt=0)):
-        return await read_nearby_places(reader, spot_id)
+    async def nearby_places(
+        spot_id: int = Query(..., gt=0), limit: int = Query(2, ge=1, le=25)
+    ):
+        return await read_nearby_places(reader, spot_id, limit)
 
     @router.get("/places", response_model=PlacePage)
     async def places(

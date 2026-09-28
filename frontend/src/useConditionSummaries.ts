@@ -26,6 +26,7 @@ const SUMMARY_CHUNKS = 4;
 export function useConditionSummaries(
   ids: number[],
   activity: Activity = "swim",
+  mode: "observation" | "forecast" = "observation",
 ) {
   // 경로를 먼저 만들고 그 **문자열**을 의존성으로 씁니다. ids 배열은 렌더마다
   // 새 참조라 그대로 쓰면 메모가 서지 않습니다.
@@ -39,9 +40,10 @@ export function useConditionSummaries(
       conditionSummaryPath(
         selected.slice(index * SUMMARY_BATCH_MAX, (index + 1) * SUMMARY_BATCH_MAX),
         activity,
+        mode,
       ),
     );
-  }, [key, activity]);
+  }, [key, activity, mode]);
 
   // 슬롯 수는 상수이므로 훅 호출 순서가 흔들리지 않습니다. SUMMARY_CHUNKS 를
   // 바꾸면 이 줄도 함께 바꿔야 합니다 -- 훅은 반복문으로 부를 수 없습니다.

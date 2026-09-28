@@ -31,6 +31,7 @@ export interface RouteRequestValue {
   stay_minutes: number;
   stop_count: number;
   candidate_ranks: number[];
+  preserve_order?: boolean;
 }
 
 const STAY_CHOICES = [30, 60, 90, 120];

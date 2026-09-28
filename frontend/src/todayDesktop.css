@@ -330,10 +330,12 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
-  align-items: end;
+  align-items: stretch;
   margin-top: 14px;
 }
 .pd-desktop .td-day {
+  display: flex;
+  flex-direction: column;
   text-align: center;
   background: var(--dk-mist);
   border-radius: var(--dk-r-ctl);
@@ -342,6 +344,7 @@
 .pd-desktop .td-day-score {
   font-size: 22px;
   color: var(--g-ink);
+  margin-bottom: auto;
 }
 .pd-desktop .td-day-track {
   height: 62px;

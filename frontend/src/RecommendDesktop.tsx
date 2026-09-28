@@ -1,5 +1,7 @@
 import { t } from "./i18n.ts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEventHandler } from "react";
+import { candidateCourse, moveCandidate } from "./candidateCourse";
+import { useCandidateReorder } from "./useCandidateReorder";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import {
   DesktopHero,
@@ -95,10 +97,22 @@ function RdStep({
   step,
   activity,
   emptyLink,
+  editing,
 }: {
   step: RdStepRow;
   activity: Activity;
   emptyLink: string;
+  editing?: {
+    included: boolean;
+    origin: boolean;
+    disabled: boolean;
+    onToggle: () => void;
+    onMove: (offset: number, handle: HTMLButtonElement) => void;
+    onPointerDown: PointerEventHandler<HTMLButtonElement>;
+    onPointerMove: PointerEventHandler<HTMLButtonElement>;
+    onPointerUp: PointerEventHandler<HTMLButtonElement>;
+    onPointerCancel: PointerEventHandler<HTMLButtonElement>;
+  };
 }) {
   const targetValid = conditionTargetInRange(step.at);
   const conditions = useResource<Conditions>(
@@ -106,8 +120,20 @@ function RdStep({
   );
   const score = conditionScore(conditions.data);
   return (
-    <div className="rd-step">
-      <span className="pd-dk-num rd-step-no">{step.no}</span>
+    <div className={"rd-step" + (editing && !editing.included ? " is-excluded" : "")} data-spot-id={step.spotId}>
+      <span className="rd-step-number">
+        {editing ? (
+          <button
+            className="pd-dk-num rd-step-no rd-step-toggle"
+            type="button"
+            aria-label={t("{name} 코스에 포함", { name: step.name })}
+            aria-pressed={editing.included}
+            disabled={editing.disabled}
+            onClick={editing.onToggle}
+          >{step.no}</button>
+        ) : <span className="pd-dk-num rd-step-no">{step.no}</span>}
+        {editing?.origin && <span className="rd-step-origin">{t("출발")}</span>}
+      </span>
       <PlacePhoto className="rd-step-photo" name={step.name} photo={step.photo} />
       <div className="rd-step-body">
         <div className="rd-step-name">{step.name}</div>
@@ -133,6 +159,31 @@ function RdStep({
           {t("이 구간 길찾기")}</a>
       ) : (
         <span className="rd-step-link is-empty">{emptyLink}</span>
+      )}
+      {editing && (
+        <button
+          className="rd-step-drag"
+          type="button"
+          disabled={editing.disabled}
+          draggable={false}
+          aria-label={t("{name} 순서 이동", { name: step.name })}
+          aria-describedby="rd-order-help"
+          title={t("드래그하거나 위·아래 방향키로 순서를 바꾸세요.")}
+          onPointerDown={editing.onPointerDown}
+          onPointerMove={editing.onPointerMove}
+          onPointerUp={editing.onPointerUp}
+          onPointerCancel={editing.onPointerCancel}
+          onLostPointerCapture={editing.onPointerCancel}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+            event.preventDefault();
+            editing.onMove(event.key === "ArrowUp" ? -1 : 1, event.currentTarget);
+          }}
+        >
+          <svg width="18" height="24" viewBox="0 0 18 24" fill="currentColor" aria-hidden="true">
+            {[6, 12, 18].flatMap((y) => [6, 12].map((x) => <circle key={`${x}:${y}`} cx={x} cy={y} r="1.5" />))}
+          </svg>
+        </button>
       )}
     </div>
   );
@@ -225,15 +276,26 @@ export function RecommendDesktop() {
   }, locale);
 
   const { session, bubbles, asked, draft, setDraft, publish, send: sendChat, requestRoute, lastTrace, chatRequest, changeRegion, reset } =
-    useTravelConcierge({ opener: OPENER, baseRequest, action });
+    useTravelConcierge({ opener: OPENER, baseRequest, action, excludeLastCandidate: true });
   const [traceOpen, setTraceOpen] = useState(false);
-  const recommendation = session.recommendation;
   const calculated = session.route?.route;
+  const recommendation = useMemo(() => {
+    const base = session.recommendation;
+    if (!base || !calculated) return base;
+    const order = new Map(calculated.items.map((item, index) => [item.spot_id, index]));
+    return { ...base, recommendations: [...base.recommendations].sort((a, b) =>
+      (order.get(a.spot_id) ?? Infinity) - (order.get(b.spot_id) ?? Infinity)) };
+  }, [session.recommendation, calculated]);
   const items = calculated?.items ?? [];
   // 저장된 코스를 열면 후보 목록(recommendation)은 없고 정차지만 있습니다.
   // 그것도 보여 줄 코스이므로 같은 자리에 그립니다 -- 예전에는 이 화면이
   // recommendation 하나만 보고 그려서, 저장한 코스를 열면 빈 화면이었습니다.
   const savedStops = recommendation ? [] : planItems(session.plan);
+  const includedIds = session.planInput?.stops.map((stop) => stop.spot_id) ?? [];
+  const courseInput = recommendation && !calculated
+    ? candidateCourse(recommendation, includedIds)
+    : session.planInput;
+  const [orderNotice, setOrderNotice] = useState("");
 
   // 저장한 코스 열기. 내 코스 화면이 만드는 `#recommend?plan_id=…` 링크는
   // 모바일 폭에서만 열렸습니다 -- 이 화면이 plan_id 를 읽지 않았기 때문입니다.
@@ -275,6 +337,26 @@ export function RecommendDesktop() {
     if (window.location.hash.includes("plan_id="))
       window.history.replaceState(null, "", "#recommend");
   };
+  const editCandidates = (next: RecommendationResult, included: number[]) => {
+    clearSavedNotice();
+    setTravelSession({
+      recommendation: next,
+      planInput: candidateCourse(next, included),
+      plan: null,
+      route: null,
+    });
+  };
+  const move = (from: number, to: number) => {
+    if (!recommendation) return;
+    const next = moveCandidate(recommendation, from, to);
+    if (next === recommendation) return;
+    editCandidates(next, includedIds);
+    setOrderNotice(t("{name}의 순서를 변경했습니다.", { name: next.recommendations.find((row) => row.spot_id === from)!.name }));
+  };
+  const {
+    listRef: stepsRef, onPointerDown, onPointerMove, onPointerUp,
+    onPointerCancel, moveWithKeyboard,
+  } = useCandidateReorder(move, session);
   const send = (text: string) => {
     if (!text.trim()) return;
     candidateAction.cancel();
@@ -337,17 +419,17 @@ export function RecommendDesktop() {
   const save = () =>
     void saveAction.run(async (signal) => {
       setSavedPlanId(null);
-      if (!session.planInput) throw new Error("저장할 코스가 없습니다.");
+      if (!courseInput) throw new Error("저장할 코스가 없습니다.");
       const plan = await travelJson<TripPlan>(
         import.meta.env.BASE_URL,
         "travel/plans",
         "POST",
-        session.planInput,
+        courseInput,
         signal,
       );
       if (!signal.aborted) {
         window.history.replaceState(null, "", `#recommend?plan_id=${plan.plan_id}`);
-        setTravelSession({ plan });
+        setTravelSession({ plan, planInput: courseInput });
         setSavedPlanId(plan.plan_id);
       }
     });
@@ -387,41 +469,34 @@ export function RecommendDesktop() {
   const stepAt =
     (session.plan?.request.dates[0] ?? recommendation?.request.dates[0] ?? kstDate()) +
     "T12:00:00+09:00";
-  const stepBase: RdStepRow[] = calculated
-    ? items.map((item, index) => ({
-        key: `${item.spot_id}:${index}`,
-        spotId: item.spot_id,
-        at: item.arrival_at ?? stepAt,
-        no: index + 1,
-        name: item.name,
-        when: t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at), minutes: calculated.legs[index] ? t("{minutes}분 이동", { minutes: calculated.legs[index].duration_minutes }) : t("이동시간 –") }),
-        chips: [],
-        link: kakaoRouteLink(index === 0 ? calculated.origin : items[index - 1], [item]),
-      }))
-    : recommendation
-      ? recommendation.recommendations.map((item) => ({
+  const stepBase: RdStepRow[] = recommendation
+    ? recommendation.recommendations.map((item, index) => {
+        const routeIndex = items.findIndex((row) => row.spot_id === item.spot_id);
+        const routeItem = items[routeIndex];
+        return {
           key: String(item.spot_id),
           spotId: item.spot_id,
-          at: stepAt,
-          no: item.rank,
-          name: item.name,
-          when: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
-          chips: item.matched_preferences.map((preference) => t(preference.tag)),
-          link: null,
-        }))
-      : // 저장된 코스의 정차지. 시각이 있으면 함께 적습니다.
-        savedStops.map((stop, index) => ({
-          key: `${stop.spot_id}:${index}`,
-          spotId: stop.spot_id,
-          at: stop.arrival_at ?? stepAt,
+          at: routeItem?.arrival_at ?? stepAt,
           no: index + 1,
-          name: stop.name,
-          when: stop.arrival_at
-            ? t("{arrival} 도착", { arrival: timeLabel(stop.arrival_at) })
-            : t("시각 미정"),
-          chips: [t("저장 일정")],
-          link: null,
-        }));
+          name: item.name,
+          when: routeItem
+            ? t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(routeItem.arrival_at), departure: timeLabel(routeItem.departure_at), minutes: calculated?.legs[routeIndex] ? t("{minutes}분 이동", { minutes: calculated.legs[routeIndex].duration_minutes }) : t("이동시간 –") })
+            : t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
+          chips: item.matched_preferences.map((preference) => t(preference.tag)),
+          link: routeItem && !(routeIndex === 0 && calculated?.origin?.spot_id === item.spot_id)
+            ? kakaoRouteLink(routeIndex === 0 ? calculated?.origin : items[routeIndex - 1], [routeItem]) : null,
+        };
+      })
+    : savedStops.map((stop, index) => ({
+        key: `${stop.spot_id}:${index}`,
+        spotId: stop.spot_id,
+        at: stop.arrival_at ?? stepAt,
+        no: index + 1,
+        name: stop.name,
+        when: stop.arrival_at ? t("{arrival} 도착", { arrival: timeLabel(stop.arrival_at) }) : t("시각 미정"),
+        chips: [t("저장 일정")],
+        link: null,
+      }));
   // 사진은 목록 하나로 한 번에 읽습니다(usePlacePhotos).
   const stepPhotos = usePlacePhotos(stepBase.map((row) => ({ ...row, id: row.spotId })));
   const stepRows: RdStepRow[] = stepPhotos.rows ?? stepBase;
@@ -432,23 +507,26 @@ export function RecommendDesktop() {
   const { ordered, markers } = useMemo(() => {
     const route = session.route?.route;
     const places = route
-      ? route.items.map((item) => ({
+      ? route.items.map((item, index) => ({
+          no: index + 1,
           id: item.spot_id,
           name: item.name,
           lat: item.latitude,
           lng: item.longitude,
         }))
-      : (session.recommendation?.recommendations ?? []).map((item) => ({
+      : (session.recommendation?.recommendations ?? [])
+          .map((item, index) => ({
+          no: index + 1,
           id: item.spot_id,
           name: item.name,
           lat: item.confirmed.latitude,
           lng: item.confirmed.longitude,
-        }));
+        })).filter((place) => session.planInput?.stops.some((stop) => stop.spot_id === place.id));
     const start = route?.origin;
     return {
       ordered: places,
       markers: [
-        ...(start && start.latitude !== null && start.longitude !== null
+        ...(start && start.spot_id !== places[0]?.id && start.latitude !== null && start.longitude !== null
           ? [
               {
                 id: "origin",
@@ -466,13 +544,14 @@ export function RecommendDesktop() {
           })),
       ],
     };
-  }, [session.route, session.recommendation]);
+  }, [session.route, session.recommendation, session.planInput]);
   const paths = useMemo(() => routePaths(session.route), [session.route]);
   const unmappable = ordered.filter(
     (place) => place.lat === null || place.lng === null,
   ).length;
   const wholeTrip = calculated
-    ? kakaoRouteLink(calculated.origin, calculated.items)
+    ? kakaoRouteLink(calculated.origin, calculated.items[0]?.spot_id === calculated.origin?.spot_id
+      ? calculated.items.slice(1) : calculated.items)
     : null;
 
   const currentRegion = (step === "chat" ? chatRequest?.region
@@ -483,6 +562,8 @@ export function RecommendDesktop() {
     : recommendation ? t("후보 {count}곳", { count: recommendation.recommendations.length }) : t("후보 조회 전");
   const error = candidateAction.error || action.error || saveAction.error || requestedPlan.error;
   const mutationBusy = action.busy || candidateAction.busy || saveAction.busy;
+  const allSelected = Boolean(recommendation?.recommendations.length) &&
+    recommendation!.recommendations.every((item) => includedIds.includes(item.spot_id));
 
   /** 고른 취향을 지금 화면 밖에서도 말할 수 있는가. 취향 고르는 중에는
    *  본문이 이미 그 내용이므로 히어로에서 되풀이하지 않습니다. */
@@ -943,7 +1024,7 @@ export function RecommendDesktop() {
       {showCourse && (
         <div className="rd-course-anchor" ref={courseRef}>
           <LabelRow
-            kick={t("후보와 최적 순서")}
+            kick={t("방문 장소와 순서")}
             title={
               calculated
                 ? t("방문 {count}곳 · {minutes}분 이동", { count: items.length, minutes: calculated.travel_minutes })
@@ -961,16 +1042,44 @@ export function RecommendDesktop() {
           >
             {recommendation?.recommendations.length || savedStops.length ? (
               <>
-                <div className="rd-steps">
-                  {stepRows.map((step) => (
+                {recommendation && <div className="rd-order-toolbar">
+                  <p className="rd-note" id="rd-order-help">
+                    {t("번호를 눌러 방문 여부를 정하고 오른쪽 손잡이로 순서를 바꾸세요. 선택한 첫 장소에서 출발합니다.")}
+                  </p>
+                  <button
+                    type="button"
+                    className="pd-dk-button is-quiet rd-select-all"
+                    disabled={mutationBusy}
+                    aria-controls="rd-candidate-list"
+                    onClick={() => editCandidates(recommendation, allSelected ? [] : recommendation.recommendations.map((item) => item.spot_id))}
+                  >{allSelected ? t("전체 체크 해제") : t("전체 체크")}</button>
+                </div>}
+                <div className="rd-steps" id="rd-candidate-list" ref={stepsRef}>
+                  {stepRows.map((step, index) => (
                     <RdStep
                       key={step.key}
                       step={step}
                       activity={stepActivity}
-                      emptyLink={calculated ? t("좌표 –") : t("경로 계산 전")}
+                      emptyLink={recommendation && !includedIds.includes(step.spotId) ? t("코스에서 제외") : calculated?.origin?.spot_id === step.spotId ? t("출발") : calculated ? t("좌표 –") : t("경로 계산 전")}
+                      editing={recommendation ? {
+                        included: includedIds.includes(step.spotId),
+                        origin: courseInput?.stops[0]?.spot_id === step.spotId,
+                        disabled: mutationBusy,
+                        onToggle: () => editCandidates(recommendation, includedIds.includes(step.spotId)
+                          ? includedIds.filter((id) => id !== step.spotId) : [...includedIds, step.spotId]),
+                        onMove: (offset, handle) => {
+                          const target = stepRows[index + offset];
+                          if (target) moveWithKeyboard(handle, step.spotId, target.spotId);
+                        },
+                        onPointerDown: (event) => onPointerDown(event, step.spotId),
+                        onPointerMove,
+                        onPointerUp,
+                        onPointerCancel,
+                      } : undefined}
                     />
                   ))}
                 </div>
+                <span className="rd-order-status" role="status">{orderNotice}</span>
                 {session.route && !session.route.route_calculated && (
                   <p className="rd-note">
                     {t("경로 미계산:")}{" "}
@@ -980,27 +1089,29 @@ export function RecommendDesktop() {
                 )}
                 {calculated && (
                   <p className="rd-note">
-                    {session.route?.optimality ===
-                    "provisional_missing_comparison_evidence"
+                    {session.route?.optimality === "user_selected_order"
+                      ? t("직접 정한 방문 순서로 계산한 예상 이동 시간입니다.")
+                      : session.route?.optimality === "provisional_missing_comparison_evidence"
                       ? t("일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다.")
                       : t("선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다.")}{" "}
                     {routeReasonsText(session.route?.reason_codes ?? [])}
                   </p>
                 )}
-                <RouteCandidatesForm
+                {recommendation && <RouteCandidatesForm
                   places={originOptions}
-                  candidates={candidates}
+                  candidates={recommendation.recommendations.flatMap((item) =>
+                    candidates.filter((candidate) => candidate.spot_id === item.spot_id && includedIds.includes(candidate.spot_id)))}
                   defaultDate={
                     // 저장된 코스를 연 경우에는 그 코스의 날짜를 씁니다.
                     (recommendation ?? session.plan)?.request.dates[0]
                   }
                   disabled={mutationBusy}
-                  busy={mutationBusy}
+                  busy={action.busy}
                   submitLabel={
-                    calculated ? t("조건을 바꿔 다시 계산") : t("이 후보로 경로 계산")
+                    calculated ? t("이 순서로 다시 계산") : t("이 순서로 경로 계산")
                   }
                   onSubmit={(value) => { clearSavedNotice(); requestRoute(value); }}
-                />
+                />}
                 <div className="rd-row-foot">
                   <button
                     type="button"
@@ -1011,7 +1122,7 @@ export function RecommendDesktop() {
                   <button
                     type="button"
                     className="pd-dk-button"
-                    disabled={mutationBusy || !session.planInput}
+                    disabled={mutationBusy || !courseInput}
                     onClick={save}
                   >
                     {session.plan ? t("이 코스 다시 저장") : t("내 코스에 저장")}
@@ -1104,7 +1215,7 @@ export function RecommendDesktop() {
                       (place) => place.id === Number(id),
                     );
                     return index === -1 ? null : (
-                      <span className="pd-dk-num rd-pin">{index + 1}</span>
+                      <span className="pd-dk-num rd-pin">{ordered[index].no}</span>
                     );
                   }}
                 />
@@ -1112,7 +1223,7 @@ export function RecommendDesktop() {
               <div className="rd-legend">
                 {ordered.map((place, index) => (
                   <span className="rd-legend-item" key={`${place.id}:${index}`}>
-                    <span className="pd-dk-num rd-legend-no">{index + 1}</span>
+                    <span className="pd-dk-num rd-legend-no">{place.no}</span>
                     {place.name}
                   </span>
                 ))}

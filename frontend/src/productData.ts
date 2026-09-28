@@ -153,8 +153,14 @@ export function conditionScore(
     index.score >= 0 && index.score <= 100 ? index.score : null;
 }
 
+/** No published forecast covers this target yet; do not present it as a grade. */
+export function forecastAwaitingData(data?: Conditions): boolean {
+  return data?.mode === "forecast" && conditionScore(data) === null &&
+    data.reason_codes.includes("condition_projection_unavailable_for_target");
+}
+
 /** 숫자 바로 옆에 놓는 근거 요약. 부분 점수의 원값과 서버의 확보율을 유지합니다. */
-export function scoreCoverageText(data?: Conditions): string {
+export function scoreCoverageText(data?: { condition_score?: ConditionScore | null }): string {
   const index = data?.condition_score;
   if (!index) return t("근거 정보 없음");
   const prefix = index.status === "partial" ? t("부분 점수 · ") : "";
@@ -521,13 +527,15 @@ export const SUMMARY_BATCH_MAX = 25;
 export function conditionSummaryPath(
   ids: number[],
   activity: Activity = "swim",
+  mode: "observation" | "forecast" = "observation",
 ): string | null {
   const selected = [...new Set(ids)]
     .filter((id) => Number.isSafeInteger(id) && id > 0)
     .sort((a, b) => a - b);
   return selected.length
     ? "water-index/conditions/summary?" +
-        new URLSearchParams({ spot_ids: selected.join(","), activity })
+        new URLSearchParams({ spot_ids: selected.join(","), activity,
+          ...(mode === "forecast" ? { mode } : {}) })
     : // 물어볼 지점이 없는 것은 「해당 없음」입니다. 조회는 나가지 않습니다.
       null;
 }

@@ -53,6 +53,26 @@ def test_nearest_same_kind_across_whole_catalog_excludes_all_aliases(identity_db
             assert body["status"] == "ready"
             assert [row["id"] for row in body["rows"]] == [closest, second]
             assert {row["place_kind"] for row in body["rows"]} == {kind}
+            expanded = client.get(
+                "/api/data/places/nearby", params={"spot_id": selected, "limit": 25}
+            )
+            assert expanded.status_code == 200, expanded.text
+            rows = expanded.json()["rows"]
+            assert len(rows) == 25
+            assert [row["id"] for row in rows[:2]] == [closest, second]
+            assert len({row["id"] for row in rows}) == 25
+            assert not {reference, reference_alias, duplicate}.intersection(
+                row["id"] for row in rows
+            )
+            assert {row["place_kind"] for row in rows} == {kind}
+        for limit in (0, 26):
+            assert (
+                client.get(
+                    "/api/data/places/nearby",
+                    params={"spot_id": reference, "limit": limit},
+                ).status_code
+                == 422
+            )
     with connect(identity_db) as c:
         assert (
             c.execute("SELECT count(*) FROM pongdang_data.spots_waterspot").fetchone()

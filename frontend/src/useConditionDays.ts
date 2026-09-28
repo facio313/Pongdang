@@ -1,5 +1,5 @@
 import type { Activity } from "./aiApi";
-import { calendarDays, conditionSeriesPath, conditionScore, type ConditionSeries } from "./productData";
+import { calendarDays, conditionSeriesPath, conditionScore, forecastAwaitingData, type ConditionSeries } from "./productData";
 import { useResource } from "./useResource";
 
 /** One bounded read for the selected calendar days. */
@@ -13,6 +13,6 @@ export function useConditionDays(id: number | undefined, now: string, activity: 
   // at day.at, not against the viewer's current clock.
   return days.map((day, index) => {
     const data = values[index];
-    return { ...day, ...result, data, previousData: previousRows.get(Date.parse(day.at)), score: conditionScore(data) };
+    return { ...day, ...result, data, previousData: previousRows.get(Date.parse(day.at)), score: conditionScore(data), awaitingForecast: forecastAwaitingData(data) };
   });
 }

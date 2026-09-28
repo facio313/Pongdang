@@ -1,6 +1,41 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const conditionsMessages: Record<string, MessageTranslations> = {
+  "다른 지역 비교 · {activity} 점수": ["Compare regions · {activity} score", "跨地区比较 · {activity}评分", "他地域との比較 · {activity}スコア"],
+  "다른 지역 비교 장소 조회 중": ["Loading places in other regions", "正在加载其他地区的地点", "他地域の比較場所を読み込み中"],
+  "다른 시·군 우선 · 근거가 많은 곳부터 최대 2곳 · 같은 점수·수온 조합 제외": [
+    "Other districts first · Up to 2 places, prioritizing more evidence · Duplicate score/water temperature pairs excluded",
+    "优先其他市郡 · 按依据数量选择最多2处 · 排除相同的评分与水温组合",
+    "他の市・郡を優先 · 根拠の多い場所から最大2か所 · 同じスコア・水温の組み合わせは除外"
+  ],
+  "수집된 동일 유형 장소에서 점수·수온이 다른 비교 장소가 없습니다. 점수 자료가 없는 장소는 제외합니다.": [
+    "No distinct score/water temperature pairs found among collected places of the same type. Places without scores are excluded.",
+    "已收集的同类地点中没有评分与水温组合不同的对比地点。已排除无评分数据的地点。",
+    "収集済みの同じ種類の場所に、スコア・水温の組み合わせが異なる比較場所はありません。スコアのない場所は除外します。"
+  ],
+  "부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.": [
+    "Partial scores use different available components, so scores alone cannot rank these places.",
+    "部分评分使用的已获取指标不同，不能仅凭分数判断地点优劣。",
+    "部分スコアは取得できた項目が異なるため、点数だけで場所の優劣は比較できません。"
+  ],
+  "조회된 {count}곳 기준": ["Based on {count} loaded places", "基于已加载的{count}处地点", "取得した{count}か所を対象"],
+  "대기": ["Pending", "等待", "待機"],
+  "예보 자료 대기": ["Awaiting forecast data", "等待预报数据", "予報データ待ち"],
+  "해당 날짜의 예보 자료를 아직 받지 못했습니다. 자료가 수집되면 점수를 표시합니다.": [
+    "Forecast data for this date has not arrived yet. The score will appear once it is collected.",
+    "尚未收到该日期的预报数据。采集到数据后将显示分数。",
+    "この日の予報データはまだ届いていません。データを取得するとスコアが表示されます。"
+  ],
+  "기준 장소 + 점수·수온 조합이 다른 가까운 장소 최대 2곳 · 동일 유형 25곳 이내 검색": [
+    "Reference + up to 2 nearby places with distinct score/water temperature pairs · Searching up to 25 places of the same type",
+    "基准地点 + 最多2个分数与水温组合不同的附近地点 · 搜索最多25个同类地点",
+    "基準場所＋スコア・水温の組み合わせが異なる近隣の最大2か所 · 同じ種類の最大25か所を検索"
+  ],
+  "가까운 동일 유형 장소 25곳 이내에서 점수·수온이 다른 비교 장소가 없습니다. 자료 없는 장소는 제외합니다.": [
+    "No distinct score/water temperature pairs found among up to 25 nearby places of the same type. Places without score data are excluded.",
+    "附近最多25个同类地点中没有分数与水温组合不同的对比地点。已排除无分数数据的地点。",
+    "近隣の同じ種類の最大25か所に、スコア・水温の組み合わせが異なる比較場所はありません。スコアの資料がない場所は除外します。"
+  ],
   "운영시간 안내": ["Opening hours", "开放时间", "営業時間の案内"],
   "이용시간": ["Hours", "使用时间", "利用時間"],
   "기본 안내": ["Published guidance", "基本信息", "基本案内"],

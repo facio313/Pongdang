@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, conditionRetentionText, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces } from '../src/productData.ts';
+import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, conditionRetentionText, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces, forecastAwaitingData } from '../src/productData.ts';
 
 const index = {
   label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
@@ -32,6 +32,17 @@ test('display uses the new computed condition index while missing legacy safety 
     assert.equal(conditionScore({ condition_score: { ...index, score } }), null);
   for (const status of ['blocked', 'unavailable'])
     assert.equal(conditionScore({ condition_score: { ...index, status } }), null);
+});
+
+test('unpublished forecast targets wait for real data without masking valid scores or other unknowns', () => {
+  const pending = { mode: 'forecast', reason_codes: ['condition_projection_unavailable_for_target'] };
+  assert.equal(forecastAwaitingData(pending), true);
+  assert.equal(conditionScore(pending), null);
+  assert.equal(forecastAwaitingData({ ...pending, condition_score: index }), false);
+  assert.equal(forecastAwaitingData({ ...pending, condition_score: { ...index, score: 0 } }), false);
+  assert.equal(forecastAwaitingData({ ...pending, mode: 'observation' }), false);
+  assert.equal(forecastAwaitingData({ mode: 'forecast', reason_codes: ['official_restriction'] }), false);
+  assert.equal(forecastAwaitingData(undefined), false);
 });
 
 test('partial score includes actual coverage, missing fields and its non-safety meaning', () => {

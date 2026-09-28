@@ -1,6 +1,23 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const travelMessages: Record<string, MessageTranslations> = {
+  "전체 체크": ["Select all", "全选", "すべて選択"],
+  "전체 체크 해제": ["Deselect all", "取消全选", "すべて選択解除"],
+  "번호를 눌러 방문 여부를 정하고 오른쪽 손잡이로 순서를 바꾸세요. 선택한 첫 장소에서 출발합니다.": ["Click a number to include or exclude a place, and drag the right-hand handle to reorder. Start at the first selected place.", "点击数字选择或取消地点，拖动右侧手柄调整顺序。从第一个选中的地点出发。", "番号を押して訪問先を選び、右のハンドルで順序を変更してください。選択した最初の場所から出発します。"],
+  "방문 장소와 순서": ["Places and visiting order", "游览地点与顺序", "訪問先と順序"],
+  "{name} 코스에 포함": ["Include {name} in the course", "将{name}加入行程", "{name}をコースに含める"],
+  "{name} 순서 이동": ["Reorder {name}", "调整{name}的顺序", "{name}の順序を変更"],
+  "드래그하거나 위·아래 방향키로 순서를 바꾸세요.": ["Drag or use the up and down arrow keys to reorder.", "拖动或使用上下方向键调整顺序。", "ドラッグまたは上下矢印キーで順序を変更してください。"],
+  "방문할 장소를 체크하고 손잡이를 위아래로 드래그하세요. 선택한 첫 장소에서 출발합니다.": ["Check the places to visit and drag the handles up or down. The first checked place is your starting point.", "勾选游览地点并上下拖动手柄。第一个勾选的地点为出发地。", "訪問先を選び、ハンドルを上下にドラッグしてください。選択した最初の場所から出発します。"],
+  "{name}의 순서를 변경했습니다.": ["Reordered {name}.", "已调整{name}的顺序。", "{name}の順序を変更しました。"],
+  "코스에서 제외": ["Excluded from course", "不包含在行程中", "コースから除外"],
+  "선택한 순서로 경로 계산": ["Calculate route in this order", "按所选顺序计算路线", "選択した順序で経路を計算"],
+  "출발: {name} · 선택한 {count}곳을 위 순서대로 방문합니다.": ["Start: {name} · Visit the {count} selected places in the order above.", "出发：{name} · 按以上顺序游览所选{count}个地点。", "出発：{name} · 選択した{count}か所を上記の順に訪問します。"],
+  "위 목록에서 방문할 장소를 체크해 주세요.": ["Check the places to visit in the list above.", "请在上方列表中勾选游览地点。", "上の一覧から訪問先を選択してください。"],
+  "첫 번째 장소의 좌표가 없어 경로를 계산할 수 없습니다. 순서를 바꾸거나 해당 장소를 제외해 주세요.": ["The first place has no coordinates. Reorder the list or exclude that place to calculate a route.", "第一个地点没有坐标。请调整顺序或取消该地点后计算路线。", "最初の場所に座標がありません。順序を変更するか、その場所を除外してください。"],
+  "직접 정한 방문 순서로 계산한 예상 이동 시간입니다.": ["Estimated travel times follow your chosen visiting order.", "预计交通时间按您选择的游览顺序计算。", "ご指定の訪問順序で計算した予想移動時間です。"],
+  "이 순서로 경로 계산": ["Calculate route in this order", "按此顺序计算路线", "この順序で経路を計算"],
+  "이 순서로 다시 계산": ["Recalculate in this order", "按此顺序重新计算", "この順序で再計算"],
   "STEP {current} / {total}": ["STEP {current} / {total}", "步骤 {current} / {total}", "ステップ {current} / {total}"],
   "STEP {current}": ["STEP {current}", "步骤 {current}", "ステップ {current}"],
   "강원도": ["Gangwon", "江原道", "江原道"],

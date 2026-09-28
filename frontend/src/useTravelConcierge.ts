@@ -17,6 +17,7 @@ import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
 import { t } from "./i18n.ts";
 import { placeRegionLabel } from "./productData";
 import { setTravelRegion } from "./travelRegion";
+import { candidateCourse } from "./candidateCourse";
 
 export interface Bubble {
   role: "user" | "assistant";
@@ -82,10 +83,13 @@ export function useTravelConcierge({
   opener,
   baseRequest,
   action,
+  excludeLastCandidate = false,
 }: {
   opener: string;
   baseRequest: () => TravelRequest;
   action: { busy: boolean; run: (job: (signal: AbortSignal) => Promise<void>) => Promise<void> };
+  /** Desktop starts new lists with the final candidate off; edits keep their selection. */
+  excludeLastCandidate?: boolean;
 }) {
   const { locale } = useTravelLanguage();
   const session = useTravelSession();
@@ -107,7 +111,9 @@ export function useTravelConcierge({
       plan: null,
       route: null,
       planInput: result.recommendations.length
-        ? recommendationPlan(result, result.request.dates[0])
+        ? excludeLastCandidate
+          ? candidateCourse(result, result.recommendations.slice(0, -1).map((item) => item.spot_id))
+          : recommendationPlan(result, result.request.dates[0])
         : null,
     });
   };
@@ -223,6 +229,7 @@ export function useTravelConcierge({
             stop_count: Math.min(value.stop_count, candidate_ranks.length),
             stay_minutes: value.stay_minutes,
             include_geometry: true,
+            ...(value.preserve_order ? { preserve_order: true } : {}),
             request,
           },
           signal,
@@ -242,15 +249,20 @@ export function useTravelConcierge({
           { request: { ...request, must_include: chosen }, limit: 5 },
           signal,
         );
-        const ranks = fresh.recommendations
-          .filter((item) => chosen.includes(item.spot_id))
-          .map((item) => item.rank);
+        const ranks = chosen.map((id) => fresh.recommendations.find((item) => item.spot_id === id)?.rank)
+          .filter((rank): rank is number => rank !== undefined);
         if (!fresh.selection_token || ranks.length !== chosen.length)
           throw new Error(
             "추천이 만료된 뒤 같은 장소를 현재 조건에서 다시 확인하지 못했습니다. 추천을 다시 받아 주세요.",
             { cause: error },
           );
-        publish(fresh);
+        if (value.preserve_order) {
+          const ordered = { ...fresh, recommendations: [
+            ...chosen.flatMap((id) => fresh.recommendations.filter((item) => item.spot_id === id)),
+            ...fresh.recommendations.filter((item) => !chosen.includes(item.spot_id)),
+          ] };
+          setTravelSession({ recommendation: ordered, planInput: candidateCourse(ordered, chosen), plan: null, route: null });
+        } else publish(fresh);
         result = await call(fresh.selection_token, ranks);
       }
       if (signal.aborted) return;

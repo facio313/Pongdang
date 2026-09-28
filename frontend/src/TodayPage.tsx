@@ -8,8 +8,8 @@ import { gradeOf } from "./groupAGrade";
 import { isInitialLoad, useResource } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
 import { TodayForecast } from "./TodayForecast";
-import { useConditions } from "./useConditions";
 import { useComparisonPlaces } from "./useComparisonPlaces";
+import type { ComparisonPlace } from "./comparisonPlaces";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import { RecommendationReason } from "./RecommendationReason";
@@ -21,7 +21,7 @@ import { activities, type Activity } from "./aiApi";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import { scoreTitle } from "./scoreMeaning";
 import {
-  conditionScore,
+  conditionPath,
   conditionModeLabel,
   dataStatusText,
   periodPath,
@@ -30,7 +30,6 @@ import {
   timeLabel,
   scoreCoverageText,
   tideTimeLabel,
-  metricText,
   evidenceText,
   waterQualityLabel,
   type Place,
@@ -244,18 +243,14 @@ function Hero({
 
 function SpotComparisonRow({
   spot,
-  activity,
   selected,
   onSelect,
 }: {
-  spot: Place;
-  /** 오늘 고른 활동. 위에 크게 뜬 점수와 다른 기준의 막대를 그리지 않습니다. */
-  activity: Activity;
+  spot: ComparisonPlace;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const conditions = useConditions(spot.id, activity);
-  const score = conditionScore(conditions.data);
+  const score = spot.score;
   const grade = gradeOf(score);
   return (
     <button
@@ -265,17 +260,18 @@ function SpotComparisonRow({
       onClick={onSelect}
     >
       <span className="td-score-badge" data-grade={grade.key}>
-        {score ?? "–"}
+        {spot.loading ? <Skeleton width="1.6em" label={t("점수 조회 중")} /> : score ?? "–"}
       </span>
       <span className="td-spot-body">
         <span className="td-spot-name">{spot.name}</span>
+        <span className="td-spot-vals">{placeRegionLabel(spot)}{score !== null && <> · {scoreCoverageText(spot.conditions)}</>}</span>
         <span className="td-spot-vals">
           <GradeIcon gradeKey={grade.key} size={12} />
           <span>
             {t(grade.label)} {t("· 수온")}{" "}
-            {metricText(conditions.data, "water_temperature")}
+            {spot.waterTemperature}
           </span>
-          <StateChip kind={conditions.data ? "live" : "no_data"} />
+          <StateChip kind={spot.conditions ? "live" : "no_data"} />
         </span>
       </span>
     </button>
@@ -285,23 +281,28 @@ function SpotComparisonRow({
 function SpotSection({
   rows,
   activity,
+  reference,
   status,
   statusIsError,
 }: {
-  rows: Place[];
+  rows: ComparisonPlace[];
   activity: Activity;
+  reference?: Conditions;
   status: string;
   statusIsError?: boolean;
 }) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const resolved = rows;
   const selected = resolved.find((spot) => spot.id === selectedSpotId);
-  // 다른 장소의 점수라 추천 응답에 없습니다. 여기는 따로 조회합니다.
-  const conditions = useConditions(selected?.id, activity);
+  // 기준 장소는 상단과 같은 응답을 쓰고, 다른 장소의 상세만 선택 시 조회합니다.
+  const details = useResource<Conditions>(selected && selected.id !== reference?.spot_id
+    ? conditionPath(selected.id, activity, undefined, reference?.mode === "forecast" ? "forecast" : "observation")
+    : null);
+  const conditions = selected?.id === reference?.spot_id ? reference : details.data;
   return (
     <section>
       <SectionHead
-        label={t("지점 비교 · {activity} 점수", { activity: t(activities[activity]) })}
+        label={t("다른 지역 비교 · {activity} 점수", { activity: t(activities[activity]) })}
         href="#map"
         linkLabel={t("전체 지도 →")}
       />
@@ -311,7 +312,6 @@ function SpotSection({
             <SpotComparisonRow
               key={spot.id}
               spot={spot}
-              activity={activity}
               selected={spot.id === selectedSpotId}
               onSelect={() =>
                 setSelectedSpotId((current) =>
@@ -337,17 +337,19 @@ function SpotSection({
               <dd>{selected.catalog_verification ?? "–"}</dd>
               <dt>{t(activities[activity])} {t("점수")}</dt>
               <dd>
-                {conditionScore(conditions.data) ?? "–"} {t("· 수온")}{" "}
-                {metricText(conditions.data, "water_temperature")} ·{" "}
-                {conditions.error ?? evidenceText(conditions.data)}
+                {selected.score ?? "–"} {t("· 수온")}{" "}
+                {selected.waterTemperature} ·{" "}
+                {details.error ?? evidenceText(conditions)}
               </dd>
             </dl>
-            <ConditionScoreDetails data={conditions.data} className="pd-note" />
+            <ConditionScoreDetails data={conditions} className="pd-note" />
           </div>
         )}
 
         <p className="pd-note" role={statusIsError ? "alert" : "status"}>
           {status} {t("장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다. 자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.")}</p>
+        {resolved.some((spot) => spot.conditions?.condition_score?.status === "partial") &&
+          <p className="pd-note">{t("부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.")}</p>}
       </div>
     </section>
   );
@@ -639,10 +641,10 @@ function TodayScreen() {
     recommendation, displayName, selectionMessage, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
-  const comparison = useComparisonPlaces(place);
   // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
   // 물러서되(화면에 그렇게 적습니다) 히어로 점수를 그것으로 채우지 않습니다.
   const activity: Activity = best?.activity ?? "swim";
+  const comparison = useComparisonPlaces(place, activity, conditions.data, isInitialLoad(conditions));
   return (
     <article className="today-page">
       <AppShell
@@ -669,6 +671,7 @@ function TodayScreen() {
           <SpotSection
             rows={comparison.rows}
             activity={activity}
+            reference={conditions.data}
             statusIsError={Boolean(comparison.error ?? conditions.error)}
             status={
               comparison.error ??

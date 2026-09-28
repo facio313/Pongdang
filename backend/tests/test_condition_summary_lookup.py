@@ -6,11 +6,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.data_reader import DataReader
 from app.ingestion.models import Place, SourceBatch
 from app.ingestion.storage import store_batch
+from app.main import create_app
 from app.schema import connect, initialize
 from app.water_index.condition_api import ConditionQuery
 from app.water_index.condition_result import RESULT_COLUMNS
@@ -201,6 +203,31 @@ def test_summary_lookup_keeps_valid_predecessors_and_historical_boundaries(datab
     assert summaries[28].place_name == "forecast"
     assert summaries[29].retention_allowed is False
     assert summaries[30].retention_allowed is False
+
+    # The comparison list must read the same mode as its reference hero.
+    with TestClient(create_app(database)) as client:
+        for mode, name in ((None, "eligible"), ("forecast", "forecast")):
+            params = {"spot_ids": str(spots[0]), "activity": "swim"}
+            if mode:
+                params["mode"] = mode
+            response = client.get(
+                "/api/data/water-index/conditions/summary", params=params
+            )
+            assert response.status_code == 200, response.text
+            body = response.json()
+            assert body["mode"] == (mode or "observation")
+            assert body["rows"][0]["place_name"] == name
+        assert (
+            client.get(
+                "/api/data/water-index/conditions/summary",
+                params={
+                    "spot_ids": str(spots[0]),
+                    "activity": "swim",
+                    "mode": "invalid",
+                },
+            ).status_code
+            == 422
+        )
 
     with connect(database) as connection:
         connection.execute(

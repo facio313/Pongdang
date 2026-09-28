@@ -26,6 +26,7 @@ class RouteRecommendationInput(Record):
     stay_minutes: int = Field(default=60, ge=5, le=240)
     day: date | None = None
     include_geometry: bool = True
+    preserve_order: bool = False
 
     @model_validator(mode="after")
     def unique_ranks(self):
@@ -33,6 +34,11 @@ class RouteRecommendationInput(Record):
             type(r) is not int or r < 1 for r in self.candidate_ranks
         ):
             raise ValueError("invalid_candidate_ranks")
+        if self.preserve_order and (
+            not self.candidate_ranks
+            or self.stop_count not in (None, len(self.candidate_ranks))
+        ):
+            raise ValueError("ordered_route_requires_all_selected_stops")
         return self
 
 
@@ -88,7 +94,10 @@ async def recommend_route(
     if any(rank > len(selection["spot_ids"]) for rank in ranks):
         raise HTTPException(422, "selected_rank_not_found")
     ids = [selection["spot_ids"][rank - 1] for rank in ranks]
-    stop_count = body.stop_count or min(3, len(ids))
+    stop_count = (
+        len(ids) if body.preserve_order else body.stop_count or min(3, len(ids))
+    )
+    selected_ids = ids[:]
     required = set(request.must_include)
     if not required <= set(ids):
         return base_result(
@@ -138,6 +147,8 @@ async def recommend_route(
     )
     ranked = [row for row in ranked if row[0]["spot_id"] not in request.exclude]
     ids = [row[0]["spot_id"] for row in ranked]
+    if body.preserve_order:
+        ids = [sid for sid in selected_ids if sid in ids]
     if not required <= set(ids) or len(ids) < stop_count:
         result = base_result(
             original,
@@ -155,10 +166,23 @@ async def recommend_route(
         )
     environment = environment or EnvironmentReader(catalog)
     nodes = {0: origin, **{sid: places[sid] for sid in ids}}
-    pairs = [(a, b) for a in nodes for b in nodes if a != b]
+    pairs = (
+        list(zip([0, *ids], [*ids, 0], strict=True))
+        if body.preserve_order
+        else [(a, b) for a in nodes for b in nodes if a != b]
+    )
     matrix, failures = {}, []
 
     async def get_pair(a, b):
+        # Starting at a selected registered place involves no road segment.
+        # Label this fact explicitly; never fabricate provider evidence for it.
+        if body.preserve_order and origin_spot_id and {a, b} == {0, origin_spot_id}:
+            matrix[a, b] = {
+                "duration_seconds": 0,
+                "toll_krw": 0,
+                "status": "same_registered_place",
+            }
+            return
         try:
             matrix[a, b] = await directions.leg(nodes[a], nodes[b], start)
         except DirectionError as exc:
@@ -177,7 +201,10 @@ async def recommend_route(
         )
     candidates, rejected = [], []
     considered = 0
-    for order in itertools.permutations(ids, stop_count):
+    orders = (
+        [tuple(ids)] if body.preserve_order else itertools.permutations(ids, stop_count)
+    )
+    for order in orders:
         if not required <= set(order):
             continue
         considered += 1
@@ -303,7 +330,9 @@ async def recommend_route(
             "reference_departure_at": start.isoformat(),
             "matrix_edges": len(matrix),
             "matrix_failures": failures,
-            "search": "exhaustive_permutations_of_selected_candidates",
+            "search": "user_selected_order"
+            if body.preserve_order
+            else "exhaustive_permutations_of_selected_candidates",
             "area_wide_optimum": False,
         },
         excluded=excluded,
@@ -328,7 +357,9 @@ async def recommend_route(
     result.update(
         route=winner,
         route_calculated=True,
-        optimality="best_under_reference_matrix_and_sampled_preferences"
+        optimality="user_selected_order"
+        if body.preserve_order
+        else "best_under_reference_matrix_and_sampled_preferences"
         if complete
         else "provisional_missing_comparison_evidence",
         reason_codes=[
@@ -342,6 +373,9 @@ async def recommend_route(
     # route requests. Reference departure stays the same as the comparison.
     if body.include_geometry:
         for leg in winner["legs"]:
+            if leg["evidence"].get("status") == "same_registered_place":
+                leg["geometry"] = {"polyline": [], "status": "same_registered_place"}
+                continue
             a, b = leg["from_spot_id"] or 0, leg["to_spot_id"] or 0
             try:
                 detail = await directions.leg(nodes[a], nodes[b], start, geometry=True)

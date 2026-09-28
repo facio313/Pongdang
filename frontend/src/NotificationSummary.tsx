@@ -21,6 +21,7 @@ export function NotificationSummary({ spotId, appearance, loginPrompt = true }: 
   const needsLogin = loginPrompt && [subscriptions.error, events.error, evaluations.error].some(error =>
     isLoginRequiredMessage(error),
   );
+  const loginUnconfigured = loginPrompt && subscriptions.error === t("Pongdang의 SSO 로그인 연동이 설정되지 않았습니다. 운영자의 로그인 연동 설정이 필요합니다.");
   if (needsLogin) return <div className="notification-summary">
     <p role="status">{t("기존 SSO 로그인이 필요합니다.")}</p>
     <div className="notification-summary-actions">
@@ -42,8 +43,9 @@ export function NotificationSummary({ spotId, appearance, loginPrompt = true }: 
       {events.data && !event && <p>{t("아직 발생한 알림이 없습니다.")}</p>}
     </>}
     <div className="notification-summary-actions">
+      {loginUnconfigured && <button type="button" className={appearance === "desktop" ? "pd-dk-button" : "pd-primary"} onClick={() => requireLogin()}>{t("로그인")}</button>}
       <button type="button" className={appearance === "desktop" ? "pd-dk-button is-quiet" : appearance === "mobile" ? "pd-secondary" : undefined} onClick={refresh} disabled={!spotId || subscriptions.loading}>{t("상태 다시 확인")}</button>
-      <a className={appearance === "desktop" ? "pd-dk-button" : appearance === "mobile" ? "pd-primary" : undefined} href="#first-swim">{t("알림 설정·이력 보기 →")}</a>
+      <a className={appearance === "desktop" ? "pd-dk-button is-quiet" : appearance === "mobile" ? "pd-secondary" : undefined} href="#first-swim">{t("알림 설정·이력 보기 →")}</a>
     </div>
     <p className={appearance === "desktop" ? "sk-note" : "pd-note"}>{t("수온 기준 충족은 입수 안전 판정이 아닙니다.")}</p>
   </div>;

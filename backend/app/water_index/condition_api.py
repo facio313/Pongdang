@@ -113,6 +113,7 @@ class SummaryQuery(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     spot_ids: str
     activity: Activity
+    mode: Literal["observation", "forecast"] = "observation"
     as_of: AwareDatetime | None = None
 
     @field_validator("as_of", mode="before")
@@ -146,7 +147,7 @@ class SummaryQuery(BaseModel):
         return ConditionQuery(
             spot_id=spot_id,
             activity=self.activity,
-            mode="observation",
+            mode=self.mode,
             as_of=self.as_of,
         )
 
@@ -758,6 +759,7 @@ def create_condition_router(settings):
                 rows.append(result)
         return ConditionSummaries(
             activity=q.activity,
+            mode=q.mode,
             as_of=as_of,
             rows=tuple(rows),
             unavailable=tuple(unavailable),

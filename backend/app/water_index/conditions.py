@@ -452,7 +452,7 @@ class ConditionSummaries(Record):
     contract_version: Literal["water-conditions-summary.v1"] = SUMMARY_CONTRACT
     model: ConditionModel = Field(default_factory=ConditionModel)
     activity: Activity
-    mode: Literal["observation"] = "observation"
+    mode: Literal["observation", "forecast"] = "observation"
     as_of: AwareDatetime
     rows: Annotated[tuple[ConditionSummary, ...], Field(max_length=100)]
     unavailable: Annotated[tuple[SummaryFailure, ...], Field(max_length=100)] = ()

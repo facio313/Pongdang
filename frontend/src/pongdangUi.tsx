@@ -568,15 +568,15 @@ export function ComponentBars({
               <span className="pd-cbar-reason">{bar.reasons}</span>
             )}
             {bar.metric === "air_temperature" && bar.evaluated && bar.criterion && (
-              <div className="pd-cbar-reason" hidden={!criterionOpen && bar.score !== 0}>
+              <div id={criterionId} className="pd-cbar-reason" hidden={!criterionOpen}>
                 {bar.score === 0 && <p>{t("기온 0점은 현재 참고 곡선의 최저값입니다. 자료 없음이나 활동 금지를 뜻하지 않습니다.")}</p>}
-                  <div id={criterionId} className="pd-explainer-body" hidden={!criterionOpen}>
-                    <p>{bar.criterion}</p>
-                    {bar.sources.map((source) => <p key={source.id}>
-                      <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
-                      <br />{t(source.usage)}
-                    </p>)}
-                  </div>
+                <div className="pd-explainer-body">
+                  <p>{bar.criterion}</p>
+                  {bar.sources.map((source) => <p key={source.id}>
+                    <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                    <br />{t(source.usage)}
+                  </p>)}
+                </div>
               </div>
             )}
           </li>
