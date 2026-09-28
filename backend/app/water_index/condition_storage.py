@@ -557,33 +557,47 @@ def _prune_result_history(connection, *, batch_size=10000):
     now = connection.execute("SELECT clock_timestamp()").fetchone()[0]
     today = now.astimezone(KST).replace(hour=0, minute=0, second=0, microsecond=0)
     cutoff = today
-    deleted_count = 0
-    while deleted_count < batch_size:
-        limit = min(2000, batch_size - deleted_count)
-        deleted = connection.execute(
-            "WITH obsolete AS (SELECT ctid FROM pongdang_data.condition_result "
-            "WHERE target_end<=%s LIMIT %s) "
-            "DELETE FROM pongdang_data.condition_result r USING obsolete o "
-            "WHERE r.ctid=o.ctid",
-            [cutoff, limit],
-        ).rowcount
-        deleted_count += deleted
-        if deleted < limit:
-            break
     future_end = today + timedelta(days=8)
-    deleted_count += connection.execute(
-        "DELETE FROM pongdang_data.condition_result WHERE target_start>=%s",
-        [future_end],
-    ).rowcount
-    clipped_count = connection.execute(
-        "UPDATE pongdang_data.condition_result "
-        "SET target_start=greatest(target_start,%s), "
-        "target_end=least(target_end,%s) "
-        "WHERE target_end>%s AND target_start<%s "
-        "AND (target_start<%s OR target_end>%s)",
-        [cutoff, future_end, cutoff, future_end, cutoff, future_end],
-    ).rowcount
-    return deleted_count + clipped_count
+    changed_count = 0
+    for predicate, boundary in (
+        ("target_end<=%s", cutoff),
+        ("target_start>=%s", future_end),
+    ):
+        while changed_count < batch_size:
+            limit = min(2000, batch_size - changed_count)
+            deleted = connection.execute(
+                "WITH obsolete AS MATERIALIZED ("
+                "SELECT ctid FROM pongdang_data.condition_result WHERE "
+                + predicate
+                + " LIMIT %s) DELETE FROM pongdang_data.condition_result "
+                "WHERE ctid=ANY(ARRAY(SELECT ctid FROM obsolete))",
+                [boundary, limit],
+            ).rowcount
+            changed_count += deleted
+            if deleted < limit:
+                break
+    # Share the delete budget, and keep the two boundary lookups separate so
+    # the existing start/end indexes can find sparse rows after a large purge.
+    for predicate, boundary in (
+        ("target_start<%s AND target_end>%s", cutoff),
+        ("target_end>%s AND target_start<%s", future_end),
+    ):
+        while changed_count < batch_size:
+            limit = min(2000, batch_size - changed_count)
+            clipped = connection.execute(
+                "WITH overlapping AS MATERIALIZED ("
+                "SELECT ctid FROM pongdang_data.condition_result WHERE "
+                + predicate
+                + " LIMIT %s) UPDATE pongdang_data.condition_result "
+                "SET target_start=greatest(target_start,%s), "
+                "target_end=least(target_end,%s) "
+                "WHERE ctid=ANY(ARRAY(SELECT ctid FROM overlapping))",
+                [boundary, boundary, limit, cutoff, future_end],
+            ).rowcount
+            changed_count += clipped
+            if clipped < limit:
+                break
+    return changed_count
 
 
 def prune_condition_results(settings):

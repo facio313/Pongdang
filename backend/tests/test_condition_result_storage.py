@@ -99,15 +99,19 @@ def test_retention_runs_without_a_new_publication(database):
         evidence_count = connection.execute(
             "SELECT count(*) FROM pongdang_data.conditions_observationsnapshot"
         ).fetchone()[0]
-    # Catch-up is bounded, but clipping may never create empty/negative ranges
-    # for old rows deliberately left to the next batch.
+    # Every phase shares the catch-up budget, including future deletion and
+    # clipping. Old rows left to a later pass must never become empty ranges.
     with connect(database) as connection:
-        assert _prune_result_history(connection, batch_size=1) == 4
+        assert _prune_result_history(connection, batch_size=1) == 1
         assert connection.execute(
             "SELECT count(*) FROM pongdang_data.condition_result WHERE target_end<=%s",
             [cutoff],
         ).fetchone() == (1,)
-    assert prune_condition_results(database) == 1
+    changes = []
+    for _ in range(5):
+        with connect(database) as connection:
+            changes.append(_prune_result_history(connection, batch_size=1))
+    assert changes == [1, 1, 1, 1, 0]
     assert prune_condition_results(database) == 0
     with connect(database) as connection:
         rows = connection.execute(
