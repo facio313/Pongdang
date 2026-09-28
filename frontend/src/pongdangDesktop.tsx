@@ -11,7 +11,7 @@ import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travel
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
 
-// 데스크탑(≥1080px) 화면 7개가 공유하는 레이아웃 프리미티브입니다. 핸드오프
+// 데스크탑(≥960px) 화면 7개가 공유하는 레이아웃 프리미티브입니다. 핸드오프
 // 「구현 가이드 — 데스크탑 · 모바일」 §2 의 "데스크탑 공통 문법"이 여기 전부
 // 들어 있고, 화면은 이 네 가지 조립만으로 그립니다.
 //
@@ -85,7 +85,7 @@ export function DesktopNav({
     >
       {/* 탭바가 담는 여행 흐름 밖의 항목(저장한 코스 · 즐겨찾기 · 알림 설정 ·
           데이터 출처 · 이용 안내)으로 들어가는 유일한 길입니다. 예전에는 이
-          손잡이가 모바일 셸(AppShell)에만 있어서, 1080px 이상에서는 그 다섯
+          손잡이가 모바일 셸(AppShell)에만 있어서, 960px 이상에서는 그 다섯
           곳에 닿을 방법이 전혀 없었습니다. */}
       <SideMenuButton />
       <a className="pd-dk-nav-mark" href="#home">

@@ -14,7 +14,7 @@
 /* 슬롯, 주요 액션과 스크롤 이동이 탭의 터치 높이·패딩·안전 영역을 함께
    사용합니다. 끝 여백만 늘려서는 처음 보이는 중간 CTA의 겹침이 해결되지
    않으므로, 공용 액션 슬롯은 문서 흐름을 유지하며 탭 위에 머뭅니다. */
-@media (max-width: 1079px) {
+@media (max-width: 959px) {
   html:has(.pd-app),
   .pd-app {
     --pd-tabbar-bottom: max(10px, env(safe-area-inset-bottom, 0px));
@@ -95,15 +95,17 @@
   }
 }
 
-/* 프레임이 넓어지는 구간(pongdang.css 의 431px · 768px 계단)에서 탭바가 가운데
-   358px 에만 머물지 않도록 상한을 같이 올립니다. 폭 자체는 위 100cqw 가 프레임
-   에서 실측하므로, 여기서는 상한만 프레임 폭 - 32px 로 맞춥니다. */
+/* 프레임이 넓어지는 구간(pongdang.css 의 431px 계단, 640px 태블릿 구간)에서
+   탭바가 가운데 358px 에만 머물지 않도록 상한을 같이 올립니다. 폭 자체는 위
+   100cqw 가 프레임에서 실측하므로, 여기서는 상한만 맞춥니다. 태블릿(640px~)은
+   프레임이 풀블리드로 넓어지지만, 탭바는 떠 있는 알약이라 폭 전체까지 늘릴
+   필요는 없어 고정 상한만 한 단계 더 올립니다. */
 @media (min-width: 431px) {
   .pd-tabbar {
     max-width: 488px;
   }
 }
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .pd-tabbar {
     max-width: 608px;
   }

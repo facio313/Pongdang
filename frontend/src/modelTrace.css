@@ -80,7 +80,7 @@
   white-space: pre-wrap;
 }
 
-@media (min-width: 1080px) {
+@media (min-width: 960px) {
   .pd-trace {
     inset: 12% 18%;
     max-height: none;

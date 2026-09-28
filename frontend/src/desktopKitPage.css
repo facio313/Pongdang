@@ -142,7 +142,7 @@
   color: var(--dk-ink);
 }
 
-@media (max-width: 1079px) {
+@media (max-width: 959px) {
   .dk-kit-hero {
     flex-wrap: wrap;
     gap: 20px;

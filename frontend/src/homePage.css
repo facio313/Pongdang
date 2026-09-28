@@ -398,3 +398,12 @@
   flex-wrap: wrap;
   margin-top: 9px;
 }
+
+/* 태블릿(640px~, pongdang.css 의 .pd-body 그리드)에서 가로 스크롤 목록 카드는
+   그리드 한 칸(320px)에 접히면 목록이 한두 장밖에 안 보여 스크롤의 의미가
+   없습니다 -- 폭 전체를 그대로 씁니다. */
+@media (min-width: 640px) {
+  .home-page .pd-card:has(.hm-picks-row) {
+    grid-column: 1 / -1;
+  }
+}

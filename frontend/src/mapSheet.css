@@ -93,7 +93,7 @@
      높이를 다시 계산하지 않고 탭바가 선언한 --pd-tabbar-clearance 를 그대로
      읽습니다 -- 탭바의 터치 높이 · 패딩 · 안전 영역이 바뀌면 이 값도 같이
      따라와야 하고, 베껴 적은 상수는 그때 조용히 어긋납니다. 그 토큰은
-     ≤1079px 에서만 선언되므로(appTabBar.css) 폴백을 같이 둡니다. */
+     ≤959px 에서만 선언되므로(appTabBar.css) 폴백을 같이 둡니다. */
   margin-bottom: var(
     --pd-tabbar-clearance,
     calc(var(--pd-touch) + 10px + max(10px, env(safe-area-inset-bottom, 0px)) + 12px)

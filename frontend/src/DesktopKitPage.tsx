@@ -9,7 +9,7 @@ import {
   SplitBody,
 } from "./pongdangDesktop";
 import { AiSuggestion, StateChip } from "./pongdangUi";
-import { useIsDesktop } from "./useIsDesktop";
+import { useViewport } from "./useIsDesktop";
 import "./desktopKitPage.css";
 
 // 개발 · 검증용 화면입니다. `#desktop-kit` 으로만 들어오며 제품 화면에서는
@@ -40,7 +40,7 @@ const SAMPLE_SPOTS: {
 ];
 
 export function DesktopKitPage() {
-  const isDesktop = useIsDesktop();
+  const viewport = useViewport();
   return (
     <DesktopShell>
       <DesktopHero
@@ -61,7 +61,7 @@ export function DesktopKitPage() {
                 화면 인덱스로 →
               </a>
               <span className="pd-dk-button is-glass">
-                useIsDesktop · {isDesktop ? "true (≥1080px)" : "false (<1080px)"}
+                useViewport · {viewport} ({viewport === "desktop" ? "≥960px" : viewport === "tablet" ? "640~959px" : "<640px"})
               </span>
             </div>
           </div>

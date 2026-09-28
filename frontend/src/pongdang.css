@@ -129,32 +129,6 @@ main:has(.pd-app.is-fullscreen) {
   }
 }
 
-/* 태블릿 구간(768~1079px). 데스크탑 분기(1080px, useIsDesktop.ts)에는 아직
-   못 미치므로 모바일 마크업을 그대로 쓰되, 폰 목업 폭에 가둬 두지 않고 한 단계
-   넓혀 본문 여백을 늘립니다. 마크업을 세 벌로 늘리지 않기 위한 절충이며,
-   레이아웃 문법은 모바일 그대로입니다(카드 스택 + 하단 탭바). */
-@media (min-width: 768px) {
-  .pd-app {
-    padding: 18px 20px 28px;
-    --pd-frame-gap: 46px; /* 위 18 + 아래 28 */
-  }
-  .pd-frame {
-    width: min(640px, 100%);
-  }
-  .pd-body {
-    padding: 22px 24px;
-    gap: 14px;
-  }
-  /* 본문 패딩이 커진 만큼 푸터의 풀블리드 보정도 같이 커져야 합니다. */
-  .pd-body > .pd-foot {
-    margin: 20px -24px -22px;
-  }
-  .pd-foot {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-}
-
 /* ── 헤더 ──────────────────────────────────────────────────
    목업의 가짜 상태바(9:41)를 대신하는 실제 헤더입니다. 실기기에서는 OS 의
    진짜 상태바가 위에 있으므로, 노치 높이만큼 안전 여백을 둡니다. */
@@ -241,6 +215,47 @@ main:has(.pd-app.is-fullscreen) {
   flex-direction: column;
   gap: 12px;
 }
+
+/* 태블릿 구간(640~959px, breakpoints.ts TABLET_MIN/DESKTOP_MIN 과 동기화).
+   데스크탑 분기(960px, useIsDesktop.ts)에는 못 미치므로 마크업은 모바일과
+   공유하지만(카드 스택 컴포넌트를 그대로 씀), 431px 단계의 "폰 목업 프레임"
+   틀에 가두지 않습니다 -- 그 프레임은 넓은 화면에서 모바일 화면을 미리보기용
+   기기 테두리로 보여주기 위한 장식이라, 실제 태블릿에서는 화면을 좁혀 보이게
+   만들 뿐입니다. 대신 프레임을 풀블리드로 되돌리고, 본문 카드를
+   `.pd-card` 단위 그리드로 재배치해 가로 폭을 실제로 씁니다. 이 규칙은 위
+   기본 `.pd-body` 보다 뒤(소스 순서)에 있어야 이깁니다 -- 명시도가 같아
+   미디어쿼리 여부와 무관하게 나중에 오는 규칙이 이깁니다. */
+@media (min-width: 640px) {
+  .pd-app {
+    padding: 0;
+    --pd-frame-gap: 0px;
+  }
+  .pd-frame {
+    width: 100%;
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .pd-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    align-items: start;
+    padding: 24px 28px;
+    gap: 16px;
+    /* 카드 두 벌이 너무 넓어져 한 줄로 늘어지지 않도록 잡은 가독성 상한입니다
+       -- DESKTOP_MIN(960) 과는 무관한 임의 값입니다. */
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  /* 전역 주의 문구 푸터는 항상 폭 전체를 씁니다. 가로로 넓은 카드(가로 스크롤
+     목록 등)의 전체 폭 지정은 각 화면 CSS(homePage.css 등)에서
+     `.pd-body > .pd-card:has(...)` 형태로 페이지별 클래스에 맞춰 합니다. */
+  .pd-body > .pd-foot {
+    grid-column: 1 / -1;
+    margin: 20px -28px -24px;
+  }
+}
+
 .pd-card {
   background: var(--pd-surface);
   border-radius: var(--pd-r-card);
@@ -640,7 +655,7 @@ main:has(.pd-app.is-fullscreen) {
 }
 
 /* ── 눌리는 느낌 ───────────────────────────────────────────
-   768~1079px 구간은 모바일 마크업을 그대로 쓰지만(위 태블릿 주석) 마우스가
+   640~959px 태블릿 구간은 모바일 마크업을 그대로 쓰지만(위 태블릿 주석) 마우스가
    달린 기기가 많습니다. hover 는 실제로 hover 가 되는 기기에서만 겁니다 --
    터치에서 hover 를 걸면 누른 뒤 그 상태가 남습니다. */
 
