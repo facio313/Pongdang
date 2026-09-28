@@ -6,22 +6,28 @@ async function anonymous(page: Page) {
 }
 
 for (const width of [390, 1440]) {
-  test(`anonymous notification login starts navigation and cancellation stays anonymous at ${width}px`, async ({ page }) => {
+  test(`inline login stays on the page through failure and cancellation at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await anonymous(page);
     const inlineSsoCalls: string[] = [];
     page.on("request", request => { if (request.url().includes("/sso/api/")) inlineSsoCalls.push(request.url()); });
-    await page.route("**/pongdang/auth/continue", route => route.fulfill({
-      status: 503, contentType: "text/html", body: "<h1>Test login unavailable</h1>",
-    }));
+    await page.route("**/api/auth/state", route => route.fulfill({ status: 401, json: { authenticated: false } }));
+    await page.route("**/api/auth/login", route => route.fulfill({ status: 401, json: { authenticated: false, detail: "SSO_INVALID_CREDENTIALS" } }));
     await page.goto("#today");
     const summary = page.getByRole("region", { name: "첫 입수 · 수온 알림" });
     await expect(summary).toContainText("기존 SSO 로그인이 필요합니다");
     await expect(page.locator("body")).not.toContainText("Failed to fetch");
     await summary.getByRole("button", { name: "로그인", exact: true }).click();
-    await expect(page).toHaveURL(/\/pongdang\/auth\/continue$/);
-    await expect(page.getByRole("heading", { name: "Test login unavailable" })).toBeVisible();
-    await page.goBack();
+    const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("아이디", { exact: true })).toBeFocused();
+    await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
+    await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-invalid");
+    await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+    await expect(dialog.getByRole("alert")).toContainText("아이디 또는 비밀번호를 확인해 주세요");
+    await expect(dialog.getByLabel("비밀번호", { exact: true })).toHaveValue("");
+    await expect(page).toHaveURL(/#today$/);
+    await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/#today$/);
     await expect(summary.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -29,7 +35,7 @@ for (const width of [390, 1440]) {
   });
 }
 
-test("OAuth callback restores the requested screen and rereads saved notification settings and history", async ({ page }) => {
+test("inline SSO completion rereads saved settings and history without navigating", async ({ page }) => {
   // A local browser contract only: no real identity or authentication headers.
   await anonymous(page);
   let returned = false;
@@ -52,26 +58,66 @@ test("OAuth callback restores the requested screen and rereads saved notificatio
       delivery_state: "available_in_app", attempts: 0, last_error: null,
     }] } } : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } });
   });
-  await page.route("**/pongdang/auth/continue", route => returned ? route.continue() : route.fulfill({
-    // Model the login challenge here; real ingress redirects are checked on site.
-    // Playwright does not reroute subsequent requests in a mocked redirect chain.
-    contentType: "text/html", body: '<a href="/pongdang/auth/continue">Test OAuth return</a>',
-  }));
+  let stateReads = 0;
+  await page.route("**/api/auth/state", route => {
+    stateReads++;
+    return route.fulfill({ status: returned ? 200 : 401, json: { authenticated: returned } });
+  });
+  await page.route("**/api/auth/login", route => {
+    expect(route.request().postDataJSON()).toEqual({ username: "offline-fixture", password: "offline-password" });
+    returned = true;
+    return route.fulfill({ json: { authenticated: true } });
+  });
   await page.goto("#first-swim");
   const subscriptions = page.getByRole("region", { name: "내 알림 구독", exact: true });
   await expect(subscriptions.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
   const before = { subscriptions: subscriptionReads, events: eventReads };
   await subscriptions.getByRole("button", { name: "로그인", exact: true }).click();
-  await expect(page).toHaveURL(/\/pongdang\/auth\/continue$/);
-  returned = true;
-  await page.getByRole("link", { name: "Test OAuth return" }).click();
+  const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+  await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
+  await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-password");
+  await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/pongdang\/#first-swim$/);
   await expect(subscriptions).toContainText("저장된 테스트 해변");
   await expect(subscriptions).toContainText("23°C");
   await expect(page.getByRole("region", { name: "발생한 알림", exact: true })).toContainText("앱 내 알림 생성됨");
   expect(subscriptionReads).toBeGreaterThan(before.subscriptions);
   expect(eventReads).toBeGreaterThan(before.events);
+  expect(stateReads).toBe(2);
   await expect(subscriptions.getByRole("button", { name: "로그인", exact: true })).toHaveCount(0);
+});
+
+test("an unconfigured host never receives a password and keeps the inline popup", async ({ page }) => {
+  await anonymous(page);
+  let passwordRequests = 0;
+  await page.route("**/api/auth/state", route => route.fulfill({ contentType: "text/html", body: "<html>Fallback</html>" }));
+  await page.route("**/api/auth/login", route => { passwordRequests++; return route.abort(); });
+  await page.goto("#today");
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+  await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
+  await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-password");
+  await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("로그인 서비스에 연결하지 못했습니다");
+  await expect(page).toHaveURL(/#today$/);
+  expect(passwordRequests).toBe(0);
+});
+
+test("permission denial stays in the popup and does not become an empty personal-data success", async ({ page }) => {
+  await anonymous(page);
+  await page.route("**/api/auth/state", route => route.fulfill({ status: 401, json: { authenticated: false } }));
+  await page.route("**/api/auth/login", route => route.fulfill({ status: 403, json: { authenticated: false, detail: "SSO_GRANT_REQUIRED" } }));
+  await page.goto("#first-swim");
+  const subscriptions = page.getByRole("region", { name: "내 알림 구독", exact: true });
+  await subscriptions.getByRole("button", { name: "로그인", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+  await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
+  await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-password");
+  await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Pongdang 접근 권한이 없습니다");
+  await expect(page).toHaveURL(/#first-swim$/);
+  await expect(subscriptions).not.toContainText("저장된 알림 구독이 없습니다");
 });
 
 test("a callback with no accepted session still offers login and a forbidden read stays an access error", async ({ page }) => {

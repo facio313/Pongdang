@@ -1,6 +1,48 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginSsoLogin, resumeSsoLogin } from '../src/ssoLogin.ts';
+import { beginSsoLogin, resumeSsoLogin, signInSso, SsoLoginError } from '../src/ssoLogin.ts';
+
+const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+test('inline login checks the same-origin bridge, posts credentials once and verifies the browser session', async () => {
+  const calls = [];
+  const fetcher = async (url, options) => {
+    calls.push({ url, options });
+    return calls.length === 1 ? json({ authenticated: false }, 401) : json({ authenticated: true });
+  };
+  await signInSso('/pongdang/', ' fixture ', 'offline-password', new AbortController().signal, fetcher);
+  assert.deepEqual(calls.map(c => c.url), ['/pongdang/api/auth/state', '/pongdang/api/auth/login', '/pongdang/api/auth/state']);
+  assert.deepEqual(JSON.parse(calls[1].options.body), { username: 'fixture', password: 'offline-password' });
+  for (const call of calls) {
+    assert.equal(call.options.credentials, 'same-origin');
+    assert.equal(call.options.redirect, 'error');
+    assert.equal(call.options.cache, 'no-store');
+  }
+});
+
+test('HTML fallback cannot receive credentials', async () => {
+  let calls = 0;
+  await assert.rejects(signInSso('/', 'fixture', 'offline-password', new AbortController().signal, async () => {
+    calls++; return new Response('<html>App</html>', { headers: { 'Content-Type': 'text/html' } });
+  }), SsoLoginError);
+  assert.equal(calls, 1);
+});
+
+for (const status of [401, 403, 429, 503]) test(`inline login reports ${status} without claiming a session`, async () => {
+  let calls = 0;
+  await assert.rejects(signInSso('/', 'fixture', 'offline-password', new AbortController().signal, async () => {
+    calls++; return json({ authenticated: false }, calls === 1 ? 401 : status);
+  }), SsoLoginError);
+  assert.equal(calls, 2);
+});
+
+test('first-factor/login success is insufficient when the browser cookie is not accepted', async () => {
+  let calls = 0;
+  await assert.rejects(signInSso('/', 'fixture', 'offline-password', new AbortController().signal, async () => {
+    calls++; return calls === 2 ? json({ authenticated: true }) : json({ authenticated: false }, 401);
+  }), SsoLoginError);
+  assert.equal(calls, 3);
+});
 
 function fixture(path = '/#today') {
   const target = new URL(path, 'https://pongdang.site');

@@ -1,4 +1,33 @@
 const RETURN_PATH_KEY = "pd-return-path";
+const UNAVAILABLE = "로그인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+
+export class SsoLoginError extends Error {}
+
+async function sessionResponse(response: Response, allowAnonymous = false): Promise<boolean> {
+  if (response.redirected || !response.headers.get("content-type")?.includes("application/json")) {
+    throw new SsoLoginError(UNAVAILABLE);
+  }
+  if (response.status === 429) throw new SsoLoginError("로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+  if (allowAnonymous && [401, 403].includes(response.status)) return false;
+  if (response.status === 401) throw new SsoLoginError("아이디 또는 비밀번호를 확인해 주세요.");
+  if (response.status === 403) throw new SsoLoginError("Pongdang 접근 권한이 없습니다. 관리자에게 문의해 주세요.");
+  if (!response.ok) throw new SsoLoginError(UNAVAILABLE);
+  const result: unknown = await response.json();
+  return typeof result === "object" && result !== null && "authenticated" in result && result.authenticated === true;
+}
+
+/** The same-origin bridge completes the existing SSO/OAuth exchange. Passwords
+ * are never stored, and only a fresh protected session check confirms success. */
+export async function signInSso(base: string, username: string, password: string, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<void> {
+  const options = { credentials: "same-origin", redirect: "error", cache: "no-store", signal } as const;
+  // Never send credentials to a Vite/SPA HTML fallback on an unconfigured host.
+  await sessionResponse(await fetcher(`${base}api/auth/state`, options), true);
+  if (!await sessionResponse(await fetcher(`${base}api/auth/login`, {
+    ...options, method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: username.trim(), password }),
+  }))) throw new SsoLoginError(UNAVAILABLE);
+  if (!await sessionResponse(await fetcher(`${base}api/auth/state`, options))) throw new SsoLoginError(UNAVAILABLE);
+}
 
 type LoginLocation = Pick<Location, "origin" | "pathname" | "search" | "hash" | "assign" | "replace">;
 type LoginStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
