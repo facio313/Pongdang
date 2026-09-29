@@ -1,9 +1,29 @@
-# 지도 코스 편집 운영 배포 진행 · 2026-09-29
+# 지도 코스 순서 편집 시 지도 재생성 제거 · 2026-09-29
+
+- 후속 Git 요청: 사용자가 로그인 팝업·점수 유지·지도 재생성 제거 변경의 커밋과 푸시를 승인했다. 대상은 현재 fix/finale 및 origin/fix/finale이며 main/dev 통합·운영 배포는 이번 요청에 포함하지 않는다. 아래 검증 이후 제품 코드 변경이 없어 통과한 결과를 재사용한다. 커밋 범위는 관련 프런트·회귀 테스트 5파일과 이 상태 기록으로 한정한다.
+- 요청: 방문 순서를 바꿀 때 지도가 리프레시되는 현상 제거. 원인은 KakaoMapCanvas가 markers/paths 변경마다 기존 지도와 자식 DOM을 제거하고 SDK Map을 새로 만들던 수명 관리였다.
+- 구현: kakaoMapScene이 지도 인스턴스를 유지하며 장소 ID별 마커 DOM·오버레이를 재사용한다. 좌표가 바뀐 마커만 이동하고, 제외된 마커와 변경된 도로선만 정리한다. 지도는 화면 이탈·명시적 재시도에서 정리한다. MapDesktop은 코스 편집 중 preserveViewport로 위치·확대와 자동 화면 맞춤을 유지한다. 지점/코스 보기 전환은 별도 key로 새 화면에 맞게 초기화한다. 이전 로그인 팝업·점수 유지 수정 보존.
+- 검증: 지정 4파일 ops/verify_local.py의 ESLint·Node 221개(새 회귀 4개 포함)·증분 TypeScript 통과, 최종 4.9초. diff --check 통과. 로그 /tmp/pongdang-map-preserve-view-checks.log. 회귀는 지도/마커/도로 재사용, 좌표 변경·제외 처리, 유효 도로선·패널 여백, 정리를 검증한다.
+- 실제 IAB: 50m로 확대 후 방향키 순서 변경 전후 배경 타일 URL·화면 좌표가 정확히 동일했다. 저장된 5구간 경로의 첫 편집도 타일과 50m 축척 유지, 이전 도로선만 5→0. 체크 제외 시 위치·점수 유지, 지점 보기 100마커·확대 버튼 8km→4km, 편집 코스 복귀 후 4곳+출발 마커·100m 화면 맞춤 확인. 마우스/터치 순서 제스처 성공을 새로 검증한 것은 아니다.
+- 원래 사용자 편집 순서 경포→강문→사근진→순개울·4곳 포함 상태로 복원했다. 실제 코스 계산·저장·DB 변경·커밋·push·운영 배포 없음. 증빙 .local/map-preserve-view-verification.json 및 output/playwright/map-preserve-view/{reordered-zoom-retained,final-course,course-editor}.png. 변경 파일은 KakaoMapCanvas.tsx, kakaoMapScene.ts, MapDesktop.tsx, kakaoMapScene.test.mjs와 이 기록이다.
+
+# 지도 코스 로그인 팝업·점수 영역 유지 · 2026-09-29
+
+- 요청: 비로그인 상태에서 ‘코스 경로’를 누르면 기존 로그인 팝업을 열고, 코스 순서를 편집해도 상단 휴식 적합도 영역을 유지한다.
+- 구현: MapDesktop의 코스 전환 클릭에서 인증이 필요한 코스 목록을 1건 조회하여 현재 세션을 확인한다. 401은 기존 useAction 로그인 팝업으로 연결하고, 그 밖의 오류는 패널에 표시한다. 로그인 확인과 경로 계산의 진행 상태를 분리하여 인증 조회 중 ‘계산 중’으로 바뀌지 않게 했다. 새로운 인증 방식이나 백엔드 변경 없음.
+- 점수: 편집 중에도 저장 코스의 첫 장소·점수·예보 시각을 유지하며 기준 문구를 ‘저장된 첫 장소’로 바꾼다. 새 경로 저장 성공 후에만 새 장소·시각 기준으로 갱신한다. 순서 변경에 따른 이전 경로선·이동 시각의 초기화는 그대로 유지한다. 영어·중국어·일본어 문구 포함.
+- 검증: 명시한 MapDesktop.tsx·locales/places.ts의 ops/verify_local.py에서 ESLint·Node 217개·증분 TypeScript 통과(최종 7.0초). git diff --check 통과. 로그 /tmp/pongdang-map-login-score-checks.log.
+- 실제 IAB: 로그인 상태의 코스 버튼은 팝업 없이 유지. 격리 DB 127.0.0.1:62022/pongdang_test의 표식과 isolated-local-test 응답을 확인한 뒤 테스트 세션만 만료시켰다. 기존 선택 코스와 지점 보기에서 코스 버튼을 각각 눌러 로그인 팝업 자동 열림·닫기·재열림을 확인하고, 기존 격리 계정으로 로그인하여 같은 코스 URL로 복귀했다. 방향키로 강문을 두 번째로 옮겨도 강문 45점·16:05 예보와 점수 영역 높이 77.546875px가 유지됐다. 전체 체크 해제에도 점수 유지·빈 선택 계산 불가 확인. 이 작업에서는 마우스·터치 제스처 검증을 주장하지 않는다.
+- 원래 로그인 상태와 저장 코스 c7517cce8c37496aa7ede9ac3adabc18을 새로고침으로 복원했다. 코스 계산·저장·DB 변경·커밋·push·추가 운영 배포 없음. 기존 배포는 아래 13544e4 기록을 따른다. 근거 output/playwright/map-login-score/{reordered-score,login-popup}.png. 변경은 프런트 2파일과 이 기록이며 기존 사용자 변경·산출물을 보존했다.
+
+# 지도 코스 편집 운영 반영 확인 · 2026-09-29
 
 - 사용자 승인: 방금 완료한 지도 코스 방문 선택·순서 편집·동일 코스 저장 기능을 운영에 배포한다. 제품7파일과 이 상태 기록만 커밋하며 .env·.local·.byeori·.playwright-cli·output은 제외한다.
 - 원격 main을 명시 fetch한 결과 직전 배포 da88667e81d0c4f8737461f8e38dffeceda27595와 동일하다. 기존 main worktree도 같은 SHA·clean이며 fast-forward 통합한다. dev의 로컬·원격 참조0f824a9ccecbd7ed5332919c99b03920b769000c는 보존한다.
 - 로컬 구현 이후 코드 변경이 없어 아래의 ESLint·Node217개·증분 TypeScript·실제 카카오 계산/저장/새로고침 결과를 재사용한다. 운영 전 프런트는 index-L5UE0_oV.js/index-DM4wCVr7.css이며 health/ready는HTTP200/status ok. 근거 .local/release-course-editor-20260929/before.json.
-- 다음: main push 후 정확한 SHA의 backend/frontend 이미지 빌드 성공을 확인하고 기존 호스트 watcher/gate의 배포 결과를 공개 프런트·health/readiness에서 확인한다. 별도 수동 중복 배포나 호스트 설정 변경은 하지 않는다.
+- 8파일을 13544e4fac84e50bf4fc1147732035323b8096a6으로 커밋하고 기존 main worktree에서 fast-forward 후 main만 push했다. staged 전체 내용에서 로컬 실제 API 키·비밀번호 일치0건 확인. GitHub 원격 main 동일SHA·dev 기존SHA 보존 확인. CI https://github.com/facio313/Pongdang/actions/runs/36536864960 에서 정확한 SHA의 backend/frontend 이미지가 모두 success(16:29 KST)였다.
+- 운영 확인(16:31 KST): https://pongdang.site/ 가 index-D55ckEj3.js/index-CVYEVlqj.css를 제공한다. 새 JS의 코스 편집·선택·손잡이 및 CSS의 순서 이동 스타일, 기존 출발지 select 제거를 확인했다. 프런트/두 자산/health/ready 모두HTTP200, health/ready는status ok. 근거 .local/release-course-editor-20260929/{before,public-verification,state}.json.
+- 기존 호스트 watcher/gate의 자동 경로만 사용했고 수동 중복 배포·호스트 설정 변경은 하지 않았다. 운영 코스 데이터를 생성·수정하거나 로컬 테스트 자료를 이관하지 않았다. 서버 내부 current·컨테이너 SHA·watcher 상태는 직접 조회하지 않았으며 공개 운영에서 확인한 새 코드와 상태 API를 검증 근거로 삼는다. 배포 후 이 기록은 추가 문서 전용 CI 없이 로컬에 보존한다.
 
 # 지도 코스 방문 목록 편집 · 2026-09-29
 

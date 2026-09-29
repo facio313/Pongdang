@@ -1,23 +1,12 @@
 import { t } from "./i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { KakaoMapsLoadError, loadKakaoMaps, type KakaoCustomOverlay, type KakaoMap, type KakaoMapsNamespace } from "./kakaoMaps";
-import { MAP_LOCATIONS } from "./mapLocations";
+import { KakaoMapsLoadError, loadKakaoMaps, type KakaoMap, type KakaoMapsNamespace } from "./kakaoMaps";
+import { createKakaoMapScene, type MapInsets, type MapMarker, type MountedMarker } from "./kakaoMapScene";
 import "./kakaoMap.css";
 
 const NO_PATHS: readonly (readonly (readonly number[])[])[] = [];
-
-interface MapMarker {
-  id: string;
-  latitude: number;
-  longitude: number;
-}
-
-interface MountedMarker {
-  id: string;
-  element: HTMLDivElement;
-  overlay: KakaoCustomOverlay;
-}
+export type { MapInsets } from "./kakaoMapScene";
 
 /** 지도 위에 얹는 컨트롤이 쓸 수 있는 조작입니다. 지도 인스턴스 자체를 밖으로
  *  내보내지 않고, 실제로 동작하는 조작만 좁게 넘깁니다. */
@@ -57,16 +46,7 @@ function mapControls(map: KakaoMap, sdk: KakaoMapsNamespace): MapControlApi {
   };
 }
 
-/** 지도 면 위에 패널이 덮고 있는 가장자리(px)입니다. 핀이 그 아래로 숨지
- *  않도록 setBounds 여백으로 씁니다. */
-export interface MapInsets {
-  top?: number;
-  right?: number;
-  bottom?: number;
-  left?: number;
-}
-
-export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS, overlay, onReady, insets }: {
+export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_PATHS, overlay, onReady, insets, preserveViewport = false }: {
   markers: readonly MapMarker[];
   paths?: readonly (readonly (readonly number[])[])[];
   selectedId: string | null;
@@ -81,14 +61,18 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
    *  풀스크린 지도처럼 좌 · 우 · 아래를 동시에 덮는 화면은 추정으로 맞출 수
    *  없으므로 화면이 직접 말합니다. */
   insets?: MapInsets;
+  /** 코스를 편집하는 동안에는 마커·경로만 갱신하고 사용자가 보던 위치를 유지합니다. */
+  preserveViewport?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   // insets 는 지도 생성 effect 의 의존성에 **넣지 않습니다.** 넣으면 패널이
   // 열리고 닫힐 때마다 지도를 통째로 다시 만듭니다(report.md R01 과 같은
   // 함정). 최신 값만 ref 로 들고 가고, 바뀌면 fit() 만 다시 부릅니다.
   const insetsRef = useRef(insets);
+  const preserveViewportRef = useRef(preserveViewport);
   useEffect(() => {
     insetsRef.current = insets;
+    preserveViewportRef.current = preserveViewport;
   });
   // 객체 참조가 아니라 값으로 비교해야 매 렌더 새로 만든 리터럴에 반응하지
   // 않습니다.
@@ -100,108 +84,69 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
     onReadyRef.current = onReady;
   });
   const [attempt, setAttempt] = useState(0);
+  const runtime = useRef<{
+    scene: ReturnType<typeof createKakaoMapScene>;
+    resize: ResizeObserver;
+  } | null>(null);
   const [result, setResult] = useState<{
     attempt: number;
     markers: MountedMarker[];
-    fit?: () => void;
+    scene?: ReturnType<typeof createKakaoMapScene>;
+    boundsKey?: string;
     error?: string;
   }>();
   const active = result?.attempt === attempt ? result : undefined;
+
+  // 지도 수명은 화면/재시도에만 묶습니다. 순서·선택 변경은 아래에서 내용만 갱신합니다.
+  useEffect(() => () => {
+    onReadyRef.current?.(null);
+    runtime.current?.resize.disconnect();
+    runtime.current?.scene.destroy();
+    runtime.current = null;
+  }, [attempt]);
 
   useEffect(() => {
     const element = container.current;
     if (!element) return;
     const controller = new AbortController();
-    let cleanup = () => {};
 
     void loadKakaoMaps(import.meta.env.VITE_KAKAO_MAP_KEY ?? "", controller.signal)
       .then((sdk) => {
         if (controller.signal.aborted) return;
-        const map = new sdk.Map(element, {
-          center: new sdk.LatLng(MAP_LOCATIONS.gyeongpo.latitude, MAP_LOCATIONS.gyeongpo.longitude),
-          level: 7,
-        });
-        const bounds = new sdk.LatLngBounds();
-        const mounted: MountedMarker[] = [];
-        const lines: { setMap(map: null): void }[] = [];
-        onReadyRef.current?.(mapControls(map, sdk));
-        const resize = new ResizeObserver(() => fit());
-        cleanup = () => {
-          onReadyRef.current?.(null);
-          resize.disconnect();
-          lines.forEach(line => line.setMap(null));
-          mounted.forEach(({ overlay }) => overlay.setMap(null));
-          element.replaceChildren();
-        };
-        for (const marker of markers) {
-          const position = new sdk.LatLng(marker.latitude, marker.longitude);
-          bounds.extend(position);
-          const content = document.createElement("div");
-          content.className = "wim-map-marker";
-          mounted.push({
-            id: marker.id,
-            element: content,
-            overlay: new sdk.CustomOverlay({
-              map, position, content, xAnchor: 0.5, yAnchor: 1, zIndex: 2,
-            }),
+        if (!runtime.current) {
+          const scene = createKakaoMapScene(element, sdk);
+          const resize = new ResizeObserver(() => {
+            scene.map.relayout();
+            if (scene.hasFitted() && !preserveViewportRef.current) scene.fit(insetsRef.current);
           });
+          runtime.current = { scene, resize };
+          resize.observe(element);
+          onReadyRef.current?.(mapControls(scene.map, sdk));
         }
-        for (const path of paths) {
-          if (path.some(point => point.length !== 2 || !point.every(Number.isFinite) || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90)) continue;
-          const points = path.map(point => new sdk.LatLng(point[1], point[0]));
-          if (points.length < 2 || !sdk.Polyline) continue;
-          points.forEach(point => bounds.extend(point));
-          lines.push(new sdk.Polyline({ map, path: points, strokeWeight: 4, strokeColor: "#1d4ed8", strokeOpacity: 0.85 }));
-        }
-        function fit() {
-          if (controller.signal.aborted || !element!.clientWidth || !element!.clientHeight) return;
-          map.relayout();
-          mounted.forEach(({ element: content, overlay }) => overlay.setContent(content));
-          const markerHeight = Math.max(0, ...mounted.map(({ element: content }) => content.offsetHeight));
-          if (bounds.isEmpty()) return;
-          // 화면이 덮인 가장자리를 직접 말해 줬으면 그대로 씁니다.
-          const given = insetsRef.current;
-          if (given) {
-            map.setBounds(
-              bounds,
-              markerHeight + 16 + (given.top ?? 16),
-              given.right ?? 16,
-              given.bottom ?? 16,
-              given.left ?? 16,
-            );
-            return;
-          }
-          // 말해 주지 않은 화면(명소 · 추천 등)은 예전처럼 패널 하나를 추정합니다.
-          const panel = element!.parentElement?.querySelector(".wim-panel")
-            ?.getBoundingClientRect();
-          const stacked = panel && panel.width > element!.clientWidth * 0.8;
-          const edge = panel ? 48 : 16;
-          map.setBounds(bounds, markerHeight + 16, stacked ? edge : (panel?.width ?? 0) + edge,
-            stacked ? panel.height + edge : edge, edge);
-        }
-        fit();
-        resize.observe(element);
-        setResult({ attempt, markers: mounted, fit });
+        const { scene } = runtime.current;
+        const content = scene.update(markers, paths);
+        setResult(previous => previous?.attempt === attempt && previous.scene === scene
+          && previous.markers === content.markers && previous.boundsKey === content.boundsKey
+          ? previous : { attempt, scene, ...content });
       })
       .catch((error: unknown) => {
-        cleanup();
         if (!controller.signal.aborted) {
+          onReadyRef.current?.(null);
+          runtime.current?.resize.disconnect();
+          runtime.current?.scene.destroy();
+          runtime.current = null;
           setResult({ attempt, markers: [], error: error instanceof KakaoMapsLoadError
             ? error.message
             : "카카오 지도를 불러오지 못했습니다. 지도 사용 설정이나 네트워크 연결을 확인해 주세요." });
         }
       });
-    return () => {
-      controller.abort();
-      cleanup();
-    };
+    return () => controller.abort();
   }, [attempt, markers, paths]);
 
   useEffect(() => {
     // Portal contents are mounted after the SDK creates its empty containers.
     // Reapply them so Kakao measures the final button size for its anchors.
-    active?.markers.forEach(({ element, overlay }) => overlay.setContent(element));
-    active?.fit?.();
+    active?.scene?.refreshMarkers();
   }, [active]);
 
   useEffect(() => {
@@ -211,8 +156,8 @@ export function KakaoMapCanvas({ markers, selectedId, renderMarker, paths = NO_P
   // 패널이 열리고 닫혀 덮이는 면적이 달라지면 화면을 다시 맞춥니다. 지도를
   // 다시 만들지는 않습니다 -- fit() 만 부릅니다.
   useEffect(() => {
-    active?.fit?.();
-  }, [active, insetsKey]);
+    if (!preserveViewport || !active?.scene?.hasFitted()) active?.scene?.fit(insetsRef.current);
+  }, [active, insetsKey, preserveViewport]);
 
   return (
     <>

@@ -42,6 +42,7 @@ import {
   planItems,
   routePaths,
   routeReasonsText,
+  travelJson,
   unknownConditionsText,
   type PlanItem,
   type PlanInput,
@@ -356,7 +357,8 @@ export function MapDesktop() {
       ) ?? [],
     [session.plan],
   );
-  const courseFirst = courseChanged ? undefined : courseSelectedStops[0];
+  // 편집 중에도 저장된 기준의 점수 영역을 유지하고, 저장 성공 후 새 기준으로 바꿉니다.
+  const courseFirst = courseSelectedStops[0];
   const courseFirstValid = conditionTargetInRange(courseFirst?.at);
   const courseFirstConditions = useResource<Conditions>(
     courseFirstValid
@@ -432,6 +434,7 @@ export function MapDesktop() {
     ? kakaoRouteLink(calculated.origin, calculated.items)
     : null;
   const action = useAction();
+  const courseAccess = useAction();
   const editCourse = (order: number[], included: number[]) => {
     if (action.busy) return;
     action.cancel();
@@ -454,9 +457,7 @@ export function MapDesktop() {
   );
   const courseLines = coursePaths.length;
   const origin = courseChanged ? editedInput?.request.origin : calculated?.origin;
-  // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
-  // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다 -- 원시 값만 담은 문자열
-  // 키에 의존을 좁힙니다(모바일 MapPage.tsx 와 같은 방식).
+  // 동일 좌표·순서의 배열을 유지해 불필요한 마커 갱신을 줄입니다.
   const courseMarkerKey = JSON.stringify([
     origin && origin.latitude !== null && origin.longitude !== null
       ? [origin.latitude, origin.longitude]
@@ -510,6 +511,7 @@ export function MapDesktop() {
         map={
           view === "spots" ? (
             <KakaoMapCanvas
+              key="spots"
               markers={markers}
               selectedId={selected ? String(selected.id) : null}
               insets={{
@@ -546,8 +548,10 @@ export function MapDesktop() {
             />
           ) : (
             <KakaoMapCanvas
+              key="course"
               markers={courseMarkers}
               paths={coursePaths}
+              preserveViewport={courseChanged}
               selectedId={null}
               insets={{
                 top: DESKTOP_MAP.nav,
@@ -590,7 +594,14 @@ export function MapDesktop() {
               key={key}
               className={"mk-switch-item" + (view === key ? " is-on" : "")}
               aria-pressed={view === key}
-              onClick={() => setView(key)}
+              disabled={action.busy || courseAccess.busy}
+              onClick={() => {
+                setView(key);
+                if (key === "course") void courseAccess.run(async (signal) => {
+                  // 배경 조회의 캐시 대신 현재 세션을 확인합니다. 401은 기존 팝업으로 안내합니다.
+                  await travelJson(import.meta.env.BASE_URL, "travel/plans?limit=1&offset=0", "GET", undefined, signal);
+                });
+              }}
             >
               {key === "spots" ? t("지점 보기") : t("코스 경로")}
             </button>
@@ -898,7 +909,7 @@ export function MapDesktop() {
                 {session.plan?.plan_id && courseFirst && (
                   <div className="mk-course-score">
                     <p className="mk-course-score-place">
-                      {t("첫 장소 · {name}", { name: courseFirst.name })}
+                      {t(courseChanged ? "저장된 첫 장소 · {name}" : "첫 장소 · {name}", { name: courseFirst.name })}
                     </p>
                     <div className="mk-course-score-value">
                       <span>{scoreTitle(session.plan.request.activity ?? "relax")}</span>
@@ -1007,8 +1018,9 @@ export function MapDesktop() {
                     </a>
                   )}
                 </div>
-                <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
+                <p className="mk-note" role={action.error || courseAccess.error || savedPlan.error ? "alert" : "status"}>
                   {action.error ||
+                    courseAccess.error ||
                     savedPlan.error ||
                     (courseSpotIds.length === 0
                       ? t("방문할 장소를 하나 이상 선택해 주세요.")
@@ -1019,8 +1031,8 @@ export function MapDesktop() {
                 </p>
               </>}
               {courseStops.length === 0 && (
-                <p className="mk-note" role={savedPlan.error ? "alert" : "status"}>
-                  {savedPlan.error || (savedPlan.loading
+                <p className="mk-note" role={action.error || courseAccess.error || savedPlan.error ? "alert" : "status"}>
+                  {action.error || courseAccess.error || savedPlan.error || (savedPlan.loading
                     ? t("저장 코스를 불러오는 중입니다.")
                     : t("왼쪽 목록에서 코스를 선택해 주세요."))}
                 </p>
