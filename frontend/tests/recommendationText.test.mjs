@@ -10,8 +10,27 @@ import {
   choiceReason,
   recommendationLookupWarning,
   rejectionReason,
+  spotConditionDisplay,
   tideLine,
 } from '../src/recommendationText.ts';
+
+test('place details retain received evidence when missing waves prevent a recommendation', () => {
+  const conditions = { activity: 'swim', condition_score: { score: 76.8, status: 'partial' } };
+  const data = { choice: null, conditions: [conditions], ranked: [{ activity: 'swim', dropped: true, rules_applied: ['essential_measurement_missing'] }] };
+  assert.equal(spotConditionDisplay(data).conditions, conditions);
+  assert.equal(spotConditionDisplay(data).score, null);
+  assert.equal(conditions.condition_score.score, 76.8);
+  assert.deepEqual(spotConditionDisplay(undefined), { conditions: undefined, score: null });
+});
+
+test('place details show only the chosen eligible activity score, including zero', () => {
+  const swimming = { activity: 'swim', condition_score: { score: 95, status: 'partial' } };
+  const rest = { activity: 'relax', condition_score: { score: 0, status: 'evaluated' } };
+  const data = { choice: { activity: 'relax', score: 0 }, conditions: [swimming, rest], ranked: [{ activity: 'relax', dropped: false }] };
+  assert.deepEqual(spotConditionDisplay(data), { conditions: rest, score: 0 });
+  assert.equal(spotConditionDisplay({ ...data, conditions: [swimming] }).score, null);
+  assert.equal(spotConditionDisplay({ ...data, ranked: [{ activity: 'relax', dropped: true, rules_applied: ['activity_blocked'] }] }).score, null);
+});
 
 test('excluded activities never reappear as numeric recommendations while their source score stays intact', () => {
   const conditions = {

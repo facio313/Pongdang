@@ -1,8 +1,8 @@
-import type { WaterPlaceKind } from "./waterPlaceApi.ts";
+import type { WaterPlaceKind, WaterPlacePageSize } from "./waterPlaceApi.ts";
 
 export const WATER_PLACE_BROWSER_KEY = "pongdang.water-place-browser";
-export type WaterPlaceBrowserState = { search: string; district: string; kind: WaterPlaceKind; page: number };
-const initial: WaterPlaceBrowserState = { search: "", district: "", kind: "", page: 1 };
+export type WaterPlaceBrowserState = { search: string; district: string; kind: WaterPlaceKind; page: number; pageSize: WaterPlacePageSize };
+const initial: WaterPlaceBrowserState = { search: "", district: "", kind: "", page: 1, pageSize: 100 };
 let state: WaterPlaceBrowserState | undefined;
 const listeners = new Set<() => void>();
 
@@ -16,10 +16,16 @@ export function parseWaterPlaceBrowserState(raw: string | null): WaterPlaceBrows
       district: typeof saved.district === "string" && /^[a-z]{1,20}$/.test(saved.district) ? saved.district : "",
       kind: saved.kind === "beach" || saved.kind === "valley" ? saved.kind : "",
       page: Number.isSafeInteger(saved.page) && saved.page! >= 1 && saved.page! <= 10000 ? saved.page! : 1,
+      pageSize: saved.pageSize === 10 ? 10 : 100,
     };
   } catch {
     return { ...initial };
   }
+}
+
+/** Keep the current place range when moving between the list and map. */
+export function waterPlaceBrowserPage(saved: WaterPlaceBrowserState, pageSize: WaterPlacePageSize) {
+  return Math.min(10000, Math.floor((saved.page - 1) * saved.pageSize / pageSize) + 1);
 }
 
 export function getWaterPlaceBrowserState(): WaterPlaceBrowserState {

@@ -1,0 +1,48 @@
+.spot-list-score {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  min-width: 76px;
+  line-height: 1.4;
+  text-align: right;
+}
+.spot-list-score-value {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.spot-list-score-basis {
+  font-size: 11px;
+  color: var(--pd-ink-2, var(--dk-ink-2));
+}
+.spot-list-score-status {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--pd-mist, var(--dk-mist));
+  color: var(--pd-ink-2, var(--dk-ink-2));
+  font-size: 12px;
+  white-space: nowrap;
+}
+.spot-list-temperature {
+  margin-top: 4px;
+  padding-top: 7px;
+  border-top: 1px solid var(--pd-line, var(--dk-line));
+  font-size: 11px;
+  color: var(--pd-ink-2, var(--dk-ink-2));
+}
+.spot-list-temperature[data-state="available"] {
+  color: #0b6c84;
+}
+.spots-page .spot-list-score {
+  min-width: 0;
+}
+.spots-page .spot-list-score-value {
+  font-size: 17px;
+}
+.spots-page .spot-list-score-status {
+  padding: 4px 7px;
+  font-size: 11px;
+}

@@ -12,7 +12,6 @@ import { gradeOf } from "./groupAGrade";
 import {
   DesktopHero,
   DesktopNav,
-  DesktopScore,
   DesktopShell,
   FootNote,
   LabelRow,
@@ -20,17 +19,11 @@ import {
 } from "./pongdangDesktop";
 import {
   Icon,
-  ScoreExplainer,
-  ScoreGauge,
-  ScoreReason,
   Skeleton,
   StateChip,
 } from "./pongdangUi";
-import { EvidenceNote } from "./EvidenceNote";
-import { isInitialLoad } from "./useResource";
-import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
-import { RecommendationReason } from "./RecommendationReason";
-import { activityHeadline } from "./recommendationText";
+import { SpotConditionsCard } from "./SpotConditionsCard";
+import { SpotListScore } from "./SpotListScore";
 import { dateLabel, placeMatchesId, placeRegionLabel, type Place } from "./productData";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
@@ -54,10 +47,8 @@ import "./spotsDesktop.css";
 
 function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
-    <div className="sk-row">
-      <a className="place-photo-link" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })}>
-        <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} />
-      </a>
+    <a className="sk-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
+      <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : "beach"} />
       <div className="sk-row-body">
         <div className="sk-row-head">
           <b className="sk-row-name">{place.name}</b>
@@ -65,7 +56,6 @@ function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         </div>
         <p className="sk-row-summary">{place.address ?? t("주소 없음")}</p>
         {detail?.opening_hours && <p className="sk-row-hours">{t("운영")} · {detail.opening_hours}</p>}
-        {/* <PlacePhotoCredit photo={place.photo} /> */}
         <div className="sk-row-meta">
           <span>
             <span className="sk-meta-name">{t("지역")}</span>
@@ -74,25 +64,23 @@ function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
           <span>
             <span className="sk-meta-name">{t("좌표")}</span>
             <b>
-              {typeof place.lat === "number" && typeof place.lng === "number"
-                ? t("확인됨")
+              {hasPlaceCoordinates(place)
+                ? `${place.lat.toFixed(2)}, ${place.lng.toFixed(2)}`
                 : "–"}
             </b>
           </span>
         </div>
       </div>
-      <div className="sk-row-score">
-        {/* 점수는 고른 장소만 조회합니다. 목록 전체에 붙이려면 장소마다 한
-            번씩 불러야 합니다. 그래서 여기서는 점수를 약속하지 않습니다. */}
-        <DesktopScore score={null} align="right" unscoredLabel={t("상세에서 조회")} />
-        <a className="sk-row-link" href={spotLink(place)}>{t("상세 →")}</a>
-      </div>
-    </div>
+      <span className="sk-row-score-link">
+        <SpotListScore spotId={place.id} />
+        <span className="sk-row-link" aria-hidden="true">→</span>
+      </span>
+    </a>
   );
 }
 
 function SpotsListDesktop() {
-  const browser = useWaterPlaceBrowser();
+  const browser = useWaterPlaceBrowser(10);
   const { search, setSearch, places } = browser;
   const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
   const details = usePlaceDetails(rows.map((place) => place.id));
@@ -143,6 +131,7 @@ function SpotsListDesktop() {
             {/* 예전에는 여기가 「해변 18 · 온천 6 · 카페 41 …」이었습니다.
                 근거 없는 숫자였습니다. 이제 실제로 받아 온 목록을 셉니다. */}
             <span className="sk-counts">
+              <span className="sk-count">{t("이 페이지")}</span>
               {kinds.map(([label, count], index) => (
                 <span
                   className={"sk-count" + (index === 0 ? " is-lead" : "")}
@@ -213,7 +202,7 @@ function SpotsListDesktop() {
 
       <FootNote
         note={t(
-          "퐁당 점수는 물놀이 조건 점수이며 명소의 품질 평가가 아닙니다. 목록에는 점수를 싣지 않습니다 -- 장소마다 따로 조회해야 하므로 상세에서 읽습니다. 리뷰 평점은 수집하지 않습니다.",
+          "퐁당 점수는 활동별 물놀이 조건을 나타냅니다. 장소를 고르면 점수의 기준과 근거를 확인할 수 있습니다.",
         )}
       />
     </DesktopShell>
@@ -234,8 +223,6 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
   const { action, message, showDraftLink, add } = useSpotActions(place, { queryFavorites: false });
   const score = best?.score ?? null;
   const grade = gradeOf(score);
-  const verdict =
-    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 모바일 상세와 같은 규칙으로
   // 「없음」과 구분해 그립니다 -- 조회 중에 「장소를 찾지 못했습니다」라고
   // 적으면 곧 올 값을 없다고 단정하는 셈입니다.
@@ -279,83 +266,56 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
       />
 
       <div className="sk-detail">
-        <div className="sk-detail-photo">
-          <PlacePhoto className="sk-detail-slot" name={place?.name ?? t("장소")} photo={place?.photo} eager />
-          <div className="sk-detail-caption">
-            <div className="sk-detail-chips">
-              <span className="sk-detail-chip">
-                {place ? t(kindLabel(place)) : t("분류 미확인")}
-              </span>
-            </div>
-            <h1 className="sk-detail-name">
-              {placeLoading ? (
-                <Skeleton width="6em" glass label={t("장소 조회 중")} />
-              ) : (
-                (place?.name ?? t("장소를 찾지 못했습니다"))
-              )}
-            </h1>
-            <div className="sk-detail-address">
-              {place?.address ?? t("주소 없음")} ·{" "}
-              {placeRegionLabel(place)}
-            </div>
-          </div>
-        </div>
-
-        <div className="sk-detail-body">
-          {/* 장소 조회 실패. 모바일 상세는 알리는데 이 화면은 lookup 을 받아
-              rows 만 쓰고 오류를 한 번도 읽지 않았습니다. */}
-          {lookup.error && (
-            <p className="sk-note" role="alert">
-              {lookup.error}
-            </p>
-          )}
-          {/* <PlacePhotoCredit photo={place?.photo} /> */}
-          <div className="sk-detail-score-row">
-            <div>
-              <div className="pd-dk-kick">
-                {best
-                  ? t("오늘 여기서 가장 좋은 활동 · {activity}", { activity: activityHeadline(best.activity) })
-                  : recommendation.error
-                  ? t("오늘의 활동을 불러오지 못했습니다")
-                  : t("오늘 이 장소의 물놀이 조건")}
+        <div className="sk-detail-overview">
+          <div className="sk-detail-photo">
+            <PlacePhoto className={`sk-detail-slot${place?.photo?.license === "Type1" ? " is-cover" : ""}`} name={place?.name ?? t("장소")} photo={place?.photo} eager />
+            <div className="sk-detail-caption">
+              <div className="sk-detail-chips">
+                <span className="sk-detail-chip">
+                  {place ? t(kindLabel(place)) : t("분류 미확인")}
+                </span>
               </div>
-              <DesktopScore
-                score={score}
-                size={72}
-                unscoredLabel={best ? undefined : t("산정 가능한 활동 없음")}
-              />
-              {best && <div className="sk-note">{scoreTitle(best.activity)}</div>}
-            </div>
-            <div className="sk-detail-confidence">
-              <ScoreGauge score={score} loading={loading} />
-              {verdict && <p className="sk-detail-verdict">{verdict}</p>}
-              {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. */}
-              <RecommendationReason
-                data={recommendation.data}
-                error={recommendation.error}
-                loading={isInitialLoad(recommendation)}
-              />
-              <ScoreReason
-                text={scoreReason(best?.data).text}
-                loading={loading}
-              />
-              <EvidenceNote data={best?.data} className="sk-note" />
-              <ScoreExplainer data={best?.data} />
+              <h1 className="sk-detail-name">
+                {placeLoading ? (
+                  <Skeleton width="6em" glass label={t("장소 조회 중")} />
+                ) : (
+                  (place?.name ?? t("장소를 찾지 못했습니다"))
+                )}
+              </h1>
+              <div className="sk-detail-address">
+                {place?.address ?? t("주소 없음")} ·{" "}
+                {placeRegionLabel(place)}
+              </div>
             </div>
           </div>
 
+          <div className="sk-detail-body">
+            {/* <PlacePhotoCredit photo={place?.photo} /> */}
+            <SpotConditionsCard data={recommendation.data} loading={loading} error={recommendation.error} />
+          </div>
+
+          {(place || lookup.error) && <div className="sk-detail-followup">
+            {/* 장소 조회 실패. 모바일 상세는 알리는데 이 화면은 lookup 을 받아
+                rows 만 쓰고 오류를 한 번도 읽지 않았습니다. */}
+            {lookup.error && (
+              <p className="sk-note" role="alert">
+                {lookup.error}
+              </p>
+            )}
+            {place && <>
+              <div className="sk-detail-actions">
+                <button type="button" className="pd-dk-button" disabled={action.busy} onClick={add}>{t("내 코스에 추가")}</button>
+                <a className="sk-detail-map-link" href={`#map?spot_id=${place.id}`}>{t("지도 탭에서 보기 →")}</a>
+              </div>
+              {action.error && <p className="sk-note" role="alert">{action.error}</p>}
+              {message && <p className="sk-note" role="status">{message} {showDraftLink && <a href="#map?view=course">{t("코스 초안 보기")}</a>}</p>}
+            </>}
+          </div>}
+        </div>
+        <div className="sk-detail-information">
           {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} desktop />}
           <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} desktop />
           <PlaceDistanceInfo place={place} loading={placeLoading} />
-
-          {place && <>
-            <div className="sk-detail-actions">
-              <button type="button" className="pd-dk-button" disabled={action.busy} onClick={add}>{t("내 코스에 추가")}</button>
-              <a className="sk-detail-map-link" href={`#map?spot_id=${place.id}`}>{t("지도 탭에서 보기 →")}</a>
-            </div>
-            {action.error && <p className="sk-note" role="alert">{action.error}</p>}
-            {message && <p className="sk-note" role="status">{message} {showDraftLink && <a href="#map?view=course">{t("코스 초안 보기")}</a>}</p>}
-          </>}
         </div>
       </div>
 

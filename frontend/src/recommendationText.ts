@@ -50,6 +50,19 @@ export function activityRecommendationDisplay(
   return { score };
 }
 
+/** 상세에서는 추천이 보류돼도 조회된 측정 근거를 남깁니다. 제외된 활동의
+ * 부분 점수는 대표 점수로 승격하지 않고 근거 설명 안에서만 읽습니다. */
+export function spotConditionDisplay(data?: Recommendation) {
+  const chosen = data?.conditions.find(item => item.activity === data.choice?.activity);
+  const conditions = chosen ?? data?.conditions[0];
+  const ranked = data?.ranked.find(item => item.activity === conditions?.activity);
+  return {
+    conditions,
+    score: chosen && data?.choice
+      ? activityRecommendationDisplay(chosen, ranked).score : null,
+  };
+}
+
 /** 물때 규칙은 검증된 기준이 아닙니다. 이 문장은 물때를 말하는 모든 줄에
  *  붙습니다 -- 조석 예측을 활동 가능 시간으로 읽게 두지 않기 위해서입니다. */
 export const TIDE_DISCLAIMER =

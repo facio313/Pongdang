@@ -4,8 +4,10 @@ import { AppHeader, AppShell } from "./AppShell";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
+import { SpotListScore } from "./SpotListScore";
 import { PlacePhoto } from "./PlacePhoto";
 import { kindLabel, type PlaceDetails } from "./placeDetails";
+import { hasPlaceCoordinates } from "./placeDistance";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
@@ -127,46 +129,35 @@ function ListSearch({
 
 function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
-    <div className="sp-row">
-      <a className="place-photo-link" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })}>
-        <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} />
-      </a>
+    <a className="sp-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
+      <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : "beach"} />
       <span className="sp-row-body">
         <span className="sp-row-head">
-          <a className="sp-row-name place-photo-link" href={spotLink(place)}>{place.name}</a>
+          <span className="sp-row-name">{place.name}</span>
           <span className="sp-row-category">{t(kindLabel(place))}</span>
         </span>
-        {/* 점수는 고른 장소만 조회합니다. 목록 전체에 붙이려면 장소마다 한
-            번씩, 100건이면 100번을 부르게 됩니다. 그래서 여기서는 점수를
-            약속하지 않고 무엇을 눌러야 보이는지만 밝힙니다. */}
         <span className="sp-row-where">{placeRegionLabel(place)}</span>
         <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
         {detail?.opening_hours && <span className="sp-row-hours">{t("운영")} · {detail.opening_hours}</span>}
-        {/* 좌표가 확인된 장소만 지도에 찍힙니다. 데스크탑 목록은 그 사실을
-            줄마다 적고 있었고 모바일은 적지 않아, 「지도에서 보기」로 갔을 때
-            어떤 장소가 왜 빠졌는지 알 수 없었습니다. */}
         <span className="sp-row-meta">
           <span className="sp-meta-name">{t("좌표")}</span>
           <b>
-            {typeof place.lat === "number" && typeof place.lng === "number"
-              ? t("확인됨")
+            {hasPlaceCoordinates(place)
+              ? `${place.lat.toFixed(2)}, ${place.lng.toFixed(2)}`
               : "–"}
           </b>
         </span>
-        {/* <PlacePhotoCredit photo={place.photo} /> */}
       </span>
-      <span className="sp-row-score">
-        {/* 점수는 고른 장소만 조회하므로 여기서는 약속하지 않고, 어디를 눌러야
-            보이는지만 밝힙니다(데스크탑 unscoredLabel 과 같은 문구). */}
-        <span className="sp-row-unscored">{t("상세에서 조회")}</span>
-        <a className="sp-row-link" href={spotLink(place)}>{t("상세 →")}</a>
+      <span className="sp-row-score-link">
+        <SpotListScore spotId={place.id} />
+        <span className="sp-row-link" aria-hidden="true">→</span>
       </span>
-    </div>
+    </a>
   );
 }
 
 function SpotsList() {
-  const browser = useWaterPlaceBrowser();
+  const browser = useWaterPlaceBrowser(10);
   const { search, setSearch, places } = browser;
   const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
   const details = usePlaceDetails(rows.map((place) => place.id));

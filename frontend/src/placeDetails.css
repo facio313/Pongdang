@@ -1,5 +1,38 @@
 .place-details dl { margin: 0; }
 .place-details dd { margin: 0; }
+.place-details-title { margin: 0 16px 18px; padding-top: 20px; font-size: 20px; color: #1b2c3d; }
+.pd-desktop .place-details-title { margin-left: 0; padding-top: 0; }
+.pd-card.place-details-card { padding: 18px; }
+.place-details-card .place-details-title { margin-left: 0; margin-right: 0; padding-top: 0; }
+.place-details .place-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 16px 24px;
+  padding: 0;
+  border: 0;
+}
+.pd-desktop .place-details .place-details-grid { margin: 0 0 24px; border: 0; }
+.place-details-card .place-details .place-details-grid { margin-left: 0; margin-right: 0; }
+.place-details .place-details-grid > .place-detail-item {
+  display: block;
+  padding: 18px;
+  border: 1px solid #dae7f5;
+  border-radius: 16px;
+  background: #f7faff;
+  min-width: 0;
+}
+.place-details .place-details-grid > .place-detail-item:last-child { border-bottom: 1px solid #dae7f5; }
+.place-details .place-details-grid dt { display: block; margin-bottom: 10px; font-size: 12px; color: #5c789a; }
+.place-details .place-details-grid dd { display: block; text-align: left; font-size: 14px; font-weight: 600; color: #1b2c3d; }
+.place-details .place-details-grid dd.is-empty { font-weight: 400; color: #73879c; }
+@media (min-width: 1280px) {
+  .pd-desktop .place-details .place-details-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .place-details .place-details-grid { gap: 10px; }
+  .place-details .place-details-grid > .place-detail-item { padding: 14px; }
+}
 .place-details .sd-info-name,
 .place-details .sk-detail-th { flex: 0 0 7em; word-break: keep-all; overflow-wrap: anywhere; }
 .place-details .sd-info-value,
@@ -10,6 +43,7 @@
   line-height: 1.7;
 }
 .place-details-copy { padding: 0 16px 14px; }
+.place-details-card .place-details-copy { padding-left: 0; padding-right: 0; }
 .pd-desktop .place-details-copy { padding: 0; }
 .place-details-heading { margin: 16px 0 8px; font-size: 14px; }
 .place-details-overview {

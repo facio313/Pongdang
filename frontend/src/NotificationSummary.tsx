@@ -8,7 +8,7 @@ import { notificationConditionLabel, notificationDeliveryLabel, type Notificatio
 import { useNotificationResource } from "./useNotificationResource";
 import "./notifications.css";
 
-export function NotificationSummary({ spotId, appearance, loginPrompt = true }: { spotId?: number; appearance?: "mobile" | "desktop"; loginPrompt?: boolean }) {
+export function NotificationSummary({ spotId, appearance, loginPrompt = true, showDisclaimer = true }: { spotId?: number; appearance?: "mobile" | "desktop"; loginPrompt?: boolean; showDisclaimer?: boolean }) {
   const requireLogin = useRequireLogin();
   const subscriptions = useNotificationResource<NotificationPage<NotificationSubscription>>(spotId ? `notifications/subscriptions?limit=1&offset=0&spot_id=${spotId}&year=${kstDate().slice(0, 4)}` : null);
   const subscription = subscriptions.data?.rows[0];
@@ -47,6 +47,6 @@ export function NotificationSummary({ spotId, appearance, loginPrompt = true }: 
       <button type="button" className={appearance === "desktop" ? "pd-dk-button is-quiet" : appearance === "mobile" ? "pd-secondary" : undefined} onClick={refresh} disabled={!spotId || subscriptions.loading}>{t("상태 다시 확인")}</button>
       <a className={appearance === "desktop" ? "pd-dk-button is-quiet" : appearance === "mobile" ? "pd-secondary" : undefined} href="#first-swim">{t("알림 설정·이력 보기 →")}</a>
     </div>
-    <p className={appearance === "desktop" ? "sk-note" : "pd-note"}>{t("수온 기준 충족은 입수 안전 판정이 아닙니다.")}</p>
+    {showDisclaimer && <p className={appearance === "desktop" ? "sk-note" : "pd-note"}>{t("수온 기준 충족은 입수 안전 판정이 아닙니다.")}</p>}
   </div>;
 }

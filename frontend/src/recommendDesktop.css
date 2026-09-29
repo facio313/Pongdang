@@ -164,6 +164,23 @@
   color: #fff;
   background: var(--dk-blue);
 }
+.pd-desktop .rd-taste-group + .rd-taste-summary {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--dk-line);
+}
+.pd-desktop .rd-taste-summary-title {
+  margin-bottom: 12px;
+  color: var(--dk-ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+.pd-desktop .rd-taste-summary .rd-taste {
+  padding: 6px 10px;
+  background: #edf4ff;
+  color: var(--dk-blue);
+  font-size: 12px;
+}
 .pd-desktop .rd-remake {
   background: var(--dk-blue);
   font-size: 12px;

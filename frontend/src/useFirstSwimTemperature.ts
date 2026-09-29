@@ -1,5 +1,5 @@
 import { conditionPath } from "./productData";
-import { selectPlaceTemperature, selectNearbyTemperature, type TemperaturePage, type NearbyTemperatureConditions } from "./firstSwimTemperature";
+import { selectPlaceTemperature, selectNearbyTemperature, type TemperaturePage, type NearbyTemperatureConditions, type TemperatureState } from "./firstSwimTemperature";
 import { useExpired } from "./useExpiry";
 import { useResource } from "./useResource";
 
@@ -18,7 +18,7 @@ export function useFirstSwimTemperature(spotId: number) {
   const reading = selected.reading;
   const expired = useExpired(reading ? Date.parse(reading.validUntil) : undefined);
   const error = primary.error ?? (needsNearby ? nearby.error : undefined);
-  const state = primary.loading || (needsNearby && nearby.loading) ? "loading"
+  const state: TemperatureState = primary.loading || (needsNearby && nearby.loading) ? "loading"
     : error ? "error" : !reading ? "missing"
     : reading.stale || expired ? "stale" : "available";
   return { state, reason: selected.reason, reading, error };

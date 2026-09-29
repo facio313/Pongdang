@@ -125,20 +125,39 @@
   padding: 4px 16px 6px;
 }
 .spots-page .sp-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
   gap: 11px;
-  padding: 12px 0;
+  padding: 12px 8px;
   border-bottom: 1px solid var(--pd-line);
+  border-radius: 16px;
   color: inherit;
   text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  transition: background-color 180ms ease, outline-color 180ms ease,
+    border-color 180ms ease, box-shadow 180ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spots-page .sp-row:hover {
+    background-color: var(--pd-mist);
+    border-bottom-color: transparent;
+    outline-color: #62b8ff;
+    box-shadow: 0 0 0 3px rgb(72 167 255 / 10%),
+      0 0 16px rgb(67 157 245 / 22%);
+  }
 }
 .spots-page .sp-row:last-of-type {
   border-bottom: 0;
 }
-/* 사진은 아직 확보되지 않았습니다. 목록에서 줄마다 반복되는 자리라 점선
-   슬롯 대신 중립 자리표시자로 둡니다 -- 무엇이 들어올 자리인지는 앵커의
-   aria-label 이 밝힙니다. */
+.spots-page .sp-row:focus-visible {
+  background-color: var(--pd-mist);
+  outline: 2px solid var(--pd-blue-deep);
+  outline-offset: 4px;
+  box-shadow: 0 0 16px rgb(67 157 245 / 22%);
+}
 .spots-page .sp-row-photo {
+  grid-row: span 2;
   width: 82px;
   height: 82px;
   flex: none;
@@ -154,6 +173,12 @@
   flex: 1;
   min-width: 0;
 }
+.spots-page .sp-row-photo .place-photo-generic-label {
+  inset: auto 4px 4px;
+  padding: 2px;
+  font-size: 9px;
+  text-align: center;
+}
 .spots-page .sp-row-head {
   display: flex;
   align-items: baseline;
@@ -166,16 +191,14 @@
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
 }
-.spots-page .sp-row-score {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.spots-page .sp-row-score .pd-grade-chip {
+.spots-page .sp-row-where,
+.spots-page .sp-row-address,
+.spots-page .sp-row-hours {
+  display: block;
+  margin-top: 4px;
   font-size: var(--pd-fs-cap);
-  padding: 3px 8px;
+  line-height: 1.5;
+  color: var(--pd-ink-2);
 }
 .spots-page .sp-row-distance {
   font-size: var(--pd-fs-cap);
@@ -588,32 +611,36 @@
 }
 
 /* ── 목록 줄의 오른쪽 열 ─────────────────────────────── */
-/* 데스크탑 목록은 줄마다 「상세 →」와 점수 자리를 오른쪽에 두고 있었고,
-   모바일은 사진과 본문뿐이라 어디를 눌러야 상세인지 사진밖에 없었습니다. */
-.spots-page .sp-row-score {
+.spots-page .sp-row-score-link {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 4px;
-  flex: none;
-  text-align: right;
-}
-.spots-page .sp-row-unscored {
-  font-size: var(--pd-fs-cap);
-  color: var(--pd-ink-2);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  grid-column: 2;
 }
 .spots-page .sp-row-link {
-  font-size: var(--pd-fs-cap);
+  display: grid;
+  place-items: center;
+  flex: none;
+  align-self: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--pd-blue-deep);
+  text-decoration: none;
 }
 .spots-page .sp-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin-top: 6px;
   font-size: var(--pd-fs-cap);
+  line-height: 1.5;
   color: var(--pd-ink-2);
 }
 .spots-page .sp-meta-name {
-  margin-right: 5px;
+  flex: none;
 }
 .spots-page .sp-kind-counts {
   margin-top: 6px;

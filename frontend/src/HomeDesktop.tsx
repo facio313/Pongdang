@@ -52,6 +52,7 @@ import { useHomeBeaches } from "./useHomeBeaches";
 import type { TemperatureReading } from "./firstSwimTemperature";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
+import { useRequireLogin } from "./loginPopoverState";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
@@ -299,7 +300,7 @@ function BeachCard({ place }: { place: Place & { temperature: TemperatureReading
   return (
     <div className="hd-beach">
       <a className="place-photo-link" href={spotLink(place)}>
-        <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} />
+        <PlacePhoto className="hd-beach-photo" name={place.name} photo={place.photo} fallback="beach" />
         <span className="hd-beach-head first-swim-name-row">
           <b className="hd-beach-name">{place.name}</b>
           <FirstSwimPreview reading={place.temperature} />
@@ -336,6 +337,7 @@ export function HomeDesktop() {
   // 추천 결과의 matched_preferences 였는데, 그건 이 브라우저 메모리에만 있는
   // 값이라 취향을 저장하고 홈으로 와도 바뀌지 않았고 새로고침하면 사라졌습니다.
   const taste = useTastePreference();
+  const requireLogin = useRequireLogin();
   const tags = taste.savedIds.map(taste.labelOf);
   const routeCourse = session.route?.route ?? null;
   // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
@@ -478,9 +480,15 @@ export function HomeDesktop() {
               </div>
             )}
             <div className="hd-taste-actions">
-              <a className="pd-dk-button" href="#recommend">
-                {tags.length ? t("추천 다시 보기 →") : t("취향 고르기 →")}
-              </a>
+              {taste.profileLoading ? (
+                <button type="button" className="pd-dk-button" disabled>{t("조회 중")}</button>
+              ) : taste.loginRequired ? (
+                <button type="button" className="pd-dk-button" onClick={requireLogin}>{t("로그인")}</button>
+              ) : (
+                <a className="pd-dk-button" href="#recommend">
+                  {tags.length ? t("추천 다시 보기 →") : t("취향 고르기 →")}
+                </a>
+              )}
             </div>
           </div>
           <div className="hd-ai">

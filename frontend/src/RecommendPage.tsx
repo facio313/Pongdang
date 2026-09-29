@@ -195,6 +195,12 @@ function EntryBody({
    *  다시 보낼 것이 없습니다 -- 고를 자리는 이미 이 카드 아래에 있습니다. */
   tasteOpen: boolean;
 }) {
+  if (tasteOpen) return (
+    <div className="pd-card">
+      <div className="pd-card-title">{t("시작")}</div>
+      <TravelRegionSelector region={region} onChange={onRegion} />
+    </div>
+  );
   return (
     <>
         <div className="pd-card">
@@ -343,8 +349,6 @@ function TagSkeletons({ count = 6 }: { count?: number }) {
 /** 열린 취향 덩어리 전부. 대체가 아니라 누적이므로 `revealed` 까지를 모두
  *  그립니다. 지나온 덩어리도 그대로 눌러서 고칠 수 있습니다. */
 function TasteBlocks({
-  region,
-  onRegion,
   revealed,
   catalogue,
   groups,
@@ -367,8 +371,6 @@ function TasteBlocks({
   busy,
   signalError,
 }: {
-  region: string;
-  onRegion: (region: string) => void;
   revealed: number;
   catalogue: { loading: boolean; error?: string };
   /** 서버가 발행한 선택 항목. 프런트가 만든 목록이 아닙니다. */
@@ -573,7 +575,6 @@ function TasteBlocks({
               ))
             )}
           </div>
-          <TravelRegionSelector region={region} onChange={onRegion} disabled={busy} />
           <ExampleNote>
             {t("고른 항목과 좋아요를 합쳐 취향에 저장하고 실제 장소를 추천받습니다. 선택은 서버 키워드로 그대로 전달되며, 프런트가 조건을 만들어 붙이지 않습니다.")}</ExampleNote>
           {selectionIssue && <p className="pd-note" role="alert">{selectionIssue}</p>}
@@ -1430,12 +1431,8 @@ function RecommendScreen() {
   // 취향 흐름(시작 → 취향 → 후보)은 **한 화면에 쌓입니다**. 대화와 재추천만
   // 화면을 갈아 끼웁니다 -- 그 둘은 취향을 고르는 자리가 아니라 다른 일입니다.
   const [mode, setMode] = useState<Mode>("flow");
-  const [courseOpen, setCourseOpen] = useState(() =>
-    Boolean(
-      session.plan ||
-        new URLSearchParams(window.location.hash.split("?")[1]).has("plan_id"),
-    ),
-  );
+  const [courseChoice, setCourseOpen] = useState<boolean | null>(null);
+  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get("plan_id");
   const [tags, setTags] = useState<string[] | null>(null);
   // 고를 수 있는 것은 서버가 정합니다. 프런트는 그 id 를 그대로 들고 다니고,
   // 라벨은 표시할 때만 씁니다 -- 예전에는 라벨이 곧 값이라, 서버에 없는
@@ -1447,17 +1444,22 @@ function RecommendScreen() {
     labelOf,
     savedIds,
     preference,
+    hasTaste,
+    profileLoading,
     profileError,
     savePreference: saveTaste,
   } = useTastePreference();
+  const courseOpen = courseChoice ?? Boolean(planId || (!profileLoading && hasTaste && session.plan));
   const cards = groups.find((group) => group.id === CARD_CATEGORY)?.options ?? [];
   const picked = tags ?? savedIds;
   // 저장된 취향 그대로입니다. 저장이 끝나면 useTastePreference 가 조회 기억을
   // 버리고 다시 읽으므로(forgetResource), 방금 저장한 것을 따로 들고 있을
   // 필요가 없습니다 -- 예전에는 여기 `justSaved` 그림자 상태가 있었습니다.
   const savedTastes = savedIds.map(labelOf);
-  // 취향 수집에서 열린 데까지. null 은 아직 시작 전입니다.
-  const [revealed, setRevealed] = useState<TasteReveal>(null);
+  // Wait for saved preferences before choosing the entry screen. Explicit course
+  // links and subsequent user actions keep their selected destination.
+  const [openedTaste, setRevealed] = useState<TasteReveal>(null);
+  const revealed = openedTaste ?? (!profileLoading && !hasTaste && !courseOpen ? 0 : null);
   // 카테고리 수 + 활동 카드 + 요약.
   const tasteTotal = groups.length + 2;
   const tasteStepNo = Math.min((revealed ?? 0) + 1, tasteTotal);
@@ -1501,9 +1503,6 @@ function RecommendScreen() {
   const [proposal, setProposal] = useState<RecommendationResult | null>(null);
   const action = useAction();
   const days = calendarDays(new Date().toISOString(), 5);
-  const planId = new URLSearchParams(window.location.hash.split("?")[1]).get(
-    "plan_id",
-  );
   // 공유 코스 링크(plan_id)도 개인정보 자원입니다. 익명 방문자에게는
   // 「로그인 필요」를 알림으로 띄우지 않고, 다른 저장 자원과 같이 조용히
   // 처리합니다(authError.suppressLoginRequired).
@@ -1739,7 +1738,7 @@ function RecommendScreen() {
    *  「다시 고르기」가 태그만 되돌리고 카드는 끝난 채로 두면, 아무 카드도 없는
    *  요약만 남습니다. */
   const restartTaste = () => {
-    setRevealed(null);
+    setRevealed(0);
     setCardIndex(0);
     setLiked([]);
     lastSignalledCard.current = null;
@@ -1859,8 +1858,6 @@ function RecommendScreen() {
               />
               {tasteOpen && (
                 <TasteBlocks
-                  region={region}
-                  onRegion={onRegion}
                   revealed={revealed}
                   catalogue={keywordOptions}
                   groups={groups}

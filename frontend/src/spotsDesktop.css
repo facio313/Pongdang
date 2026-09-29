@@ -100,12 +100,31 @@
   display: flex;
   align-items: center;
   gap: 26px;
-  padding: 18px 0;
+  padding: 18px 14px;
   border-bottom: 1px solid var(--dk-line);
+  border-radius: 18px;
+  color: var(--dk-ink);
+  text-decoration: none;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  transition: background-color 180ms ease, outline-color 180ms ease,
+    border-color 180ms ease, box-shadow 180ms ease;
 }
-/* 사진은 미확보입니다. 빈 채로 두지 않고 무엇이 들어올 자리인지 밝힙니다. */
-/* 대표 사진을 내려주는 API 가 없습니다. 줄마다 반복되는 자리라 점선 슬롯
-   대신 중립 자리표시자를 씁니다. */
+@media (hover: hover) and (pointer: fine) {
+  .pd-desktop .sk-row:hover {
+    background-color: var(--dk-mist);
+    border-bottom-color: transparent;
+    outline-color: #62b8ff;
+    box-shadow: 0 0 0 3px rgb(72 167 255 / 10%),
+      0 0 16px rgb(67 157 245 / 22%);
+  }
+}
+.pd-desktop .sk-row:focus-visible {
+  background-color: var(--dk-mist);
+  outline: 2px solid var(--dk-blue);
+  outline-offset: 4px;
+  box-shadow: 0 0 16px rgb(67 157 245 / 22%);
+}
 .pd-desktop .sk-row-photo {
   display: block;
   width: 208px;
@@ -169,20 +188,22 @@
 .pd-desktop .sk-row-meta .is-closed {
   color: var(--dk-alert);
 }
-.pd-desktop .sk-row-score {
+.pd-desktop .sk-row-score-link {
+  display: flex;
+  align-items: center;
   flex: none;
-  width: 150px;
-  text-align: right;
-  border-left: 1px solid var(--dk-rule-weak);
-  padding-left: 24px;
+  gap: 8px;
 }
 .pd-desktop .sk-row-link {
-  display: inline-block;
-  font-size: 11.5px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--dk-deep);
   text-decoration: none;
-  margin-top: 12px;
 }
 .pd-desktop .sk-list-foot {
   display: flex;
@@ -205,22 +226,28 @@
   color: var(--dk-ink);
 }
 
-.pd-desktop .sk-detail {
+.pd-desktop .sk-detail-overview {
   display: grid;
-  grid-template-columns: 760px 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: stretch;
+  gap: 20px 24px;
+  padding: 32px;
 }
 .pd-desktop .sk-detail-photo {
   position: relative;
-  height: 440px;
+  min-height: 440px;
+  border-radius: 20px;
+  overflow: hidden;
   background: #dbe6ff;
 }
 .pd-desktop .sk-detail-slot {
   position: absolute;
   inset: 0;
   border-radius: 0;
-  border-width: 0 1px 1px 0;
+  border-width: 0;
 }
+/* 원본 유지가 필요한 사진은 공용 contain 규칙을 그대로 사용합니다. */
+.pd-desktop .sk-detail-slot.is-cover img { object-fit: cover; }
 .pd-desktop .sk-detail-caption {
   position: absolute;
   left: 0;
@@ -260,9 +287,15 @@
 }
 
 .pd-desktop .sk-detail-body {
-  padding: 60px var(--dk-pad) 60px 40px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+}
+.pd-desktop .sk-detail-body > .spot-conditions { flex: 1; }
+.pd-desktop .sk-detail-followup { grid-column: 2; min-width: 0; }
+.pd-desktop .sk-detail-information {
+  min-width: 0;
+  padding: 36px var(--dk-pad) 48px;
 }
 .pd-desktop .sk-detail-score-row {
   display: flex;
@@ -332,8 +365,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: auto;
-  padding-top: 22px;
 }
 .pd-desktop .sk-save {
   border-color: var(--dk-blue);
@@ -405,15 +436,15 @@
 }
 
 @media (max-width: 1240px) {
-  .pd-desktop .sk-detail {
+  .pd-desktop .sk-detail-overview {
     grid-template-columns: 1fr;
+    padding: 24px var(--dk-pad);
   }
   .pd-desktop .sk-detail-photo {
     height: 320px;
+    min-height: 0;
   }
-  .pd-desktop .sk-detail-body {
-    padding: 52px var(--dk-pad) 60px;
-  }
+  .pd-desktop .sk-detail-followup { grid-column: 1; }
   .pd-desktop .sk-row-photo {
     width: 160px;
     height: 100px;

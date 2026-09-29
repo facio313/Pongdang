@@ -2,11 +2,13 @@ import type { ClassifiedWaterPlace } from "./productData";
 
 export const DEFAULT_PROVINCE = "gangwon";
 export const WATER_PLACE_PAGE_SIZE = 100;
+export type WaterPlacePageSize = 10 | 100;
 export type WaterPlaceKind = "" | "beach" | "valley";
 export interface WaterPlaceQuery {
   district?: string;
   kind?: WaterPlaceKind;
   page?: number;
+  pageSize?: WaterPlacePageSize;
 }
 export interface WaterPlacePage {
   rows: ClassifiedWaterPlace[];
@@ -29,7 +31,7 @@ export function waterPlacesPath(search = "", query: WaterPlaceQuery = {}) {
     q: search,
     province: DEFAULT_PROVINCE,
     page: String(query.page ?? 1),
-    page_size: String(WATER_PLACE_PAGE_SIZE),
+    page_size: String(query.pageSize ?? WATER_PLACE_PAGE_SIZE),
   });
   if (query.district) params.set("district", query.district);
   if (query.kind) params.set("kind", query.kind);

@@ -318,9 +318,7 @@ test("preference → recommendation → persisted plan → selected plan detail"
   // 「고르고 → 저장하고 → 코스가 남는다」를 보므로 빈 상태에서 출발합니다.
   await routePreference(page, []);
   await page.goto("#recommend");
-  await page
-    .getByRole("button", { name: "태그로 바로 받기", exact: true })
-    .click();
+  await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
   // 태그는 카테고리 하나가 한 화면입니다. 「온천」이 있는 화면까지 넘깁니다.
   const onsen = page.getByRole("button", { name: "온천", exact: true }).first();
   const nextTag = page.getByRole("button", { name: "다음", exact: true });
@@ -651,7 +649,7 @@ test("추천 취향 항목은 서버 카탈로그에서 오고, 없는 이름을
 
   await routePreference(page, []);
   await page.goto("#recommend");
-  await page.getByRole("button", { name: "태그로 바로 받기", exact: true }).click();
+  await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
   // 카테고리 라벨도 서버가 준 것이며, 상한도 서버 값을 그대로 적습니다.
   // 한 화면에 한 카테고리이므로 첫 화면에서 확인합니다.
   await expect(page.locator(".recommend-page")).toContainText("장소 유형 · 최대 4개");

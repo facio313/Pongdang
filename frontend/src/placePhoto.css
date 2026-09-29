@@ -1,4 +1,5 @@
 .place-photo {
+  position: relative;
   display: block;
   overflow: hidden;
   min-width: 0;
@@ -9,6 +10,20 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+.place-photo img.place-photo-generic {
+  object-fit: cover;
+}
+.place-photo-generic-label {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 90%);
+  color: #344b63;
+  font-size: 10px;
+  line-height: 1.5;
 }
 .place-photo img {
   /* Preserve the whole original, including images with a no-modification license. */

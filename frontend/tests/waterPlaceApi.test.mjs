@@ -19,3 +19,10 @@ test("free text and administrative filters travel as distinct query parameters",
   assert.equal(path.searchParams.get("page"), "2");
   assert.equal(path.searchParams.get("page_size"), "100");
 });
+
+test("the spots list requests ten rows per page without changing other catalogue readers", () => {
+  const path = new URL(waterPlacesPath("", { page: 3, pageSize: 10 }), "https://example.test/");
+  assert.equal(path.searchParams.get("page"), "3");
+  assert.equal(path.searchParams.get("page_size"), "10");
+  assert.equal(new URL(waterPlacesPath(), "https://example.test/").searchParams.get("page_size"), "100");
+});

@@ -65,13 +65,6 @@ export function RouteCandidatesForm({
 
   return (
     <div className="rt-form">
-      <div className="pd-card-title">{t("선택한 순서로 경로 계산")}</div>
-      <p className="pd-note rt-note-flush">
-        {first
-          ? t("출발: {name} · 선택한 {count}곳을 위 순서대로 방문합니다.", { name: first.name, count: candidates.length })
-          : t("위 목록에서 방문할 장소를 체크해 주세요.")}
-      </p>
-
       <AppActions>
         <button
           type="button"

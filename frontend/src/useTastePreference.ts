@@ -41,6 +41,8 @@ export interface TastePreference {
   /** 취향 조회가 아직 끝나지 않았는가. 끝나기 전에 「취향 없음」으로 단정하면
    *  이미 고른 사람에게도 처음 화면을 띄우게 됩니다. */
   profileLoading: boolean;
+  /** Protected preference reads require the existing SSO login. */
+  loginRequired: boolean;
   profileError?: string;
   /** 라벨 목록을 취향으로 저장합니다. 지금 revision 을 읽어 그대로 실어
    *  보냅니다(낙관적 동시성). */
@@ -111,6 +113,7 @@ export function useTastePreference(): TastePreference {
     // 카탈로그가 아직 없으면 저장된 라벨을 id 로 되읽을 수 없습니다. 그동안은
     // 「없음」이 아니라 「모름」입니다.
     profileLoading: profile.loading || catalogue.loading,
+    loginRequired: profileLoginRequired,
     profileError: profileLoginRequired ? undefined : profile.error,
     savePreference,
   };

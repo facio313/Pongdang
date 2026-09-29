@@ -26,6 +26,7 @@ export function EvidenceNote({
   glass = false,
   chip = true,
   extra,
+  compact = false,
 }: {
   data?: Conditions;
   className?: string;
@@ -33,6 +34,8 @@ export function EvidenceNote({
    *  접힌 자료로 가는 문이라 한 줄에 나란히 서는 편이 읽기 쉽습니다. 넘기지
    *  않으면 구조는 예전 그대로입니다. */
   extra?: ReactNode;
+  /** 상세 카드에서는 요약을 접힌 설명 안에 두고 손잡이만 한 줄로 표시합니다. */
+  compact?: boolean;
   /** 코발트 히어로 위. 요약 · summary · 본문 색이 어두운 배경용으로 바뀝니다. */
   glass?: boolean;
   /** 안전 상태 칩을 이 줄에 붙일지. 지도처럼 화면이 이미 같은 사실을 더 눈에
@@ -59,7 +62,7 @@ export function EvidenceNote({
         (className ? ` ${className}` : "")
       }
     >
-      <p className="pd-evidence-line">
+      {!compact && <p className="pd-evidence-line">
         <span>{evidenceSummary(data)}</span>
         {chip && (
           <span className={"pd-state-chip" + (controlled ? " is-alert" : "")}>
@@ -70,7 +73,7 @@ export function EvidenceNote({
                 : t("안전 판정 아님")}
           </span>
         )}
-      </p>
+      </p>}
 
       {/* 통제 상태는 접지 않습니다. 환경값이 좋아 보여도 이 문장이 먼저 읽혀야
           합니다. 미판정(unknown)일 때만 아래 details 안으로 들어갑니다. */}

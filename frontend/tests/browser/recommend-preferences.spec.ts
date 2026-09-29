@@ -43,8 +43,8 @@ test.afterEach(async ({ page }) => {
 
 async function openTags(page: Page) {
   await page.goto("#recommend");
-  await page.getByRole("button", { name: "태그로 바로 받기" }).click();
   await expect(page.getByRole("button", { name: "해변", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "추천 지역" })).toHaveCount(1);
 }
 
 test("mobile activity likes stop at the server limit and valid preferences receive a real PUT 200", async ({ page }) => {

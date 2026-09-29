@@ -12,7 +12,7 @@ import { waterPlacesPath, WATER_PLACE_PAGE_SIZE, type WaterPlacePage, type Water
 
 /** 분류된 물놀이 장소 목록.
  *
- *  `/places`가 행정구역·분류 필터를 적용한 100행 페이지와 전체 건수를 줍니다.
+ *  `/places`가 행정구역·분류 필터를 적용한 최대 100행 페이지와 전체 건수를 줍니다.
  *  서버가 판정한 beach · valley 분류를 `place_kind`로 유지합니다.
  *
  *  `datasets/spots` 를 쓰면 안 됩니다. 그쪽 `type` 은 **수집 종류**(수집기가 쓴
@@ -43,7 +43,7 @@ export function useWaterPlaces(search = "", query: WaterPlaceQuery = {}) {
     rows: photos.rows,
     total: catalog.data?.total ?? 0,
     page: catalog.data?.page ?? query.page ?? 1,
-    pageSize: catalog.data?.page_size ?? WATER_PLACE_PAGE_SIZE,
+    pageSize: catalog.data?.page_size ?? query.pageSize ?? WATER_PLACE_PAGE_SIZE,
     hasMore: catalog.data?.has_more ?? false,
     /** 서버가 근거를 보고 고른 기본 장소. 화면이 처음 무엇을 펼칠지 정할 때
      *  씁니다. 검색 중에는 조회하지 않으므로 undefined 입니다. */

@@ -59,6 +59,19 @@ export interface TemperatureReading {
   observationScope?: string | null;
 }
 
+export type TemperatureState = "loading" | "error" | "missing" | "stale" | "available";
+
+/** Nearby context and expired observations are not current first-swim evidence. */
+export function firstSwimDataLabel(state: TemperatureState, reading?: TemperatureReading) {
+  if (state === "loading") return "첫 입수 자료 확인 중";
+  if (state === "error") return "첫 입수 자료 조회 실패";
+  if (state === "missing" || !reading) return "첫 입수 자료 없음";
+  const nearby = reading.relation === "nearby_station_context";
+  if (state === "stale" || reading.stale)
+    return nearby ? "첫 입수 · 주변 이전 자료" : "첫 입수 · 이전 자료";
+  return nearby ? "첫 입수 · 주변 자료" : "첫 입수 자료 있음";
+}
+
 const temperatureNames = new Set(["water_temperature", "sea_water_temperature"]);
 const celsius = (unit: string | null) => unit === "degC" || unit === "°C";
 const missingReason = "사용할 수 있는 실제 수온 관측이 없습니다.";

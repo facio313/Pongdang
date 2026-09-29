@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { selectPlaceTemperature, selectNearbyTemperature } from '../src/firstSwimTemperature.ts';
+import { firstSwimDataLabel, selectPlaceTemperature, selectNearbyTemperature } from '../src/firstSwimTemperature.ts';
 
 const observedAt = '2026-09-27T15:00:00+09:00';
 const validUntil = '2026-09-27T15:30:00+09:00';
@@ -132,4 +132,23 @@ test('forecast, wrong-place, missing, conflicting and untraceable nearby data st
 test('stored and retained nearby evidence carries prior-observation status', () => {
   assert.equal(selectNearbyTemperature(nearby([metric({ status: 'stale' })]), 9).reading.stale, true);
   assert.equal(selectNearbyTemperature(nearby([metric()], { retained: true }), 9).reading.stale, true);
+});
+
+test('first-swim list labels distinguish current place data from nearby and expired observations', () => {
+  const direct = selectPlaceTemperature(placePage(), 9).reading;
+  const context = selectNearbyTemperature(nearby(), 9).reading;
+  assert.equal(firstSwimDataLabel('available', direct), '첫 입수 자료 있음');
+  assert.equal(firstSwimDataLabel('available', { ...direct, relation: 'representative_station' }), '첫 입수 자료 있음');
+  assert.equal(firstSwimDataLabel('available', context), '첫 입수 · 주변 자료');
+  assert.equal(firstSwimDataLabel('stale', direct), '첫 입수 · 이전 자료');
+  assert.equal(firstSwimDataLabel('stale', context), '첫 입수 · 주변 이전 자료');
+  assert.equal(firstSwimDataLabel('available', { ...direct, stale: true }), '첫 입수 · 이전 자료');
+});
+
+test('first-swim list labels never present an incomplete or failed read as available data', () => {
+  const direct = selectPlaceTemperature(placePage(), 9).reading;
+  assert.equal(firstSwimDataLabel('loading', direct), '첫 입수 자료 확인 중');
+  assert.equal(firstSwimDataLabel('error', direct), '첫 입수 자료 조회 실패');
+  assert.equal(firstSwimDataLabel('missing', direct), '첫 입수 자료 없음');
+  assert.equal(firstSwimDataLabel('available'), '첫 입수 자료 없음');
 });

@@ -22,7 +22,7 @@ export function PlaceDetailInformation({
   const status = placeDetailsStatusText(detail?.status);
   const homepage = placeHomepageUrl(detail?.homepage);
   const row = (label: string, value: ReactNode, key = label) => (
-    <div className={desktop ? "sk-detail-tr" : "sd-info-row"} key={key}>
+    <div className={`place-detail-item ${desktop ? "sk-detail-tr" : "sd-info-row"}`} key={key}>
       <dt className={desktop ? "sk-detail-th" : "sd-info-name"}>{label}</dt>
       <dd className={`${desktop ? "sk-detail-td" : "sd-info-value"}${value ? "" : " is-empty"}`}>
         {value || missing}
@@ -31,7 +31,8 @@ export function PlaceDetailInformation({
   );
   return (
     <section className="place-details" aria-label={t("명소 상세정보")} aria-busy={loading}>
-      <dl className={desktop ? "sk-detail-table" : "sd-info"}>
+      <h2 className="place-details-title">{t("이용 정보")}</h2>
+      <dl className={`place-details-grid ${desktop ? "sk-detail-table" : "sd-info"}`}>
         {row(t("운영"), detail?.opening_hours)}
         {row(t("휴무일"), detail?.rest_days)}
         {row(t("개장 기간"), detail?.opening_period)}

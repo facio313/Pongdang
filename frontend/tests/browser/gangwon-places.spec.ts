@@ -15,7 +15,7 @@ const places = Array.from({ length: 105 }, (_, index) => ({
 }));
 const linkedPlace = { ...places[0], id: 999, name: "LINKED OUTSIDE PAGE", type: "beach", catalog_verification: null };
 
-async function mockCatalog(page: Page) {
+async function mockCatalog(page: Page, pageSize = 100) {
   const queries: Record<string, string>[] = [];
   const photos: number[][] = [];
   const summaries: number[][] = [];
@@ -28,7 +28,7 @@ async function mockCatalog(page: Page) {
     const query = new URL(route.request().url()).searchParams;
     queries.push(Object.fromEntries(query));
     expect(query.get("province")).toBe("gangwon");
-    expect(query.get("page_size")).toBe("100");
+    expect(query.get("page_size")).toBe(String(pageSize));
     const result = places.filter(place =>
       (!query.get("district") || place.district_code === query.get("district")) &&
       (!query.get("kind") || place.place_kind === query.get("kind")) &&
@@ -36,8 +36,8 @@ async function mockCatalog(page: Page) {
     );
     const currentPage = Number(query.get("page") ?? 1);
     return route.fulfill({ json: {
-      rows: result.slice((currentPage - 1) * 100, currentPage * 100),
-      total: result.length, page: currentPage, page_size: 100, has_more: currentPage * 100 < result.length,
+      rows: result.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+      total: result.length, page: currentPage, page_size: pageSize, has_more: currentPage * pageSize < result.length,
     } });
   });
   await page.route("**/api/data/water-index/default-place", route => route.fulfill({ json: {
@@ -66,32 +66,48 @@ async function mockCatalog(page: Page) {
 }
 
 for (const width of [390, 1440]) {
-  test(`Gangwon places at ${width}px page beyond 100 and reset the page for district and kind filters`, async ({ page }) => {
+  test(`Gangwon places at ${width}px show ten per page and reset the page for district and kind filters`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
-    const requests = await mockCatalog(page);
+    const requests = await mockCatalog(page, 10);
     await page.goto("#spots");
     const rows = page.locator(byWidth(width, ".sp-row", ".sk-row"));
     const pagination = page.getByRole("navigation", { name: "장소 목록 페이지" });
-    await expect(rows).toHaveCount(100);
+    await expect(rows).toHaveCount(10);
     await expect(rows.first()).toContainText("강릉시");
     await expect(rows.first()).not.toContainText("51:150");
-    await expect(pagination).toContainText("전체 105곳 · 1/2페이지 · 현재 100곳");
+    await expect(rows.first()).toContainText("37.80, 128.90");
+    await expect(rows.first()).not.toContainText("상세에서 조회");
+    const detailLink = rows.first();
+    await expect(detailLink.locator(byWidth(width, ".sp-row-link", ".sk-row-link"))).toHaveText("→");
+    await expect(detailLink).toHaveAttribute("href", "#spots?spot_id=1");
+    await expect(detailLink.locator("a")).toHaveCount(0);
+    await expect(rows.first().getByRole("img")).toHaveAttribute("alt", "공용 바다 이미지 · 실제 장소 사진 아님");
+    await expect(pagination).toContainText("전체 105곳 · 1/11페이지 · 현재 10곳");
     await expect(rows.filter({ hasText: linkedPlace.name })).toHaveCount(0);
     await pagination.getByRole("button", { name: "다음", exact: true }).click();
+    await expect(rows.first()).toContainText("PAGE TEST 011");
+    await expect(pagination).toContainText("2/11페이지 · 현재 10곳");
+    await pagination.getByRole("button", { name: "이전", exact: true }).click();
+    await expect(rows.first()).toContainText("PAGE TEST 001");
+    for (let currentPage = 2; currentPage <= 11; currentPage++) {
+      await pagination.getByRole("button", { name: "다음", exact: true }).click();
+      await expect(pagination).toContainText(`${currentPage}/11페이지`);
+    }
     await expect(rows).toHaveCount(5);
     await expect(rows.first()).toContainText("PAGE TEST 101");
     await expect(rows.first()).toContainText("속초시");
     await expect(rows.first()).not.toContainText("51:210");
-    await expect(pagination).toContainText("전체 105곳 · 2/2페이지 · 현재 5곳");
+    await expect(pagination).toContainText("전체 105곳 · 11/11페이지 · 현재 5곳");
     await expect(pagination.getByRole("button", { name: "다음", exact: true })).toBeDisabled();
     await expect.poll(() => requests.photos.some(ids => ids.includes(105))).toBe(true);
-    expect(requests.photos.every(ids => ids.length <= 100 && !ids.includes(999))).toBe(true);
+    expect(requests.photos.every(ids => ids.length <= 10 && !ids.includes(999))).toBe(true);
 
     await page.getByLabel("시군 선택").selectOption("sokcho");
     await expect(pagination).toContainText("전체 5곳 · 1/1페이지 · 현재 5곳");
     await page.getByLabel("장소 분류", { exact: true }).selectOption("valley");
     await expect(rows).toHaveCount(1);
     await expect(rows).toContainText("PAGE TEST 105");
+    await expect(rows.getByRole("img")).toHaveAttribute("alt", "공용 계곡 이미지 · 실제 장소 사진 아님");
     expect(requests.queries.at(-1)).toMatchObject({ province: "gangwon", district: "sokcho", kind: "valley", page: "1" });
     await expect(pagination.getByRole("button", { name: "이전", exact: true })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

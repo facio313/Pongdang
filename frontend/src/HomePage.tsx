@@ -29,6 +29,7 @@ import { HomeTides } from "./HomeTides";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
+import { useRequireLogin } from "./loginPopoverState";
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { HourlyConditions } from "./HourlyConditions";
@@ -320,6 +321,7 @@ function SpotScroller({
   link,
   places,
   chips,
+  beachFallback = false,
   children,
 }: {
   title: string;
@@ -328,6 +330,7 @@ function SpotScroller({
   places: { id: number; name: string; meta: string; photo?: Photo; temperature?: TemperatureReading }[];
   /** 목록 위에 붙는 칩 줄. 「고른 취향의 명소」가 취향을 싣는 자리입니다. */
   chips?: ReactNode;
+  beachFallback?: boolean;
   children?: ReactNode;
 }) {
   return (
@@ -344,7 +347,7 @@ function SpotScroller({
         {places.map((place) => (
           <div className="hm-pick" key={place.id}>
             <a className="place-photo-link" href={spotLink(place)}>
-              <PlacePhoto className="hm-pick-photo" name={place.name} photo={place.photo} />
+              <PlacePhoto className="hm-pick-photo" name={place.name} photo={place.photo} fallback={beachFallback ? "beach" : undefined} />
               <span className={place.temperature ? "first-swim-name-row" : undefined}>
                 <span className="hm-pick-name">{place.name}</span>
                 {place.temperature && <FirstSwimPreview reading={place.temperature} />}
@@ -389,6 +392,7 @@ function BeachPicksCard() {
   return (
     <SpotScroller
       title={t("해변 명소")}
+      beachFallback
       link={{ href: "#spots", label: t("명소 전체") }}
       places={beaches}
     />
@@ -486,7 +490,8 @@ function TasteBanner({
 }) {
   // useResource 는 같은 경로를 두 번 부르지 않으므로(no-refetch 검사) 아래
   // TastePicksCard 와 함께 불러도 요청이 늘지 않습니다.
-  const { savedIds } = useTastePreference();
+  const { savedIds, loginRequired, profileLoading } = useTastePreference();
+  const requireLogin = useRequireLogin();
   const hasTaste = savedIds.length > 0;
   return (
     <div className="pd-card">
@@ -506,8 +511,14 @@ function TasteBanner({
         }
         basisIsError={Boolean(recommendation.error)}
       />
-      <a className="pd-primary hm-cta" href="#recommend">
-        {hasTaste ? t("추천 다시 보기 →") : t("취향 고르기 →")}</a>
+      {profileLoading ? (
+        <button type="button" className="pd-primary hm-cta" disabled>{t("조회 중")}</button>
+      ) : loginRequired ? (
+        <button type="button" className="pd-primary hm-cta" onClick={requireLogin}>{t("로그인")}</button>
+      ) : (
+        <a className="pd-primary hm-cta" href="#recommend">
+          {hasTaste ? t("추천 다시 보기 →") : t("취향 고르기 →")}</a>
+      )}
     </div>
   );
 }

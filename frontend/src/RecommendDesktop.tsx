@@ -312,13 +312,13 @@ export function RecommendDesktop() {
   const [moved, setMoved] = useState<Step | null>(null);
   const step: Step | null =
     moved ??
-    (planId || session.plan
+    (planId
       ? "course"
       : profileLoading
         ? null
-        : tasteKnown
-          ? "entry"
-          : "taste");
+        : !tasteKnown
+          ? "taste"
+          : session.plan ? "course" : "entry");
   const setStep = setMoved;
 
   /** 취향에서 **열린 데까지**. 카테고리 하나씩 열리고, 마지막(groups.length)은
@@ -601,7 +601,7 @@ export function RecommendDesktop() {
   // 흐름은 아래로 쌓입니다. 대화만 그 자리를 대신 차지합니다 -- 취향을 고르는
   // 자리가 아니라 다른 일이기 때문입니다.
   const inFlow = step !== null && step !== "chat";
-  const showEntry = inFlow && tasteKnown;
+  const showEntry = inFlow;
   const showTaste = inFlow && (step === "taste" || tasteVisited);
   const showCourse = inFlow && step === "course";
   // 새로 열린 덩어리로 데려다줍니다. 쌓이는 화면에서는 새 내용이 화면 **아래**에
@@ -719,9 +719,9 @@ export function RecommendDesktop() {
         <LabelRow
           kick={t("시작")}
           title={
-            <>
+            tasteKnown ? <>
               {t("저장한 취향으로")}<br />
-              {t("시작합니다")}</>
+              {t("시작합니다")}</> : t("취향을 골라 시작합니다")
           }
         >
           <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
@@ -780,8 +780,6 @@ export function RecommendDesktop() {
               <span key={index} className={index <= tasteIndex ? "is-on" : ""} />
             ))}
           </div>
-          <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
-
           {groups.length === 0 ? (
             catalogue.loading ? (
               <div className="rd-taste-group">
@@ -846,8 +844,8 @@ export function RecommendDesktop() {
               })}
 
               {!tasteGroup && (
-                <div className="rd-taste-group" ref={openedRef}>
-                  <div className="pd-dk-kick">{t("고른 항목 · {count}개", { count: selectionCount })}</div>
+                <div className="rd-taste-group rd-taste-summary" ref={openedRef} role="region" aria-label={t("고른 항목")}>
+                  <div className="rd-taste-summary-title">{t("고른 항목 · {count}개", { count: selectionCount })}</div>
                   <div className="rd-tastes">
                     {selectionCount === 0 ? (
                       <p className="rd-note">

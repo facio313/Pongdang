@@ -6,21 +6,17 @@ import { PlaceDetailInformation } from "./PlaceDetailInformation";
 import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
 import { FirstSwimGuide } from "./FirstSwimGuide";
 import { gradeOf } from "./groupAGrade";
-import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
-import { EvidenceNote } from "./EvidenceNote";
+import { Icon, Skeleton } from "./pongdangUi";
+import { SpotConditionsCard } from "./SpotConditionsCard";
 import { placeMatchesId, placeRegionLabel, timeLabel, type Place } from "./productData";
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
 import { kindLabel } from "./placeDetails";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
-import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
-import { RecommendationReason } from "./RecommendationReason";
-import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { mappablePlaces, useWaterPlace, useWaterPlaces } from "./useWaterPlaces";
 import { useSpotActions } from "./useSpotActions";
-import { isInitialLoad } from "./useResource";
 import { sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsPage.css";
 
@@ -70,8 +66,6 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   const { best, loading, recommendation } = useBestActivity(place?.id, Boolean(place) || lookup.loading);
   const score = best?.score ?? null;
   const grade = gradeOf(score);
-  const verdict =
-    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 「없음」과 구분해 그립니다.
   const placeLoading = !place && lookup.loading;
   const { action, favorites, favoritesLoginRequired, saved, message, showDraftLink, add, toggleFavorite } = useSpotActions(place);
@@ -149,48 +143,11 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
           </p>
         )}
 
-        <div className="pd-card sd-score-card">
-          <div className="sd-score" data-grade={grade.key}>
-            <div className="pd-num sd-score-num">
-              {loading ? (
-                <Skeleton width="1.6em" label={t("점수 조회 중")} />
-              ) : (
-                (score ?? "–")
-              )}
-            </div>
-            <div className="sd-score-grade">
-              <GradeIcon gradeKey={grade.key} size={10} />
-              {t(grade.label)}
-            </div>
-          </div>
-          <div className="sd-score-body">
-            <div className="sd-score-title">
-              {best
-                ? t("오늘 여기서 가장 좋은 활동 · {activity}", { activity: activityHeadline(best.activity) })
-                : recommendation.error
-                  ? t("오늘의 활동을 불러오지 못했습니다")
-                  : t("오늘 이 장소의 물놀이 조건")}
-            </div>
-            {best && (
-              <div className="sd-score-what">{scoreTitle(best.activity)}</div>
-            )}
-            <ScoreGauge score={score} loading={loading} />
-            {verdict && <p className="sd-score-verdict">{verdict}</p>}
-            {/* 왜 이 활동인가 · 왜 저것이 아닌가 · 지금 물때 · 대신 갈 곳. */}
-            <RecommendationReason
-              data={recommendation.data}
-              error={recommendation.error}
-              loading={isInitialLoad(recommendation)}
-            />
-            <ScoreReason text={scoreReason(best?.data).text} loading={loading} />
-            <EvidenceNote data={best?.data} className="pd-note" />
-            <ScoreExplainer data={best?.data} />
-          </div>
-        </div>
+        <SpotConditionsCard data={recommendation.data} loading={loading} error={recommendation.error} />
 
         {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} />}
 
-        <div className="pd-card">
+        <div className="pd-card place-details-card">
           <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} />
         </div>
 
