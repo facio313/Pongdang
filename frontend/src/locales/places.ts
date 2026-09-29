@@ -1,6 +1,8 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const placesMessages: Record<string, MessageTranslations> = {
+  "방문할 장소를 하나 이상 선택해 주세요.": ["Select at least one place to visit.", "请至少选择一个游览地点。", "訪問先を1か所以上選んでください。"],
+  "체크한 장소와 순서로 다시 계산하고 이 코스에 저장합니다.": ["Recalculate the checked places in this order and save to this course.", "按勾选的地点和顺序重新计算，并保存到此行程。", "選択した場所と順序で再計算し、このコースに保存します。"],
   "첫 장소 · {name}": ["First stop · {name}", "首站 · {name}", "最初の場所 · {name}"],
   "{date} · {time} 예보 기준": ["Forecast for {date} · {time}", "以{date} · {time}的预报为准", "{date} · {time}の予報基準"],
   "저장된 예상 경로": ["Saved route estimate", "已保存的预计路线", "保存された予想経路"],

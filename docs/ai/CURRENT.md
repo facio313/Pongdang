@@ -1,9 +1,28 @@
-# 저장 경로·코스 지도 운영 반영 진행 · 2026-09-29
+# 지도 코스 편집 운영 배포 진행 · 2026-09-29
+
+- 사용자 승인: 방금 완료한 지도 코스 방문 선택·순서 편집·동일 코스 저장 기능을 운영에 배포한다. 제품7파일과 이 상태 기록만 커밋하며 .env·.local·.byeori·.playwright-cli·output은 제외한다.
+- 원격 main을 명시 fetch한 결과 직전 배포 da88667e81d0c4f8737461f8e38dffeceda27595와 동일하다. 기존 main worktree도 같은 SHA·clean이며 fast-forward 통합한다. dev의 로컬·원격 참조0f824a9ccecbd7ed5332919c99b03920b769000c는 보존한다.
+- 로컬 구현 이후 코드 변경이 없어 아래의 ESLint·Node217개·증분 TypeScript·실제 카카오 계산/저장/새로고침 결과를 재사용한다. 운영 전 프런트는 index-L5UE0_oV.js/index-DM4wCVr7.css이며 health/ready는HTTP200/status ok. 근거 .local/release-course-editor-20260929/before.json.
+- 다음: main push 후 정확한 SHA의 backend/frontend 이미지 빌드 성공을 확인하고 기존 호스트 watcher/gate의 배포 결과를 공개 프런트·health/readiness에서 확인한다. 별도 수동 중복 배포나 호스트 설정 변경은 하지 않는다.
+
+# 지도 코스 방문 목록 편집 · 2026-09-29
+
+- 사용자 요청: 오른쪽의 출발지 드롭다운과 경로 설정 제목을 제거하고, 추천 화면처럼 방문 번호 토글·전체 선택·손잡이 순서 변경으로 편집. 기존 재계산 버튼으로 편집 결과를 같은 코스에 저장하고 왼쪽 목록에도 반영한다.
+- 구현: MapDesktop의 편집 상태는 저장된 코스 ID·revision에 묶는다. 체크한 첫 장소를 출발지로 삼고 서버 후보 rank를 사용자의 순서에 맞춰 preserve_order=true로 전달한다. 추천의 useCandidateReorder 포인터·방향키 동작을 재사용하며 CSS는 지도 패널에 맞춘다. 편집 중에는 이전 도착 시각·도로선·예상 시간·점수를 숨긴다. 빈 선택은 계산 불가. 제외한 장소는 저장 전까지 다시 체크할 수 있고 저장 성공 후 방문 목록에서 빠진다.
+- 저장: 계산과 기존 plan_id PUT이 모두 성공한 후에만 세션과 목록을 갱신한다. 계산 실패·저장 실패 시 기존 저장 코스를 덮어쓰지 않는다. 기존 revision 충돌 검사 유지. 모바일은 기존 방문 순서 최적화 방식을 유지한다.
+- 검증: 명시한 수정 파일 ops/verify_local.py의 ESLint·Node217개(새 회귀5개 포함)·증분 TypeScript 통과(8.3초), diff --check 통과. 로그 /tmp/pongdang-map-course-edit-checks.log. 첫 검사에서 ref를 포함한 객체의 전달을 lint가 거부하여 핸들러와 ref를 분리한 뒤 통과했다.
+- 실제 IAB: 전체 선택/해제와 빈 선택 비활성화, 순개울 제외, 방향키로 사근진을 첫 장소로 이동, 이전 경로선·시각 숨김 확인. 명시적 격리 DB127.0.0.1:62022/pongdang_test 표식을 검증한 뒤 기존 실제 코스를 임시 복사하여 카카오 경로 계산·동일 ID 저장·새로고침을 확인했다. 사근진→강문→경포3곳, revision1→2, 출발지 사근진, 이동18분·도로선3구간 저장 및 왼쪽 목록 반영. 원본 c7517cce8c37496aa7ede9ac3adabc18의 전체 payload 해시가 그대로임을 확인했고 임시 코스는 삭제했다. 기존4코스 보존. 근거 .local/map-course-edit-test.json 및 output/playwright/course-editor/recalculated-and-reloaded.png.
+- 제한: 마우스 드래그 자동화는 이번에도 화면에 이동 결과를 만들지 못했다. 방향키 이동과 기존 포인터 처리 재사용은 확인했으나 실제 마우스·터치 제스처 성공으로 보고하지 않는다. 최종 화면 output/playwright/course-editor/updated-course-editor.png. 이번 후속 수정은 로컬 미커밋 상태이며 커밋·push·운영 배포 없음. 직전 배포 기록·미추적 사용자 파일 보존.
+
+# 저장 경로·코스 지도 운영 반영 확인 · 2026-09-29
 
 - 사용자 승인: 현재 완성된 변경을 그대로 운영까지 배포. 제품 코드·관련 테스트·개발 도구·기록20파일을 9afdf3f로 커밋했다. .env·.local·.byeori·.playwright-cli·output은 제외했으며 staged diff에서 로컬의 실제 API 키·비밀번호와 일치하는 값은 없었다.
 - 원격 main은 기존 ab30772에서 d18bebc까지 모바일 관련3커밋이 진행됐다. fix/finale에 병합하면서 RecommendPage 충돌1곳을 해결했다. 저장 직후 후보를 보존하는 loadedPlanId 가드와 저장 route_snapshot 복원을 모두 유지했다. 기존 main worktree는 clean이며 dev refs는0f824a9로 보존한다.
 - 재검증: 병합된 MapPage·RecommendPage 명시 검사에서 ESLint·Node212개·증분 TypeScript 통과(10.5초, /tmp/pongdang-course-release-merge-checks.log). 변경 없는 백엔드는 기존49개 경로 테스트·21개 개발 도구 격리 테스트 결과를 사용한다. 실제 IAB390px에서 저장 지도 새로고침 후 도로선5/5·22분·저장 시각, 추천에서 다른 저장 코스를 연 뒤 도착/출발 시각·도로 경로·21분 복원을 확인했다. viewport와 사용자의 원래 코스 c7517cce8c37496aa7ede9ac3adabc18 화면을 복원했다.
-- 다음: 병합 커밋을 main에 fast-forward·push하고 정확한 SHA의 CI 두 이미지 성공, 자동 호스트 배포 및 운영 읽기 상태를 확인한다. 운영 확인 완료 전 배포 완료로 보고하지 않는다.
+- 병합 커밋 da88667e81d0c4f8737461f8e38dffeceda27595를 기존 main worktree에 fast-forward하고 main만 push했다. GitHub 원격 main 동일SHA, dev 원격0f824a9 유지 확인. CI https://github.com/facio313/Pongdang/actions/runs/36533742581 의 정확한 SHA에서 backend/frontend 이미지가 모두 success(15:57 KST)였다. 호스트의 기존 자동 배포 경로를 사용했고 중복 수동 배포·설정 변경은 하지 않았다.
+- 운영 읽기 확인(15:59 KST): https://pongdang.site/ 프런트·/pongdang/api/health·ready·openapi.json 모두HTTP200, health/ready는status ok. 프런트 JS/CSS가 index-CCg_EOO6/index-DWEIaL1s에서 index-L5UE0_oV/index-DM4wCVr7로 교체됐고 새 패널·간격·route_snapshot 코드가 포함됐다. 배포 전 없던 TripPlan.route_snapshot·PlanInput.route_token 계약도 실제 OpenAPI에 나타났다. 전환 중15:58:02에 관측한502는 후속 확인에서 해소됐다.
+- 실제 운영 IAB에서 카카오 지도 로드와 왼쪽 내 코스 목록/오른쪽 선택한 코스 배치를 확인했다. 운영 계정의 저장 코스 생성·수정 테스트는 수행하지 않았고 로컬 테스트 데이터는 이관하지 않았다. 원래 로컬 코스 화면을 보존했다. 화면 output/playwright/kakao-route/production-course-panels.png, 기계 증빙 .local/release-map-course-20260929/{before,public-verification,state}.json.
+- 확인 범위: 운영 새 프런트·백엔드 계약 및 공개 health/readiness를 확인했으며, 서버 내부 current 링크·컨테이너 이미지 SHA·watcher 상태 파일은 직접 조회하지 않았다. 배포 후 이 기록은 중복 문서 전용 CI를 만들지 않고 로컬에 보존한다. 제품 코드 미커밋 변경 없음, 기존 미추적 산출물 유지.
 
 # 지도 코스 목록·선택 상세 패널 분리 · 2026-09-29
 

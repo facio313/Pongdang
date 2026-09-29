@@ -23,7 +23,11 @@ const offsetsToStyle = (rows: MeasuredRow[], offsets: number[]) => {
 };
 
 /** Pointer capture keeps mouse, touch and pen on the same animated list path. */
-export function useCandidateReorder(onMove: (from: number, to: number) => void, revision: unknown) {
+export function useCandidateReorder(
+  onMove: (from: number, to: number) => void,
+  revision: unknown,
+  rowSelector = ".rd-step[data-spot-id]",
+) {
   const listRef = useRef<HTMLDivElement>(null);
   const active = useRef<Reordering | null>(null);
 
@@ -47,7 +51,7 @@ export function useCandidateReorder(onMove: (from: number, to: number) => void, 
   const begin = (handle: HTMLButtonElement, from: number, pointerId: number | null, clientY: number) => {
     const list = listRef.current;
     if (!list || active.current) return null;
-    const rows = [...list.querySelectorAll<HTMLElement>(".rd-step[data-spot-id]")].map((element) => {
+    const rows = [...list.querySelectorAll<HTMLElement>(rowSelector)].map((element) => {
       const box = element.getBoundingClientRect();
       return { id: Number(element.dataset.spotId), top: box.top + window.scrollY, height: box.height, element };
     });

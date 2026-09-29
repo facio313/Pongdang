@@ -5,7 +5,9 @@ import {
   exclusionReasonsText,
   kakaoRouteLink,
   originFromPlace,
+  routeReasonsText,
   travelJson,
+  type PlanInput,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
@@ -13,6 +15,7 @@ import {
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { forgetResource } from "./useResource";
 import type { useAction } from "./useAction";
+import { courseCandidateRanks } from "./courseEditing";
 
 /** 지도 코스의 방문 순서 최적화 + 저장. 데스크탑(MapDesktop.tsx)과 모바일
  *  (MapPage.tsx)이 같은 서버 계약(travel/recommendations →
@@ -32,28 +35,30 @@ export function useCourseRouteOptimization(
   courseSpotIds: number[],
   coursePlaceRows: Place[],
   action: ReturnType<typeof useAction>,
+  editing?: { input: PlanInput | null; changed: boolean },
 ) {
   const session = useTravelSession();
   const [originId, setOriginId] = useState<number | null>(null);
   const savedOrigin = session.route?.route?.origin ?? session.planInput?.request.origin;
   const selectedOrigin =
-    candidateRows.find((place) => place.id === originId)
+    editing ? coursePlaceRows.find((place) => place.id === editing.input?.stops[0]?.spot_id)
+    : candidateRows.find((place) => place.id === originId)
     ?? candidateRows.find((place) => savedOrigin?.latitude === place.lat && savedOrigin?.longitude === place.lng)
     ?? candidateRows.find((place) => savedOrigin?.spot_id === place.id)
     ?? candidateRows[0];
 
-  // 후보지 정차지 집합을 실제 출발지·시각으로 순열 탐색해 방문 순서를
-  // 최적화합니다(추천 화면의 경로 계산과 같은 서버 로직). 이미 사용자가 고른
-  // 출발지·시각으로 계산해 둔 경로가 있으면(session.route.route_calculated)
-  // 다시 계산해 덮어쓰지 않고 그대로 씁니다.
+  // 편집 목록은 체크한 첫 장소에서 출발하며 사용자가 정한 순서를 유지합니다.
+  // 편집 목록이 없는 모바일 화면은 기존의 방문 순서 최적화를 사용합니다.
   const optimizeCourseRoute = async (signal: AbortSignal, recalculate = false) => {
-    const stops = session.planInput?.stops ?? [];
-    if (!session.planInput || !stops.length)
+    const input = editing ? editing.input : session.planInput;
+    const stops = input?.stops ?? [];
+    if (!input || !stops.length)
       throw new Error(
         "경로를 계산할 방문 장소가 없습니다. 추천에서 코스를 만들거나 저장한 코스를 열어 주세요.",
       );
-    if (session.route?.route_calculated && !recalculate)
-      return session.route.plan_input ?? session.planInput;
+    if (stops.length > 5) throw new Error(t("경로 후보는 최대 5곳입니다. 추천에서 코스를 다시 골라 주세요."));
+    if (session.route?.route_calculated && !recalculate && !editing?.changed)
+      return { input: session.route.plan_input ?? input, route: session.route, recommendation: session.recommendation };
     const originPlace = selectedOrigin;
     if (!originPlace)
       throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
@@ -61,10 +66,11 @@ export function useCourseRouteOptimization(
     // 필수이고 방문 수는 정차지 수와 같습니다.
     const must_include = stops.map((item) => item.spot_id);
     const catalogIds = new Set(must_include);
-    const origin = originFromPlace(originPlace, catalogIds)!;
+    const origin = originFromPlace(originPlace, catalogIds);
+    if (!origin) throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
     const departure = new Date(Date.now() + 600000).toISOString();
     const request = {
-      ...session.planInput.request,
+      ...input.request,
       dates: [kstDate(departure)],
       day_trip: true,
       departure_time: timeLabel(departure),
@@ -78,9 +84,7 @@ export function useCourseRouteOptimization(
       { request, limit: 5 },
       signal,
     );
-    const ranks = recommendations.recommendations
-      .filter((item) => must_include.includes(item.spot_id))
-      .map((item) => item.rank);
+    const ranks = courseCandidateRanks(recommendations, must_include);
     if (ranks.length !== must_include.length || !recommendations.selection_token)
       throw new Error(
         t("선택 장소 {count}곳 중 {count2}곳만 현재 조건에서 경로 후보로 확인했습니다. ", { count: must_include.length, count2: ranks.length }) +
@@ -97,19 +101,17 @@ export function useCourseRouteOptimization(
         stop_count: ranks.length,
         stay_minutes: 60,
         include_geometry: true,
+        preserve_order: Boolean(editing),
         request,
       },
       signal,
     );
-    if (signal.aborted) return session.planInput;
-    setTravelSession({
-      recommendation: recommendations,
-      route: result,
-      ...(result.plan_input
-        ? { planInput: result.plan_input, plan: null }
-        : {}),
-    });
-    return result.plan_input ?? session.planInput;
+    if (!result.route_calculated || !result.route || !result.plan_input) {
+      throw new Error(t("경로 미계산: {reason}", {
+        reason: routeReasonsText(result.reason_codes) || t("경로 계산 조건을 확인해 주세요."),
+      }));
+    }
+    return { input: result.plan_input, route: result, recommendation: recommendations };
   };
 
   // 「코스 생성」은 폼 없이 경로 최적화(필요할 때만) + 저장을 한 번에 합니다.
@@ -117,39 +119,38 @@ export function useCourseRouteOptimization(
     onSaved: (plan: TripPlan) => void,
   ) =>
     void action.run(async (signal) => {
-      const planInput = await optimizeCourseRoute(signal);
+      const calculated = await optimizeCourseRoute(signal);
       if (signal.aborted) return;
       const plan = await travelJson<TripPlan>(
         import.meta.env.BASE_URL,
         "travel/plans",
         "POST",
-        planInput,
+        calculated.input,
         signal,
       );
       if (!signal.aborted) {
-        setTravelSession({ plan });
+        setTravelSession({ plan, planInput: calculated.input, route: calculated.route, recommendation: calculated.recommendation });
         forgetResource("travel/plans?limit=100&offset=0");
         onSaved(plan);
       }
     });
 
-  // 이미 저장된 코스도 정차지 구성은 그대로 두고 방문 순서 최적화와 이동시간을
-  // 다시 계산해 저장할 수 있어야 합니다.
+  // 계산과 저장이 모두 성공한 뒤에만 현재 코스와 목록을 갱신합니다.
   const recalculateCourse = () =>
     void action.run(async (signal) => {
       if (!session.plan?.plan_id)
         throw new Error("다시 계산할 저장된 코스가 없습니다.");
-      const planInput = await optimizeCourseRoute(signal, true);
+      const calculated = await optimizeCourseRoute(signal, true);
       if (signal.aborted) return;
       const plan = await travelJson<TripPlan>(
         import.meta.env.BASE_URL,
         `travel/plans/${session.plan.plan_id}`,
         "PUT",
-        { ...planInput, expected_revision: session.plan.revision },
+        { ...calculated.input, expected_revision: session.plan.revision },
         signal,
       );
       if (!signal.aborted) {
-        setTravelSession({ plan });
+        setTravelSession({ plan, planInput: calculated.input, route: calculated.route, recommendation: calculated.recommendation });
         forgetResource("travel/plans?limit=100&offset=0");
         forgetResource(`travel/plans/${plan.plan_id}`);
       }

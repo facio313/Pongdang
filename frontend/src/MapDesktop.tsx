@@ -1,5 +1,7 @@
 import { t } from "./i18n.ts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type PointerEventHandler } from "react";
+import { courseInputForSelection, moveCoursePlace } from "./courseEditing";
+import { useCandidateReorder } from "./useCandidateReorder";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
 import { gradeOf } from "./groupAGrade";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
@@ -42,6 +44,7 @@ import {
   routeReasonsText,
   unknownConditionsText,
   type PlanItem,
+  type PlanInput,
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
@@ -148,16 +151,40 @@ function CourseStopRow({
   meta,
   distance,
   leg,
+  spotId,
+  editing,
 }: {
   no: number;
   name: string;
   meta: string;
   distance: string | null;
   leg: string | null;
+  spotId: number;
+  editing: {
+    included: boolean;
+    origin: boolean;
+    disabled: boolean;
+    onToggle: () => void;
+    onMove: (offset: number, handle: HTMLButtonElement) => void;
+    onPointerDown: PointerEventHandler<HTMLButtonElement>;
+    onPointerMove: PointerEventHandler<HTMLButtonElement>;
+    onPointerUp: PointerEventHandler<HTMLButtonElement>;
+    onPointerCancel: PointerEventHandler<HTMLButtonElement>;
+  };
 }) {
   return (
-    <div className="mk-course-stop">
-      <span className="pd-dk-num mk-course-stop-no">{no}</span>
+    <div className={"mk-course-stop" + (editing.included ? "" : " is-excluded")} data-spot-id={spotId}>
+      <span className="mk-course-stop-number">
+        <button
+          type="button"
+          className="pd-dk-num mk-course-stop-no"
+          aria-label={t("{name} 코스에 포함", { name })}
+          aria-pressed={editing.included}
+          disabled={editing.disabled}
+          onClick={editing.onToggle}
+        >{no}</button>
+        {editing.origin && <span className="mk-course-stop-origin">{t("출발")}</span>}
+      </span>
       <span className="mk-course-stop-body">
         <span className="mk-course-stop-name">{name}</span>
         <span className="mk-course-stop-meta">{meta}</span>
@@ -174,6 +201,29 @@ function CourseStopRow({
       ) : (
         <span className="mk-course-stop-dist">{distance ?? "–"}</span>
       )}
+      <button
+        type="button"
+        className="mk-course-stop-drag"
+        disabled={editing.disabled}
+        draggable={false}
+        aria-label={t("{name} 순서 이동", { name })}
+        aria-describedby="mk-course-order-help"
+        title={t("드래그하거나 위·아래 방향키로 순서를 바꾸세요.")}
+        onPointerDown={editing.onPointerDown}
+        onPointerMove={editing.onPointerMove}
+        onPointerUp={editing.onPointerUp}
+        onPointerCancel={editing.onPointerCancel}
+        onLostPointerCapture={editing.onPointerCancel}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          editing.onMove(event.key === "ArrowUp" ? -1 : 1, event.currentTarget);
+        }}
+      >
+        <svg width="18" height="24" viewBox="0 0 18 24" fill="currentColor" aria-hidden="true">
+          {[6, 12, 18].flatMap((y) => [6, 12].map((x) => <circle key={`${x}:${y}`} cx={x} cy={y} r="1.5" />))}
+        </svg>
+      </button>
     </div>
   );
 }
@@ -219,7 +269,8 @@ export function MapDesktop() {
   // 저장한 코스와 동행 알림 상태를 함께 조회합니다(useMyPlansWithAlarm).
   const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
   const openSavedPlan = (plan: TripPlan) => {
-    setOriginId(null);
+    setCourseEdit(null);
+    action.cancel();
     setTravelSession({
       plan,
       planInput: { request: plan.request, stops: plan.input_stops },
@@ -278,6 +329,16 @@ export function MapDesktop() {
   const unmapped = allRows.length - pinned.length;
 
   // ── 코스 보기 ──────────────────────────────────────────────
+  const courseSource = session.plan?.plan_id
+    ? `${session.plan.plan_id}:${session.plan.revision}`
+    : session.planInput;
+  const [courseEdit, setCourseEdit] = useState<{
+    source: string | PlanInput | null;
+    order: number[];
+    included: number[];
+  } | null>(null);
+  const activeEdit = courseEdit?.source === courseSource ? courseEdit : null;
+  const courseChanged = activeEdit !== null;
   // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
   // travel/sessions 를 이미 결합해 두었으므로 plan_id 로 찾기만 합니다.
   const selectedAlarm = myPlansWithAlarm.find(
@@ -295,7 +356,7 @@ export function MapDesktop() {
       ) ?? [],
     [session.plan],
   );
-  const courseFirst = courseSelectedStops[0];
+  const courseFirst = courseChanged ? undefined : courseSelectedStops[0];
   const courseFirstValid = conditionTargetInRange(courseFirst?.at);
   const courseFirstConditions = useResource<Conditions>(
     courseFirstValid
@@ -305,20 +366,16 @@ export function MapDesktop() {
   const courseSelectedScore = conditionScore(courseFirstConditions.data);
   // 데이터 조합은 모바일 CourseSheet 와 같습니다(MapPage.tsx). 계산된 경로가
   // 있으면 그 순서 · 시각 · 구간을, 없으면 초안 코스의 후보 순서만 씁니다.
-  const calculated = session.route?.route;
-  const courseItems = calculated?.items ?? planItems(session.plan);
-  const courseSpotIds =
-    calculated?.items.map((item) => item.spot_id) ??
-    session.planInput?.stops.map((item) => item.spot_id) ??
-    [];
-  const coursePlaces = usePlacesById(view === "course" ? courseSpotIds : []);
+  const storedRoute = session.route?.route;
+  const calculated = courseChanged ? null : storedRoute;
+  const courseItems = storedRoute?.items ?? planItems(session.plan);
   // 세션에서 경로를 계산하지 않았어도, 저장된 코스라면 저장 시점에 계산해 둔
   // 구간별 이동시간(previous_leg)이 남아 있을 수 있습니다. 예전 코스에는
   // 도로선 스냅샷이 없으므로 그 경우에만 저장된 구간 시간을 사용합니다.
-  const hasStoredDurations = !calculated && courseItems.some(
+  const hasStoredDurations = !courseChanged && !calculated && courseItems.some(
     (item) => (item as PlanItem).previous_leg?.duration_minutes != null,
   );
-  const courseStops = courseItems.length
+  const storedStops = courseItems.length
     ? courseItems.map((item, index) => ({
         no: index + 1,
         spotId: item.spot_id,
@@ -350,24 +407,53 @@ export function MapDesktop() {
           distance: null,
           leg: null,
         }));
+  const storedIds = storedStops.map((stop) => stop.spotId);
+  const courseOrder = activeEdit?.order ?? storedIds;
+  const includedIds = activeEdit?.included ?? storedIds;
+  const courseSpotIds = courseOrder.filter((id) => includedIds.includes(id));
+  const courseStops = courseOrder.flatMap((id, index) => {
+    const stop = storedStops.find((item) => item.spotId === id);
+    if (!stop) return [];
+    const included = includedIds.includes(id);
+    return [{
+      ...stop,
+      no: index + 1,
+      ...(courseChanged ? {
+        meta: included ? t("경로 계산 전") : t("코스에서 제외"),
+        distance: null,
+        leg: null,
+      } : {}),
+    }];
+  });
+  const coursePlaces = usePlacesById(view === "course" ? storedIds : []);
+  const editedInput = courseInputForSelection(session.planInput, courseSpotIds, coursePlaces.rows);
+  const allSelected = courseSpotIds.length === courseStops.length;
   const wholeTrip = calculated
     ? kakaoRouteLink(calculated.origin, calculated.items)
     : null;
   const action = useAction();
+  const editCourse = (order: number[], included: number[]) => {
+    if (action.busy) return;
+    action.cancel();
+    setCourseEdit({ source: courseSource, order, included });
+  };
+  const { listRef, moveWithKeyboard, onPointerDown, onPointerMove, onPointerUp, onPointerCancel } = useCandidateReorder(
+    (from, to) => editCourse(moveCoursePlace(courseOrder, from, to), includedIds),
+    activeEdit ?? session.planInput,
+    ".mk-course-stop[data-spot-id]",
+  );
   const {
-    setOriginId,
-    selectedOrigin,
     createCourse: createCourseFor,
     recalculateCourse,
     candidateTrip,
-  } = useCourseRouteOptimization(rows, courseSpotIds, coursePlaces.rows, action);
-  const courseLink = candidateTrip ?? wholeTrip;
+  } = useCourseRouteOptimization(rows, courseSpotIds, coursePlaces.rows, action, { input: editedInput, changed: courseChanged });
+  const courseLink = wholeTrip ?? candidateTrip;
   const coursePaths = useMemo(
-    () => (view === "course" ? routePaths(session.route) : []),
-    [session.route, view],
+    () => (view === "course" && !courseChanged ? routePaths(session.route) : []),
+    [session.route, view, courseChanged],
   );
   const courseLines = coursePaths.length;
-  const origin = calculated?.origin;
+  const origin = courseChanged ? editedInput?.request.origin : calculated?.origin;
   // 지도는 markers 참조가 바뀔 때마다 다시 그리므로(KakaoMapCanvas 의 effect),
   // 좌표가 같은 동안에는 같은 배열을 유지해야 합니다 -- 원시 값만 담은 문자열
   // 키에 의존을 좁힙니다(모바일 MapPage.tsx 와 같은 방식).
@@ -829,15 +915,44 @@ export function MapDesktop() {
                     )}
                   </div>
                 )}
-                <div className="mk-course-rows">
-                  {courseStops.map((stop) => (
+                <div className="mk-course-order-toolbar">
+                  <p className="mk-note" id="mk-course-order-help">
+                    {t("번호를 눌러 방문 여부를 정하고 오른쪽 손잡이로 순서를 바꾸세요. 선택한 첫 장소에서 출발합니다.")}
+                  </p>
+                  <button
+                    type="button"
+                    className="pd-dk-button is-quiet mk-course-select-all"
+                    aria-controls="mk-course-editor"
+                    disabled={action.busy}
+                    onClick={() => editCourse(courseOrder, allSelected ? [] : [...courseOrder])}
+                  >{allSelected ? t("전체 체크 해제") : t("전체 체크")}</button>
+                </div>
+                <div className="mk-course-rows" id="mk-course-editor" ref={listRef}>
+                  {courseStops.map((stop, index) => (
                     <CourseStopRow
-                      key={stop.no}
+                      key={stop.spotId}
                       no={stop.no}
+                      spotId={stop.spotId}
                       name={stop.name}
                       meta={stop.meta}
                       distance={stop.distance}
                       leg={stop.leg}
+                      editing={{
+                        included: includedIds.includes(stop.spotId),
+                        origin: stop.spotId === courseSpotIds[0],
+                        disabled: action.busy,
+                        onToggle: () => editCourse(courseOrder, includedIds.includes(stop.spotId)
+                          ? includedIds.filter((id) => id !== stop.spotId)
+                          : [...includedIds, stop.spotId]),
+                        onMove: (offset, handle) => {
+                          const target = courseStops[index + offset];
+                          if (target) moveWithKeyboard(handle, stop.spotId, target.spotId);
+                        },
+                        onPointerDown: (event) => onPointerDown(event, stop.spotId),
+                        onPointerMove,
+                        onPointerUp,
+                        onPointerCancel,
+                      }}
                     />
                   ))}
                 </div>
@@ -848,41 +963,19 @@ export function MapDesktop() {
                       ? t("저장된 구간별 이동시간입니다. 도로 경로선은 이 화면에서 다시 계산해야 표시됩니다.")
                       : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}
                 </p>
-                {session.route?.optimality === "provisional_missing_comparison_evidence" && (
+                {!courseChanged && session.route?.optimality === "provisional_missing_comparison_evidence" && (
                   <p className="mk-note">
                     {t("일부 비교 자료가 부족한 임시 결과입니다.")}
                   </p>
                 )}
-                {session.plan && session.plan.unresolved.length > 0 && (
+                {!courseChanged && session.plan && session.plan.unresolved.length > 0 && (
                   <details className="mk-course-details" key={session.plan.plan_id}>
                     <summary>{t("확인할 항목 {count}개", { count: session.plan.unresolved.length })}</summary>
                     <p>{unknownConditionsText(session.plan.unresolved)}</p>
                   </details>
                 )}
-                <div className="mk-course-settings-title">{t("경로 설정")}</div>
-                {rows.length ? (
-                  <label className="mk-origin">
-                    <span className="mk-origin-label">{t("출발지")}</span>
-                    <select
-                      className="mk-origin-select"
-                      aria-label={t("출발지")}
-                      value={String(selectedOrigin?.id ?? "")}
-                      onChange={(event) => setOriginId(Number(event.target.value))}
-                    >
-                      {rows.map((place) => (
-                        <option key={place.id} value={place.id}>
-                          {place.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <p className="mk-note" role="status">
-                    {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
-                  </p>
-                )}
                 <dl className="mk-course-summary">
-                  <div><dt>{t("방문 장소")}</dt><dd>{t("{count}곳", { count: courseStops.length })}</dd></div>
+                  <div><dt>{t("방문 장소")}</dt><dd>{t("{count}곳", { count: courseSpotIds.length })}</dd></div>
                   {calculated && <>
                     <div><dt>{t("예상 이동")}</dt><dd>{t("{minutes}분", { minutes: calculated.travel_minutes })}</dd></div>
                     <div><dt>{t("예상 귀가")}</dt><dd>{timeLabel(calculated.return_at)}</dd></div>
@@ -893,7 +986,7 @@ export function MapDesktop() {
                     type="button"
                     className="pd-dk-button"
                     aria-busy={action.busy}
-                    disabled={!session.planInput?.stops.length || action.busy}
+                    disabled={!editedInput?.request.origin || action.busy}
                     onClick={session.plan?.plan_id ? recalculateCourse : createCourse}
                   >
                     {action.busy && <Icon name="refresh" size={16} className="rt-submit-spin" />}
@@ -917,8 +1010,10 @@ export function MapDesktop() {
                 <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
                   {action.error ||
                     savedPlan.error ||
-                    t("출발지나 교통 상황이 바뀌면 다시 계산하세요.")}{" "}
-                  {session.route && !session.route.route_calculated
+                    (courseSpotIds.length === 0
+                      ? t("방문할 장소를 하나 이상 선택해 주세요.")
+                      : t("체크한 장소와 순서로 다시 계산하고 이 코스에 저장합니다."))}{" "}
+                  {!courseChanged && session.route && !session.route.route_calculated
                     ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
                     : ""}
                 </p>

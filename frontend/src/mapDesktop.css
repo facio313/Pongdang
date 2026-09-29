@@ -300,16 +300,10 @@
 .pd-desktop .mk-course-summary {
   display: grid;
   gap: 12px;
-  margin: 4px 0 0;
-  font-size: 13px;
-}
-.pd-desktop .mk-course-settings-title {
-  margin: 20px 0 12px;
+  margin: 20px 0 0;
   padding-top: 18px;
   border-top: 1px solid var(--dk-line);
-  color: var(--dk-ink);
   font-size: 13px;
-  font-weight: 700;
 }
 .pd-desktop .mk-course-summary > div {
   display: flex;
@@ -329,32 +323,6 @@
   margin-top: 20px;
 }
 
-/* 후보지 패널의 출발지 선택. .mk-search 와 같은 톤(테두리 · 라운드)이지만
-   입력이 아니라 select 라 높이를 touch 대상만큼 살짝 낮춥니다. */
-.pd-desktop .mk-origin {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.pd-desktop .mk-origin-label {
-  flex: none;
-  font-size: var(--dk-fs-cap);
-  color: var(--dk-ink-2);
-}
-.pd-desktop .mk-origin-select {
-  flex: 1;
-  min-width: 0;
-  height: 40px;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--dk-ink);
-  background: var(--dk-surface);
-  border: 1px solid var(--dk-line);
-  border-radius: var(--dk-r-ctl);
-}
-
 /* 「코스 생성」 버튼의 진행중 스피너. routeRequestForm.css 의
    .rt-submit-spin 과 같은 규칙이지만 이 버튼은 .rt-form 밖에 있어 그 선택자가
    닿지 않으므로 같은 이름으로 이 파일에도 둡니다. */
@@ -371,6 +339,22 @@
 
 /* 정차지 줄. 모바일 CourseSheet 의 mp-stop 과 같은 사실(순번 · 이름 · 도착
    시각 · 구간 이동시간 · 길찾기)을 데스크탑 패널 문법으로 그립니다. */
+.pd-desktop .mk-course-order-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pd-desktop .mk-course-order-toolbar .mk-note {
+  width: 100%;
+  margin: 0;
+}
+.pd-desktop .mk-course-select-all {
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+}
 .pd-desktop .mk-course-rows {
   display: flex;
   flex-direction: column;
@@ -378,23 +362,50 @@
 .pd-desktop .mk-course-stop {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   padding: 15px 0;
   border-bottom: 1px solid var(--dk-line);
 }
 .pd-desktop .mk-course-stop:last-child {
   border-bottom: 0;
 }
-.pd-desktop .mk-course-stop-no {
+.pd-desktop .mk-course-stop-number {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
   flex: none;
+}
+.pd-desktop .mk-course-stop-no {
   width: 30px;
   height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-size: 13px;
   background: #1b5fc0;
   color: #fff;
+  cursor: pointer;
+}
+.pd-desktop .mk-course-stop-no[aria-pressed="false"] {
+  background: #fff;
+  border-color: var(--dk-line);
+  color: var(--dk-ink-2);
+}
+.pd-desktop .mk-course-stop-origin {
+  color: var(--dk-blue);
+  font-size: 10px;
+  font-weight: 700;
+}
+.pd-desktop .mk-course-stop-no:focus-visible,
+.pd-desktop .mk-course-stop-drag:focus-visible {
+  outline: 2px solid var(--dk-blue);
+  outline-offset: 3px;
+}
+.pd-desktop .mk-course-stop.is-excluded .mk-course-stop-body {
+  opacity: 0.6;
 }
 .pd-desktop .mk-course-stop-body {
   flex: 1;
@@ -421,6 +432,51 @@
 .pd-desktop a.mk-course-stop-dist {
   color: var(--dk-deep);
   text-decoration: none;
+}
+.pd-desktop .mk-course-stop-drag {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dk-ink-2);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.pd-desktop .mk-course-rows[data-reordering] {
+  isolation: isolate;
+  user-select: none;
+}
+.pd-desktop .mk-course-rows[data-reordering] .mk-course-stop {
+  position: relative;
+  transform: translate3d(0, var(--rd-reorder-y, 0px), 0);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+.pd-desktop .mk-course-rows[data-reordering] .mk-course-stop[data-dragging] {
+  z-index: 2;
+  scale: 1.012;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px #173a6326, 0 2px 6px #173a6314;
+  transition: scale 140ms ease, box-shadow 140ms ease;
+}
+.pd-desktop .mk-course-rows[data-reordering] .mk-course-stop-drag { cursor: grabbing; }
+.pd-desktop .mk-course-rows[data-settling] .mk-course-stop[data-dragging] {
+  scale: 1;
+  box-shadow: none;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), scale 220ms ease, box-shadow 220ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-desktop .mk-course-rows[data-reordering] .mk-course-stop,
+  .pd-desktop .mk-course-rows[data-reordering] .mk-course-stop[data-dragging] {
+    transition: none;
+    scale: 1;
+  }
 }
 
 /* 코스 정차지 핀. 점수가 아니라 **순서**를 말하므로 지점 핀(.mk-pin)과 모양을
