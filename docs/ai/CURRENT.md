@@ -1,3 +1,161 @@
+# 서버 운영 기록 main 통합 · 2026-09-29
+
+- 사용자 요청: 남은 Pongdang 변경을 커밋하고 main에 푸시한다.
+- 원격 main `ab3df2e`까지 fast-forward하고 이 파일의 로컬 추가 기록 331줄과
+  운영 작업 문서 3개를 함께 보존했다. 변경 범위는 문서 4개이며 제품 코드 변경은 없다.
+- 검증: 명시한 4파일의 `ops/verify_local.py`는 문서 전용으로 실행할 코드 검사가
+  없음을 확인했다. `git diff --check`, 문서 링크 17개, 원격 기록 보존 검사를 통과했다.
+- 통합 전 로컬 원본은 stash `bda5019f6fccf1664aed6c36b3503887e65e33a1`에 보존한다.
+  dev 및 origin/dev는 `549c0b5`를 유지하며 main의 기존 CI·자동 배포 경로를 따른다.
+
+# 코스 재계산 Origin 오류 · 운영 설정 교정 완료 · 2026-09-29
+
+- 재계산 시 `ORIGIN_NOT_ALLOWED` 원인 확인: `/home/cks/.config/pongdang/production.env:20`과
+  실행 중 backend의 `SSO_ALLOWED_ORIGINS`가 `https://bonifacio.work,https://pongdang.sit`였다.
+  실제 서비스 주소 `https://pongdang.site`의 마지막 `e`가 누락됐다. GET은 이 검사를
+  생략하므로 저장 코스 조회와 POST/PUT 재계산·저장의 결과가 달라진다.
+- 사용자 승인 후 해당 값만 `https://bonifacio.work,https://pongdang.site`로 교정했다.
+  배포 잠금 안에서 원격 main/current 일치, 다른 설정 불변, 기존 이미지 ID 일치를 확인하고
+  backend만 `--no-deps --no-build --pull never`로 재생성했다. 실행 중 설정 반영 확인 완료.
+- 기존 설정 백업: `/home/cks/.local/share/pongdang-deploy/backups/origin-fix-20260929-VU2x9c/production.env`.
+  원본과 백업 모두 cks:cks 0600 유지. frontend·collector·DB 컨테이너 ID는 전후 동일하다.
+- 운영 비밀·DB·네트워크를 쓰지 않는 인증 의존성 검사 10건 통과: 기존 오류 재현,
+  정상 주소 POST/PUT 허용, 기존 보조 주소 유지, 오타·외부·누락 Origin과 cross-site·미인증 차단.
+  실제 로그인 후 경로 재계산은 미검증이다.
+- 적용 후: release/main `13544e4fac84e50bf4fc1147732035323b8096a6` 유지, 앱 4컨테이너 healthy,
+  로컬 readiness ok·공개 홈/ready HTTP200·비로그인 코스 조회 HTTP401 확인.
+  로컬 main·기존 변경·dev refs 보존, 코드 수정·커밋·push·CI 실행·이미지 빌드 없음.
+  공용 SSO와 운영 DB·볼륨은 변경하지 않았으며 아래 기존 기록을 유지한다.
+
+# Pongdang SSO 통신 복구 · 2026-09-29
+
+- 사용자 연결 복구 요청에 따라 Pongdang 전용 OAuth의 내부 HTTP 주소 고정 설정을
+  제거하고 토큰·공개키·사용자 정보 주소를 기존 SSO의 공개 HTTPS로 전환했다.
+  호스트 설정 두 파일 백업 후 `pongdang-oauth2`만 같은 이미지로 재생성했다.
+- 설정 검사, 실제 OAuth→SSO 토큰 요청 도달 및 기존 클라이언트 인증, 공개키 응답,
+  앱 readiness/홈200·비로그인 개인 API401을 확인했다. 앱4컨테이너와 domain-auth는
+  재시작하지 않았고 healthy 유지. 앱 release `d18bebc`와 dev refs도 그대로다.
+- 13:45 KST 사용자가 새로 제공한 정상 계정으로 Chromium 실제 로그인 성공.
+  login200, 팝업 닫힘, auth/state200·authenticated=true 및 로그인 후 알림 구독·이력
+  GET200을 확인했다. 연결 복구와 실제 로그인·개인자료 재조회까지 검증 완료했다.
+  백업·적용·검증 상세는 [기존 SSO 작업 기록의 9/29 후속 절](livecam-inline-sso-20260928.md)을 참조한다.
+  공용 SSO·계정·권한·운영 DB 변경 및 커밋·push·앱 재배포는 하지 않았다.
+
+# 라이브캠·페이지 내 SSO 로그인 진행 · 2026-09-28
+
+- 현재 요청과 진행: [livecam-inline-sso-20260928.md](livecam-inline-sso-20260928.md).
+  라이브캠26개 이미지 저장, 운영 홈3/3·목록26/26 표시 확인. 로그인은 기존 아이디/비밀번호
+  모달과 비동기 SSO 경로를 main/운영 `fc463e6`에 배포(CI36383684822 성공)했다.
+  실제390/1440 모달·취소 확인. 제공 계정 중앙1FA401로 실제 로그인 성공·개인자료 재조회는
+  사용자 정상계정 확인 대기 중이며 아직 전체 목표 완료로 처리하지 않는다.
+  9/28 15:03 KST 같은 차단 조건 연속3회 확인 후 목표 blocked로 전환했다.
+  오늘 데이터·미래7일 및 아래 기존 작업 기록을 보존한다.
+
+# bounded retention 운영 적용 · 2026-09-28
+
+- 사용자 승인 범위와 현재 상태: [bounded-retention-20260927.md](bounded-retention-20260927.md).
+  오늘~미래 7일 최신 결과와 필요한 근거를 보존하며 무한 계산 이력 누적을 정리한다.
+  **9/28 02:45 KST 누적분 정리·승인된 물리 파일 축소·실사이트 확인 완료.**
+  main/운영 `21c0782c2e69f0492f5b01a2623bd261f348af81`, CI36337623296 두 이미지와
+  watcher 배포 성공. 후속4파일 lint/format·폐기용DB 관련20tests 통과.
+  파일48,531,535,551→2,194,421,439bytes(약46.34GB/95.48%회수; 새계산 포함).
+  전체 검증된 백업 보존. collector 정상복구,4컨테이너healthy,health/ready200.
+  evidence 자동작업17:43:28Z 성공/398325행/다음1시간/failures0. 최종보존검증
+  evidence완료·condition창외0·WI5표obsolete없음·최신참조온전함 모두통과.
+  실제 pongdang.site 추천200/gen771/관측9월28일02:28/휴식60.5 확인.
+  비로그인preferences401 외 API오류없음. 인증 후 개인조회 미검증은 아래 기존 기록 유지.
+  아래 기존 작업 기록은 보존한다.
+
+# 운영 수정·배포 완료 · 점수 갱신·OAuth 연결 · 2026-09-27
+
+- 결과: [production-fixes-20260927.md](production-fixes-20260927.md).
+  main/운영 `51b4a3c`, CI·자동 배포 성공. 점수 generation756 게시 및 실제 홈
+  9월27일20:35/휴식69.4 확인. 로그인 연결·취소·실패 확인; 제공 계정은 중앙 SSO
+  1차인증401로 로그인 후 개인조회 미검증. 기존 아래 기록은 보존한다.
+
+# 운영 DB 메모리·성장 진단과 조치 — 2026-09-24
+
+- 요청에 따라 origin의 main만 명시적으로 fetch하고 local main을
+  `308070dd848f6d5a369e5c3c061f902ca7f58696`까지 fast-forward했다.
+  main/origin-main은 0/0이다. 기존 이 파일의 로컬 기록은
+  `/home/cks/backups/pongdang-main-update-20260924/CURRENT.local.md`에도 보존한
+  뒤 최신 main의 기록과 함께 유지했다. dev ref, commit, push, CI dispatch는
+  건드리지 않았다. 해당 SHA의 Actions `35864993519`와 자동 배포는 이미
+  성공했고 운영 앱 세 컨테이너는 같은 SHA로 healthy다.
+
+## 운영 반영 결과
+
+- 원인 완화 6파일을 `217e39a6ddb25087552fc669d8652e7aed8d97e1`
+  (`fix: bound condition refresh and water index history`)로 main에 push했다.
+  Actions `35905089085`의 frontend/backend 이미지 빌드와 자동 deploy가 모두
+  성공했다. current는 이 SHA, previous는 `308070d`이며 두 릴리스 모두 schema
+  v20과 `condition_result` reader다. 실행 중인 frontend/backend/collector 태그도
+  새 SHA이고 Pongdang 네 컨테이너와 `/api/ready`가 healthy/ok다.
+- 폐기 전 `condition_snapshot` 251,660행, 최대 generation572, 2,939,174,912
+  bytes를 확인했다. 최신 게시 generation619/108,286행과 nonempty
+  `condition_result`가 있어 명시적 안전조건을 통과했다.
+- 레거시 테이블만 custom-format zstd archive로 백업했다. 경로는
+  `/home/cks/.local/share/pongdang-deploy/backups/condition-snapshot-20260923T185142Z/condition_snapshot.dump`이고
+  cks 소유 0600, 33,724,808 bytes다. TABLE/TABLE DATA TOC, 전체 pg_restore
+  stream, SHA-256 재검증이 모두 성공했다.
+- 첫 retirement 시도는 새 배포 직후 정상 `condition_projection`이 결과 advisory
+  lock을 보유해 SQLSTATE55P03으로 전부 rollback됐다. 해당 게시가 generation619로
+  성공하고 잠금이 해제된 뒤 같은 검증 CLI를 다시 실행해 정확히 251,660행을
+  truncate했다. 이후 legacy는 0행/16KiB이고 `condition_result`는
+  425,685행/약2.94GB로 유지된다.
+- 같은 spot7/swim/observation 고정 as_of의 전후 응답은 화면·점수·근거·게시 결과가
+  동일하다. 동시 수집으로 `latest_source_revision` 메타만 197769에서197778로
+  증가했다. readiness와 컨테이너 health, archive checksum을 다시 확인했다.
+
+## 확인된 원인
+
+- 호스트 디스크는 235GiB 중 약45% 사용, 약125GiB 가용이고 inode도 약17%
+  사용이라 현재 디스크 부족이 아니다. 호스트 메모리도 약5.3GiB available,
+  활성 memory PSI 거의0, DB OOM/OOM-kill 0이다.
+- DB cgroup의 raw `memory.current`는 2GiB 상한에 붙지만 anon은 약16MiB이고
+  약2.06GB가 관계·임시파일 page cache다. Monitor의 inactive-file 보정 working
+  set은 최근 약63--65%였다. 즉 host RAM 고갈이나 heap leak은 아니지만,
+  2GiB cgroup 안에서 반복 reclaim이 발생하는 실제 cache 압력이다. 3GiB 증설은
+  임시 완화일 뿐 근본 해결이 아니므로 적용하지 않았다.
+- routine source revision마다 600초 예약을 우회해 약5--6분 걸리는 전체 조건
+  세대(약10만--13만 wide JSON)를 끝난 직후 다시 임시 COPY/비교했다. 최근
+  세대의 80--90%가 재사용인데도 전체 stage를 매번 만들기 때문에 temp I/O,
+  page cache와 checkpoint/WAL 압력을 만든다.
+- `water_index_input_manifest`와 `water_index_assessment`는 합계 약19GB의 immutable
+  이력이다. 평가 fingerprint가 실제 계산에 쓰지 않는 `collection_station`의
+  `fetched_at` heartbeat까지 포함해, 같은 원자료 재수집도 새 manifest와
+  assessment를 계속 만들었다. 이 경로에는 retention이 없다.
+- v20이 더 쓰지 않는 `condition_snapshot`은 진단 당시 약2.94GB/251,660행이었다. 운영은
+  schema20, legacy max generation572, 최신 result generation은 그보다 새롭고
+  nonempty라 소스의 명시적 retirement 안전조건을 모두 충족했다. 승인 전에는
+  변경하지 않았고, 위 백업·배포·검증 뒤 명시적 retirement로 회수했다.
+
+## 구현과 검증
+
+- `projection_urgent`를 분리했다. routine source 변경과 KST 날짜 전환은 기존
+  durable 600초 일정까지 합치고, 현재 모델의 게시 결과가 전혀 없거나 hard
+  revoke/correction이 최신 게시 revision보다 새로울 때만 즉시 우회한다.
+  manual force/refresh, 실패 backoff, 원자적 publish는 유지한다.
+- Water Index 평가 fingerprint를 실제 의존값인 group identity, snapshot, 해당
+  mode metric, mapping, activity authority, model provenance로 한정했다. station
+  heartbeat와 반대 mode metric은 제외하고 실제 값·mapping·authority 변경은
+  계속 새 이력을 만든다. 배포 첫 실행에는 기존 digest 형식과 달라 active
+  group별 전환 이력 1회가 생길 수 있고 이후 동일자료 poll부터 안정된다.
+- 별도 loopback `127.0.0.1:55439/pongdang_test`, PG18 tmpfs에서 변경6파일을
+  명시한 `ops/verify_local.py`를 실행했다. Ruff check/format과 관련 통합
+  47개가 통과했다(기존 deprecation warning2개). 폐기용 컨테이너와 데이터는
+  제거했고 포트 해제를 확인했다. 운영 DB·볼륨·컨테이너는 변경하지 않았다.
+
+## 완료 상태와 후속 범위
+
+- 코드 push·CI·자동 배포와 legacy snapshot 백업·회수·대표 GET 검증까지 완료했다.
+  `docs/ai/CURRENT.md`의 기존 로컬 기록은 의도적으로 커밋하지 않았다. dev와
+  origin/dev는 기존 `549c0b5`를 유지한다.
+- immutable Water Index의 장기 보존기간/partition·archive·payload 정규화는
+  임의 DELETE가 아니라 제품 이력 계약을 먼저 정한 후 후속 작업한다.
+
+---
+
 # 지도 코스 순서 편집 시 지도 재생성 제거 · 2026-09-29
 
 - 후속 Git 요청: 사용자가 로그인 팝업·점수 유지·지도 재생성 제거 변경의 커밋과 푸시를 승인했다. 대상은 현재 fix/finale 및 origin/fix/finale이며 main/dev 통합·운영 배포는 이번 요청에 포함하지 않는다. 아래 검증 이후 제품 코드 변경이 없어 통과한 결과를 재사용한다. 커밋 범위는 관련 프런트·회귀 테스트 5파일과 이 상태 기록으로 한정한다.
@@ -381,6 +539,172 @@
 - iCloud 원본 위치 유지. 52개 관련 경로를 백업·동시변경 비교 후 통합했고 원본 fix/finale을 같은 커밋으로 전진시켰다. 운영 확인 전 tracked 상태 clean을 확인했다. 이 최종 배포 결과 메모만 배포 후 로컬에 추가했으며 추가 CI/재배포를 만들지 않았다.
 - 남은 별도 서버 작업: ci-watch/timer 실제 설치본과 서버 사용자의 Codex 전역 지침/스킬 적용 여부 확인·반영. 이번 앱 배포가 해당 설치본을 갱신하지는 않는다. 소스의 main 전용 CI와 프로젝트 지침은 원격 main에 반영 완료다.
 - 증거: ~/.cache/pongdang-main-only-ci-backup/deploy-50a9e72.log 및 release-50a9e72.json. 소스/스테이징 백업과 기존 미추적 파일은 보존한다.
+# GitHub Actions 이미지 빌드 전용 전환 · 배포 완료 · 2026-09-23
+
+- 요청: GitHub Actions의 반복 오류와 긴 대기를 없애고 frontend/backend 운영 이미지가 빌드되는지만 확인한 뒤 바로 자동 배포. dev refs·다른 앱·공용 SSO·운영 DB/볼륨은 변경하지 않는다.
+- 기준/원인: 서버 main을 origin/main `77af9abdfbafc8f1c4c93bffe0cd71d8ff091896`로 fast-forward했다. 해당 run 35811908787은 deploy가 성공했지만 browser(2)가 최근 3회 연속 실패했고, 마지막 실행은 runner 대기만 약 56분이라 전체 상태가 failure였다.
+- 구현: `.github/workflows/ci.yml`의 scope/frontend/backend/browser/smoke를 제거하고 backend/frontend Dockerfile 빌드 두 개를 병렬 matrix로 구성했다. 두 빌드 성공만 main deploy gate로 사용한다. PR은 빌드만 하고 dev는 계속 차단한다. 최신 main 확인, production 직렬화, 서버측 운영 인자/아키텍처 재빌드, 스키마 초기화, health/readiness, 실패 복구는 유지한다. 현재 정책 문서와 로컬 검증 안내도 build-only Actions에 맞췄다.
+- 로컬 확인: PyYAML 구조 assertion, actionlint 1.7.12, `git diff --check`, `ops/test_verify_local.py` 6개 통과. 전체 로컬 Docker/브라우저/backend 검사는 실행하지 않았다. 기존 미커밋 CURRENT 기록은 커밋에서 제외해 보존했다.
+- main: `65a74c62681ae9f7e7d70bef2649437cf1989d16` (`ci: deploy after production image builds`)으로 7파일 커밋·push. [Actions run 35817274855](https://github.com/facio313/Pongdang/actions/runs/35817274855)은 backend 26초/frontend 27초 병렬 빌드와 deploy 41초가 모두 성공했다. 추가 dispatch·수동 compose/SSH 배포는 실행하지 않았다.
+- 운영 확인: current release와 frontend/backend/collector 태그가 `65a74c6…`로 일치하고 Pongdang 네 컨테이너가 모두 healthy/running이다. `/api/ready` status=ok·HTTP 200, `/pongdang/`과 `/api/data/summary`도 HTTP 200이다. dev와 origin/dev는 기존 `549c0b55242539be59252ac2c89ab6ab47fa55ea`를 유지한다.
+
+# 운영 전역 SSO 해제·개인 기능 선택 인증 · 2026-09-23
+
+- 사용자 요청으로 `bonifacio.work/pongdang/`와 `pongdang.site/`의 사이트 전체 SSO 게이트를 제거했다. 정적 앱과 공개 조회는 익명 접근을 허용하고, 프런트 로그인 유도가 실제로 동작하도록 `/auth/continue`와 owner-scoped travel·notifications·quality observations·refresh·AI 경로만 기존 SSO 브리지를 유지한다.
+- 운영 전용 nginx 파일 6개를 설치/갱신했다. 공개 프록시는 브라우저의 `X-Pongdang-SSO-*`, Remote-*, Authorization, Cookie를 제거하며, 보호 프록시는 기존 서버 전용 token include와 검증된 subject/grants/email로 덮어쓴다. `ai/explanation`은 GET/HEAD 공개·그 외 메서드 인증으로 분리하고 원래 메서드·본문을 보존한다. 공용 SSO와 다른 앱은 변경하지 않았다.
+- 백업: `/home/cks/.local/share/pongdang-nginx-backups/20260923T121331+0900/`. `nginx -t` 성공 후 reload했고 nginx active, 배포 SHA `77af9ab`, Pongdang 4컨테이너 healthy, `/api/ready` 200을 확인했다. 두 도메인의 앱·catalog·travel keywords는 익명 200, 공개 AI explanation 무인자 GET은 backend 422까지 도달, 개인 GET과 explanation POST는 SSO 302, 위조 헤더도 302였다.
+- 제품 소스·DB·컨테이너·CI는 변경하지 않았다. 최신 main의 `ops/nginx-location.conf`는 보호 경로와 헤더 브리지가 일부 누락돼 운영본을 그대로 역복사하지 않았다. 호스트 설치본은 유지되지만 향후 템플릿 정합화가 필요하며, 앞선 점검 출력에 노출된 SSO bridge token은 별도 승인된 회전이 남아 있다.
+
+# 활동·지표·점수 DB 보존 및 부분 오류 격리 · 배포 완료 · 2026-09-22
+
+- 요청/승인: 만료·갱신·503 때문에 홈/오늘의 활동·지표·점수가 사라지는 문제 수정, DB 보존, main 커밋·push·자동 배포까지 승인. 기준 main a3cb8fb. 기존 이 파일의 사용자 기록을 보존하며 dev refs 549c0b5는 변경하지 않는다.
+- 확인: 원자료와 계산 결과는 DB에 있으나 원자료 revision 정정 시 전체 게시 결과를 숨기며, 미래 만료 구간은 지표·점수가 비어 있는 스냅샷으로 저장한다. 기존 테스트도 만료 시 score=null을 기대했다. 2026-09-22 14시대의 대표 운영 GET 3건은 200/점수 표시로 복귀해 있었고 이 단일 확인을 재발 해결로 보지 않는다.
+- 구현 완료: 다음 publication에 마지막 값·점수·근거를 함께 이어 저장하고 원래 계산/대상 시각을 표시한다. 일반 원자료 정정은 갱신으로 처리하며 공식 제한/매핑 철회는 유지한다. 추천의 부가 조회 실패 격리와 첫 추천 503 시 독립 조건 조회도 적용했다.
+- 검증 환경: 이번에 만든 rootless tmpfs 컨테이너 pongdang-durable-snapshots-test-20260922, loopback 32782의 pongdang_test만 사용한다. 운영 DB·환경 파일·볼륨은 테스트에 사용하지 않는다. Git은 cks, 로컬 Python 검증은 root, 프런트는 기존 Node24 바이너리로 명령별 PATH를 지정한다.
+- 구현: 기존 condition_snapshot에 원래 값·점수·근거를 다음 세대에도 이어 저장한다. 보존 시각 retained_at/원래 computed_at 유지, 정상 하락 점수 교체, 같은 예보 구간만 보존한다. v18은 일반 원자료·관측소 유효시간 변경을 재계산으로 분류하고 제한/매핑 철회는 유지한다. 추천 부가 조회는 savepoint 및 전체 5초 예산으로 격리한다. 첫 추천 실패 시 독립 조건 조회, 기존 미지원 종목으로 전체 캐시가 버려지던 경로도 수정했다.
+- 검증: 프런트 lint·152 단위·타입, API mock 모바일/데스크톱 관련 12개 통과. 백엔드 최초 관련 53개 중 예보 미래 대상에 관측 시각 규칙을 적용한 1건 실패를 수정했고 다음 43개 중 기존 만료 null 기대 1건을 요청된 보존 계약에 맞게 수정했다. 이어 점수·producer·원자료 회귀 147개 통과. DB 반복 갱신·이전 세대 정리·새 접속·9일 collector 공백·부분 자료·낮은 새 점수·v17→18 보존·관측소 유효기간 갱신·예보 구간 회귀도 통과. 무DB 추천 오류 12개 포함 추천 규칙 26개, 예보 경계 누적 회귀 2개 통과. 마지막 구간 병합 수정 후 관련 단위 2개·DB 회귀 5개도 재확인해 모두 통과했다.
+- 통합: 작업 중 추가된 원격 main의 지도 변경 37784f4/67694ec를 파일 충돌 없이 fast-forward해 보존했다. 제품 22파일만 커밋 준비했고 기존 CURRENT 변경은 제외한다.
+- main: 59ef4bd9f688df72b21989cd6bec8866a08a7e35로 22파일 커밋·push 완료. [CI 35692352639](https://github.com/facio313/Pongdang/actions/runs/35692352639)는 frontend/backend 3 shards/smoke 성공, browser에서 5건 실패해 배포를 건너뛰었다. 4건은 통합된 원격 지도 변경에 기존 모바일 선택자를 기대하던 코스 검사, 1건은 추천503만으로 모든 baseline이 실패해야 한다던 기존 기대다. 최신 지도 동작을 보존해 선택자를 맞추고 baseline 오류 검사는 독립 조건조회도 실패한 경우로 명확히 하는 중이다. CURRENT 기존 기록은 미커밋 보존. dev 두 refs는 549c0b5 유지. 같은 SHA 추가 dispatch·수동 빌드/배포 없음.
+- 자원 정리: 이번 폐기용 tmpfs DB 컨테이너는 테스트 완료 후 종료·제거했다. 테스트용 데이터만 폐기되어 복구 불가하며 운영 데이터·볼륨과 무관하다.
+- CI 보완용 브라우저 검증: 새 폐기용 tmpfs pongdang-ci-course-tests-20260922, 127.0.0.1:32783/pongdang_test를 별도 생성했다. frontend agent만 사용하며 운영 DB/환경파일은 사용하지 않는다.
+- CI 보완 검증 완료: 지도 코스 3건·장소 상세 4건·오늘 정직한 상태 4건, 총 11개 브라우저 통과(55.9초). 실제 제품 UI 코드는 변경하지 않고 테스트 선택자·현재 동작 기대만 맞췄다. 변경 파일 lint와 Node152/타입도 통과. 후속 main e3d29443e59a5a68221100529b1608c071ae6016 커밋·push 완료, [새 CI 35692900255](https://github.com/facio313/Pongdang/actions/runs/35692900255)를 따른다. CI 보완용 폐기 DB도 종료·제거했으며 테스트 서버는 종료됐다.
+- 최종 SHA 검증: 새 CI의 frontend/backend 3 shards/browser 2 shards/smoke 및 deploy job 106634410408이 모두 성공했다. 최종 배포 main e3d29443e59a5a68221100529b1608c071ae6016. current release 및 frontend/backend/collector 태그가 일치하며 4개 컨테이너 healthy, /api/ready status=ok, /pongdang/ HTTP200 확인. 앱 이미지 ID는 frontend 2b6050e707a3…/backend·collector e5490d300fd1…이다.
+- 운영 API: 경포 장소7·470 조건, 장소7 추천 및 두 장소 요약 모두 HTTP200(개별 0.041~0.254초). 재계산 중 generation281/source92953 < latest93034에서도 수영70.4/서핑80.0, 수온24.39°C·기온24.1°C·파고1.4m·풍속3.5m/s를 유지했다. collector는 재시작0/healthy, summary heartbeat는 condition_projection 실행을 확인했다.
+- 새 DB 게시 확인(15:11:45 KST): generation282/source93034가 새로 게시된 뒤에도 같은 점수·지표를 유지했다. 실제 만료 보존 결과 retained=true, retained_at/computed_at=15:05:45.672222 KST이며 원래 계산 시각을 노출한다. 다음 DB 세대까지 값을 이어 저장하고 새 접속에도 제공함을 운영 GET으로 확인했다. 로그인 후 운영 브라우저 직접 조작은 이번 작업에서 하지 않았으며 화면 검증은 로컬/CI 브라우저 근거다.
+- 완료: 요청된 수정·main push·자동 배포·새 스냅샷 게시 확인 완료. 추가 CI dispatch/수동 빌드·배포/다른 앱·SSO·운영 원자료 수동 변경 없음. 두 폐기 DB와 테스트 서버 정리 완료, dev refs 보존, 기존 CURRENT 기록만 미커밋으로 남는다.
+
+# 전체 화면 헤더 새로고침 제거 · 배포 완료 · 2026-09-22
+
+- 요청/범위: 모든 화면 로고 옆 데이터 새로고침을 제거하고 사이드 메뉴 기능은 유지. 모바일 AppHeader·DesktopNav와 홈 예외 prop만 변경했다.
+- 검증: Node 24에서 명시한 TSX 3파일 verify_local.py의 lint·149개 단위 테스트·타입 검사 통과. API mock을 사용한 모바일 390px/데스크톱 1440px 주요 6화면에서 헤더 버튼 부재와 사이드 메뉴 버튼 표시 확인(12건). 기본 Node 18에서는 버전 불일치로 실행 실패 후 Node 24로 해결했다. 운영 DB 테스트 없음.
+- 사용자 승인으로 main a3cb8fbe4d65b1f3244dcc9b265f07d15702312b 커밋·push 완료. [자동 CI 및 배포](https://github.com/facio313/Pongdang/actions/runs/35671725711) 성공. CI 이력 조회 실패로 전체 브라우저 2 shards가 선택되었고 모두 통과했다. 기존 작업 메모 변경은 커밋에서 제외하고 보존했다. dev refs와 다른 앱은 변경하지 않았다.
+- 운영 확인: current가 해당 SHA release를 가리키고 frontend/backend/collector 이미지 태그도 일치. Pongdang 4컨테이너 모두 healthy, /api/ready는 status=ok, /pongdang/ GET 성공. 사용자 cks의 Docker로 확인했다. 추가 수동 빌드·배포·CI 재실행 없음. 요청 완료.
+
+# 마지막 UI 변경 되돌림 · 배포 및 점수 API 복귀 확인 완료 · 2026-09-22
+
+- 요청: ‘그냥 전으로 돌려줘. 또 점수가 안 나오기 시작했어.’ 마지막 UI72cd559만 되돌리며 이전 점수 장애 수정과 DB2GiB는 유지한다. 사용자 기록과 dev refs를 보존한다.
+- 구현/검증: UI4파일만 revert했고 제품 tree가 배포 직전5a8d53f와 완전히 동일함을 확인했다. 명시한4파일 verify_local.py의 ESLint·Node149개·증분 타입 검사 통과. 이전 버전의 화면 회귀는 CI에서 실행하며 새 운영 DB 테스트는 하지 않는다.
+- main: 8cf2e0f01b2571f918831faab8561927e2a8c101 커밋·push 완료. 자동 [CI35670745123](https://github.com/facio313/Pongdang/actions/runs/35670745123)가 실행 중이다. 같은 SHA의 push35670742401은 cancelled, workflow_dispatch35670745123은 진행 중임을 확인했다. 이번 작업에서 dispatch/re-run/cancel을 호출하지 않았다.
+- 점수 읽기 확인(되돌림 배포 전09:08:59 KST): current는 여전히72cd559였으나 장소7 수영 점수51.7로 복귀했다(수온23.79/83.4점, 파고1.5/20점). 기온·풍속은 measurement_expired로 비어 있다. 기온 근거는07:00관측/08:14:28수집/09:00만료이며, 실제 backend/collector 재시작은09:04:47이었다. 만료가 재시작보다 먼저다. UI 되돌림만으로 수집·만료 공백을 해결했다고 보고하지 않는다.
+- 읽기 전용 진단: 배포 게이트는 모든 앱을 SHA태그로 compose up하며 UI만 바뀌어도 backend/collector를 교체했다. backend image ID는5a8d53f와72cd559에서 동일하다. 실제 갱신 공백과 재시작의 지연 기여를 구분하여 확인 중이며 수집 설정·DB데이터·배포 게이트를 임의로 수정하지 않는다.
+- 확인된 만료 공백: weather.py의 _issue(nowcast)는 KST 현재시각에서1시간을 뺀 뒤 정시로 내리며, 관측 valid_until은 관측시각+2시간이다. 따라서08:58에도07시 자료를 요청하고09:00에 만료시킨다. collection_job/ingestionrun의 READ ONLY·3초제한 SELECT에서 kma_nowcast08:58:01성공→09:09:39성공, condition_projection08:58:04~09:01:20 및09:04:55~09:08:04성공을 확인했다. 새 시간 자료의 다음 수집까지 공백과 약3분 재계산이 발생한다. 실제 UI배포 재시작09:04:47보다 먼저 만료됐으므로 이번 UI 변경이 점수 데이터를 지웠다고 볼 근거는 없다. 재시작이 공백에 더한 정확한 시간은 미확인이다. 이 구조 수정은 이번 ‘되돌림’ 범위에 임의로 포함하지 않았다.
+- 되돌림 배포: CI35670745123의 전체 선택 검증·deploy 성공. current와 앱3개 태그가8cf2e0f…이며 네 컨테이너 healthy, readiness ok, DB RAM2GiB/RAM+swap3GiB 유지. 제품 Git tree는5a8d53f와 동일하다. 운영 JS GET에서 이전 기온 설명/summary 복귀 및 pd-cbar-toggle 제거를 확인했다.
+- 배포 직후09:14:51 GET: 장소7/470 점수는 다시pending/retention_allowed=false. READ ONLY 확인에서 schema17 유지(초기화는 재마이그레이션하지 않음), source revision77768/invalidated77753 > 마지막 완성 generation206/source77697였다. 직전 점수는09:12:52 게시 완료, 새 점수는09:14:09 계산 중이다. KHOA 수집5건이09:14:03~05 성공한 시점과 겹치지만, 어떤 원자료 수정이77753 철회를 유발했는지는 감사 이력이 없어 아직 확정하지 않았다. 만료 공백뿐 아니라 기존 점수 철회→재게시 동안의 공백도 여전히 있다. 되돌림을 점수 공백의 근본 해결로 보고하지 않는다.
+- 최종09:17:41 KST: 자동 게시generation207/source77768/ready 완료 후 대표 GET에서 장소7·470 수영52.8/evaluated, 홈 추천서핑65.9/evaluated 복귀 확인. 장소7 수온23.87°C·기온20.4°C·풍속1.9m/s·파고1.4m 모두 evaluated이다(기온0점은 유효값). 원복 UI·CI/자동배포·컨테이너/ready·대표 GET 확인 완료. 브라우저 로그인 재검증은 이번 턴에 하지 않았고 현재 숫자는 API 근거다. 기존 점수 장애수정·DB2GiB·dev refs 유지, 운영 데이터/수집 설정/배포 게이트 추가 수정 없음. 요청한 마지막 UI 되돌림은 완료했으나 관측 만료·철회/재계산 공백의 재발 위험은 남는다고 사용자에게 알린다.
+
+# 항목명으로 점수 기준 펼치기 · 배포 완료 / 점수 API 만료 상태 발견 · 2026-09-22
+
+- 요청: 외부 기온 아래의 고정 설명을 없애고 수온·외부 기온·풍속 등 값 옆 항목명을 누르면 점수 기준·미보정 참고값이 아래에 펼쳐지도록 변경.
+- 구현: 공용 ComponentBars에서 기준이 있는 항목명을 접기/펼치기 버튼으로 변경했다. 기본은 접힘이며 각 항목의 기준·인용 출처가 해당 줄 아래에 독립적으로 열린다. aria-expanded/controls와 키보드 Enter/Space를 지원한다. 기온 0점 고정 설명과 별도 기온 기준 summary를 제거했다. 원래 값·0점·미평가 사유·점수 계산/API는 유지한다.
+- 파일: frontend/src/pongdangUi.tsx, frontend/src/pongdang.css, frontend/src/locales/conditions.ts, frontend/tests/browser/home-tides.spec.ts. 기존 CURRENT 기록은 그대로 보존한다.
+- 검증: 명시한 4파일의 verify_local.py에서 ESLint·Node24 단위149개·증분 타입 검사 통과. home-tides 브라우저3개 통과(390/1440 화면에서 기본 접힘·항목별 펼침/닫힘·출처·0점·키보드·가로 넘침 없음·기존 간조/만조 표시). 접힘/펼침 캡처를 직접 확인했다. 스크린샷은 frontend/test-results/home-criteria-collapsed-{390,1440}.png 및 home-tides-{390,1440}.png.
+- 격리: 이번 작업에서 새로 만든 tmpfs pongdang-score-disclosure-test-20260922 / loopback32781 / pongdang_test만 사용했다. 검증 후 정확한 컨테이너 ID·작업 label·tmpfs·볼륨 없음 확인 후 종료·제거했다(임시 데이터만 복구 불가 폐기). 테스트 서버5189/8109 종료도 확인했다. 운영 DB·환경 파일·볼륨은 테스트에 사용하지 않았다. 전체 빌드·전체 backend/browser/Docker 검사는 실행하지 않았다.
+- 반영 상태: 사용자가 ‘응 배포까지 진행해’로 승인했다. 최신 main 정책과 원격5a8d53f를 확인하고 검증된 위4파일만 72cd5599048ea5c19d90b3f71578652097a505f6로 main 커밋·push했다. 기존 CURRENT 기록은 커밋에서 제외해 보존했다. 동일 코드의 통과한 로컬 검사는 반복하지 않았다. dev refs549c0b5 및 다른 앱/SSO는 변경하지 않았다. 추가 CI dispatch·수동 빌드/배포 없음.
+- CI·배포: [35669990987](https://github.com/facio313/Pongdang/actions/runs/35669990987)의 scope/frontend/smoke/browser2묶음/deploy 모두 성공. backend 검사는 UI 범위라 생략됐다. 운영 current 릴리스 경로·앱3개 이미지 태그가72cd559…와 일치하며 태그별 image ID도 실행 컨테이너와 일치한다. 네 컨테이너 모두 healthy, /api/ready는 ok. 운영 index 및 해당 JS GET에서 pd-cbar-toggle/criterion 존재와 기존 기온0점 설명 제거를 확인했다. 이번 턴에는 운영 로그인 브라우저를 추가 실행하지 않았다.
+- 별도 발견(09:06 KST): 대표 GET에서 장소7 recommendation choice=null, 장소7/470 수영 conditions score=null/status=unavailable. 장소7은 모든 항목에 measurement_expired를 명시하고 retained=true이다. 따라서 현재 점수 표시까지 정상이라고 보고하지 않는다. 원관측 만료/갱신 경위는 아직 조사하지 않았으며 이번 배포의 backend image ID는 이전5a8d53f와 동일하다. UI 배포는 완료했으나 점수 API 상태는 별도 점검이 필요하다고 사용자에게 알렸다. 만료값을 강제 복원하거나 DB·수집 설정을 변경하지 않았다.
+
+# 점수 갱신 공백·조석 조회 병목 수정 및 운영 배포 완료 · 2026-09-22
+
+- 요청: 간조·만조 처리 이후 다시 점수가 보이지 않는 현상의 원인 확인과 확실한 조치. TCP 진단은 보류. 후속 ‘응 진행하도록 해’로 조석 병목까지 수정·main 커밋/push·자동배포·실제 로그인 화면 재확인을 승인받았다. 기존 compose 2GiB 변경과 CURRENT의 다른 기록을 보존한다.
+- 운영 재현(07:57 KST): 경포470·강문472·순개울474의 현재 점수/요약 API가 HTTP200이지만 `condition_projection_pending`, score=null. DB 원자료 revision=76953인데 마지막 완성 점수 generation188/revision76881이라 전부 배제됐다. 해당 generation은 07:50:51 계산 시작, 07:54:00 게시 완료/106912행. 워커는 정상 계산 중이며 네 컨테이너 healthy. 간조·만조 커밋 `0a3eb35`는 프런트 13파일만 바꿨고 점수 저장·조회 서버 경로는 변경하지 않았다. DB 2GiB 조정은 재시작 없이 적용되어 점수 행을 변경하지 않았다.
+- 원인: 새 관측 추가도 전체 source revision을 변경하며 API가 정확히 같은 revision의 generation만 허용한다. 약 3분 재계산 동안 모든 저장 점수를 숨긴다. 기존 프런트 보존은 같은 브라우저 세션에만 있어 새 접속/새로고침 공백을 막지 못했다.
+- 로컬 수정: schema v17에 `invalidated_revision` 추가. 일반 원자료 추가 중에는 마지막 유효한 완성 결과를 `refreshing`/`retained`와 원래 계산 시각으로 제공한다. 기존 원자료 수정·삭제, 관측소/장소 변경, 매핑·공식 제한 추가는 즉시 철회하며 `retention_allowed=false`로 브라우저 캐시와 예보 fallback의 복원을 막는다. 원자료·점수 계산식·유효기간을 바꾸지 않는다. v16의 미분류 변경은 migration 시 현재 revision까지 철회하여 오래된 값을 부활시키지 않는다.
+- 범위: backend schema/condition_invalidation/condition_storage/conditions 및 관련 테스트, frontend productData/retainConditionData/useConditions 및 보존·브라우저 테스트. 기존 producer 통합 fixture의 구형 v15 trigger 재설치를 제거했다. migration은 진행 중 게시 작업의 revision 테이블 읽기도 NOWAIT로 대기하여 서비스 읽기를 장시간 막지 않는다.
+- 검증 상태: 수정 파일 lint/타입 검사 및 Node24 프런트148개, backend 관련 고유50개 통과. migration 잠금 보완 이후 영향받은20개를 재확인했다. 첫 검사는 브라우저 fixture 잔존으로 잘못된 관측소 행을 읽어 실패했으며, 나머지19개 통과 후 schema가 비워진 것을 확인하고 해당1개를 다시 통과했다(검증문 완화 없음). 모바일390/데스크톱1440 새로고침·재게시·철회 및 기존 간조·만조 브라우저14개 통과. 이 검사는 아래 운영 규모 SQL 병목을 재현한 검사가 아니다.
+- 검증 환경: 이번에 만든 tmpfs `pongdang-score-retention-test-20260922`, loopback32779, `pongdang_test`만 사용. 브라우저 테스트 포트5189/8109. 운영 DB에는 제한된 SELECT만 실행했다. 최초 복합 통계 SELECT는 5초 timeout으로 취소되어 300행 한정 집계로 축소했다. 로컬 첫 검증은 기본 Node18의 TS 미지원으로 실패했고 Node24로 재검증했다. cks가 기존 root 경로의 Python3.14 venv를 실행할 수 없어 검증은 root로 실행했고 Git은 cks로 실행한다.
+- 자원 정리: 위 폐기용 DB 컨테이너를 종료·제거하여 tmpfs 테스트 데이터만 폐기했다(복구 불가, 운영 데이터 무관). 테스트 서버5189/8109도 종료됐다.
+- 운영 브라우저 확인(08:17~08:20 KST): 사용자가 제공한 계정으로 실제 https://bonifacio.work/pongdang/ 로그인. Chromium으로 데스크톱 홈·오늘·명소 상세와 모바일 홈을 확인했다. 기본 선택은 강릉 경포대 해수욕장7이며 앞서 직접 조회한 경포해수욕장470과 ID가 달랐다. 홈 대표/활동별 점수와 기온·수온·파고가 비어 있었고 추천 및 조석 API가503이었다. 오늘의 비교 점수49.8과 일부 주간 예보는 표시됐으며, 경포470 상세는 HTTP200이지만 choice=null이었다. 명소 목록의 ‘상세에서 조회’는 기존 설계이므로 목록 자체 장애로 세지 않는다.
+- 추가 확인된 원인: `/water-index/recommendation`이 `read_tide`를 동기적으로 기다리고, 공통 `select_forecasts` 조회 시간 초과가 추천 전체503으로 이어진다. DB 로그23:17:50Z/23:17:58Z에 조석 forecast_revision 요약 SELECT의 statement timeout이 기록됐다. 읽기 전용 EXPLAIN에서 forecast_revision 전체 순차 검색과 행별 매핑 하위 질의를 확인했다(장소 인덱스는 존재하나 OR 조건 때문에 사용하지 않음). 이후 같은 장소7의 conditions는376ms/49.8점, recommendation은4956ms/65.7점으로 일시 성공하여 점수 데이터 삭제가 아닌 응답 경로 문제도 입증됐다. 간조·만조 UI 커밋이 서버 코드를 바꾸지 않았다는 사실만으로 조석 조회와 무관하다고 볼 수 없다. 추가 UI 호출의 지연 기여 정도는 미확인.
+- 브라우저 증거: `/tmp/pongdang-production-browser.SvwA1f/`의 home-desktop.png, today-desktop.png, spot-470-desktop.png, home-mobile.png. 비밀번호·쿠키를 파일에 저장하지 않았으며 브라우저 세션 종료. 사용자 데이터 변경·운영 테스트 시드·설정 변경 없음.
+- 추가 수정: select_forecasts에서 장소·활동별 현재 매핑을 MATERIALIZED CTE로 한 번 선택해 행별 원본 매핑 재탐색을 제거했다. 추천의 조석 조회는 2초 제한과 savepoint로 격리하며 statement timeout/cancellation 시 해당 조회만 rollback한다. 기존 점수·공식 제한·대안은 보존하고 tide_lookup_unavailable 사유 및 4개 언어의 명시적 화면 안내를 추가했다. 조석 실패를 성공이나 안전 판정으로 바꾸지 않는다.
+- 추가 검증: 새 tmpfs `pongdang-tide-query-test-20260922`(loopback32780, pongdang_test)에서 관련 backend20개 통과. 무관 예보2만 건에서도 조석 조회가1초 statement 제한 안에 응답했으며 실제 DB statement timeout과 비동기 제한을 각각 재현하여 점수·추가 조회·수온 제한 보존을 검증했다. Node24 frontend149개·변경 lint·증분 타입 검사 통과. 브라우저는 기존14개 통과 후 새2개가 홈 lead 모드의 경고 생략을 발견했다. RecommendationReason에서 실패 안내는 요약에도 표시하도록 수정하고 영향받은 모바일/데스크톱2개를 재통과했다(고유16개 통과). 테스트 서버 종료 및 이 폐기용 DB 종료·제거 완료(임시 tmpfs 데이터만 폐기, 복구 불가).
+- main 반영: 요청 범위21파일과 compose2GiB를 `20976acc056eb3516a4549b97e1d1617643a4e69`로 커밋·push했다. CURRENT의 기존 사용자 기록은 커밋에서 제외해 보존했다. [CI/자동배포35668024041](https://github.com/facio313/Pongdang/actions/runs/35668024041) 실행 중이며 추가 dispatch/수동 빌드·배포 없음. dev refs는 기존549c0b5를 유지한다.
+- CI 보완: 첫 CI의 Docker 이미지 빌드·전체 스택 health는 통과했으나 DB 자원 한도 검사가 이전1GiB 기대값 때문에 실패했다. `.github/workflows/ci.yml`의 DB 기대값만 RAM2147483648/RAM+swap3221225472로 갱신했다. 환경 파일 없는 Compose config에서 실제2GiB/3GiB·CPU1.5·pids256과 일치 확인, 해당 bash 문법·diff 검사 통과. `verify_local.py`에서 YAML 대상 검사0개임을 구분한다. 이를 `5a8d53fc2058c28e5d59dc64f23ee61d75bc06c0`로 추가 커밋/push했으며 새 SHA의 자동 CI를 따른다(실패 커밋 재실행 없음).
+- 최종 SHA CI: [35668267321](https://github.com/facio313/Pongdang/actions/runs/35668267321)의 scope/frontend/backend3shards/smoke/browser2shards/deploy 모두 성공. 운영 current 및 frontend/backend/collector 태그가 `5a8d53f…`와 일치하고 네 컨테이너 healthy, readiness ok. DB RAM2147483648, RAM+swap3221225472 확인. 추가 dispatch·수동 빌드/배포 없이 완료했다.
+- 운영 실제 재검증: 새 Chromium 세션으로 제공된 계정 로그인. 배포 직후 v17의 미분류 과거 근거 철회로 초기 점수는 pending이었으나, 정상 워커의 첫107488행 게시(generation199,08:41:29계산) 완료 후 화면을 새로고침해 점수 표시를 확인했다. 이후 원자료 revision77386 > 게시 revision77369인 실제 재계산 구간에서도 수영47.8/서핑60.5/휴식59와 retained=true/status=refreshing, 원래 계산 시각을 유지했다. 정상 갱신 중 새 접속/새로고침 공백을 막는 동작을 운영에서도 확인했다.
+- 화면 확인: 데스크톱 홈·오늘(활동별/비교/주간 예보)·경포470 명소 상세 및 모바일 홈 새 진입에서 숫자와 근거를 확인했다. 간조19:10 KST/만조11:11 KST도 표시된다. 모바일 새 진입에서 추천550ms·조석366ms/둘 다HTTP200(단일 관측이며 장기 지연 보장은 아님). 근거 없는 온천·래프팅은 계속 추천 제외로 표시된다.
+- 증거/정리: `/tmp/pongdang-production-browser.SvwA1f/after-home-desktop.png`, `after-today-desktop.png`, `after-spot-470-desktop.png`, `after-home-mobile.png`. 화면 캡처 직접 확인, 로그인 세션 종료, 비밀번호/쿠키 파일 저장 없음. 작업용 DB와 테스트 서버 정리 완료. 제품 소스는 모두 커밋됐고 기존 기록을 보존한 CURRENT만 미커밋. dev refs549c0b5 유지. TCP 설정·다른 앱·SSO·운영 데이터/볼륨 수동 변경 없음. 요청한 수정·배포·실제 화면 확인 완료이며 장기 무장애를 보장하는 주장은 하지 않는다.
+
+# 운영 DB 메모리 2GiB 적용 · 2026-09-22
+
+- 요청: Pongdang DB 메모리 한도를 2GB로 증가. 운영 자원 변경은 승인됐으며 커밋·push는 요청되지 않았다. 기존 CURRENT 기록과 dev refs를 보존했다.
+- 변경: `compose.yaml`의 db `mem_limit` 1g→2g, `memswap_limit` 2g→3g. 기존 스왑 한도 1GiB를 유지하기 위한 총 RAM+swap 설정이다. PostgreSQL 내부 설정·데이터·볼륨은 변경하지 않았다.
+- 운영 적용: 07:51 KST 기존 배포 잠금을 확보한 후 `docker update --memory 2g --memory-swap 3g pongdang-db` 성공. 컨테이너 ID `b0235e353b91…`와 StartedAt `2026-09-20T10:38:05.35699355Z` 유지, 재시작 0회. 빌드·재배포는 하지 않았다.
+- 검증: 비밀 설정 없이 Compose config 검사 및 git diff --check 통과. `ops/verify_local.py compose.yaml`은 적용 대상 로컬 검사 0개로 종료했다. 실제 cgroup memory.max=2147483648, memory.swap.max=1073741824, DB healthy/OOM 0, `/api/ready` status=ok 확인. 즉시 관측 사용량 약 1.42GiB이며 장기 성능 개선은 아직 검증하지 않았다.
+- 남은 사항: 로컬 compose 변경은 미커밋·미push. 원격 main은 여전히 1GiB이므로 향후 컨테이너 재생성에도 2GiB를 유지하려면 이 변경을 승인된 main 반영에 포함해야 한다. 기존 현재 배포 SHA `0a3eb35…`는 그대로다.
+- TCP는 해결 방법 설명 요청으로 취급하여 설정을 변경하지 않았다. 앞선 진단에서 특정 SSH 연결에 고정된 중복 보정 식별자가 현재 연결과 불일치했고, 20초 관측에서 SSH 재전송·DSACK·호스트 TLP가 각각 3회 증가했다. 당시 구간의 중복 전송 근거이며 전체 과거 손실 원인을 확정한 것은 아니다.
+
+# 배포 완료 · 홈 버튼 제거·기온 점수 근거·조석 표시 · 2026-09-21
+
+- 요청/완료 조건: 홈 로고 옆 데이터 새로고침 제거, 19.9°C의 0점 기준·근거 확인, 연결된 간조·만조 표시, 운영 배포까지. 사용자 요청에 main 커밋·push·자동배포 포함. 기준 main `8ca7432`; 기존 CURRENT 미커밋 기록과 dev refs 보존.
+- 확인: 해변 기온 곡선은 `21→0,25→100,30→100,33→0`, 범위 밖 끝점 적용. Rutty & Scott 2016 출판사 PDF §4.2 직접 확인(HTML 429, urllib 403 이후 curl로 PDF 수신·메모리 해석): 캐나다 국내 해변 선호25–30°C 및 <21°C 추위 응답이 근거이나 0/100 환산·시간별 한국 적용은 제품 가정. 수치 함수는 수정하지 않고 기온 항목에 API의 criterion/source_ids/sources를 직접 연결한다.
+- 운영 읽기: 경포470의 `tides/events` available, 2일8건, 묵호DT_0006/33.4887km 주변자료. 다음 만조9/22 02:52 KST/25cm, 간조9/22 05:44 KST/24cm를 실제 GET에서 확인. 해변 직접 예측·안전/조류 판단으로 표시하지 않는다.
+- 구현: 모바일 홈 showRefresh=false/데스크톱 active=home에서 상단 버튼 제거, 메뉴 수동 갱신 유지. 공통 HomeTides를 양쪽 홈에 연결하고 날짜·KST·조위·관측소·거리 및 누락/실패 구분 표시. 30분 자료 조회와 분 단위 표시 시각으로 지난 사건을 제외하고 시간순 정렬. 기온0점 설명과 펼쳐보는 산정 기준·출처 추가, 다국어 문구와 관련 테스트 보완.
+- 검증 완료: 변경 파일 지정 verify_local의 lint/147 unit/증분 typecheck 통과. 최초 nullable 배열 타입 오류는 null 필터 분리로 수정했다. 관련 브라우저5개 통과(390/1440px 버튼·메뉴 갱신·19.9°C/0점 출처·조석 순서/자정/거리·시간경과·결측/실패/만료), 스크린샷에서 가로 넘침 없음 확인. 테스트 자료는 이번에 만든 rootless tmpfs `pongdang-home-tides-test-20260921`, loopback32778 `pongdang_test`만 사용했다. 운영 DB·환경 파일·볼륨 미사용.
+- API 연결 상태 추가 확인: `khoa_tide_extrema` 13:27:53 UTC 최근 수집 성공/27건/연속실패0. `khoa_tide_level`·`khoa_tide_recent`도 성공. 별도 `khoa_tide_timeseries`는 HTTP504/연속실패1로 재시도 대기이며 이번 간만조 시각 표시는 이 작업에 의존하지 않는다. 배포는 이제 main에 반영 후 자동 CI만 따른다.
+- 반영: 요청 범위 frontend13파일을 `0a3eb35d73e02ece9f78427151ab9e24140ab667`로 main 커밋·push했다. 기존 메모를 포함한 CURRENT는 커밋에서 제외했다. [CI/자동배포35606369108](https://github.com/facio313/Pongdang/actions/runs/35606369108) 진행 중. 별도 CI dispatch/수동 빌드·배포 없음. 테스트 서버는 종료됐고 이번 폐기용 DB 컨테이너를 제거하여 tmpfs 테스트 데이터만 폐기했다(복구 불가, 운영 데이터 무관).
+- 최종 CI/자동배포: 위 run의 scope/frontend/smoke/browser 2 shards/deploy 모두 성공. backend는 선택 정책에 따라 생략(백엔드 코드 변경 없음). 중복 dispatch·수동 배포 없이 완료했다. 실제 곡선 직접 실행도 19.9→0,21→0,23→50,25/30→100,33→0을 확인했다.
+- 운영 확인: current symlink와 frontend/backend/collector 태그 모두 `0a3eb35…`, 네 컨테이너 healthy, `/api/ready` status=ok, `/pongdang/` 새 정적 자산 HTML 정상. 경포470의 간만조 GET available/8건 및 묵호33.5km/9월22일02:52만조25cm·05:44간조24cm 유지 확인. 조건 GET projection ready/총점64.3/외부기온18.5°C·0점으로 기준 일치. UI는 로컬 격리 브라우저에서 확인했으며 배포 후 인증 브라우저 클릭으로 표현하지 않는다.
+- 완료/한계: 요청한 구현·근거 검토·API 연결 확인·main 반영·운영 배포 및 제한된 운영 검증 완료. 0점의 수치 자체는 기존 미보정 모델로 유지하며 검증된 한국 물놀이 기준이라고 주장하지 않는다. 별도 조위 시계열 API504는 간만조 표시에 영향을 주지 않는 외부 상태로 남아 있다. 기존 기록을 보존한 CURRENT만 미커밋이며 dev·다른 앱·SSO·운영 DB 데이터/볼륨을 직접 변경하지 않았다.
+
+# 커밋·CI·자동배포 완료 · 조건 표시 유지·30분 갱신·기온 선택 수정 · 2026-09-21
+
+- 요청: 홈/오늘/명소의 값·점수를 만료만으로 지우지 않고 30분 자동 갱신, 자료 부족·충돌·실패 시 이전 결과 유지, 고정 시간대/주간 예보 유지, 명시적인 ‘데이터 새로고침’ 버튼, 외부 기온 점수 기준 확인과 조치. 기준 main `1409368`; 기존 CURRENT 기록 보존. 후속 사용자 요청으로 커밋·main push·자동배포 승인됨.
+- 구현: 공통 공개 조건 캐시에서 동일 장소·활동·대상 시각의 이전 결과를 보존하며 점수와 계산 근거는 한 묶음으로 유지한다. 낮아진 정상 점수 및 새 공식 제한은 수신 즉시 반영한다. 시간대/주간의 현재 시각 기반 삭제 제거, 모바일/데스크톱 헤더와 메뉴의 데이터 새로고침 연결, 30분 화면 재조회 및 수동 갱신 시작/완료 재조회. 개인 데이터에는 조건 보존 규칙을 적용하지 않는다. 유지는 현재 브라우저 세션의 공유 캐시이며 탭·레이아웃 전환을 지원한다. 처음부터 받은 값이 없는 항목은 생성하지 않는다.
+- 기온: 기상청 격자 우선순위를 관측시각 비교보다 먼저 적용하여, 시각은 더 최근이지만 만료된 해양 관측 때문에 유효한 기온·풍속이 누락되던 경로 수정. 기존 기온 곡선은 임의 변경하지 않았으며 0점이 실제 평균에 포함되고 결측(null)과 구분됨을 회귀 검증했다.
+- 최종 검증: 변경 파일 지정 verify_local의 frontend lint/146 unit/typecheck, backend Ruff/관련 57 tests 통과. 공개 장소 조회 실패 시 유지 및 현재 예보의 안정된 조회 키까지 검증했다. 관련 브라우저 고유 13개 통과(12개 성공 뒤 기존 삭제 기대값 1개를 유지 요구사항으로 수정; 상태 문구 배치 보완 후 영향받는 4개 재통과). 기온 선택, 추운 기온의 0점 평균 반영, 낮아진 새 점수 수용, 공식 제한, 부족한 응답/네트워크 오류, 시간대/주간, 입력·탭 전환 보존, 390/1440px 버튼을 포함한다.
+- 중간 실패: 첫 브라우저 실행은 root 브라우저 부재로 불가하여 설치된 cks 브라우저 경로를 지정했다(root 1243도 다운로드 완료). 긴 유지 문구를 숫자 옆에 추가했을 때 모바일 배치가 밀려 별도 안내 줄로 조정했고 스크린샷과 가로 넘침 회귀로 확인했다. 증거 `frontend/test-results/product-a-current-score-su-b8b38-cient-thirty-minute-refresh/retained-today.png`.
+- 격리 환경 정리: 이번에 만든 `pongdang-retention-test-20260921`(tmpfs, loopback 32776 `pongdang_test`)을 종료·제거했다. 폐기용 테스트 자료만 소멸한다. 브라우저 서버 5189/8109는 테스트 완료 시 종료했다. 운영 환경·DB·볼륨 미변경.
+- 첫 push: 요청 범위 29파일만 `9c0010eb5fe6cc8373b19ad0e2a225b2b0d5f6c5`로 커밋·main push. 기존 CURRENT 변경은 미커밋 보존. [CI 35603101497](https://github.com/facio313/Pongdang/actions/runs/35603101497)은 아래 알림 검사 실패로 배포되지 않았다. dev refs와 운영 DB/볼륨/호스트 스크립트 미변경.
+- 첫 CI 결과: frontend/backend 3 shards/smoke/browser (2)는 성공, browser (1)의 알림 자동조회 1개가 실패하여 배포 생략. 공통 interval 변경이 개인 알림 목록까지 30분으로 늘린 부작용을 확인했고 `useNotificationResource.ts`의 알림 주기를 기존 10분으로 분리했다. 점수·조건 화면은 요청대로 30분 유지. 관련 2파일 verify_local lint/146 unit/typecheck 및 알림 브라우저 2개 통과. 별도 tmpfs `pongdang-refresh-ci-test-20260921` loopback 32777 `pongdang_test`는 종료·제거했다.
+- 최종 반영: 알림 수정 2파일만 `8ca7432350060efb0d931d7daffc7a9f2ccf5081`로 커밋·main push. [CI/자동배포 35603759905](https://github.com/facio313/Pongdang/actions/runs/35603759905) frontend/backend 3 shards/browser 2 shards/smoke/deploy 모두 성공. 13:09:10→13:16:37 UTC, 총 7분27초(브라우저 runner 대기 포함). 동일 SHA 재실행·수동 배포는 하지 않았다.
+- 운영 확인 완료: current 및 frontend/backend/collector 이미지 태그 모두 최종 `8ca7432…`, 앱 3개와 DB 모두 healthy, `/api/ready` ok, 실제 Pongdang DB와 collector heartbeat age 5초 확인. 대표 경포 GET은 점수63.3·수온23.51°C·기온19.9°C·파고0.6m, 09/12/15/18시 시리즈 ready 및94/73.9/73.9/73.9를 반환했다. 이 조회의 저장 계산 시각은13:12:15 UTC로 배포 전 게시 결과이며, 새 기온 선택 로직의 운영 재계산 결과로 혼동하지 않는다. 인증 후 실제 운영 브라우저 클릭은 이번 배포에서 미실행이며 로컬 격리 브라우저 검증과 구분한다.
+- 완료: 요청한 커밋·main push·자동배포 및 제한된 운영 검증까지 완료. 원격과 로컬 main 일치, 기존 기록을 보존한 CURRENT만 미커밋으로 남았다. 운영 DB 데이터/볼륨·SSO·다른 앱·호스트 배포 게이트는 직접 변경하지 않았다.
+
+# 적용·CI·자동배포 실측 완료 · 백엔드 CI 병렬 분할 · 2026-09-21
+
+- 요청: 전체 검사를 유지하면서 7~9분 배포 대기를 줄이는 백엔드 병렬 분할 적용 및 실제 CI·자동배포 시간 비교. 기준 main `cd68c68`, 기존 CURRENT 미커밋 기록과 dev refs 보존. 운영 앱 코드·DB·호스트 배포 게이트는 변경하지 않는다.
+- 구현: full backend를 독립 runner/PostgreSQL 3 shards로 분할, fast 관련 테스트는 1 shard 유지. 실제 pytest 수집 결과를 파일 단위로 배정하며 기존 실행 순서/fixture 경계를 유지한다. 과거 CI 파일 완료 시각 간격을 추정 가중치로 사용하고 신규 파일은 수집 테스트 수로 자동 배정한다. 모든 shard의 성공을 기존 deploy gate가 요구하며 실패·빈 수집 exit code를 숨기지 않는다.
+- 로컬 확인: ops 단위 검사 27개 통과, 프로젝트 Ruff/format 통과. 전체 테스트는 실행하지 않고 수집 목록만 대조하여 1,439개 = 544+487+408, 누락/중복 0과 동일 수집 해시를 확인했다. 콘솔 출력이 도구에서 잘린 첫 비교는 폐기하고 subprocess 내부에서 원문 전체 목록을 비교했다. 변경 파일 지정 `ops/verify_local.py`는 ops/workflow 파일에 앱 검사를 선택하지 않으므로 별도 단위·lint·workflow 검사로 검증한다.
+- 대표 실행 확인은 직접 만든 tmpfs `pongdang-ci-shard-test-20260921`, loopback 32775 `pongdang_test`만 사용한다. 가중치 기준 CI는 [35590477900](https://github.com/facio313/Pongdang/actions/runs/35590477900): 전체 9분32초, backend job 6분54초/실행 단계6분34초, browser 최대4분23초, deploy1분47초. 더 오래된 일반 full CI는7분58초, fast UI CI는2분47초였다.
+- 추가 검증: 분할 실행기의 대표 DB/health/migration 테스트 7+2+1개 모두 통과(13.13/2.61/2.12초), actionlint 1.7.12 통과. 첫 Ruff 호출은 저장소 밖 기본 설정으로 기존 SIM117 경고를 냈으며, 프로젝트 backend/pyproject.toml 규칙으로 변경 Python 4파일 lint/format을 명시적으로 통과했다. 임시 DB는 종료·제거했으며 운영 데이터에는 손대지 않았다.
+- 반영: 요청 범위 7파일만 `1409368269baaf08a18032a71fcb7dc4bb227117`로 커밋·main push했다. 기존 CURRENT 변경은 커밋에서 제외하고 로컬 보존했다.
+- 최종 CI [35594071100](https://github.com/facio313/Pongdang/actions/runs/35594071100) 모든 검사와 자동배포 성공. 11:26:34→11:31:27 UTC, 총 4분53초. 세 backend job은 동시에 시작하여 2분12초/2분36초/2분21초에 성공했다. 실제 pytest는 각각107.70/132.53/107.08초, 544+487+408=1,439개 모두 통과했고 세 수집 해시는 로컬 원본과 동일하다. 브라우저 2개 job도 모두 성공, 최대4분04초이며 이제 전체 완료 시간을 결정하는 단계다. deploy job31초.
+- 비교: 직전 backend job6분54초→최대2분36초(약62% 단축). 전체 CI·배포9분32초→4분53초. 직전에는 runner 대기·마이그레이션 잠금 대기도 있었으므로 총 단축분 전부를 분할 효과로 보지 않는다. 매 실행의 runner/DB/배포 상태에 따라 시간은 달라진다.
+- 운영 확인: current와 앱 이미지 태그 `1409368269baaf08a18032a71fcb7dc4bb227117`, frontend/backend/collector/db 모두 healthy, `/api/ready` ok, summary의 Pongdang DB·실제 자료·collector running 확인. 앱 이미지 ID는 직전 배포와 같아 제품 코드 변경이 없음을 함께 확인했다. 설치된 배포 게이트·CI 감시기·다른 앱·공용 SSO·운영 데이터/볼륨은 변경하지 않았다.
+- 완료: 검사를 줄이지 않고 백엔드 분할 적용과 실측까지 완료했다. 추가 CI dispatch·수동 재배포·전체 로컬 테스트는 하지 않았다. 기존 기록이 포함된 CURRENT만 미커밋으로 보존하며 요청 범위 미완료 작업은 없다.
+
+# 수정·CI·자동배포·운영 화면 확인 완료 · 홈/오늘 조건 자료 누락 · 2026-09-21
+
+- 요청: 브라우저로 로그인하여 홈/오늘의 데이터 누락 원인을 확인하고 수정. 이후 사용자가 main 커밋·push·자동배포(DB 트리거 수정 포함)를 승인했다. 자격 증명은 문서·파일에 저장하지 않는다. 기존 CURRENT 기록과 dev refs를 보존한다.
+- 기준: 서버 main을 origin/main `1f70013`으로 fast-forward했으며 기존 CURRENT 미커밋 변경을 유지했다. 데스크톱·모바일 실제 브라우저 확인에서 홈/오늘의 조건 점수·수온·기온이 모두 비고, HTTP 200 응답에 `condition_projection_pending`이 있었다. 조석·수질은 별도 조회로 표시되었다. 로그인·JS 오류 문제는 확인되지 않았다.
+- 원인: v15의 모든 statement 무효화 트리거가 중복 INSERT, 0행 UPDATE/DELETE, 관측소 재확인 시각 갱신에도 전역 revision을 증가시킨다. 운영 게시 129,332건의 재계산은 약 4분이며, 직후 다음 중복 수집이 결과를 다시 가린다. 격리 재현에서 새 자료 0건인 동일 배치 재수집만으로 revision 5→8, ready→pending, 기존 점수 소실을 확인했다. 운영에서는 읽기 전용 상태 조회만 수행했다.
+- 구현: `backend/app/water_index/condition_invalidation.py`에 transition table을 이용한 실제 변경 판별, v16 명시적 마이그레이션을 추가했다. 이미 알려진 관측소/장소의 재확인 시각만 달라진 경우는 무효화하지 않으며, 원관측 fetch/만료·값·좌표·지점 매핑·안전 제한 변경은 유지한다. 원자료와 기존 게시 결과를 삭제/재작성하지 않는다. 실제 새 입력이 생겼을 때 재계산 동안 pending인 기존 정책은 유지한다.
+- 검증: 수정 전 중복 수집 회귀 실패를 확인했다. 최종 `ops/verify_local.py` 수정 5파일 Ruff/format, condition invalidation·producer·publication·storage·refresh 관련 49개 통과(161.02초). 신규 16개에는 중복 수집, 무변경 SQL, 실제 관측/좌표/유효기간 수정, 안전 제한 추가, v15→v16 무손실·반복 초기화가 포함된다. 모바일 홈→오늘/데스크톱 오늘 브라우저 2개 통과(22.3초). 처음 브라우저 실행은 Node 18로 설치된 선택 의존성 누락 및 브라우저 버전 부재로 실행 불가였고, Node 24에서 lockfile대로 재설치하고 해당 Chromium을 설치한 뒤 통과했다. 전체 로컬 빌드·전체 테스트는 실행하지 않았다.
+- 검증 환경: 이 작업에서 만든 `pongdang-today-test-yuae3t`의 loopback 32772 `pongdang_test`(tmpfs)와 5189/8109 테스트 서버만 사용했다. 운영 DB·환경 파일·볼륨을 테스트에 사용하지 않았다. 브라우저 테스트 서버 및 운영 확인용 브라우저를 종료했으며 폐기용 DB 컨테이너도 종료·제거했다. 폐기용 테스트 데이터만 소멸하며 운영 자료에는 변경이 없다.
+- 관련 파일: `backend/app/schema.py`, `backend/app/water_index/condition_invalidation.py`, `backend/tests/test_condition_invalidation.py`, `backend/tests/test_condition_storage_integration.py`, `backend/tests/test_condition_publication_recovery.py`. 운영 브라우저 화면 증거: `/tmp/pongdang-today-browser.yUAe3T/`(인증 상태 파일 없음).
+- 반영: 새 원격 main `51d7025`의 frontend lint 수정을 fast-forward로 보존하고, 검증한 backend 5파일만 `4f7699575b102c416d01f3173212a8377b8d3675`로 커밋·main push했다. 기존 서버 메모가 섞인 CURRENT는 커밋에서 제외하고 로컬에 보존했다.
+- 첫 CI [35588550855](https://github.com/facio313/Pongdang/actions/runs/35588550855)는 backend 1 failed/1436 passed, browser 3 failed/164 passed로 배포를 건너뛰었다. v4 재현 fixture에서 새 v16 마이그레이션을 제외하도록 보완했다. 기존 main이 숨긴 푸터 목록을 찾던 두 검사는 실제 남아 있는 화면별 안전/값 설명을 확인하도록 수정했고, 탭 왕복 검사는 명소 상세의 지연 응답을 홈 재요청으로 오인하지 않도록 먼저 응답 완료를 기다린다. 제품 UI는 변경하지 않았다.
+- 후속 로컬 검증: `ops/verify_local.py`의 수정 browser 파일 ESLint·139 unit·증분 typecheck 통과. 관련 브라우저 3개 및 v4 업그레이드 테스트 1개 통과, backend Ruff/format 통과. 테스트에서 추천 화면의 안전 문구 기대값이 다른 것을 확인해 실제 문구로 정정한 뒤 해당 검사를 다시 통과했다. 추가 검증은 별도 tmpfs `pongdang-today-ci-test-20260921`의 loopback 32773 `pongdang_test`만 사용했다.
+- 후속 반영: 테스트 4파일만 `cf3848048d45a893c32d4c5136864c98833850fc`로 커밋·main push했다. 추가 검사용 DB도 종료·제거했으며 폐기용 데이터 외 운영 데이터에는 조작이 없다.
+- 두 번째 CI [35589458447](https://github.com/facio313/Pongdang/actions/runs/35589458447)는 모든 검증 job이 성공했지만 deploy 초기화가 실패했다. 운영 DB 로그는 `spots_waterspot`의 DROP TRIGGER에서 3초 lock timeout을 명시한다. 트랜잭션 전체 롤백으로 current는 `51d7025`이며 기존 4개 컨테이너 healthy·ready ok를 확인했다. 수동 배포나 동일 SHA CI 재실행을 하지 않았다.
+- 배포 경합 보완: v16 마이그레이션은 6개 대상 테이블의 잠금을 NOWAIT로 함께 확보하며, 실패한 시도의 잠금을 savepoint 롤백으로 모두 풀고 최대 300초 동안 0.5초 간격으로 재시도한다. 조회 뒤에 배타 잠금을 대기시켜 다른 조회를 막지 않는다. 실제 읽기 트랜잭션 경합·다른 읽기 허용·시간 제한 시 무변경 회귀를 추가했다. 별도 tmpfs `pongdang-today-lock-test-20260921`의 loopback 32774 `pongdang_test`로만 검증한다.
+- 최종 로컬 Ruff/format 및 condition invalidation·v4 migration 19개 통과(35.21초). 잠금 관련 2파일만 `cd68c685e5873f2c046cb43d8f05a3d5d92f8092`로 main 커밋·push했다. 임시 DB는 종료·제거했다. CI [35590477900](https://github.com/facio313/Pongdang/actions/runs/35590477900) 전체 성공: backend 1,439개, browser 88+79개 통과.
+- 배포: 위 CI의 scope·backend·browser 2묶음·smoke·frontend·deploy 모두 성공했다. current release와 frontend/backend/collector 이미지 태그는 `cd68c685e5873f2c046cb43d8f05a3d5d92f8092`이며 앱 3개와 DB 모두 healthy, `/api/ready`는 ok. 배포 직후 대표 조건 GET은 source_revision 52997/pending으로 자동 수집·게시 완료를 기다리는 중이다.
+- 운영 최종 확인: 2026-09-21 20:04 KST 대표 조건 GET이 generation 47 / revision 54415 / ready로 전환됐다. 경포 수영 62.5, 서핑 58.8, 휴식 46.3 및 수온 23.52°C·기온 21.1°C·파고 0.7m·풍속 3.2m/s를 확인했다. 실제 로그인 브라우저에서 데스크톱 오늘·홈·모바일 오늘의 값, 근거, 주간 예보 표시와 pageerror 없음 확인. 화면 증거는 `/tmp/pongdang-today-browser.yUAe3T/today-after.png`, `today-mobile-after.png`이며 인증 상태 파일은 없다.
+- 범위/한계: 실제 새 관측 유입 시 기존 정책대로 계산 동안 잠시 pending이 된다(첫 게시 후 11:00 UTC 새 기상/해류 입력 사례 확인). 자료가 없는 당일 지난 12시 예보·시설 근거 없는 온천/래프팅 등은 여전히 –이며 값을 임의로 만들지 않았다. 중복/무변경 수집으로 불필요하게 무효화하던 결함을 해결한 것이며 실제 변경 시 안전성 무효화는 유지한다.
+- 완료: 사용자 승인 범위의 수정·main 커밋/push·자동배포·운영 읽기/화면 확인 완료. dev refs·다른 앱·공용 SSO·운영 원자료/볼륨은 변경하지 않았다. 전체 테스트는 CI에서만 실행했고 추가 CI dispatch·동일 SHA 수동 재빌드/재배포는 하지 않았다. 기존 기록을 포함한 CURRENT만 미커밋으로 보존한다.
+
+# 서버 반영 완료 · main 전용 작업·CI 감시 정책 · 2026-09-21
+
+- 서버 checkout `/home/cks/Pongdang`은 미커밋 변경이 없는 main `549c0b5`에서 원격 main `58a9f89e220223a74cd11688ec8f71b436ae96bb`로 fast-forward했다. `AGENTS.md`, `docs/ci.md`, `ops/verify_local.py`와 관련 ops/CI 설정은 origin/main과 일치한다. local dev와 origin/dev는 모두 기존 `549c0b55242539be59252ac2c89ab6ab47fa55ea`를 보존했다. 다른 브랜치·worktree는 정리하지 않았다.
+- 서버 Codex 전역 `/root/.codex/AGENTS.md`에 Pongdang 전용 정책을 추가했다. 서버에는 활성 전용 배포·Git 스킬이 없어 `/root/.codex/skills/pongdang-server-ops/SKILL.md`를 설치했다. 과거 기록의 dev 통합·전체 검증 관행보다 main 전용·수정 범위 검증 정책을 우선한다. 다른 앱의 지침은 바꾸지 않았다.
+- 설치 `/usr/local/libexec/pongdang-ci-watch`는 main만 조회하며 해당 SHA의 CI 실행이 하나라도 있으면 추가 dispatch하지 않는다. `/etc/systemd/system/pongdang-ci-watch.timer`도 main 전용 설명으로 갱신했다. `.service`는 템플릿과 이미 동일해 유지했다. 변경 전 백업: `/home/cks/.local/share/pongdang-deploy/backups/main-only-20260921.2KASsV/`.
+- `/usr/local/libexec/pongdang-deploy`는 백업과 바이트 단위 동일하게 유지했다. 최신 main SHA 확인·flock·실패 시 이전 앱 이미지 복구가 있다. 현재 main 템플릿과는 초기화 호출 차이가 있지만 이번 정책 갱신에서 DB 초기화 경로는 교체하거나 실행하지 않았다. `current`는 `58a9f89`, `previous`는 `50a9e72`로 그대로다.
+- 실제 검사: ops 관련 unittest 21개, gh를 mock한 감시기 7개 시나리오(기존 CI/no CI/오류 시 중단), bash 문법, systemd unit 검증, skill validator 통과. frontend/backend 로컬 검증 명령은 `--dry-run`으로 선택 범위만 확인했으며 해당 앱 테스트를 실행한 것으로 계산하지 않는다. 전체 빌드·browser·backend·DB 테스트는 실행하지 않았다.
+- systemd daemon-reload 후 기존 timer만 재개했다. 17:36:11–17:36:12 KST 실제 service는 exit 0, timer는 enabled/active/waiting. 해당 main SHA의 CI는 전후 동일한 1건: [35571129306](https://github.com/facio313/Pongdang/actions/runs/35571129306), CI와 deploy 모두 성공. 추가 CI·커밋·push·앱 재빌드·재배포를 실행하지 않았다.
+- 운영 읽기 확인: frontend/backend/collector/db 모두 healthy, 앱 이미지 태그와 current release가 `58a9f89`, frontend 컨테이너 image ID와 해당 태그 image ID 일치. `/api/ready`는 `status=ok`, `/` HTTP 200, `/api/data/summary` 정상 JSON 객체. frontend OCI revision label은 앱 SHA와 다르므로 릴리스 판정에 사용하지 않았다(현재 Dockerfile에는 앱 revision label 설정 없음).
+- 다른 앱·공용 SSO·운영 DB 데이터·볼륨 변경 없음. 이 서버 완료 기록만 checkout에 미커밋으로 남긴다. 요청 범위의 미완료 작업 없음. 아래 기록은 기존 작업 이력으로 보존하며 실행 권한으로 해석하지 않는다.
 
 # 이전 작업 · 빠른 로컬 검증 및 main 전용 CI · 2026-09-21
 
@@ -506,3 +830,20 @@
 - 동시 작업: 사진/첨부 기능 관련 다른 작업의 파일 변경이 작업 중 들어왔다. 그대로 보존하며 본 작업의 검증을 그 기능 전체 검증으로 해석하지 않는다. 예보 변경 파일은 condition_api.py, test_condition_score_integration.py, TodayDesktop.tsx, TodayPage.tsx, desktop-screens.spec.ts, product.spec.ts.
 - 후속: 이 작업에 heartbeat 자동 확인 `pongdang`(Pongdang 예보 복구 후속 확인)을 생성했다. 15분 뒤 로컬 7일 API/가능하면 화면을 읽기 전용으로 재확인하고, 성공 유지 또는 필요한 조치를 한 번 알린 뒤 PAUSED로 전환한다.
 - 운영: 최신 main 377b20e의 기존 CI/deploy 성공은 확인했지만 이 수정은 운영에 배포되지 않았다. 운영 URL은 미인증 요청에 302. 사용자에게 로컬/운영 중 대상 확인 질문을 남겼으며 답변 전에는 로컬 복구와 운영 복구를 혼동하지 않는다.
+## 2026-09-27 host-pull deployment completed
+
+- Replaced Pongdang's inbound GitHub Actions SSH deployment with a main-only
+  host watcher while retaining the existing local deployment gate.
+- Pushed `6e65e56400c97e29a6541c3194ab344f7247bdb2` and the Buildx sandbox fix
+  `705bd653f9ab1482f7bcbce82097d9aa10d1b8bf` to `main`.
+- GitHub Actions run `36301381990` completed both production image jobs
+  successfully. The host then deployed `705bd653f9ab1482f7bcbce82097d9aa10d1b8bf`.
+- The first host attempt failed before container replacement because
+  `ProtectHome=read-only` also blocked Buildx state. The unit now grants write
+  access only to `/home/cks/.docker/buildx`; the failed run attempt remains
+  recorded and was not retried.
+- Verified the installed watcher unit and timer, exact current/main SHA, healthy
+  backend/frontend/collector/database containers, `/api/ready`, and the root
+  HTTP 200 response. Host installation backups are under
+  `/home/cks/.local/share/pongdang-deploy/backups/host-pull-20260927.YUPeDx`.
+- The pre-existing edits in this file remain intentionally unstaged.
