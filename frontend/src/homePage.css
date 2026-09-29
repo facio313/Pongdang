@@ -111,6 +111,67 @@
 }
 .home-page .hm-hero-place .product-place-popover-panel { left: -17px; right: auto; }
 .home-page .hm-hero-place .product-place-popover-panel::before { left: 35px; right: auto; }
+/* 코스 단계. 번호 원과 연결선으로 순서를 세웁니다(데스크탑 .hd-step 과 같은
+   사실). 화살표로 이은 한 줄은 정차지가 늘면 순서가 흐려집니다. */
+.home-page .hm-steps {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-page .hm-step {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.home-page .hm-step-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+}
+.home-page .hm-step-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--pd-blue-deep);
+  color: #fff;
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+}
+.home-page .hm-step-line {
+  flex: 1;
+  width: 2px;
+  min-height: 12px;
+  background: var(--pd-line);
+}
+.home-page .hm-step-name {
+  padding: 2px 0 12px;
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+}
+
+/* 시간대별 표의 점수 칸. 숫자 아래에 그날 안에서의 상대 위치를 막대로 깔아
+   데스크탑 HourBars 와 같은 사실을 모바일 표 문법으로 말합니다. 색만으로
+   판단을 전하지 않도록 숫자와 등급이 aria-label 에 함께 들어갑니다. */
+.home-page .hc-score {
+  position: relative;
+  min-width: 3.4em;
+  white-space: nowrap;
+}
+.home-page .hc-score-num {
+  font-weight: 700;
+}
+.home-page .hc-score-bar {
+  display: block;
+  height: 3px;
+  margin-top: 3px;
+  border-radius: 999px;
+}
+
 /* 실제 수집값이 들어가는 패널입니다. 예전에는 점선 pd-slot 이라 「미구현」으로
    읽혔습니다. 코발트 위이므로 글래스 레이어 토큰을 씁니다. */
 .home-page .hm-hero-visual {
@@ -265,6 +326,21 @@
 .home-page .hm-cam-thumb {
   display: block;
   height: 56px;
+}
+/* 송출이 없을 때의 칸. 빈 줄 대신 그 사실을 적습니다(데스크탑 .hd-cam-frame
+   .is-empty 와 같은 사실). */
+.home-page .hm-cam-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--pd-mist);
+}
+.home-page .hm-cam-empty-title {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-ink-2);
 }
 .home-page .hm-cam-label {
   display: block;

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { byWidth } from "./viewports";
 
 /** 다섯 화면을 두 폭에서 한 번씩 열어 보는 스모크입니다.
  *
@@ -26,7 +27,7 @@ for (const [name, width] of [
       // 없습니다. 히어로가 실제로 값을 말할 때까지 기다립니다.
       if (route === "#home" || route === "#today")
         await expect(
-          page.locator(width < 1080 ? ".pd-hero h1" : ".pd-desktop h1"),
+          page.locator(byWidth(width, ".pd-hero h1", ".pd-desktop h1")),
         ).not.toBeEmpty();
       await page.waitForLoadState("networkidle");
       const body = await page.locator("body").innerText();

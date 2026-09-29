@@ -55,7 +55,7 @@ test("모바일 오늘 탭도 서버가 고른 활동을 말한다", async ({ pa
   // 히어로와 다른 기준의 점수가 같은 화면에 함께 있었습니다.
   if (best) {
     const label = ACTIVITY_LABEL[best.activity];
-    await expect(page.locator(".today-page")).toContainText(`지점 비교 · ${label} 점수`);
+    await expect(page.locator(".today-page")).toContainText(`다른 지역 비교 · ${label} 점수`);
     await expect(page.locator(".today-page")).toContainText(`7일 예보 · ${label}`);
   }
 });

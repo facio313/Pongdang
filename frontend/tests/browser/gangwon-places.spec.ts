@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { conditionsFixture } from "./recommendation";
+import { byWidth } from "./viewports";
 
 const places = Array.from({ length: 105 }, (_, index) => ({
   id: index + 1,
@@ -69,7 +70,7 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const requests = await mockCatalog(page);
     await page.goto("#spots");
-    const rows = page.locator(width < 1080 ? ".sp-row" : ".sk-row");
+    const rows = page.locator(byWidth(width, ".sp-row", ".sk-row"));
     const pagination = page.getByRole("navigation", { name: "장소 목록 페이지" });
     await expect(rows).toHaveCount(100);
     await expect(rows.first()).toContainText("강릉시");

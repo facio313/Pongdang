@@ -16,7 +16,7 @@ import {
 import { activities, recommendedActivities, type Activity } from "./aiApi";
 import { componentBars, scoreReason } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
-import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
+import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
@@ -41,6 +41,7 @@ import {
   type Conditions,
   type WaterQualityGrade,
 } from "./productData";
+import { mascotUrl } from "./mascots";
 import { spotLink } from "./spotsRoute";
 import { useHomeBeaches } from "./useHomeBeaches";
 import type { TemperatureReading } from "./firstSwimTemperature";
@@ -219,6 +220,11 @@ function Hero({
         <div className="hm-hero-actions">
           <a className="pd-inline pd-tap" href="#today">
             {t("오늘 후보 활동 {count}가지 보기 →", { count: recommendedActivities.length })}</a>
+          {/* 데스크탑 히어로는 「오늘 보기」 옆에 코스 만들기를 함께 두고
+              있었습니다. 모바일은 취향 카드까지 내려가야 추천으로 갈 수 있어,
+              가장 자주 쓰는 진입이 화면 밖에 있었습니다. */}
+          <a className="pd-inline pd-tap hm-hero-course" href="#recommend">
+            {t("코스 만들기")}</a>
         </div>
       </div>
       {/* 물결. 데스크탑 히어로와 같은 굴곡을 2겹으로 흘립니다(waveShape.ts).
@@ -402,7 +408,7 @@ function TastePicksCard() {
   const { savedIds, labelOf, profileLoading, profileError } = useTastePreference();
   const tags = savedIds.map(labelOf);
   const photoPicks = usePlacePhotos((session.recommendation?.recommendations ?? [])
-    .slice(0, 4)
+    .slice(0, 3)
     .map((item) => ({
       id: item.spot_id,
       name: item.name,
@@ -464,17 +470,44 @@ function TasteChipRow({ tags, loading }: { tags: string[]; loading: boolean }) {
   );
 }
 
-function TasteBanner() {
+/** 「AI 제안」 칩과 그 근거.
+ *
+ *  예전에는 이 카드가 「취향만 알려주면 코스를 짜드려요」라는 고정 문장과, 그
+ *  아래 「선택한 취향과 실제 장소 카탈로그를 비교합니다」라는 **설명문**을
+ *  근거 자리에 세워 두었습니다. 둘 다 서버 응답을 보고 한 말이 아니어서, 칩은
+ *  근거 없이 서 있었습니다 -- 핸드오프 데이터 표기 규칙 4 가 금지하는 모양입니다.
+ *  데스크탑 홈(hd-ai)은 이미 서버가 고른 활동과 그 이유를 읽고 있었습니다. */
+function TasteBanner({
+  best,
+  recommendation,
+}: {
+  best?: ActivityCondition | null;
+  recommendation: { data?: Recommendation; error?: string };
+}) {
+  // useResource 는 같은 경로를 두 번 부르지 않으므로(no-refetch 검사) 아래
+  // TastePicksCard 와 함께 불러도 요청이 늘지 않습니다.
+  const { savedIds } = useTastePreference();
+  const hasTaste = savedIds.length > 0;
   return (
     <div className="pd-card">
       <AiSuggestion
-        headline={t("취향만 알려주면 코스를 짜드려요")}
-        basis={
-          t("선택한 취향과 실제 장소 카탈로그, 해당 시각의 환경 근거를 비교합니다. 추천 이유와 미확인 조건은 결과에서 함께 확인하세요.")
+        headline={
+          best
+            ? t("오늘 이 장소에서는 {activity}이(가) 가장 잘 맞습니다", { activity: t(activities[best.activity]) })
+            : missingChoiceHeadline(recommendation.error, true).join(" ")
         }
+        // 서버가 고른 이유를 먼저 씁니다. 없으면 점수를 깎은 항목으로
+        // 물러서되, 조회 실패는 그 물러서기를 타지 않습니다 -- 닿지 못한 날에
+        // 「근거가 부족해 점수를 내지 못했어요」라고 적으면 거짓말입니다.
+        basis={
+          recommendation.error
+            ? t("추천 근거를 불러오지 못했어요. {error}", { error: t(recommendation.error) })
+            : (choiceReason(recommendation.data)?.text ?? scoreReason(best?.data).text)
+        }
+        basisIsError={Boolean(recommendation.error)}
       />
       <a className="pd-primary hm-cta" href="#recommend">
-        {t("취향 고르기 →")}</a>
+        {hasTaste ? t("추천 다시 보기 →") : t("취향 고르기 →")}</a>
     </div>
   );
 }
@@ -494,13 +527,34 @@ function RouteCard() {
         <div className="pd-card-title">{t("물놀이 최적경로")}</div>
         <StateChip kind={routeCourse ? "live" : "partial"} />
       </div>
-      <div className="pd-slot hm-route-slot">
-        {routeCourse
-          ? t("{places} · 예상 이동 {minutes}분", { places: routeCourse.items.map((item) => item.name).join(" → "), minutes: routeCourse.travel_minutes })
-          : planStops.length
-            ? t("{places} · 경로 미계산", { places: planStops.map((item) => item.name).join(" → ") })
-            : t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
-      </div>
+      {/* 정차지를 번호 붙인 단계로 세웁니다. 예전에는 「경포 → 안목 → 사천진」
+          처럼 화살표로 이은 한 줄이라, 정차지가 셋을 넘으면 줄바꿈 위치에 따라
+          순서가 흐려졌습니다. 데스크탑 홈(hd-step)은 이미 번호와 연결선으로
+          그리고 있었습니다. */}
+      {routeCourse || planStops.length ? (
+        <>
+          <ol className="hm-steps">
+            {(routeCourse?.items ?? planStops).map((item, index, all) => (
+              <li className="hm-step" key={`${item.spot_id}-${index}`}>
+                <span className="hm-step-head">
+                  <span className="pd-num hm-step-no">{index + 1}</span>
+                  {index < all.length - 1 && <span className="hm-step-line" />}
+                </span>
+                <span className="hm-step-name">{item.name}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="pd-note">
+            {routeCourse
+              ? t("예상 이동 {minutes}분", { minutes: routeCourse.travel_minutes })
+              : t("경로 미계산")}
+          </p>
+        </>
+      ) : (
+        <div className="pd-slot hm-route-slot">
+          {t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
+        </div>
+      )}
       <a className="pd-secondary hm-cta" href="#map?view=course">
         {t("경로 탐색 →")}</a>
       <p className="pd-note">
@@ -541,6 +595,25 @@ function LivecamModule() {
             <span className="hm-cam-label">{cam.title} · {label}</span>
           </a>
         ))}
+        {/* 송출이 없는 자리는 빈 줄로 두지 않고 그 사실을 밝힙니다. 예전에는
+            아래 문단에 한 문장만 있어, 카드 줄 자체가 조용히 사라졌습니다
+            (데스크탑 홈은 빈 상태 칸을 그리고 있었습니다). */}
+        {!cameras.length && (
+          <div className="hm-cam is-empty">
+            <div className="hm-cam-thumb hm-cam-empty">
+              <img src={mascotUrl("empty")} alt="" width={40} height={40} />
+              <span className="hm-cam-empty-title">
+                {loading ? t("조회 중") : t("송출 없음")}
+              </span>
+            </div>
+            <span className="hm-cam-label">
+              {error ??
+                (loading
+                  ? t("물 풍경을 고르는 중입니다.")
+                  : t("현재 목록에 열 수 있는 물 풍경 카메라가 없습니다."))}
+            </span>
+          </div>
+        )}
       </div>
       <p className="pd-note" role={error ? "alert" : "status"}>
         {error ||
@@ -610,7 +683,7 @@ function HomeScreen() {
           />
           <HomeTides id={place?.id} placeSettled={placeSettled} />
           <BeachPicksCard />
-          <TasteBanner />
+          <TasteBanner best={best} recommendation={recommendation} />
           <TastePicksCard />
           <RouteCard />
         <LivecamModule />

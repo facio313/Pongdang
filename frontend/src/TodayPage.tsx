@@ -17,9 +17,11 @@ import { WaterQualityDetails } from "./WaterQualityDetails";
 import { NotificationSummary } from "./NotificationSummary";
 import type { ActivityCondition } from "./useBestActivity";
 import type { Recommendation } from "./recommendationApi";
-import { activities, type Activity } from "./aiApi";
+import { activities, displayTime, type Activity } from "./aiApi";
+import { placeDetailsMissingText, placeOperatingSchedule } from "./placeDetails";
+import { usePlaceDetails } from "./usePlaceDetails";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
-import { scoreTitle } from "./scoreMeaning";
+import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import {
   conditionPath,
   conditionModeLabel,
@@ -38,11 +40,13 @@ import {
   type WaterQualityGrade,
 } from "./productData";
 import {
+  ComponentBars,
   GradeChip,
   GradeIcon,
   Icon,
   MetricValue,
   ScoreExplainer,
+  ScoreReason,
   Skeleton,
   StateChip,
 } from "./pongdangUi";
@@ -260,6 +264,8 @@ function SpotComparisonRow({
       onClick={onSelect}
     >
       <span className="td-score-badge" data-grade={grade.key}>
+        {/* 조회 중과 「자료 없음」(–)은 다른 사실입니다. 조회가 끝나기 전에
+            «–» 를 적으면 아직 묻고 있는 지점이 근거가 없는 지점처럼 보입니다. */}
         {spot.loading ? <Skeleton width="1.6em" label={t("점수 조회 중")} /> : score ?? "–"}
       </span>
       <span className="td-spot-body">
@@ -456,17 +462,20 @@ function OperatingRow({
       ? null
       : periodPath("tides/windows", id, now, 1, activity.icon),
   );
-  const active = windows.data?.rows.find(
+  // 「운영 제한」은 운영 중도 미확인도 아닌 별개의 사실입니다. 데스크탑만
+  // 구분하고 있었고 모바일은 제한된 시간대를 「확인 필요」로 뭉뚱그렸습니다.
+  const restricted = windows.data?.rows.find((row) => row.state === "restricted");
+  const active = restricted ?? windows.data?.rows.find(
     (row) => row.state === "official_operating_window",
   );
   return (
-    <div className={"td-tide-row" + (active ? "" : " is-off")}>
+    <div className={"td-tide-row" + (active && !restricted ? "" : " is-off")}>
       <span className="td-badge-round">
         <Icon name={activity.icon} size={14} />
       </span>
       <span className="td-tide-name">{t(activity.name)}</span>
-      <span className={"td-fit-chip" + (active ? "" : " is-off")}>
-        {active ? t("공식 운영") : t("확인 필요")}
+      <span className={"td-fit-chip" + (active && !restricted ? "" : " is-off")}>
+        {restricted ? t("운영 제한") : active ? t("공식 운영") : t("확인 필요")}
       </span>
       <span className="td-tide-when" title={active?.scope}>
         {windows.error
@@ -526,17 +535,60 @@ function TideNote({ tides, status }: { tides?: TideResult; status: string }) {
   );
 }
 
+/** 점수를 이루는 항목들.
+ *
+ *  데스크탑 「점수 근거」 LabelRow 와 같은 사실입니다. 모바일에서는 이 층이
+ *  통째로 없었고, 대신 접기(ConditionScoreDetails) 안에만 숫자가 있었습니다 --
+ *  펴 보지 않으면 무엇으로 몇 점인지 화면이 말하지 않았습니다. 히어로가 점수를
+ *  크게 적는 화면이라면 그 점수가 어디서 왔는지도 같은 층에 있어야 합니다. */
+function ScoreBasisSection({
+  activity,
+  conditions,
+}: {
+  activity: Activity;
+  conditions: { data?: Conditions; loading: boolean; error?: string };
+}) {
+  const loading = isInitialLoad(conditions);
+  return (
+    <section>
+      <SectionHead
+        label={t("{activity} 점수를 이루는 것들", { activity: t(activities[activity]) })}
+      />
+      <div className="pd-card">
+        <div className="td-basis-chip">
+          <StateChip kind={conditions.data ? "live" : "no_data"} />
+        </div>
+        <p className="pd-note">{t("각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.")}</p>
+        <ComponentBars bars={componentBars(conditions.data)} loading={loading} />
+        <ScoreReason text={scoreReason(conditions.data).text} loading={loading} />
+        {/* 못 읽은 것과 없는 것은 다른 사실입니다. 막대가 빈 채로 서 있으면
+            「자료가 없는 날」로 읽히므로 실패는 실패라고 적습니다. */}
+        {conditions.error && (
+          <p className="pd-note" role="alert">{conditions.error}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function TideSection({
   tides,
   status,
   id,
   now,
+  place,
 }: {
   tides?: TideResult;
   status: string;
   id?: number;
   now: string;
+  place?: Place;
 }) {
+  // 고른 장소의 운영 안내(이용시간 · 개장 기간 · 휴무일). 데스크탑만 보여 주고
+  // 있었습니다 -- 「물때는 좋은데 오늘 여는가」를 모바일에서는 알 수 없었습니다.
+  const placeDetails = usePlaceDetails(id ? [id] : []);
+  const detail = id ? placeDetails.byId.get(id) : undefined;
+  const schedule = placeOperatingSchedule(detail);
   return (
     <section>
       <SectionHead label={t("물때")} suffix="A6" />
@@ -568,8 +620,40 @@ function TideSection({
               now={now}
             />
           ))}
+          <div className={"td-tide-row td-place-hours" + (schedule.length ? "" : " is-off")}>
+            <span className="td-badge-round">
+              <Icon name="pin" size={14} />
+            </span>
+            <span className="td-tide-name">{place?.name ?? t("기본 안내")}</span>
+            <span
+              className="td-fit-chip"
+              title={[
+                detail?.provider && t("한국관광공사 관광 정보"),
+                detail?.source_modified_at && t("원천 수정일: {date}", { date: displayTime(detail.source_modified_at) }),
+                detail?.fetched_at && t("수집일: {date}", { date: displayTime(detail.fetched_at) }),
+              ].filter(Boolean).join(" · ")}
+            >
+              {t(schedule.length && (detail?.refresh_failed || detail?.refresh_pending) ? "이전 안내" : "기본 안내")}
+            </span>
+            <span className="td-tide-when" role={placeDetails.error ? "alert" : undefined}>
+              {/* 조회 중 · 실패 · 안내 없음을 서로 다르게 적습니다. */}
+              {schedule.length
+                ? schedule.map((row, index) => (
+                    <span className="td-hours-line" key={`${row.label}-${index}`}>
+                      <span className="td-hours-label">{t(row.label)}</span>{row.value}
+                    </span>
+                  ))
+                : placeDetails.loading
+                  ? t("조회 중")
+                  : placeDetails.error
+                    ? t("조회 실패")
+                    : t(placeDetailsMissingText(detail?.status))}
+            </span>
+          </div>
         </div>
         <TideNote tides={tides} status={status} />
+        {/* 물때는 점수와 다른 값이라는 것을 데스크탑만 적고 있었습니다. */}
+        <p className="pd-note">{t("물때 조건만 기준이며 점수 · 안전 판정과 다른 값입니다.")}</p>
       </div>
     </section>
   );
@@ -680,10 +764,12 @@ function TodayScreen() {
             }
           />
           <ActivitySection states={activityStates} />
+          <ScoreBasisSection activity={activity} conditions={conditions} />
           <TodayForecast id={place?.id} now={now} activity={activity} placeSettled={placeSettled} />
           <TideSection
             id={place?.id}
             now={now}
+            place={place}
             tides={tides.data}
             status={
               tides.error ??

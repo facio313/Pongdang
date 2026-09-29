@@ -382,6 +382,11 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "{hour}时",
     "{hour}時"
   ],
+  "각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.": [
+    "The total is the average of each condition's score, weighted equally.",
+    "总分是各项条件得分的等权平均值。",
+    "総合点は各条件のスコアを同じ重みで平均した値です。"
+  ],
   "지금 점수를 이루는 것들": [
     "What makes up the current score",
     "当前评分构成",

@@ -88,3 +88,18 @@ export function placeHomepageUrl(value: string | null | undefined) {
     return undefined;
   }
 }
+
+/** 장소 분류 이름. 명소 목록 · 명소 상세 · 데스크탑 목록이 같은 말을 쓰도록
+ *  한 곳에 둡니다 -- 예전에는 세 파일이 저마다 같은 표를 들고 있었습니다.
+ *
+ *  분류는 **분류된 목록**(water-places)에만 있습니다. datasets/spots 의 type
+ *  은 수집 종류(beach_search_result · tourism)라 분류로 쓸 수 없어, 값이 없는
+ *  장소는 「분류 미확인」입니다 -- 해변으로 물러서지 않습니다. */
+const KIND_LABEL: Record<string, string> = {
+  beach: "해변",
+  valley: "계곡",
+};
+
+export function kindLabel(place?: { type?: string | null }): string {
+  return (place?.type && KIND_LABEL[place.type]) || "분류 미확인";
+}

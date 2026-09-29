@@ -1,3 +1,10 @@
+# 저장 경로·코스 지도 운영 반영 진행 · 2026-09-29
+
+- 사용자 승인: 현재 완성된 변경을 그대로 운영까지 배포. 제품 코드·관련 테스트·개발 도구·기록20파일을 9afdf3f로 커밋했다. .env·.local·.byeori·.playwright-cli·output은 제외했으며 staged diff에서 로컬의 실제 API 키·비밀번호와 일치하는 값은 없었다.
+- 원격 main은 기존 ab30772에서 d18bebc까지 모바일 관련3커밋이 진행됐다. fix/finale에 병합하면서 RecommendPage 충돌1곳을 해결했다. 저장 직후 후보를 보존하는 loadedPlanId 가드와 저장 route_snapshot 복원을 모두 유지했다. 기존 main worktree는 clean이며 dev refs는0f824a9로 보존한다.
+- 재검증: 병합된 MapPage·RecommendPage 명시 검사에서 ESLint·Node212개·증분 TypeScript 통과(10.5초, /tmp/pongdang-course-release-merge-checks.log). 변경 없는 백엔드는 기존49개 경로 테스트·21개 개발 도구 격리 테스트 결과를 사용한다. 실제 IAB390px에서 저장 지도 새로고침 후 도로선5/5·22분·저장 시각, 추천에서 다른 저장 코스를 연 뒤 도착/출발 시각·도로 경로·21분 복원을 확인했다. viewport와 사용자의 원래 코스 c7517cce8c37496aa7ede9ac3adabc18 화면을 복원했다.
+- 다음: 병합 커밋을 main에 fast-forward·push하고 정확한 SHA의 CI 두 이미지 성공, 자동 호스트 배포 및 운영 읽기 상태를 확인한다. 운영 확인 완료 전 배포 완료로 보고하지 않는다.
+
 # 지도 코스 목록·선택 상세 패널 분리 · 2026-09-29
 
 - 사용자 요청: 왼쪽에는 코스 목록을 항상 유지하고, 선택한 코스의 모든 내용은 오른쪽에 표시. 코스 목록으로 버튼 제거, 중복 방문 목록 정리, 긴 상태 안내 축약, 점수 대상과 버튼 간격 명확화.

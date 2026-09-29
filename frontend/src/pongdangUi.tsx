@@ -651,9 +651,13 @@ export function ScoreExplainer({ data }: { data?: Conditions }) {
 export function AiSuggestion({
   headline,
   basis,
+  basisIsError = false,
 }: {
   headline: string;
   basis: string;
+  /** 근거 자리에 들어간 문장이 「읽지 못했다」인지. 조회 실패는 조용한 설명이
+   *  아니라 알림이어야 합니다. */
+  basisIsError?: boolean;
 }) {
   return (
     <>
@@ -662,7 +666,9 @@ export function AiSuggestion({
           <Icon name="sparkle" size={12} />{t("AI 제안")}</span>
         <span className="pd-ai-headline">{headline}</span>
       </div>
-      <p className="pd-ai-basis">{t("근거")} · {basis}</p>
+      <p className="pd-ai-basis" role={basisIsError ? "alert" : undefined}>
+        {t("근거")} · {basis}
+      </p>
     </>
   );
 }

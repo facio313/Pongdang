@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { conditionsFixture, routeRecommendation } from "./recommendation";
+import { byWidth, isDesktopWidth } from "./viewports";
 
 test("home uses the selected fallback beach ID, name and conditions consistently", async ({ page }) => {
   const beach = { id: 987, name: "해운대해수욕장", place_kind: "beach", region: "부산", address: null, lat: 35.16, lng: 129.16 };
@@ -99,7 +100,7 @@ for (const width of [390, 1440]) {
       } });
     });
     await page.goto("#home");
-    const homeScore = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    const homeScore = page.locator(byWidth(width, ".hm-hero-score-num", ".hd-hero-score-num"));
     await expect(homeScore).toHaveText("73");
     const trigger = page.getByRole("button", { name: `${places[0].name} · 장소 바꾸기`, exact: true });
     const selector = page.getByRole("dialog", { name: "장소 바꾸기", exact: true });
@@ -122,24 +123,24 @@ for (const width of [390, 1440]) {
     await expect(homeScore).toHaveText("42");
     await expect.poll(() => queriedIds.includes(places[104].id)).toBe(true);
     await page.goto("#today");
-    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).toContainText(places[104].name);
+    await expect(page.locator(byWidth(width, ".td-hero", ".pd-dk-nav"))).toContainText(places[104].name);
     await page.reload();
-    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).toContainText(places[104].name);
-    const todaySelector = width < 1080 ? page.locator(".product-place-selector") : selector;
-    if (width < 1080) await todaySelector.locator("summary").click();
+    await expect(page.locator(byWidth(width, ".td-hero", ".pd-dk-nav"))).toContainText(places[104].name);
+    const todaySelector = !isDesktopWidth(width) ? page.locator(".product-place-selector") : selector;
+    if (!isDesktopWidth(width)) await todaySelector.locator("summary").click();
     else await page.getByRole("button", { name: `${places[104].name} · 장소 바꾸기`, exact: true }).click();
     await expect(page.getByLabel("홈·오늘 기준 장소")).toHaveValue(String(places[104].id));
     await page.getByLabel("시군 선택").selectOption("sokcho");
     try {
       await expect(todaySelector.getByRole("status")).toContainText("장소 조회 중");
-      await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).not.toContainText(places[104].name);
+      await expect(page.locator(byWidth(width, ".td-hero", ".pd-dk-nav"))).not.toContainText(places[104].name);
       await expect(page.getByLabel("홈·오늘 기준 장소")).toBeDisabled();
     } finally { releaseFailedDistrict(); }
     await expect(todaySelector.getByRole("alert")).toContainText("요청을 처리하지 못했습니다");
     await page.getByLabel("시군 선택").selectOption("yanggu");
     await expect.poll(() => emptyDistrict).toBe(true);
     await expect(page.getByRole("status").filter({ hasText: "선택한 지역·검색어에 해당하는 장소가 없습니다." })).toBeVisible();
-    await expect(page.locator(width < 1080 ? ".td-hero" : ".pd-dk-nav")).not.toContainText(places[104].name);
+    await expect(page.locator(byWidth(width, ".td-hero", ".pd-dk-nav"))).not.toContainText(places[104].name);
     await expect(page.getByLabel("홈·오늘 기준 장소")).toBeDisabled();
     await page.goto("#home");
     await expect(homeScore).toHaveText("–");

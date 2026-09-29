@@ -98,7 +98,7 @@ test("detail uses server favorites across reentry and adds the selected place on
   await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "true");
   await page.route("**/api/data/travel/signals/*", route => route.fulfill({ status: 503, json: { detail: "unavailable" } }));
   await page.locator(".sd-save").click();
-  await expect(page.locator(".spot-detail [role=alert]")).toBeVisible();
+  await expect(page.locator(".spot-detail .sd-action-error")).toBeVisible();
   await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "true");
   let drafts = 0;
   page.on("request", request => {
@@ -123,7 +123,7 @@ test("failed favorite write never turns the detail icon on", async ({ page }) =>
   await page.route("**/api/data/travel/signals", route => route.fulfill({ status: 403, json: { detail: "origin_not_allowed" } }));
   await page.goto(`#spots?spot_id=${places[0].id}`);
   await page.locator(".sd-save").click();
-  await expect(page.locator(".spot-detail [role=alert]")).toBeVisible();
+  await expect(page.locator(".spot-detail .sd-action-error")).toBeVisible();
   await expect(page.locator(".sd-save")).toHaveAttribute("aria-pressed", "false");
 });
 

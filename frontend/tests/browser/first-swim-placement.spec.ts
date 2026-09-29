@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { byWidth } from "./viewports";
 
 const places = [
   { id: 41, name: "OFFLINE TEST 첫 해변" },
@@ -84,9 +85,9 @@ for (const width of [390, 1440]) {
     page.on("pageerror", error => errors.push(error.message));
     const { subscriptionReads: reads, temperatureReads, summaryReads } = await fixture(page);
     await page.goto("#home");
-    const beaches = page.locator(width < 1080 ? ".hm-picks-row" : ".hd-beaches");
-    const section = page.locator(width < 1080 ? ".pd-card" : ".pd-dk-row").filter({ has: beaches });
-    await expect(section.locator(width < 1080 ? ".pd-card-title" : "h2")).toContainText("해변 명소");
+    const beaches = page.locator(byWidth(width, ".hm-picks-row", ".hd-beaches"));
+    const section = page.locator(byWidth(width, ".pd-card", ".pd-dk-row")).filter({ has: beaches });
+    await expect(section.locator(byWidth(width, ".pd-card-title", "h2"))).toContainText("해변 명소");
     await expect(section).not.toContainText("첫 입수");
     await expect(beaches).not.toContainText("첫 입수");
     await expect(beaches.getByRole("link")).toHaveCount(3);

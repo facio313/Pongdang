@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { conditionsFixture } from "./recommendation";
+import { byWidth, isDesktopWidth } from "./viewports";
 
 const defaultPlace = {
   id: 1, name: "지도 기본 해변", place_kind: "beach", region: "강릉",
@@ -30,7 +31,7 @@ async function routeMapCatalog(page: Page) {
 for (const width of [390, 1440]) {
   test.describe(`${width}px map spot_id selection`, () => {
     test.use({ viewport: { width, height: 1000 } });
-    const selectedName = width < 1080 ? ".mp-spot-name" : ".mk-detail-name";
+    const selectedName = byWidth(width, ".mp-spot-name", ".mk-detail-name");
 
     test("waits for the linked place outside the list without choosing the default beach", async ({ page }) => {
       await routeMapCatalog(page);
@@ -51,7 +52,7 @@ for (const width of [390, 1440]) {
         release();
       }
       await expect(page.locator(selectedName)).toHaveText(linkedPlace.name);
-      if (width >= 1080)
+      if (isDesktopWidth(width))
         await expect(page.locator(".mk-spot[aria-pressed=true]")).toContainText(linkedPlace.name);
     });
 

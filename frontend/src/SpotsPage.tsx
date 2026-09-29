@@ -5,7 +5,7 @@ import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
 import { PlacePhoto } from "./PlacePhoto";
-import type { PlaceDetails } from "./placeDetails";
+import { kindLabel, type PlaceDetails } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
@@ -41,12 +41,6 @@ const MAP_FILTERS = [
   { key: "valley", label: "계곡" },
 ] as const;
 
-const KIND_LABEL: Record<string, string> = {
-  beach: "해변",
-  valley: "계곡",
-};
-const kindLabel = (place: Place) =>
-  (place.type && KIND_LABEL[place.type]) ?? "분류 미확인";
 
 function SourceChips({ live }: { live: boolean }) {
   return (
@@ -148,7 +142,24 @@ function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         <span className="sp-row-where">{placeRegionLabel(place)}</span>
         <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
         {detail?.opening_hours && <span className="sp-row-hours">{t("운영")} · {detail.opening_hours}</span>}
+        {/* 좌표가 확인된 장소만 지도에 찍힙니다. 데스크탑 목록은 그 사실을
+            줄마다 적고 있었고 모바일은 적지 않아, 「지도에서 보기」로 갔을 때
+            어떤 장소가 왜 빠졌는지 알 수 없었습니다. */}
+        <span className="sp-row-meta">
+          <span className="sp-meta-name">{t("좌표")}</span>
+          <b>
+            {typeof place.lat === "number" && typeof place.lng === "number"
+              ? t("확인됨")
+              : "–"}
+          </b>
+        </span>
         {/* <PlacePhotoCredit photo={place.photo} /> */}
+      </span>
+      <span className="sp-row-score">
+        {/* 점수는 고른 장소만 조회하므로 여기서는 약속하지 않고, 어디를 눌러야
+            보이는지만 밝힙니다(데스크탑 unscoredLabel 과 같은 문구). */}
+        <span className="sp-row-unscored">{t("상세에서 조회")}</span>
+        <a className="sp-row-link" href={spotLink(place)}>{t("상세 →")}</a>
       </span>
     </div>
   );
@@ -159,6 +170,15 @@ function SpotsList() {
   const { search, setSearch, places } = browser;
   const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
   const details = usePlaceDetails(rows.map((place) => place.id));
+  // 이 페이지에 무엇이 몇 곳 있는지. 데스크탑 목록은 왼쪽 라벨 열에 적고
+  // 있었고 모바일은 총계만 있어, 분류 필터를 걸기 전에는 구성이 보이지
+  // 않았습니다. 세는 대상은 **현재 페이지**이며 전체 카탈로그가 아닙니다.
+  const kinds = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const place of places.rows ?? [])
+      counts.set(kindLabel(place), (counts.get(kindLabel(place)) ?? 0) + 1);
+    return [...counts.entries()];
+  }, [places.rows]);
   return (
     <article className="spots-page">
       <AppShell
@@ -167,6 +187,11 @@ function SpotsList() {
       >
         <ListSearch search={search} onSearch={setSearch} />
         <WaterPlaceFilters district={browser.district} kind={browser.kind} onDistrict={browser.setDistrict} onKind={browser.setKind} />
+        {kinds.length > 0 && (
+          <p className="pd-note sp-kind-counts">
+            {t("이 페이지")} · {kinds.map(([label, count]) => `${t(label)} ${count}`).join(" · ")}
+          </p>
+        )}
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
           {rows.map((place) => (
@@ -241,6 +266,10 @@ function SpotsMap() {
           <KakaoMapCanvas
             markers={markers}
             selectedId={selectedId === null ? null : String(selectedId)}
+            // 위는 헤더 띠와 분류 필터 줄이 덮습니다. insets 를 주지 않으면
+            // 지도가 프레임 전체를 기준으로 화면을 맞춰, 위쪽 핀이 필터 뒤로
+            // 숨어 고를 수 없었습니다(지도 탭은 이미 이 여백을 줍니다).
+            insets={{ top: 96, right: 16, bottom: 16, left: 16 }}
             renderMarker={(id) => {
               const place = visible.find((item) => item.id === Number(id));
               if (!place) return null;

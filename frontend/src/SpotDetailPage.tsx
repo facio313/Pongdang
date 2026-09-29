@@ -1,4 +1,5 @@
 import { t } from "./i18n.ts";
+import { useMemo } from "react";
 import { AppHeader, AppShell } from "./AppShell";
 import { PlacePhoto, PlacePhotoCredit } from "./PlacePhoto";
 import { PlaceDetailInformation } from "./PlaceDetailInformation";
@@ -7,16 +8,20 @@ import { FirstSwimGuide } from "./FirstSwimGuide";
 import { gradeOf } from "./groupAGrade";
 import { GradeIcon, Icon, ScoreExplainer, ScoreGauge, ScoreReason, Skeleton } from "./pongdangUi";
 import { EvidenceNote } from "./EvidenceNote";
-import { placeRegionLabel, timeLabel, type Place } from "./productData";
+import { placeMatchesId, placeRegionLabel, timeLabel, type Place } from "./productData";
+import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
+import { kindLabel } from "./placeDetails";
+import { KakaoMapCanvas } from "./KakaoMapCanvas";
 import { scoreReason, scoreTitle, verdictOf } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline } from "./recommendationText";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { usePlaceDetails } from "./usePlaceDetails";
-import { useWaterPlace } from "./useWaterPlaces";
+import { mappablePlaces, useWaterPlace, useWaterPlaces } from "./useWaterPlaces";
 import { useSpotActions } from "./useSpotActions";
 import { isInitialLoad } from "./useResource";
+import { sortPlaces, spotLink } from "./spotsRoute";
 import "./spotsPage.css";
 
 // 명소 상세(핸드오프 모바일 20b)입니다. `#spots?spot_id=…` 로 들어오며
@@ -42,7 +47,6 @@ function InfoRow({ name, value }: { name: string; value: string | null }) {
   );
 }
 
-const KIND_LABEL: Record<string, string> = { beach: "해변", valley: "계곡" };
 
 export function SpotDetailPage({ spotId }: { spotId: number }) {
   // 분류(해변 · 계곡)는 분류된 목록에만 있습니다. datasets/spots 의 type 은
@@ -52,9 +56,15 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   const lookup = usePlacesById([spotId]);
   const details = usePlaceDetails([spotId]);
   const classified = catalog.place;
-  const place: Place | undefined = classified
-    ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
-    : lookup.rows[0];
+  // 아래 useMemo 들의 의존성이라 매 렌더 새 객체가 되면 지도 마커와 주변
+  // 목록이 계속 다시 계산됩니다(데스크탑 상세와 같은 처리).
+  const place: Place | undefined = useMemo(
+    () =>
+      classified
+        ? { ...classified, photo: classified.photo ?? lookup.rows[0]?.photo }
+        : lookup.rows[0],
+    [classified, lookup.rows],
+  );
   // 홈 히어로와 같은 규칙으로 오늘 가장 좋은 활동을 고릅니다. 장소마다 조건이
   // 다르므로 「이 명소에서 무엇을 하기 좋은가」가 상세의 답입니다.
   const { best, loading, recommendation } = useBestActivity(place?.id, Boolean(place) || lookup.loading);
@@ -65,6 +75,37 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
   // 아직 어느 쪽에서도 장소를 받지 못한 상태. 「없음」과 구분해 그립니다.
   const placeLoading = !place && lookup.loading;
   const { action, favorites, favoritesLoginRequired, saved, message, showDraftLink, add, toggleFavorite } = useSpotActions(place);
+  // 지도에 찍을 좌표. 좌표가 없으면 핀을 만들지 않습니다 -- 없는 위치를
+  // 임의로 만들지 않습니다(데스크탑 상세와 같은 규칙).
+  const pinned = useMemo(() => mappablePlaces(place ? [place] : []), [place]);
+  const markers = useMemo(
+    () =>
+      pinned.map(({ place: item, latitude, longitude }) => ({
+        id: String(item.id),
+        latitude,
+        longitude,
+      })),
+    [pinned],
+  );
+  // 같은 분류의 가까운 장소. 이미 읽은 목록 안에서 저장 좌표로 계산하며
+  // 길찾기 API 를 호출하지 않습니다.
+  const nearbyCatalog = useWaterPlaces("");
+  const sameKind = useMemo(
+    () =>
+      sortPlaces(
+        (nearbyCatalog.rows ?? []).filter(
+          (item) => !placeMatchesId(item, spotId) && item.type === place?.type,
+        ),
+      )
+        .map((item) => ({ item, distance: placeDistanceKm(place, item) }))
+        .sort((a, b) =>
+          a.distance === null
+            ? b.distance === null ? 0 : 1
+            : b.distance === null ? -1 : a.distance - b.distance,
+        )
+        .slice(0, 5),
+    [nearbyCatalog.rows, place, spotId],
+  );
 
   return (
     <article className="spots-page spot-detail">
@@ -82,7 +123,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             <div className="sd-hero-caption">
               <div className="sd-hero-chips">
                 <span className="sd-hero-chip">
-                  {t((place?.type && KIND_LABEL[place.type]) || "분류 미확인")}
+                  {t(kindLabel(place))}
                 </span>
               </div>
               <h1 className="sd-hero-name">
@@ -169,11 +210,52 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
               }
             />
           </div>
-          {!(typeof place?.lat === "number" && typeof place?.lng === "number") &&
-            !placeLoading && (
-              <p className="pd-note">{t("좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를 임의로 만들지 않습니다.")}</p>
+          {/* 이 장소의 지도. 데스크탑 상세는 이미 지도를 품고 있었고 모바일은
+              좌표 숫자와 「지도에서 보기 →」 링크뿐이라, 어디쯤인지 보려면
+              화면을 떠나야 했습니다. */}
+          <div className="sd-map">
+            {markers.length ? (
+              <KakaoMapCanvas
+                markers={markers}
+                selectedId={String(spotId)}
+                renderMarker={() => (
+                  <span className="sd-map-pin" data-grade={grade.key}>
+                    <span className="pd-num">{score ?? "–"}</span>
+                  </span>
+                )}
+              />
+            ) : (
+              !placeLoading && (
+                <div className="pd-slot sd-map-empty">
+                  {t("좌표가 아직 확인되지 않았습니다 · 지도 표시 없음 — 없는 위치를 임의로 만들지 않습니다.")}
+                </div>
+              )
             )}
+          </div>
           <PlaceDistanceInfo place={place} loading={placeLoading} />
+        </div>
+
+        {/* 같은 분류의 가까운 장소. 이미 읽은 목록 안에서 저장 좌표로
+            계산하며 길찾기 API 를 부르지 않습니다(데스크탑과 같은 규칙). */}
+        <div className="pd-card">
+          <div className="pd-card-title sd-section-title">
+            {t(hasPlaceCoordinates(place) ? "같은 분류의 장소 · 직선거리순" : "같은 분류의 장소 · 이름순")}
+          </div>
+          {sameKind.map(({ item, distance }) => (
+            <a className="sd-nearby" href={spotLink(item)} key={item.id}>
+              <span className="pd-num sd-nearby-distance">{distanceLabel(distance)}</span>
+              <span className="sd-nearby-body">
+                <span className="sd-nearby-name">{item.name}</span>
+                <span className="sd-nearby-meta">
+                  {t(kindLabel(item))} · {placeRegionLabel(item)}
+                </span>
+              </span>
+            </a>
+          ))}
+          {!sameKind.length && (
+            <p className="pd-note">{t("같은 분류의 다른 장소가 목록에 없습니다.")}</p>
+          )}
+          <p className="pd-note">{t("현재 목록의 같은 분류 장소를 표시합니다. 거리는 이 명소의 좌표를 기준으로 계산한 직선거리입니다.")}</p>
         </div>
 
         {place && <>
@@ -187,8 +269,11 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             </button>
           </div>
           {favorites.loading && <p role="status">{t("즐겨찾기 조회 중…")}</p>}
-          {favorites.error && <p role="alert">{t("즐겨찾기 조회 실패:")} {favorites.error}</p>}
-          {action.error && <p role="alert">{action.error}</p>}
+          {/* 이 화면에는 지도(카카오 키 없음)처럼 다른 알림도 있으므로, 액션 실패는
+              전용 클래스로 구분합니다 -- 「저장이 실패했는가」를 묻는 검사가
+              지도 경고를 집어 들지 않도록. */}
+          {favorites.error && <p className="sd-action-error" role="alert">{t("즐겨찾기 조회 실패:")} {favorites.error}</p>}
+          {action.error && <p className="sd-action-error" role="alert">{action.error}</p>}
           {message && <p role="status">{message} {showDraftLink && <a href="#map?view=course">{t("코스 초안 보기")}</a>}</p>}
         </>}
       </AppShell>
