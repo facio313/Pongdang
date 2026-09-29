@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { PlaceDetails } from "../../src/placeDetails";
+import { byWidth, isDesktopWidth } from "./viewports";
 
 const places = [
   { id: 41, name: "OFFLINE TEST 해변", lat: 37.8, lng: 128.9 },
@@ -75,13 +76,13 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const reads = await mockStoredPlaces(page);
     await page.goto("#spots");
-    const rows = page.locator(width < 1080 ? ".sp-row-hours" : ".sk-row-hours");
+    const rows = page.locator(byWidth(width, ".sp-row-hours", ".sk-row-hours"));
     await expect(rows).toHaveCount(3);
     await expect(rows).toContainText(["09:00–18:00", "09:00–18:00", "09:00–18:00"]);
-    if (width >= 1080) await expect(page.locator("body")).not.toContainText("아직 실연동되지 않은 항목");
+    if (isDesktopWidth(width)) await expect(page.locator("body")).not.toContainText("아직 실연동되지 않은 항목");
     expect(reads).toEqual([[41, 42, 43]]);
-    await page.setViewportSize({ width: width < 1080 ? 1440 : 390, height: 1000 });
-    await expect(page.locator(width < 1080 ? ".sk-row-hours" : ".sp-row-hours")).toHaveCount(3);
+    await page.setViewportSize({ width: byWidth(width, 1440, 390), height: 1000 });
+    await expect(page.locator(byWidth(width, ".sk-row-hours", ".sp-row-hours"))).toHaveCount(3);
     await page.waitForLoadState("networkidle");
     expect(reads).toEqual([[41, 42, 43]]);
   });

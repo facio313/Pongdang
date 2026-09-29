@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { routeRecommendation } from "./recommendation";
+import { byWidth } from "./viewports";
 
 const NOW = new Date("2026-09-21T03:00:00Z");
 const place = { id: 1, name: "갱신 테스트 해변", place_kind: "beach", region: "강릉시", address: "강원도 강릉시", lat: 37.8, lng: 128.9 };
@@ -111,12 +112,12 @@ for (const width of [390, 1440]) {
     await page.route("**/api/data/water-index/recommendation?**", route => unavailable
       ? route.fulfill({ status: 503, json: { detail: "unavailable" } }) : route.fallback());
     await page.goto("#home");
-    await expect(page.locator(width < 1080 ? ".hm-hero-metrics" : ".hd-hero-metrics")).toContainText("21°C");
-    await expect(page.locator(width < 1080 ? ".hm-hero-sentence" : ".hd-hero-title")).toContainText("불러오지 못했");
+    await expect(page.locator(byWidth(width, ".hm-hero-metrics", ".hd-hero-metrics"))).toContainText("21°C");
+    await expect(page.locator(byWidth(width, ".hm-hero-sentence", ".hd-hero-title"))).toContainText("불러오지 못했");
     expect(mocked.reads.filter(path => path.endsWith("/conditions"))).toHaveLength(1);
     await page.goto("#today");
     await expect(page.locator(".td-hero-tiles")).toContainText("21°C");
-    await expect(page.locator(width < 1080 ? ".td-act-score" : ".td-activity-score").first()).toHaveText("75");
+    await expect(page.locator(byWidth(width, ".td-act-score", ".td-activity-score")).first()).toHaveText("75");
     await expect(page.locator(".td-hero-score-num")).toHaveText("–");
     unavailable = false;
     await page.clock.fastForward(1800100);
@@ -132,14 +133,14 @@ for (const width of [390, 1440]) {
     const extra = { conditions: [conditions(75, "2026-09-22T03:00:00Z"), unsupported] };
     await routeRecommendation(page, () => incomplete ? null : { activity: "swim", score: 75 }, extra);
     await page.goto("#home");
-    const hero = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    const hero = page.locator(byWidth(width, ".hm-hero-score-num", ".hd-hero-score-num"));
     await expect(hero).toHaveText("75");
     incomplete = true;
     extra.conditions = [conditions(null, NOW.toISOString()), unsupported];
     await page.clock.fastForward(1800100);
     await expect(page.locator(".home-condition-time")).toContainText("12:00");
     await expect(hero).toHaveText("75");
-    await expect(page.locator(width < 1080 ? ".hm-hero-metrics" : ".hd-hero-metrics")).toContainText("21°C");
+    await expect(page.locator(byWidth(width, ".hm-hero-metrics", ".hd-hero-metrics"))).toContainText("21°C");
     await page.goto("#today");
     await expect(page.locator(".td-hero-score-num")).toHaveText("75");
   });
@@ -214,7 +215,7 @@ for (const width of [390, 1440]) {
       return route.fulfill({ json: { ...job, status: "succeeded", finished_at: NOW.toISOString() } });
     });
     await page.goto("#home");
-    const hero = page.locator(width < 1080 ? ".hm-hero-score-num" : ".hd-hero-score-num");
+    const hero = page.locator(byWidth(width, ".hm-hero-score-num", ".hd-hero-score-num"));
     await expect(hero).toHaveText("75");
     await expect(page.locator(".pd-header .pd-data-refresh, .pd-dk-nav .pd-data-refresh")).toHaveCount(0);
     await page.getByRole("button", { name: "사이드 메뉴 열기", exact: true }).click();

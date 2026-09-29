@@ -1,6 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  DESKTOP_MIN,
+  MOBILE_MAX_WIDTH,
+  MOBILE_WIDTH,
+  TABLET_WIDTH,
+} from "./viewports";
 
-for (const width of [390, 768, 979, 1079]) {
+// 모바일 레이아웃이 유효한 구간의 폭만 씁니다. 숫자를 직접 적으면 분기점이
+// 움직일 때 조용히 어긋납니다 -- 데스크탑 기준이 960 으로 내려간 뒤 여기 있던
+// 979 · 1079 는 데스크탑을 그리고 있었고, 그래서 `.pd-tabbar` 가 없었습니다.
+for (const width of [MOBILE_WIDTH, TABLET_WIDTH, MOBILE_MAX_WIDTH]) {
   test.describe(`${width}px mobile layout`, () => {
     test.use({ viewport: { width, height: 985 } });
 
@@ -8,8 +17,11 @@ for (const width of [390, 768, 979, 1079]) {
       await page.goto("#home");
       await page.waitForLoadState("networkidle");
       const actions = page.locator(".hm-hero-actions");
-      const link = actions.locator(":scope > a");
+      // 히어로에는 진입이 둘입니다 -- 오늘 근거 보기와 코스 만들기(데스크탑
+      // 히어로와 같은 구성). 둘 다 한 줄에 들어가고 넘치지 않아야 합니다.
+      const link = actions.locator(":scope > a").first();
       await expect(link).toHaveText("오늘 후보 활동 5가지 보기 →");
+      await expect(actions.locator(":scope > a").nth(1)).toHaveText("코스 만들기");
       const layout = await actions.evaluate(element => {
         const cta = element.querySelector("a")!;
         return {
@@ -90,12 +102,24 @@ for (const width of [390, 768, 979, 1079]) {
   });
 }
 
-test("1080px keeps the existing desktop navigation layout", async ({ page }) => {
-  await page.setViewportSize({ width: 1080, height: 985 });
+// 분기점 **바로 위** 한 픽셀에서 데스크탑이 되는지 봅니다. 분기점 자체를
+// breakpoints.ts 에서 읽으므로 값이 움직여도 이 검사는 여전히 경계를 봅니다.
+test(`${DESKTOP_MIN}px keeps the existing desktop navigation layout`, async ({ page }) => {
+  await page.setViewportSize({ width: DESKTOP_MIN, height: 985 });
   await page.goto("#home");
   await expect(page.locator(".pd-desktop")).toBeVisible();
   await expect(page.locator(".pd-dk-nav")).toBeVisible();
   await expect(page.locator(".pd-tabbar")).toHaveCount(0);
+});
+
+// 그 아래 한 픽셀은 모바일이어야 합니다. 두 검사가 붙어 있어야 분기점이
+// 한쪽으로 새는 것을 잡습니다 -- 예전에는 위쪽만 있어서, 기준이 내려갔을 때
+// 960~1079 에서 하단 탭바와 상단 네비가 함께 뜨는 것을 아무도 보지 못했습니다.
+test(`${MOBILE_MAX_WIDTH}px keeps the mobile tab bar and no desktop nav`, async ({ page }) => {
+  await page.setViewportSize({ width: MOBILE_MAX_WIDTH, height: 985 });
+  await page.goto("#home");
+  await expect(page.locator(".pd-tabbar")).toBeVisible();
+  await expect(page.locator(".pd-dk-nav")).toHaveCount(0);
 });
 
 
@@ -110,7 +134,7 @@ async function scrollSettled(page: Page) {
   }).toBe(true);
 }
 
-for (const width of [390, 768, 1079]) {
+for (const width of [MOBILE_WIDTH, TABLET_WIDTH, MOBILE_MAX_WIDTH]) {
   test(`${width}px 취향은 아래로 쌓이고, 지금 단계의 버튼은 탭바에 가리지 않는다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("#recommend");

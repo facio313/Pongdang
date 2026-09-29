@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { routePreference } from "./recommendation";
+import { byWidth } from "./viewports";
 
 for (const width of [390, 1440]) {
   test(`the ${width}px home activity link describes the five actual today tiles`, async ({ page }) => {
@@ -10,7 +11,7 @@ for (const width of [390, 1440]) {
     await expect(page.locator("body")).not.toContainText("활동 여섯 가지 모두 보기");
     await link.click();
     await expect(page).toHaveURL(/#today$/);
-    const tiles = page.locator(width < 1080 ? ".td-act" : ".td-activity");
+    const tiles = page.locator(byWidth(width, ".td-act", ".td-activity"));
     await expect(tiles).toHaveCount(5);
     await expect(tiles).toContainText(["수영", "서핑", "휴식", "래프팅", "온천"]);
     await expect(page.locator("body")).not.toContainText("갯벌 지원 중단");

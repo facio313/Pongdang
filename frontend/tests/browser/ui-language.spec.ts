@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { byWidth } from "./viewports";
 
 const languages = [
   { locale: "en", label: "English", menu: "Open side menu", today: "Today", definition: "A reference score from 0 to 100", help: "Missing values appear as" },
@@ -18,7 +19,7 @@ for (const width of [390, 1440]) {
     const [place] = await (await page.request.get("api/data/livecams/preview/places?q=")).json();
     expect(place).toBeTruthy();
     await page.goto(`#spots?spot_id=${place.id}`);
-    const heading = page.locator(width < 1080 ? ".sd-hero-name" : ".sk-detail-name");
+    const heading = page.locator(byWidth(width, ".sd-hero-name", ".sk-detail-name"));
     // The provider's place name stays in its original language.
     await expect(heading).toHaveText(place.name);
     const explainer = page.locator(".pd-explainer:has(.pd-explainer-scale)");
@@ -31,7 +32,7 @@ for (const width of [390, 1440]) {
       await expect(page).toHaveURL(new RegExp(`#spots\\?spot_id=${place.id}$`));
       await expect(explainer).toHaveAttribute("open", "");
       await expect(explainer).toContainText(language.definition);
-      await expect(page.locator(width < 1080 ? ".pd-foot" : ".pd-dk-foot-note")).toContainText(language.help);
+      await expect(page.locator(byWidth(width, ".pd-foot", ".pd-dk-foot-note"))).toContainText(language.help);
       await expect(page.locator('.pd-tabbar a[href="#today"], .pd-dk-nav-links a[href="#today"]')).toHaveText(language.today);
     }
     await changeLanguage(page, "한국어");

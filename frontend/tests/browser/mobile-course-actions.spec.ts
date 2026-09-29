@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { finishMobileTags } from "./recommendation";
+import { MOBILE_MAX_WIDTH, MOBILE_WIDTH } from "./viewports";
 import type { Preference, TripPlan } from "../../src/travelApi";
 
 const writeHeaders = { Origin: "http://127.0.0.1:5177" };
@@ -49,7 +50,12 @@ async function clickAboveTabs(page: Page, action: Locator, atEnd = false) {
   await page.mouse.click(layout.x, layout.y);
 }
 
-for (const viewport of [{ width: 390, height: 844 }, { width: 1079, height: 900 }]) {
+// 모바일 레이아웃이 유효한 구간의 양 끝입니다. 폭을 직접 적으면 분기점이
+// 내려갈 때 데스크탑을 모바일이라고 부르며 검사합니다(1079 가 그랬습니다).
+for (const viewport of [
+  { width: MOBILE_WIDTH, height: 844 },
+  { width: MOBILE_MAX_WIDTH, height: 900 },
+]) {
   test.describe(`${viewport.width}px mobile course actions`, () => {
     test.use({ viewport });
 
