@@ -1514,18 +1514,21 @@ function RecommendScreen() {
         : null,
     ),
   );
+  // 방금 저장한 코스는 다시 싣지 않습니다. 저장이 해시에 plan_id 를 남기므로
+  // 이 조회가 곧장 따라 도는데, 그때 recommendation 을 비우면 **화면에 떠 있던
+  // 후보 목록이 저장하자마자 사라집니다**. 다른 코스를 여는 경우에만 갈아
+  // 끼웁니다(데스크탑 RecommendDesktop.tsx 와 같은 가드).
+  const loadedPlanId = session.plan?.plan_id;
   useEffect(() => {
-    if (requestedPlan.data)
-      setTravelSession({
-        plan: requestedPlan.data,
-        planInput: {
-          request: requestedPlan.data.request,
-          stops: requestedPlan.data.input_stops,
-        },
-        recommendation: null,
-        route: null,
-      });
-  }, [requestedPlan.data]);
+    const plan = requestedPlan.data;
+    if (!plan || plan.plan_id === loadedPlanId) return;
+    setTravelSession({
+      plan,
+      planInput: { request: plan.request, stops: plan.input_stops },
+      recommendation: null,
+      route: null,
+    });
+  }, [requestedPlan.data, loadedPlanId]);
   // The form's own state only. Wishes the user speaks (companion, transport,
   // activity, dates) are extracted from the actual message by the server, not
   // guessed here from a fixed button label.
@@ -1936,6 +1939,21 @@ function RecommendScreen() {
               (requestedPlan.loading
                 ? t("저장 상세를 불러오는 중입니다.")
                 : profileError)}
+            {/* 진행 중인 조회를 멈출 방법이 없었습니다. 추천 · 경로 계산은
+                수 초가 걸리는데 취소가 없으면 되돌아갈 방법이 화면을 떠나는
+                것뿐입니다(데스크탑은 후보 조회에 취소 버튼이 있습니다). */}
+            {action.busy && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="pd-inline pd-tap rc-cancel"
+                  onClick={action.cancel}
+                >
+                  {t("조회 취소")}
+                </button>
+              </>
+            )}
           </p>
         )}
       </article>

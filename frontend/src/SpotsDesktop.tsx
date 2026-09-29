@@ -6,7 +6,7 @@ import { PlaceDetailInformation } from "./PlaceDetailInformation";
 import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
 import { FirstSwimGuide } from "./FirstSwimGuide";
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
-import type { PlaceDetails } from "./placeDetails";
+import { kindLabel, type PlaceDetails } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { gradeOf } from "./groupAGrade";
 import {
@@ -51,9 +51,6 @@ import "./spotsDesktop.css";
 // 이제 목록은 모바일과 같은 훅(useWaterPlaces)이 읽는 실제 장소입니다. 서버에
 // 없는 것은 지어내지 않고 비웁니다.
 
-const KIND_LABEL: Record<string, string> = { beach: "해변", valley: "계곡" };
-const kindLabel = (place: Place) =>
-  (place.type && KIND_LABEL[place.type]) ?? "분류 미확인";
 
 function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (

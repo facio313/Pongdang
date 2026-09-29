@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { DESKTOP_WIDTH, MOBILE_WIDTH } from "./viewports";
 
 /** 같은 사실을 다시 묻지 않는지 봅니다.
  *
@@ -88,31 +89,49 @@ test("탭을 갔다 와도 홈이 같은 자료를 다시 묻지 않는다", asy
  *
  *  이제 목록 전체를 묶어서 묻습니다. 요청 수가 **줄 수를 따라 늘지 않는 것**이
  *  이 검사의 핵심입니다. */
-test("지도 목록은 줄마다 조건을 묻지 않는다", async ({ page }) => {
-  const conditionCalls: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/water-index/conditions"))
-      conditionCalls.push(request.url());
-  });
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("#map");
-  await expect(page.locator(".mk-spot").first()).toBeVisible();
-  await page.waitForLoadState("networkidle");
+// 모바일도 같은 규칙입니다. 예전에는 모바일 지도가 고른 지점 하나만 점수를
+// 갖고 나머지 핀은 전부 «–» 라서 이 검사를 통과할 이유가 없었습니다 -- 묻지
+// 않으니 줄 수만큼 늘 일도 없었고, 대신 화면이 아무 점수도 말하지 않았습니다.
+// 이제 두 폭 모두 묶음으로 묻고, 두 폭 모두 줄 수를 따라 늘지 않아야 합니다.
+for (const { label, width, row } of [
+  { label: "모바일", width: MOBILE_WIDTH, row: ".mp-spotrow" },
+  { label: "데스크탑", width: DESKTOP_WIDTH, row: ".mk-spot" },
+]) {
+  test(`${label} 지도 목록은 줄마다 조건을 묻지 않는다`, async ({ page }) => {
+    const conditionCalls: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/water-index/conditions"))
+        conditionCalls.push(request.url());
+    });
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("#map");
+    await expect(page.locator(row).first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
 
-  const spotRows = await page.locator(".mk-spot").count();
-  expect(spotRows).toBeGreaterThan(1);
-  // 단건 조회는 **고른 지점 하나**에만 허용됩니다. 나머지는 요약 묶음입니다.
-  const single = conditionCalls.filter((url) => url.includes("conditions?"));
-  const batched = conditionCalls.filter((url) => url.includes("conditions/summary"));
-  expect(
-    batched.length,
-    `요약을 ${batched.length}번 물었습니다 -- 묶음은 목록당 한 번이어야 합니다`,
-  ).toBeLessThanOrEqual(1);
-  expect(
-    single.length,
-    `줄마다 조건을 물었습니다(줄 ${spotRows}개, 단건 조회 ${single.length}건)`,
-  ).toBeLessThanOrEqual(2);
-});
+    const spotRows = await page.locator(row).count();
+    expect(spotRows).toBeGreaterThan(1);
+    // 단건 조회는 **고른 지점 하나**에만 허용됩니다. 나머지는 요약 묶음입니다.
+    const single = conditionCalls.filter((url) => url.includes("conditions?"));
+    const batched = conditionCalls.filter((url) => url.includes("conditions/summary"));
+    expect(
+      batched.length,
+      `요약을 ${batched.length}번 물었습니다 -- 묶음은 목록당 한 번이어야 합니다`,
+    ).toBeLessThanOrEqual(1);
+    expect(
+      single.length,
+      `줄마다 조건을 물었습니다(줄 ${spotRows}개, 단건 조회 ${single.length}건)`,
+    ).toBeLessThanOrEqual(2);
+
+    // 고르기 전에도 점수를 말해야 합니다. 전부 «–» 면 묻지 않은 것입니다.
+    const scores = await page
+      .locator(`${row} .pd-num, ${row} .pd-dk-num`)
+      .allInnerTexts();
+    expect(
+      scores.some((text) => /\d/.test(text)),
+      `목록이 점수를 하나도 말하지 않습니다: ${JSON.stringify(scores.slice(0, 8))}`,
+    ).toBe(true);
+  });
+}
 
 /** 가만히 둔 지도가 스스로 다시 묻지 않는지 봅니다.
  *

@@ -213,6 +213,8 @@ export const travelMessages: Record<string, MessageTranslations> = {
   "{arrival} 도착": ["Arrive {arrival}","{arrival} 到达","{arrival} 到着"],
   "시각 미정": ["Time not set","时间未定","時刻未定"],
   "경로 계산 전": ["Route not yet calculated","尚未计算路线","経路計算前"],
+  "경로 미계산": ["Route not calculated","未计算路线","経路未計算"],
+  "예상 이동 {minutes}분": ["About {minutes} min travel","预计移动 {minutes} 分钟","移動目安 {minutes} 分"],
   "경로 미계산:": ["Route not calculated:","路线未计算：","経路未計算："],
   "← AI 대화 이동": ["← Refine in chat","← 通过对话细化","← 会話で絞り込む"],
   "이 코스 다시 저장": ["Save this itinerary again","重新保存此行程","このコースを再保存"],

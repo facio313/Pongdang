@@ -1,6 +1,7 @@
 import { t } from "./i18n.ts";
 import type { Activity } from "./aiApi";
 import { metricText, conditionRetentionText } from "./productData";
+import { gradeOf } from "./groupAGrade";
 import { useHourlyScores } from "./useHourlyScores";
 
 /** 오늘 시간대별 예보 표.
@@ -23,6 +24,12 @@ export function HourlyConditions({
   activity?: Activity;
 }) {
   const hours = useHourlyScores(id, now, activity);
+  // 막대 높이는 **그날 안에서의 상대 위치**입니다. 점수 기여도가 아닙니다
+  // (데스크탑 HourBars 와 같은 규칙).
+  const max = Math.max(
+    ...hours.flatMap((hour) => (hour.score === null ? [] : [hour.score])),
+    1,
+  );
   return (
     <div className="pd-slot">
       <table aria-label={t("오늘 시간대별 수집 예보")}>
@@ -30,15 +37,46 @@ export function HourlyConditions({
         <thead>
           <tr>
             <th scope="col">{t("시각")}</th>
+            {/* 시각별 **점수**. 데스크탑 홈은 막대로 이미 보여 주고 있었고
+                모바일은 원자료(수온 · 파고 · 강수)만 있어, 같은 화면을 두 폭에서
+                보면 한쪽만 「몇 시가 좋은지」를 말했습니다. */}
+            <th scope="col">{t("점수")}</th>
             <th scope="col">{t("수온")}</th>
             <th scope="col">{t("파고")}</th>
             <th scope="col">{t("강수량")}</th>
           </tr>
         </thead>
         <tbody>
-          {hours.map((hour) => (
+          {hours.map((hour) => {
+            const grade = gradeOf(hour.score);
+            return (
             <tr key={hour.hour}>
               <th scope="row">{t("{hour}시", { hour: hour.hour })}</th>
+              <td
+                className="hc-score"
+                data-grade={grade.key}
+                aria-label={t("{hour}시 · {score}", {
+                  hour: hour.hour,
+                  score: hour.score === null
+                    ? t("평가값 없음")
+                    : t("{score}점 {grade}", { score: hour.score, grade: t(grade.label) }),
+                })}
+              >
+                <span className="pd-num hc-score-num">
+                  {hour.loading
+                    ? t("조회 중")
+                    : hour.error
+                      ? t("조회 실패")
+                      : (hour.score ?? "–")}
+                </span>
+                {hour.score !== null && (
+                  <span
+                    className="hc-score-bar"
+                    style={{ width: `${Math.max(6, (hour.score / max) * 100)}%`, background: grade.color }}
+                    aria-hidden="true"
+                  />
+                )}
+              </td>
               {(["water_temperature", "wave_height", "precipitation"] as const).map(
                 (name) => (
                   <td key={name} title={hour.error}>
@@ -51,9 +89,11 @@ export function HourlyConditions({
                 ),
               )}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
+      <p className="pd-note">{t("막대는 그날 안에서의 상대 위치이며 점수 기여도가 아닙니다.")}</p>
       {hours.some(hour => hour.data?.retained) && <p className="pd-retained-note" role="status">
         {conditionRetentionText(hours.find(hour => hour.data?.retained)?.data)}
       </p>}

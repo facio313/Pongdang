@@ -69,6 +69,79 @@
   font-weight: 700;
 }
 
+/* 시트 안 지점 목록. 데스크탑 왼쪽 패널의 .mk-spot 과 같은 사실을 모바일
+   문법(괘선으로 끊은 행)으로 그립니다. */
+.map-page .mp-spotlist {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.map-page .mp-spotrow {
+  display: grid;
+  grid-template-columns: 2.6em 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--pd-touch);
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--pd-line);
+  text-align: left;
+}
+.map-page .mp-spotrow.is-selected {
+  background: var(--pd-mist);
+}
+.map-page .mp-spotrow-score {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: right;
+}
+.map-page .mp-spotrow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.map-page .mp-spotrow-name {
+  font-weight: 700;
+  font-size: var(--pd-fs-sm);
+  color: var(--pd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-page .mp-spotrow-grade,
+.map-page .mp-spotrow-temp {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+
+/* 확대 · 축소 · 현재 위치. 데스크탑(.pd-dk-mapcontrols)과 같은 세로 묶음이되
+   터치 타깃이므로 40px 이 아니라 공용 --pd-touch 를 씁니다. 아래쪽 위치는
+   시트 높이에 따라 달라지므로 인라인 style 로 받습니다(MapPage.tsx). */
+.map-page .mp-mapcontrols {
+  position: absolute;
+  right: 16px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-page .mp-mapcontrols button {
+  width: var(--pd-touch);
+  height: var(--pd-touch);
+  display: grid;
+  place-items: center;
+  background: var(--pd-surface);
+  color: var(--pd-ink-2);
+  border-radius: var(--pd-r-ctl);
+  box-shadow: var(--pd-shadow);
+}
+.map-page .mp-mapcontrols button.is-accent {
+  color: var(--pd-blue-deep);
+}
+
 /* 지점 핀 — 점수 링(conic) + 흰 원 안에 점수. 색만으로 판단을 전달하지
    않도록 링 옆 라벨에 지점명과 점수를 함께 적습니다. */
 .map-page .mp-pin {

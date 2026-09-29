@@ -586,3 +586,97 @@
   flex: none;
   margin-top: 2px;
 }
+
+/* ── 목록 줄의 오른쪽 열 ─────────────────────────────── */
+/* 데스크탑 목록은 줄마다 「상세 →」와 점수 자리를 오른쪽에 두고 있었고,
+   모바일은 사진과 본문뿐이라 어디를 눌러야 상세인지 사진밖에 없었습니다. */
+.spots-page .sp-row-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  flex: none;
+  text-align: right;
+}
+.spots-page .sp-row-unscored {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.spots-page .sp-row-link {
+  font-size: var(--pd-fs-cap);
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+}
+.spots-page .sp-row-meta {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.spots-page .sp-meta-name {
+  margin-right: 5px;
+}
+.spots-page .sp-kind-counts {
+  margin-top: 6px;
+}
+
+/* ── 상세: 위치 지도와 주변 명소 ─────────────────────── */
+.spots-page .sd-map {
+  position: relative;
+  height: 180px;
+  margin-top: 10px;
+  border-radius: var(--pd-r-ctl);
+  overflow: hidden;
+  background: #cfdcea;
+}
+.spots-page .sd-map-empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 10px;
+}
+.spots-page .sd-map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  border: 2px solid #fff;
+  box-shadow: var(--pd-shadow);
+}
+.spots-page .sd-nearby {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--pd-touch);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--pd-line);
+  color: inherit;
+  text-decoration: none;
+}
+.spots-page .sd-nearby-distance {
+  flex: none;
+  min-width: 3.4em;
+  font-weight: 700;
+  color: var(--pd-blue-deep);
+}
+.spots-page .sd-nearby-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.spots-page .sd-nearby-name {
+  font-size: var(--pd-fs-sm);
+  font-weight: 700;
+}
+.spots-page .sd-nearby-meta {
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}

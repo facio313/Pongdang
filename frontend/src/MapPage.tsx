@@ -4,11 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { MapDesktop } from "./MapDesktop";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
-import { GradeChip, Icon, Skeleton, StateChip, type IconName } from "./pongdangUi";
+import {
+  ComponentBars,
+  GradeChip,
+  Icon,
+  ScoreExplainer,
+  ScoreReason,
+  Skeleton,
+  StateChip,
+  type IconName,
+} from "./pongdangUi";
+import { componentBars, scoreReason } from "./scoreMeaning";
 import { AppFootNote, AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
+import { useConditionSummaries } from "./useConditionSummaries";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { useAction } from "./useAction";
@@ -20,6 +31,7 @@ import {
   conditionPath,
   conditionTargetInRange,
   dataStatusText,
+  formatValue,
   kstDate,
   metricText,
   timeLabel,
@@ -41,7 +53,8 @@ import { setTravelSession, useTravelSession } from "./travelSession";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { mappablePlaces } from "./useWaterPlaces";
-import { KakaoMapCanvas } from "./KakaoMapCanvas";
+import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
+import { spotLink } from "./spotsRoute";
 import { MapSheet } from "./MapSheet";
 import { useSheetHeight } from "./useSheetHeight";
 import "./mapPage.css";
@@ -112,11 +125,16 @@ function Stage({
     () => (view === "course" ? routePaths(session.route) : []),
     [session.route, view],
   );
+  // 확대 · 축소 · 현재 위치. 제어 API 는 공용 KakaoMapCanvas 가 이미 내주고
+  // 있었고(MapControlApi) 데스크탑만 받아 쓰고 있었습니다 -- 모바일에서는
+  // 손가락으로만 움직일 수 있었고, 현재 위치로 가는 방법이 없었습니다.
+  const [mapApi, setMapApi] = useState<MapControlApi | null>(null);
   return (
     <div className="mp-stage">
       <KakaoMapCanvas
         markers={markers}
         paths={paths}
+        onReady={setMapApi}
         selectedId={selectedSpotId === null ? null : String(selectedSpotId)}
         // 위는 코발트 헤더 + 검색 알약이, 아래는 시트가 덮습니다. 덮인 만큼
         // 여백을 잡아야 핀이 그 뒤로 숨지 않습니다.
@@ -142,7 +160,14 @@ function Stage({
               }
               data-inline-pin="true"
               aria-pressed={spot.id === selectedSpotId}
-              aria-label={spot.name}
+              // 화면에 보이는 것(점수 · 등급)을 그대로 읽어 줍니다. 예전에는
+              // 이름뿐이라 스크린리더로는 어느 핀이 좋은지 알 수 없었습니다.
+              // 명소 지도(SpotsPage)와 데스크탑은 이미 이 형식입니다.
+              aria-label={t("{name} 퐁당 {score} {grade}", {
+                name: spot.name,
+                score: spot.score ?? "–",
+                grade: t(grade.label),
+              })}
               onClick={() => onSelectSpot(spot.id)}
             >
               <span
@@ -194,6 +219,35 @@ function Stage({
           {t("선택 코스 · {count}곳 · {minutes}", { count: courseIds.length, minutes: session.route?.route ? t("{minutes}분 이동", { minutes: session.route.route.travel_minutes }) : t("경로 계산 전") })}
         </div>
       )}
+
+      {/* 시트 위에 떠 있는 지도 컨트롤. 시트가 덮는 높이만큼 띄워야 가려지지
+          않으므로 sheetHeight 를 그대로 씁니다(핀의 insets 와 같은 값). */}
+      <div
+        className="mp-mapcontrols"
+        style={{ bottom: `calc(${sheetHeight + 12}px + 8px)` }}
+      >
+        <button type="button" aria-label={t("확대")} onClick={() => mapApi?.zoomIn()}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        <button type="button" aria-label={t("축소")} onClick={() => mapApi?.zoomOut()}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M5 12h14" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="is-accent"
+          aria-label={t("현재 위치로 이동")}
+          onClick={() => void mapApi?.locate()}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
@@ -265,7 +319,16 @@ function SpotSheet({
 
         {/* 안전 상태는 바로 위 mp-chips 가 이미 크게 말하고 있으므로 이 줄의
             칩은 끕니다. 문장 자체는 「근거 보기」 안에 그대로 있습니다. */}
-        <p className="pd-note">{t("지도 점수는 선택한 장소를 조회한 값입니다.")}</p>
+        {/* 목록·핀의 점수를 묶음으로 받게 되면서 「선택한 장소를 조회한 값」은
+            더 이상 사실이 아닙니다. 데스크탑과 같은 문장을 씁니다. */}
+        <p className="pd-note">{t("마커 좌표는 서버가 준 실제 값입니다. 목록의 점수는 지점마다 따로 묻지 않고 묶어서 한 번에 조회하며, 근거가 없는 지점은 «–» 입니다. NULL · unknown 은 안전한 상태를 뜻하지 않습니다.")}</p>
+        {/* 점수를 이루는 항목과 그 이유. 데스크탑 지도는 이 두 층을 이미
+            보여 주고 있었고 모바일은 접기(ConditionScoreDetails) 안에만
+            있었습니다 -- 펴 보지 않으면 무엇으로 몇 점인지 알 수 없었습니다.
+            공용 pongdangUi 의 같은 컴포넌트를 씁니다. */}
+        <ComponentBars bars={componentBars(conditions)} loading={loading} />
+        <ScoreReason text={scoreReason(conditions).text} loading={loading} />
+        <ScoreExplainer data={conditions} />
         <EvidenceNote data={conditions} className="pd-note" chip={false} />
         <ConditionScoreDetails data={conditions} className="pd-note" />
       </div>
@@ -282,6 +345,12 @@ function SpotSheet({
         <button type="button" className="pd-primary mp-action" onClick={onAdd}>
           <Icon name="course" size={16} />{t("코스에 넣기")}</button>
       </div>
+      {/* 명소 상세로 가는 길. 데스크탑 지도에는 있었고 모바일 지도에는 없어서,
+          지도에서 고른 장소의 운영 안내 · 사진 · 주변 명소를 보려면 명소 탭에서
+          같은 장소를 다시 찾아야 했습니다. */}
+      <p className="pd-note mp-detail-link">
+        <a className="pd-inline pd-tap" href={spotLink(spot)}>{t("상세 →")}</a>
+      </p>
       <p className="pd-note mp-actions-note">
         <StateChip kind="live" /> {t("카카오 지도에 등록 좌표를 전달합니다. 코스에 넣으면 저장 전 일정에 추가합니다.")}{" "}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
@@ -670,6 +739,8 @@ function MapScreen() {
     () => mappablePlaces(raw).map(({ place }) => place),
     [raw],
   );
+  // 좌표가 없어 지도에 찍지 못한 장소 수. 데스크탑과 같은 계산입니다.
+  const unmapped = raw.length - originRows.length;
   const courseSpotIds =
     session.route?.route?.items.map((item) => item.spot_id) ??
     session.planInput?.stops.map((item) => item.spot_id) ??
@@ -681,25 +752,44 @@ function MapScreen() {
   // "코스 경로" 뷰에서는 지점 점수를 보여주지 않으므로 여기서는 묻지
   // 않습니다 -- 코스 정차지마다 부르지 않는 CourseSheet 와 같은 규칙입니다.
   const conditions = useConditions(selected?.id, undefined, undefined, view === "spots");
-  const spots = raw.map((item) => ({
-    ...item,
-    score:
-      item.id === selected?.id
+  // 목록 전체의 점수 · 수온은 **묶음으로 한 번** 조회합니다(데스크탑
+  // MapDesktop.tsx 와 같은 훅). 예전에는 이 화면이 고른 지점 하나만 점수를
+  // 갖고 나머지 핀은 전부 «–» 였습니다 -- 지도를 열어도 어디가 좋은지 알 수
+  // 없었고, 화면은 그것을 「선택한 장소를 조회한 값」이라고만 적어 두었습니다.
+  //
+  // 줄마다 useConditions 를 부르는 방법은 쓰지 않습니다. 그러면 목록이 100줄일
+  // 때 조회가 100건 나가고, 서버 연결 슬롯 네 개가 서로를 굶깁니다
+  // (useConditionSummaries 의 주석).
+  const summaries = useConditionSummaries(
+    useMemo(
+      () => (view === "spots" ? (places.rows ?? []).map((place) => place.id) : []),
+      [places.rows, view],
+    ),
+  );
+  const spots = raw.map((item) => {
+    // 고른 지점은 그 하나만 보는 상세 조회(conditions)를 씁니다. 묶음 요약보다
+    // 항목이 많아, 아래 시트의 타일 · 근거가 읽을 것이 거기 있습니다.
+    const isSelected = item.id === selected?.id;
+    const summary = summaries.byId.get(item.id);
+    return {
+      ...item,
+      score: isSelected
         ? conditionScore(conditions.data)
-        : null,
-    waterTemp:
-      item.id === selected?.id
+        : conditionScore(summary),
+      waterTemp: isSelected
         ? metricText(conditions.data, "water_temperature")
-        : "–",
-    airTemp:
-      item.id === selected?.id
+        : formatValue(
+            summary?.water_temperature?.value,
+            summary?.water_temperature?.unit,
+          ),
+      // 기온 · 풍속은 묶음 요약에 없습니다. 고른 지점에서만 말합니다 -- 없는
+      // 값을 만들지 않습니다.
+      airTemp: isSelected
         ? metricText(conditions.data, "air_temperature")
         : "–",
-    wind:
-      item.id === selected?.id
-        ? metricText(conditions.data, "wind_speed")
-        : "–",
-  }));
+      wind: isSelected ? metricText(conditions.data, "wind_speed") : "–",
+    };
+  });
   const spot = spots.find((item) => item.id === selected?.id);
   const action = useAction();
   const add = () =>
@@ -840,6 +930,45 @@ function MapScreen() {
                 onKind={(kind) => { browser.setKind(kind); setSelectedSpotId(null); }}
               />
               <WaterPlacePagination {...places} count={places.rows?.length ?? 0} onPage={(page) => { browser.setPage(page); setSelectedSpotId(null); }} />
+              {/* 지도에 찍지 못한 장소가 있으면 몇 곳인지 말합니다. 데스크탑은
+                  적고 있었고 모바일은 세지도 않아, 목록 개수와 핀 개수가 다른
+                  이유를 화면이 설명하지 않았습니다. */}
+              <p className="pd-note">{t("현재 페이지와 선택한 장소 중 좌표가 있는 곳을 표시합니다.")}{unmapped > 0 &&
+                t(" 좌표가 아직 확인되지 않은 {count}곳은 지도에 찍지 않았습니다 — 없는 위치를 임의로 만들지 않습니다.", { count: unmapped })}
+              </p>
+              {/* 점수가 붙은 지점 목록. 데스크탑 왼쪽 패널의 mk-spot 목록과 같은
+                  사실(점수 · 이름 · 등급 · 수온)을 시트 문법으로 그립니다.
+                  예전에는 모바일에서 핀을 하나씩 눌러 보는 것 말고는 어디가
+                  좋은지 견줄 방법이 없었습니다. */}
+              <ul className="mp-spotlist">
+                {(places.rows ?? []).map((place) => {
+                  const row = spots.find((item) => item.id === place.id);
+                  const grade = gradeOf(row?.score ?? null);
+                  const isSelected = place.id === selected?.id;
+                  return (
+                    <li key={place.id}>
+                      <button
+                        type="button"
+                        className={"mp-spotrow" + (isSelected ? " is-selected" : "")}
+                        data-grade={grade.key}
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedSpotId(place.id)}
+                      >
+                        <span className="pd-num mp-spotrow-score" style={{ color: grade.color }}>
+                          {(isSelected ? isInitialLoad(conditions) : summaries.loading)
+                            ? <Skeleton width="1.6em" label={t("점수 조회 중")} />
+                            : (row?.score ?? "–")}
+                        </span>
+                        <span className="mp-spotrow-body">
+                          <span className="mp-spotrow-name">{place.name}</span>
+                          <span className="mp-spotrow-grade">{t(grade.label)}</span>
+                        </span>
+                        <span className="pd-num mp-spotrow-temp">{row?.waterTemp ?? "–"}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </>}
             {view === "spots" ? (
               spot ? (

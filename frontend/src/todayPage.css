@@ -71,6 +71,12 @@
 
 /* ── 섹션 머리 ─────────────────────────────────────────── */
 
+/* 점수 근거 카드의 상태 칩 줄. 데스크탑은 LabelRow 의 chip 자리에 들어가는
+   것이 모바일에서는 카드 안 첫 줄입니다. */
+.today-page .td-basis-chip {
+  margin-bottom: 8px;
+}
+
 .today-page .td-section-head {
   display: flex;
   align-items: baseline;
@@ -348,6 +354,25 @@
   margin-left: auto;
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
+}
+
+/* 장소 운영 안내 줄. 이용시간 · 개장 기간 · 휴무일이 여러 줄이 될 수 있어
+   물때 행과 달리 오른쪽 값이 접힙니다(데스크탑 .td-place-hours 와 같은 사실). */
+.today-page .td-place-hours {
+  align-items: flex-start;
+}
+.today-page .td-place-hours .td-tide-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 58%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.today-page .td-hours-label {
+  margin-right: 6px;
+  font-weight: 700;
+  color: var(--pd-ink);
 }
 
 /* ── 올해 첫 입수 ──────────────────────────────────────── */
