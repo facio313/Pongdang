@@ -13,6 +13,9 @@ const CONDITION_LABELS: Record<string, string> = {
   official_controls_completeness: "공식 통제 정보의 완전성",
   child_friendly: "어린이 동반 적합성",
   place_role_unconfirmed: "장소 용도",
+  budget_not_specified: "예산 미입력",
+  incidental_costs_unknown: "식비 등 추가 비용",
+  return_deadline_required: "귀가 마감 시각",
 };
 
 export function unknownConditionsText(conditions: string[]): string {
@@ -197,6 +200,7 @@ export interface PlanInput {
   stops: StopInput[];
   selection_token?: string;
   selected_ranks?: number[];
+  route_token?: string;
 }
 export interface PlanItem {
   item_id: string;
@@ -218,6 +222,7 @@ export interface TripPlan {
   unresolved: string[];
   queried_at: string;
   route_status: string;
+  route_snapshot?: RouteResult | null;
 }
 /** The server preserves the provider's own longitude/latitude objects. */
 export interface RoutePoint {

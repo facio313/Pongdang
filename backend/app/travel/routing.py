@@ -10,11 +10,11 @@ from datetime import UTC, date, datetime, timedelta
 from fastapi import HTTPException
 from pydantic import Field, model_validator
 
-from app.travel import keywords, storage, tokens
+from app.travel import keywords, route_snapshot, storage, tokens
 from app.travel.catalog import KST, Catalog
 from app.travel.directions import DirectionError, KakaoDirections
 from app.travel.environment import EnvironmentReader
-from app.travel.models import Record, TravelPreference, TravelRequest
+from app.travel.models import PlanInput, Record, TravelPreference, TravelRequest
 from app.travel.recommend import rank_places
 
 
@@ -394,7 +394,11 @@ async def recommend_route(
         for candidate in candidates[1:4]
     ]
     result["plan_input"] = {
-        "request": original.model_dump(mode="json"),
+        "request": {
+            **original.model_dump(mode="json"),
+            "dates": [day.isoformat()],
+            "day_trip": True,
+        },
         "stops": [
             {
                 "item_id": f"route-{index}-{item['spot_id']}",
@@ -409,6 +413,9 @@ async def recommend_route(
         :16
     ]
     result["result_id"] = "route:" + digest
+    result["plan_input"]["route_token"] = route_snapshot.encode(
+        settings, owner, PlanInput.model_validate(result["plan_input"]), result, now
+    )
     return result
 
 

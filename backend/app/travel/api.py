@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 from pydantic import Field
 
 from app.auth import Principal, require_principal
-from app.travel import companion, storage, tokens
+from app.travel import companion, route_snapshot, storage, tokens
 from app.travel.catalog import Catalog
 from app.travel.language import copy
 from app.travel.models import (
@@ -115,10 +115,18 @@ def create_router(settings):
 
             async def bounded(request: Request):
                 if request.method not in {"GET", "HEAD"}:
+                    limit = 64000
+                    if self.path in {
+                        "/api/data/travel/plans/draft",
+                        "/api/data/travel/plans",
+                        "/api/data/travel/plans/{plan_id}",
+                    }:
+                        # Only plan writes accept the bounded, signed road receipt.
+                        limit += route_snapshot.MAX_TOKEN_LENGTH
                     body = bytearray()
                     async for chunk in request.stream():
                         body.extend(chunk)
-                        if len(body) > 64000:
+                        if len(body) > limit:
                             raise HTTPException(413, "travel_input_limit")
                     request._body = bytes(body)
                 try:
@@ -325,6 +333,13 @@ def create_router(settings):
             raise HTTPException(409, "plan_revision_conflict")
         preserve_fixed(previous, body)
         plan = await draft_plan(settings, actor.subject, body)
+        if (
+            not body.route_token
+            and previous.route_snapshot
+            and previous.request == body.request
+            and previous.input_stops == body.stops
+        ):
+            plan = route_snapshot.attach(plan, previous.route_snapshot)
         return await asyncio.to_thread(
             storage.save_plan,
             settings,

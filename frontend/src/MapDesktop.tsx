@@ -27,7 +27,6 @@ import {
   conditionPath,
   conditionScore,
   conditionTargetInRange,
-  dataStatusText,
   dateLabel,
   formatValue,
   metricText,
@@ -212,32 +211,26 @@ export function MapDesktop() {
           stops: savedPlan.data.input_stops,
         },
         recommendation: null,
-        route: null,
+        route: savedPlan.data.route_snapshot ?? null,
       });
   }, [savedPlan.data]);
 
-  // ── 내 코스 목록 (좌측 패널 초기 화면) ──────────────────────
+  // ── 내 코스 목록 (항상 표시하는 좌측 패널) ──────────────────
   // 저장한 코스와 동행 알림 상태를 함께 조회합니다(useMyPlansWithAlarm).
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
   const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
   const openSavedPlan = (plan: TripPlan) => {
+    setOriginId(null);
     setTravelSession({
       plan,
       planInput: { request: plan.request, stops: plan.input_stops },
       recommendation: null,
-      route: null,
+      route: plan.route_snapshot ?? null,
     });
-    setSelectedPlanId(plan.plan_id!);
     window.history.replaceState(
       null,
       "",
       `#map?view=course&plan_id=${plan.plan_id}`,
     );
-  };
-  const backToCourseList = () => {
-    setSelectedPlanId(null);
-    setTravelSession({ plan: null, planInput: null, recommendation: null, route: null });
-    window.history.replaceState(null, "", "#map?view=course");
   };
 
   // ── 지점 보기 ──────────────────────────────────────────────
@@ -285,12 +278,6 @@ export function MapDesktop() {
   const unmapped = allRows.length - pinned.length;
 
   // ── 코스 보기 ──────────────────────────────────────────────
-  // 왼쪽 패널의 초기 화면은 내 코스 목록입니다. 저장된 코스를 고르거나
-  // (selectedPlanId), 추천에서 아직 저장 전인 초안(planInput)을 들고 온
-  // 경우에만 상세(이동 순서)를 곧바로 보여줍니다.
-  const showCourseDetail =
-    Boolean(selectedPlanId) ||
-    (!session.plan?.plan_id && Boolean(session.planInput?.stops.length));
   // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
   // travel/sessions 를 이미 결합해 두었으므로 plan_id 로 찾기만 합니다.
   const selectedAlarm = myPlansWithAlarm.find(
@@ -326,8 +313,8 @@ export function MapDesktop() {
     [];
   const coursePlaces = usePlacesById(view === "course" ? courseSpotIds : []);
   // 세션에서 경로를 계산하지 않았어도, 저장된 코스라면 저장 시점에 계산해 둔
-  // 구간별 이동시간(previous_leg)이 남아 있을 수 있습니다. 도로 경로선은
-  // 저장하지 않으므로 그건 세션 계산(calculated) 없이는 그릴 수 없습니다.
+  // 구간별 이동시간(previous_leg)이 남아 있을 수 있습니다. 예전 코스에는
+  // 도로선 스냅샷이 없으므로 그 경우에만 저장된 구간 시간을 사용합니다.
   const hasStoredDurations = !calculated && courseItems.some(
     (item) => (item as PlanItem).previous_leg?.duration_minutes != null,
   );
@@ -374,6 +361,7 @@ export function MapDesktop() {
     recalculateCourse,
     candidateTrip,
   } = useCourseRouteOptimization(rows, courseSpotIds, coursePlaces.rows, action);
+  const courseLink = candidateTrip ?? wholeTrip;
   const coursePaths = useMemo(
     () => (view === "course" ? routePaths(session.route) : []),
     [session.route, view],
@@ -412,7 +400,6 @@ export function MapDesktop() {
   // 「코스 생성」은 폼 없이 경로 최적화(필요할 때만) + 저장을 한 번에 합니다.
   const createCourse = () =>
     createCourseFor((plan) => {
-      setSelectedPlanId(plan.plan_id!);
       window.history.replaceState(
         null,
         "",
@@ -769,205 +756,180 @@ export function MapDesktop() {
           </>
         ) : (
           <>
-            {/* 왼쪽 패널: 상세를 볼 코스가 없으면 내 코스 목록, 있으면 이동
-                순서(모바일 CourseSheet 의 mp-rows 와 같은 데이터). */}
-            <aside className="pd-dk-mappanel is-start" aria-label={t(showCourseDetail ? "이동 순서" : "내 코스 목록")}>
-              {showCourseDetail ? (
-                <>
-                  <div className="pd-dk-mappanel-badge">{t("선택 코스의 정차지 순서 · 카카오맵 길찾기")}</div>
-                  <div className="mk-course-panel-head">
-                    <span className="pd-dk-kick">{t("이동 순서")}</span>
-                    <StateChip kind="live" />
+            {/* 왼쪽에는 코스 목록을 유지하고 선택한 코스의 상세만 오른쪽에서 바꿉니다. */}
+            <aside className="pd-dk-mappanel is-start" aria-label={t("내 코스 목록")}>
+              <div className="pd-dk-mappanel-badge">{t("추천 탭에서 저장한 코스가 그대로 쌓입니다")}</div>
+              <div className="mk-course-panel-head">
+                <span className="pd-dk-kick">{t("내 코스 목록")}</span>
+                <StateChip kind={myPlans.data ? "live" : "no_data"} />
+              </div>
+              {myPlansWithAlarm.map(({ plan, alarm }) => (
+                <button
+                  type="button"
+                  className={"cd-saved" + (session.plan?.plan_id === plan.plan_id ? " is-selected" : "")}
+                  aria-pressed={session.plan?.plan_id === plan.plan_id}
+                  disabled={action.busy}
+                  key={plan.plan_id}
+                  onClick={() => openSavedPlan(plan)}
+                >
+                  <div className="cd-saved-body">
+                    <div className="cd-saved-name">
+                      {plan.request.dates[0]
+                        ? t("{date} 물 코스", { date: plan.request.dates[0] })
+                        : t("저장 코스")}
+                    </div>
+                    <div className="cd-saved-meta">
+                      {t("{count}곳", { count: planItems(plan).length })} ·{" "}
+                      {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
+                    </div>
+                    <div className="cd-saved-alarm">
+                      {sessions.error
+                        ? t("동행 알림 조회 실패")
+                        : sessions.loading
+                          ? t("동행 알림 조회 중")
+                          : alarm
+                            ? t("동행 알림 켬")
+                            : t("동행 알림 꺼짐")}
+                    </div>
                   </div>
-                  {session.plan?.plan_id && (
-                    <>
-                      <div className="mk-course-alarm">
-                        <GradeChip score={courseSelectedScore} />
-                        <span className="mk-note">
-                          {selectedAlarm ? t("동행 세션에서 켜짐") : t("시작된 동행 알림 없음")}
-                        </span>
-                      </div>
-                      <p className="mk-note">
-                        {courseFirst?.name ?? t("첫 장소 없음")} · {courseFirst?.at ?? t("일정 시각 없음")}.{" "}
+                </button>
+              ))}
+              {!myPlans.data?.rows.length && (
+                <p className="mk-note" role={myPlans.error ? "alert" : "status"}>
+                  {myPlans.error ??
+                    (myPlans.loading
+                      ? t("저장 코스를 불러오는 중입니다.")
+                      : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}
+                </p>
+              )}
+            </aside>
+
+            <aside className="pd-dk-mappanel is-end" aria-label={t("선택한 코스")}>
+              <div className="mk-course-panel-head">
+                <span className="pd-dk-kick">{t("선택한 코스")}</span>
+              </div>
+              {courseStops.length > 0 && <>
+                {session.plan?.plan_id && courseFirst && (
+                  <div className="mk-course-score">
+                    <p className="mk-course-score-place">
+                      {t("첫 장소 · {name}", { name: courseFirst.name })}
+                    </p>
+                    <div className="mk-course-score-value">
+                      <span>{scoreTitle(session.plan.request.activity ?? "relax")}</span>
+                      <GradeChip score={courseSelectedScore} />
+                    </div>
+                    <p className="mk-note">
+                      {t("{date} · {time} 예보 기준", { date: dateLabel(courseFirst.at), time: timeLabel(courseFirst.at) })}
+                    </p>
+                    {selectedAlarm && <p className="mk-note">{t("동행 알림 켬")}</p>}
+                    {(!courseFirstValid || courseFirstConditions.error) && (
+                      <p className="mk-note" role="status">
                         {courseFirstValid ? courseFirstConditions.error : t("저장 날짜가 점수 조회 범위(한국시간 오늘부터 7일 뒤까지)를 벗어났거나 일정 시각이 없습니다.")}
                       </p>
-                    </>
-                  )}
-                  {selectedPlanId && (
-                    <button type="button" className="pd-dk-button is-quiet" onClick={backToCourseList}>
-                      {t("← 코스 목록으로")}
-                    </button>
-                  )}
-                  <div className="mk-course-rows">
-                    {courseStops.map((stop) => (
-                      <CourseStopRow
-                        key={stop.no}
-                        no={stop.no}
-                        name={stop.name}
-                        meta={stop.meta}
-                        distance={stop.distance}
-                        leg={stop.leg}
-                      />
-                    ))}
+                    )}
                   </div>
+                )}
+                <div className="mk-course-rows">
+                  {courseStops.map((stop) => (
+                    <CourseStopRow
+                      key={stop.no}
+                      no={stop.no}
+                      name={stop.name}
+                      meta={stop.meta}
+                      distance={stop.distance}
+                      leg={stop.leg}
+                    />
+                  ))}
+                </div>
+                <p className="mk-note">
+                  {calculated
+                    ? <>{t(session.plan?.route_status === "saved_estimate" ? "저장된 예상 경로" : "예상 경로")} · {t("도로선 {count}/{total}구간", { count: courseLines, total: calculated.legs.filter((leg) => leg.geometry?.status !== "same_registered_place").length })}</>
+                    : hasStoredDurations
+                      ? t("저장된 구간별 이동시간입니다. 도로 경로선은 이 화면에서 다시 계산해야 표시됩니다.")
+                      : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}
+                </p>
+                {session.route?.optimality === "provisional_missing_comparison_evidence" && (
                   <p className="mk-note">
-                    {session.route?.route_calculated
-                      ? t("출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, {detail}", { detail: session.route.optimality === "provisional_missing_comparison_evidence" ? t("일부 비교 자료가 부족한 임시 결과입니다.") : t("전체 지역의 최적 경로를 뜻하지 않습니다.") })
-                      : hasStoredDurations
-                        ? t("저장된 구간별 이동시간입니다. 도로 경로선은 이 화면에서 다시 계산해야 표시됩니다.")
-                        : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}{" "}
-                    {courseStops.length === 0 &&
-                      t("추천에서 코스를 만들거나 저장한 코스를 열어 주세요.")}
+                    {t("일부 비교 자료가 부족한 임시 결과입니다.")}
                   </p>
-                  {calculated && (
-                    <p className="mk-note">
-                      {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: courseLines, total: calculated.legs.length })}
-                    </p>
-                  )}
-                  {session.plan?.plan_id && (
-                    <p className="mk-note">
-                      <StateChip kind="live" /> {t("상태: {status} · 경로: {route}. 미확인 조건: {unresolved}. 종합 안전 점수는 제공하지 않습니다.", { status: dataStatusText(session.plan.status), route: dataStatusText(session.plan.route_status), unresolved: unknownConditionsText(session.plan.unresolved) || t("없음") })}
-                    </p>
-                  )}
-                  {wholeTrip && (
+                )}
+                {session.plan && session.plan.unresolved.length > 0 && (
+                  <details className="mk-course-details" key={session.plan.plan_id}>
+                    <summary>{t("확인할 항목 {count}개", { count: session.plan.unresolved.length })}</summary>
+                    <p>{unknownConditionsText(session.plan.unresolved)}</p>
+                  </details>
+                )}
+                <div className="mk-course-settings-title">{t("경로 설정")}</div>
+                {rows.length ? (
+                  <label className="mk-origin">
+                    <span className="mk-origin-label">{t("출발지")}</span>
+                    <select
+                      className="mk-origin-select"
+                      aria-label={t("출발지")}
+                      value={String(selectedOrigin?.id ?? "")}
+                      onChange={(event) => setOriginId(Number(event.target.value))}
+                    >
+                      {rows.map((place) => (
+                        <option key={place.id} value={place.id}>
+                          {place.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <p className="mk-note" role="status">
+                    {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
+                  </p>
+                )}
+                <dl className="mk-course-summary">
+                  <div><dt>{t("방문 장소")}</dt><dd>{t("{count}곳", { count: courseStops.length })}</dd></div>
+                  {calculated && <>
+                    <div><dt>{t("예상 이동")}</dt><dd>{t("{minutes}분", { minutes: calculated.travel_minutes })}</dd></div>
+                    <div><dt>{t("예상 귀가")}</dt><dd>{timeLabel(calculated.return_at)}</dd></div>
+                  </>}
+                </dl>
+                <div className="mk-course-actions">
+                  <button
+                    type="button"
+                    className="pd-dk-button"
+                    aria-busy={action.busy}
+                    disabled={!session.planInput?.stops.length || action.busy}
+                    onClick={session.plan?.plan_id ? recalculateCourse : createCourse}
+                  >
+                    {action.busy && <Icon name="refresh" size={16} className="rt-submit-spin" />}
+                    {action.busy
+                      ? t("계산 중…")
+                      : session.plan?.plan_id
+                        ? t("최적 경로 다시 계산")
+                        : t("코스 생성")}
+                  </button>
+                  {courseLink && (
                     <a
-                      className="pd-dk-button"
-                      href={wholeTrip}
+                      className="pd-dk-button is-quiet"
+                      href={courseLink}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       <Icon name="transit" size={16} />{t("카카오맵에서 순서대로 길찾기 →")}
                     </a>
                   )}
-                </>
-              ) : (
-                <>
-                  <div className="pd-dk-mappanel-badge">{t("추천 탭에서 저장한 코스가 그대로 쌓입니다")}</div>
-                  <div className="mk-course-panel-head">
-                    <span className="pd-dk-kick">{t("내 코스 목록")}</span>
-                    <StateChip kind={myPlans.data ? "live" : "no_data"} />
-                  </div>
-                  {myPlansWithAlarm.map(({ plan, alarm }) => (
-                    <button
-                      type="button"
-                      className="cd-saved"
-                      key={plan.plan_id}
-                      onClick={() => openSavedPlan(plan)}
-                    >
-                      <div className="cd-saved-body">
-                        <div className="cd-saved-name">
-                          {plan.request.dates[0]
-                            ? t("{date} 물 코스", { date: plan.request.dates[0] })
-                            : t("저장 코스")}
-                        </div>
-                        <div className="cd-saved-meta">
-                          {t("{count}곳", { count: planItems(plan).length })} ·{" "}
-                          {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
-                        </div>
-                        <div className="cd-saved-alarm">
-                          {sessions.error
-                            ? t("동행 알림 조회 실패")
-                            : sessions.loading
-                              ? t("동행 알림 조회 중")
-                              : alarm
-                                ? t("동행 알림 켬")
-                                : t("동행 알림 꺼짐")}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                  {!myPlans.data?.rows.length && (
-                    <p className="mk-note" role={myPlans.error ? "alert" : "status"}>
-                      {myPlans.error ??
-                        (myPlans.loading
-                          ? t("저장 코스를 불러오는 중입니다.")
-                          : t("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요."))}
-                    </p>
-                  )}
-                </>
-              )}
-            </aside>
-
-            {/* 오른쪽 패널: 후보지 목록과 코스 생성. 출발지·시각 입력 없이
-                「코스 생성」한 번으로 경로 최적화(필요한 경우)와 저장을 함께
-                수행합니다(createCourse, 위 정의 참고). 이미 저장된 코스는
-                같은 정차지로 방문 순서를 다시 최적화해 저장할 수 있습니다
-                (recalculateCourse). */}
-            <aside className="pd-dk-mappanel is-end" aria-label={t("후보지")}>
-              <div className="mk-course-panel-head">
-                <span className="pd-dk-kick">{t("후보지")}</span>
-                <StateChip kind={action.busy ? "no_data" : "live"} />
-              </div>
-              {rows.length ? (
-                <label className="mk-origin">
-                  <span className="mk-origin-label">{t("출발지")}</span>
-                  <select
-                    className="mk-origin-select"
-                    aria-label={t("출발지")}
-                    value={String(selectedOrigin?.id ?? "")}
-                    onChange={(event) => setOriginId(Number(event.target.value))}
-                  >
-                    {rows.map((place) => (
-                      <option key={place.id} value={place.id}>
-                        {place.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <p className="mk-note" role="status">
-                  {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
+                </div>
+                <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
+                  {action.error ||
+                    savedPlan.error ||
+                    t("출발지나 교통 상황이 바뀌면 다시 계산하세요.")}{" "}
+                  {session.route && !session.route.route_calculated
+                    ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
+                    : ""}
                 </p>
-              )}
-              <div className="mk-course-rows">
-                {courseStops.map((stop) => (
-                  <CourseStopRow
-                    key={stop.no}
-                    no={stop.no}
-                    name={stop.name}
-                    meta={stop.meta}
-                    distance={stop.distance}
-                    leg={stop.leg}
-                  />
-                ))}
-              </div>
+              </>}
               {courseStops.length === 0 && (
-                <p className="mk-note" role="status">
-                  {t("추천에서 코스를 만들거나 저장한 코스를 열어 주세요.")}
+                <p className="mk-note" role={savedPlan.error ? "alert" : "status"}>
+                  {savedPlan.error || (savedPlan.loading
+                    ? t("저장 코스를 불러오는 중입니다.")
+                    : t("왼쪽 목록에서 코스를 선택해 주세요."))}
                 </p>
               )}
-              <button
-                type="button"
-                className="pd-dk-button"
-                aria-busy={action.busy}
-                disabled={!session.planInput?.stops.length || action.busy}
-                onClick={session.plan?.plan_id ? recalculateCourse : createCourse}
-              >
-                {action.busy && <Icon name="refresh" size={16} className="rt-submit-spin" />}
-                {action.busy
-                  ? t("계산 중…")
-                  : session.plan?.plan_id
-                    ? t("최적 경로 다시 계산")
-                    : t("코스 생성")}
-              </button>
-              {candidateTrip && (
-                <a
-                  className="pd-dk-button is-quiet"
-                  href={candidateTrip}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Icon name="transit" size={16} />{t("카카오맵에서 후보 순서대로 길찾기 →")}
-                </a>
-              )}
-              <p className="mk-note" role={action.error || savedPlan.error ? "alert" : "status"}>
-                {action.error ||
-                  savedPlan.error ||
-                  t("카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.")}{" "}
-                {session.route && !session.route.route_calculated
-                  ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
-                  : ""}
-              </p>
 
               {/* 전역 주의 문구입니다. 페이지가 스크롤되지 않으므로 화면 아래에 둘
                   자리가 없어 이 패널의 마지막에 들어옵니다. */}

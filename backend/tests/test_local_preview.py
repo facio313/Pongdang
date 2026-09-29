@@ -102,6 +102,72 @@ def test_does_not_inherit_provider_credentials(config, monkeypatch):
     )
 
 
+def test_explicit_kakao_opt_in_keeps_other_integrations_disabled(config, tmp_path):
+    env = tmp_path / "route.env"
+    env.write_text(
+        "KAKAO_REST_API_KEY=explicit-route-test-key\n"
+        "KAKAO_REST_KEY=unused-collection-test-key\n"
+        "AI_API_KEY=unused-ai-test-key\n"
+        "POSTGRES_DB=production\n"
+    )
+    key = preview.read_kakao_route_key(env)
+    settings = preview.preview_settings(config, kakao_rest_api_key=key)
+    assert settings.travel_route_provider == "kakao"
+    assert settings.kakao_rest_api_key.get_secret_value() == "explicit-route-test-key"
+    assert settings.postgres_db == "pongdang_test"
+    assert not settings.kakao_rest_key.get_secret_value()
+    assert not settings.ai_api_key.get_secret_value()
+    assert settings.ai_effective_provider == "disabled"
+    assert settings.notifications_provider == "disabled"
+    assert not settings.notifications_delivery_enabled
+
+
+def test_explicit_kakao_key_fallback_and_missing_key(tmp_path):
+    env = tmp_path / "route.env"
+    env.write_text("KAKAO_REST_API_KEY=\nKAKAO_REST_KEY=fallback-test-key\n")
+    assert preview.read_kakao_route_key(env) == "fallback-test-key"
+    env.write_text("AI_API_KEY=unrelated-test-key\n")
+    with pytest.raises(ValueError, match="no Kakao REST key"):
+        preview.read_kakao_route_key(env)
+
+
+def test_kakao_network_opt_in_preserves_database_and_destination_boundaries():
+    guard = preview.network_guard(15499, kakao_addresses={("1.1.1.1", 443)})
+    guard("socket.getaddrinfo", (preview.KAKAO_DIRECTIONS_HOST, 443))
+    guard("socket.getaddrinfo", (preview.KAKAO_DIRECTIONS_HOST.encode(), 443))
+    guard("socket.connect", (None, ("1.1.1.1", 443)))
+    guard("socket.connect", (None, ("127.0.0.1", 15499)))
+    for destination in [("127.0.0.1", 5432), ("1.1.1.1", 80), ("8.8.8.8", 443)]:
+        with pytest.raises(PermissionError):
+            guard("socket.connect", (None, destination))
+    for hostname, port in [
+        ("example.com", 443),
+        (preview.KAKAO_DIRECTIONS_HOST + ".example.com", 443),
+        (preview.KAKAO_DIRECTIONS_HOST, 80),
+    ]:
+        with pytest.raises(PermissionError):
+            guard("socket.getaddrinfo", (hostname, port))
+
+
+def test_kakao_resolution_rejects_nonpublic_addresses(monkeypatch):
+    def resolve(host, port, **kwargs):
+        assert host == preview.KAKAO_DIRECTIONS_HOST and port == 443
+        return [(None, None, None, None, ("1.1.1.1", 443))]
+
+    monkeypatch.setattr(preview.socket, "getaddrinfo", resolve)
+    assert preview.resolve_kakao_addresses() == frozenset({("1.1.1.1", 443)})
+    for address in ("127.0.0.1", "10.0.0.1", "::1"):
+        monkeypatch.setattr(
+            preview.socket,
+            "getaddrinfo",
+            lambda *args, address=address, **kwargs: [
+                (None, None, None, None, (address, 443))
+            ],
+        )
+        with pytest.raises(ValueError, match="public HTTPS"):
+            preview.resolve_kakao_addresses()
+
+
 def test_login_cookie_and_real_private_auth_chain(app, config):
     with client_for(app) as client:
         assert client.get("/pongdang/api/auth/state").status_code == 401

@@ -6,7 +6,7 @@ from typing import Protocol
 from fastapi import HTTPException
 from pydantic import AwareDatetime, Field
 
-from app.travel import tokens
+from app.travel import route_snapshot, tokens
 from app.travel.catalog import KST, Catalog
 from app.travel.models import Mode, Record, TripPlan
 
@@ -95,6 +95,9 @@ def check_selection(settings, owner, body, now):
 
 async def draft_plan(settings, owner, body, *, now=None, catalog=None, routes=None):
     now = now or datetime.now(UTC)
+    snapshot = (
+        route_snapshot.decode(settings, owner, body, now) if body.route_token else None
+    )
     catalog = catalog or Catalog(settings, now)
     routes = routes or UnconfiguredRoutes()
     check_selection(settings, owner, body, now)
@@ -398,7 +401,7 @@ async def draft_plan(settings, owner, body, *, now=None, catalog=None, routes=No
         adjustments.append({"code": "reduce_cost_or_increase_budget"})
     # Even all entered admission costs do not establish meals/accommodation/etc.
     unresolved.append("incidental_costs_unknown")
-    return TripPlan(
+    plan = TripPlan(
         request=request,
         input_stops=body.stops,
         days=days,
@@ -419,3 +422,4 @@ async def draft_plan(settings, owner, body, *, now=None, catalog=None, routes=No
         queried_at=now,
         route_status=routes.status,
     )
+    return route_snapshot.attach(plan, snapshot) if snapshot else plan

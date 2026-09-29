@@ -121,6 +121,28 @@ def test_manual_order_does_not_restore_unchecked_places(route_case):
     assert result["candidate_scope"]["requested_stop_count"] == 2
 
 
+def test_saved_route_contains_only_the_day_that_was_calculated(route_case):
+    first = (datetime.now(UTC) + timedelta(days=1)).date()
+    second = first + timedelta(days=1)
+    result, _ = route_case(
+        candidate_ranks=[3, 1],
+        preserve_order=True,
+        day=second,
+        request=TravelRequest(
+            dates=[first, second],
+            day_trip=False,
+            departure_time="09:00",
+            origin={"label": "First place", "spot_id": 12},
+        ),
+    )
+    assert result["route_calculated"] is True
+    assert result["plan_input"]["request"]["dates"] == [second.isoformat()]
+    assert result["plan_input"]["request"]["day_trip"] is True
+    assert {stop["day"] for stop in result["plan_input"]["stops"]} == {
+        second.isoformat()
+    }
+
+
 def test_unavailable_checked_place_fails_without_silent_replacement(
     route_case, monkeypatch
 ):

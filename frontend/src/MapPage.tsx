@@ -530,7 +530,7 @@ function CourseSheet({
         </p>
         {calculated && (
           <p className="pd-note">
-            {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: lines, total: calculated.legs.length })}
+            {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: lines, total: calculated.legs.filter((leg) => leg.geometry?.status !== "same_registered_place").length })}
           </p>
         )}
         {session.plan?.plan_id && (
@@ -571,7 +571,7 @@ function CourseSheet({
         )}
       </div>
       <p className="pd-note mp-actions-note">
-        <StateChip kind="partial" /> {t("카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.")}</p>
+        <StateChip kind="partial" /> {t("경로 계산 후 저장하면 도로선과 예상 시각도 함께 보존됩니다. 저장된 예상값이며 현재 교통 상황은 다시 계산해 확인하세요.")}</p>
     </>
   );
 }
@@ -601,7 +601,7 @@ function MapScreen() {
           stops: savedPlan.data.input_stops,
         },
         recommendation: null,
-        route: null,
+        route: savedPlan.data.route_snapshot ?? null,
       });
   }, [savedPlan.data]);
   const [view, setView] = useState<View>(() =>
@@ -620,7 +620,7 @@ function MapScreen() {
       plan,
       planInput: { request: plan.request, stops: plan.input_stops },
       recommendation: null,
-      route: null,
+      route: plan.route_snapshot ?? null,
     });
     setSelectedPlanId(plan.plan_id!);
     window.history.replaceState(
@@ -770,7 +770,7 @@ function MapScreen() {
   // 코드가 두 파일에 복붙되어 있어 한쪽에만 기능(출발지 선택)이 반영되는 일이
   // 있었습니다.
   const {
-    originId,
+    selectedOrigin,
     setOriginId,
     createCourse: createCourseFor,
     recalculateCourse,
@@ -872,7 +872,7 @@ function MapScreen() {
                 sessions={sessions}
                 onSelectPlan={openSavedPlan}
                 originRows={originRows}
-                originId={originId}
+                originId={selectedOrigin?.id ?? null}
                 onOriginChange={setOriginId}
                 candidateTrip={candidateTrip}
               />

@@ -1523,7 +1523,7 @@ function RecommendScreen() {
           stops: requestedPlan.data.input_stops,
         },
         recommendation: null,
-        route: null,
+        route: requestedPlan.data.route_snapshot ?? null,
       });
   }, [requestedPlan.data]);
   // The form's own state only. Wishes the user speaks (companion, transport,

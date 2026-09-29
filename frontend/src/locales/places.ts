@@ -1,6 +1,21 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const placesMessages: Record<string, MessageTranslations> = {
+  "첫 장소 · {name}": ["First stop · {name}", "首站 · {name}", "最初の場所 · {name}"],
+  "{date} · {time} 예보 기준": ["Forecast for {date} · {time}", "以{date} · {time}的预报为准", "{date} · {time}の予報基準"],
+  "저장된 예상 경로": ["Saved route estimate", "已保存的预计路线", "保存された予想経路"],
+  "예상 경로": ["Estimated route", "预计路线", "予想経路"],
+  "도로선 {count}/{total}구간": ["Road paths for {count}/{total} legs", "道路路线{count}/{total}段", "道路線{count}/{total}区間"],
+  "확인할 항목 {count}개": ["{count} items to check", "{count}项待确认", "確認事項{count}件"],
+  "경로 설정": ["Route settings", "路线设置", "経路設定"],
+  "선택한 코스": ["Selected course", "所选行程", "選択したコース"],
+  "왼쪽 목록에서 코스를 선택해 주세요.": ["Select a course from the list on the left.", "请从左侧列表选择行程。", "左の一覧からコースを選んでください。"],
+  "방문 장소": ["Places to visit", "游览地点", "訪問先"],
+  "예상 이동": ["Estimated travel", "预计行驶时间", "予想移動時間"],
+  "출발지나 교통 상황이 바뀌면 다시 계산하세요.": ["Recalculate when your origin or traffic changes.", "出发地或交通状况变化时，请重新计算。", "出発地や交通状況が変わったら再計算してください。"],
+  "예산 미입력": ["Budget not entered", "预算未填写", "予算未入力"],
+  "식비 등 추가 비용": ["Meals and other extra costs", "餐费等额外费用", "食費などの追加費用"],
+  "귀가 마감 시각": ["Return deadline", "最晚返程时间", "帰着期限"],
   "명소 상세정보": ["Place details", "景点详细信息", "スポットの詳細情報"],
   "휴무일": ["Closed days", "休息日", "休業日"],
   "개장일": ["Opening date", "开业日期", "開業日"],
@@ -555,10 +570,11 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "保存到我的行程",
     "マイコースに保存"
   ],
-  "카카오맵 길찾기는 등록 좌표와 순서를 전달합니다. 저장은 방문 장소와 순서를 보존하며 정밀 ETA는 보존하지 않습니다.": [
-    "Kakao Map directions receive the recorded coordinates and visit order. Saving preserves the places and their order, but not precise arrival estimates.",
-    "Kakao 地图导航会接收已登记坐标及顺序。保存会保留到访地点和顺序，但不保留精确预计到达时间。",
-    "Kakao マップのルート案内に登録座標と順序を渡します。保存されるのは訪問先とその順序で、詳細な到着予測時刻は保存されません。"
+  "저장된 경로 예상값": ["Saved route estimate", "已保存的路线估计值", "保存された経路の予測値"],
+  "경로 계산 후 저장하면 도로선과 예상 시각도 함께 보존됩니다. 저장된 예상값이며 현재 교통 상황은 다시 계산해 확인하세요.": [
+    "Saving a calculated route preserves its road paths and estimated times. These are saved estimates; recalculate to check current traffic.",
+    "计算路线后保存时，道路线条和预计时间也会一并保留。这些是保存时的估计值，请重新计算以确认当前交通状况。",
+    "経路を計算して保存すると、道路線と予想時刻も保存されます。保存時の予測値です。現在の交通状況は再計算して確認してください。"
   ],
   "경로 후보는 최대 5곳입니다. 추천에서 코스를 다시 골라 주세요.": [
     "A route can include up to 5 places. Please select your itinerary again in Recommendations.",

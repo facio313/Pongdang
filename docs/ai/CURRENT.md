@@ -1,9 +1,40 @@
-# main 통합·운영 배포 진행 · 2026-09-29
+# 지도 코스 목록·선택 상세 패널 분리 · 2026-09-29
 
-- 사용자 승인: GitHub main의 새 변경 수신, 지금까지 작업한 제품 코드·관련 테스트·문서 커밋·push·운영 배포. 원격 main을 명시 fetch했고 기준 f2a471e와 동일하여 추가 병합 변경은 없다. fix/finale을 커밋한 뒤 기존의 깨끗한 main worktree로 fast-forward하고 main만 push한다. dev/원격 dev는 0f824a9에 보존한다.
+- 사용자 요청: 왼쪽에는 코스 목록을 항상 유지하고, 선택한 코스의 모든 내용은 오른쪽에 표시. 코스 목록으로 버튼 제거, 중복 방문 목록 정리, 긴 상태 안내 축약, 점수 대상과 버튼 간격 명확화.
+- 구현: MapDesktop 왼쪽은 저장 코스 목록과 선택 표시, 오른쪽은 첫 장소의 활동별 예보 점수·방문 순서·저장 경로 상태·경로 설정·이동/귀가 예상·액션으로 구성. 코스 변경 시 출발지 선택을 해당 저장 코스로 초기화하고, 생성/재계산 저장 후 목록 캐시를 갱신한다. 기존 100행 조회 경계 유지.
+- 표시: 현재 88.3은 경포해수욕장/휴식/9월29일15:07 예보 점수임을 함께 표기. 긴 내부 상태 대신 저장된 예상 경로·도로선 4/4구간을 표시하고, 미확인 항목은 한국어 설명의 기본 접힘으로 이동했다. 액션 위 여백20px, 버튼 사이12px. 모바일 레이아웃은 변경하지 않았다.
+- 검증: 명시5파일 ops/verify_local.py로 수정 파일 ESLint·Node212개·증분 TypeScript 통과(9.0초, /tmp/pongdang-course-panel-final-checks.log). 실제 IAB에서 저장4개 목록 유지, 3곳 코스 선택 후 상세/출발지/점수 변경, 원래4곳 코스 복귀 후 도로선4/4·이동21분·귀가19:28 복원, 확인 항목 펼침/접힘 및 간격을 확인했다. 화면 output/playwright/kakao-route/course-list-and-detail.png.
+- 현재 fix/finale 미커밋 변경. 코스 전환 검증은 읽기만 수행했고 추가 경로 계산·DB 갱신·키 변경·커밋·push·배포 없음. 기존 저장 경로 수정과 사용자 변경 보존. 필수 미완료 없음.
+
+# 저장 코스 지도 경로 복원 · 2026-09-29
+
+- 사용자 요청: 저장 코스 지도에서 장소 마커만 보이고 도로 경로가 없는 문제 수정. 원인은 코스 저장이 장소·순서만 보존하고, 지도 재조회가 세션 경로도 초기화한 것이다.
+- 구현: 서버가 계산한 도로선·구간 근거·도착/출발/귀가 예상 시각을 서명된 route_token으로 명시적 저장에 전달한다. 소유자·일정 일치, 30분 유효기간, 압축 해제/입력 크기를 검사하며 저장된 JSONB에 route_snapshot을 보존한다. 조회는 외부 길찾기를 호출하지 않는다. 동일 일정 PUT은 기존 경로를 보존하고 일정 변경 시 버린다. 새 스키마/의존성 없음.
+- 데스크톱·모바일 지도와 추천의 저장 코스 열기가 스냅샷을 복원한다. 저장된 출발지를 기본 선택하고, 명시적 재계산은 이전 결과를 재사용하지 않는다. 출발지=첫 장소인 0분 구간은 실제 도로선 누락 집계에서 제외한다. 화면에 저장된 예상값임을 명시했다.
+- 현재 코스 a6948dc067e24a4799dabf3d3a3bcf99를 같은 격리 테스트 DB에서 revision1→2로 갱신했다. 경포→강문→사근진→순개울 및 각 60분 체류를 보존했다. 지나간 출발 시각은 15:07로 갱신했고 실제 카카오 응답은 이동21분/귀가19:28, 도로선4구간·178좌표였다. PUT 후 GET 결과가 원래 계산 결과와 동일함을 확인했다. 이전 payload는 비공개 local-testing 폴더의 course-a6948dc-before-route.json에 보관했다.
+- 검증: 명시 백엔드7파일 Ruff/format 및 관련49개 테스트 통과(기존 TestClient 의존성 경고2개). 장거리 크기, POST→GET, 동일 일정 PUT 보존/수정 시 초기화, 서명·소유자·만료·압축 경계, 선택 날짜 계약을 확인했다. 프런트 명시 파일 ESLint·Node212개·증분 TypeScript 통과, 모바일 출발지 표시 추가 수정 후 해당 파일 검사도 통과했다. 로그 /tmp/pongdang-saved-route-backend-checks.log, /tmp/pongdang-saved-route-frontend-checks.log, /tmp/pongdang-saved-route-frontend-final.log.
+- 실제 IAB: 저장 코스 새로고침 후 도로선4/4·21분·도착 시각·경포 출발지 표시 확인. 모바일390×844에서도 도로선/시각/출발지를 확인하고 뷰포트를 원복했다. 화면 output/playwright/kakao-route/restored-saved-course.png 및 restored-saved-course-mobile.png. DB/API 응답을 가짜로 대체하지 않았다.
+- 실행: 테스트 backend18000만 PID79814로 재시작, frontend5173 PID65420 유지, test DB127.0.0.1:62022/pongdang_test 표식/격리 유지. readiness는 요구된 Host를 보내는 프런트 경유로200 확인했고 비공개 runtime.json 갱신. 최초 경로 조회는 query_failed였으나 공식 제공자 단일 진단 요청200과 후속 실제 계산 성공을 확인했다. 실패 응답으로 코스를 덮어쓰지 않았다.
+- 기존 사용자 변경·원본 backend8000·collector·운영·dev refs를 보존했고 키 파일 변경·커밋·push·배포 없음. 필수 미완료 없음.
+
+# 로컬 추천 지도·실제 카카오 경로 복구 · 2026-09-29
+
+- 사용자 요청: 추천 하단 지도가 안 보이고 경로 계산이 비활성 상태인 문제를 실제로 복구하고, 후보가 AI인지 규칙 기반인지 설명. 기존 테스트 DB·계정과 운영 격리를 유지한다.
+- 원인: 프런트 실행 환경의 빈 VITE_KAKAO_MAP_KEY가 저장된 frontend/.env.local 값을 덮었고, backend/dev/local_preview.py는 모든 외부 호출과 길찾기를 기본 차단했다. 실제 키 파일은 변경하지 않았다.
+- 구현: local_preview.py에 명시적 --kakao-env 옵션을 추가했다. 해당 파일에서 길찾기 REST 키 하나만 읽으며, 공식 apis-navi.kakaomobility.com을 시작 시 해석한 공개 IP의 HTTPS443만 허용한다. 다른 API 키·운영 DB·SSO 설정은 가져오지 않고 기본 실행은 계속 외부 차단이다. README에 지도/길찾기 선택 실행 방법과 DNS 변경 시 재시작 조건을 기록했다.
+- 실행: frontend5173 PID65420의 빈 키 덮어쓰기를 제거하고 테스트 backend18000 PID65419를 위 옵션으로 재시작했다. 기존 pongdang_test62022 및 표식 검증 유지, readiness200/isolated-local-test 확인. 기존 로컬 테스트 계정 재로그인 후 강릉시·기존 취향4개·첫4곳 선택을 화면에 복원했다. 원본 backend8000·collector·운영 서버는 변경하지 않았다. 비공개 runtime.json에도 PID·선택적 카카오 모드를 기록했다.
+- 실제 화면 검증: 경포→강문→사근진→순개울의 선택 순서로 카카오 경로 계산 성공. 당시 응답은 총 이동19분/14:25 출발/18:44 귀가, 구간별 도착·출발 시각과 실제 도로선4구간 표시. 첫 장소와 출발지가 같아 생기는 0분 구간을 지도 누락 집계에서 제외하여 잘못된 4/5 안내를 수정했다. 가짜 지도·경로 응답은 사용하지 않았다. 캡처 output/playwright/kakao-route/restored-recommendation.png.
+- 추천 설명 근거: backend/app/travel/recommend.py의 결정적 취향 가중치·조건 제외·동점 순서·선택적 환경 선호 비교로 상위5곳을 반환한다. AI 대화 호출과 별개이며 행의 환경 점수는 RecommendDesktop.tsx에서 conditions API로 따로 읽는다. 추천·환경 점수 계산식은 변경하지 않았다.
+- 검증: 백엔드 명시2파일 Ruff/format·격리 경계21개 테스트 통과(2.4초), 프런트 수정파일 ESLint·Node212개·증분 TypeScript 통과(5.9초). 로그 /tmp/pongdang-kakao-preview-checks-20260929.log 및 /tmp/pongdang-kakao-map-ui-checks-20260929.log. 최초 검사 환경 변수 누락과 Ruff1건은 올바른 테스트DB 변수 지정 및 해당 파일 포맷 후 해결했다. 실제 UI는 현재 성공 결과를 유지하며 필수 미완료 없음. 커밋·push·운영 배포 없음, 기존 CURRENT 변경·미추적 파일 보존.
+
+# main 통합·운영 반영 확인 · 2026-09-29
+
+- 사용자 승인: GitHub main의 새 변경 수신, 지금까지 작업한 제품 코드·관련 테스트·문서 커밋·push·운영 배포. 원격 main을 명시 fetch했고 기준 f2a471e와 동일하여 추가 병합 변경은 없었다. 38파일을 ab307728266cd5602f51191adbb8e3813dcd0953으로 커밋, 기존의 깨끗한 main worktree로 fast-forward하고 main만 push했다. 원격 main 같은 SHA 확인. dev/원격 dev는 0f824a9에 보존했다.
 - 범위: 외부 기온 상세 접힘, 다른 지역의 서로 다른 값 비교와 모드 일치, 예보 대기 표시·높이 및 로그인/알림 버튼, 후보 번호 선택·전체 선택·애니메이션 정렬과 선택한 순서의 경로 계약. 운영 이미지에 포함되지 않는 backend/dev 로컬 테스트 도구와 경계 테스트도 보관한다. .env·비밀 설정·DB·.local·.byeori·.playwright-cli·output은 포함하지 않는다.
 - 검증 근거: 기존 수정 파일 검사 결과를 로그와 대조했다. 최종 프런트 lint/212개 Node/증분 TypeScript, 경로 회귀7개, 로컬 테스트 격리17개, disposable DB 비교 API8개 통과. 원격과 내용 병합이 없어 동일 검증을 반복하지 않는다. 실제 마우스·아이폰 터치 드래그 검증 제한은 아래 기록과 같다.
-- 배포는 최신 main의 ci.yml backend/frontend 이미지 빌드 성공 후 기존 호스트 watcher/local gate가 처리한다. 실패 시 기존 gate가 previous 이미지로 복구한다. 운영 SHA·health/readiness·대표 읽기를 확인할 예정이며 아직 배포 완료로 기록하지 않는다. 현재 기본 SSH 키와 bonifacio_deploy 키가 모두 거부되어 직접 운영 상태 확인용 접속 정보를 요청했다.
+- CI https://github.com/facio313/Pongdang/actions/runs/36466952449 에서 정확히 ab30772의 backend/frontend 이미지 빌드 모두 success(03:42KST). 기존 호스트 watcher/local gate의 자동 경로를 사용했으며 수동 중복 배포·host 설정 변경은 없다.
+- 공개 운영 읽기 검증: 프런트 자산이 index-Ba7DRlie.js/index-WfQ6MQbf.css에서 index-Xed7ScNK.js/index-aFGg9Hic.css로 교체됐고 새 JS에서 --rd-reorder-y, rd-step-toggle, preserve_order를 확인했다. 기존422이던 조건 요약 mode=forecast가200/mode forecast/경포470 한 행/누락0으로 응답한다. health와readiness 모두200/status ok. 근거 .local/release-20260929/public-verification.json.
+- 확인 범위: 기본 SSH 키와 bonifacio_deploy 키 모두 거부되어 서버 내부 current SHA·컨테이너 health·watcher outcome은 직접 읽지 못했다. CI 성공과 실제 운영의 새 프런트/API·공개 health는 확인했으며 이를 내부 SHA 검증과 혼동하지 않는다. 이 배포 후 기록은 추가 문서 전용 빌드 없이 로컬에 남긴다. 원본 로컬 테스트 환경과 미추적 .byeori/.playwright-cli/output은 보존했다.
 
 # 추천 후보 자연스러운 순서 이동 · 2026-09-29
 

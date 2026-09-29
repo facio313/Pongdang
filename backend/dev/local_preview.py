@@ -6,14 +6,17 @@ This is a test identity provider, not a connection to production Bonifacio SSO.
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import secrets
+import socket
 import sys
 import time
 from pathlib import Path
 
 import psycopg
 import uvicorn
+from dotenv import dotenv_values
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -27,9 +30,10 @@ ORIGIN = "http://127.0.0.1:5173"
 COOKIE = "pongdang_local_test"
 SUBJECT = "local-test-user"
 SESSION_SECONDS = 12 * 60 * 60
+KAKAO_DIRECTIONS_HOST = "apis-navi.kakaomobility.com"
 
 
-def preview_settings(config):
+def preview_settings(config, *, kakao_rest_api_key=""):
     if (
         config.get("kind") != "pongdang-isolated-local-preview-v1"
         or config.get("postgres_host") != "127.0.0.1"
@@ -61,7 +65,8 @@ def preview_settings(config):
         sso_proxy_secret=secrets.token_urlsafe(48),
         sso_allowed_origins=ORIGIN,
         ai_provider="disabled",
-        travel_route_provider="disabled",
+        travel_route_provider="kakao" if kakao_rest_api_key else "disabled",
+        kakao_rest_api_key=kakao_rest_api_key,
         notifications_provider="disabled",
         notifications_delivery_enabled=False,
         photo_collection_enabled=False,
@@ -165,8 +170,8 @@ class LocalSession:
         return token
 
 
-def create_preview_app(config, *, now=time.monotonic):
-    settings = preview_settings(config)
+def create_preview_app(config, *, now=time.monotonic, kakao_rest_api_key=""):
+    settings = preview_settings(config, kakao_rest_api_key=kakao_rest_api_key)
     verify_database(settings, config["database_marker"])
     access = LocalSession(config["username"], config["password"], now=now)
     app = create_app(settings)
@@ -229,17 +234,48 @@ def create_preview_app(config, *, now=time.monotonic):
     return app
 
 
-def network_guard(database_port):
+def read_kakao_route_key(path):
+    """Opt in to one provider without importing any other environment settings."""
+    values = dotenv_values(path, interpolate=False)
+    key = (values.get("KAKAO_REST_API_KEY") or "").strip() or (
+        values.get("KAKAO_REST_KEY") or ""
+    ).strip()
+    if not key:
+        raise ValueError("The selected environment file has no Kakao REST key")
+    return key
+
+
+def resolve_kakao_addresses():
+    addresses = frozenset(
+        (row[4][0], 443)
+        for row in socket.getaddrinfo(
+            KAKAO_DIRECTIONS_HOST, 443, type=socket.SOCK_STREAM
+        )
+    )
+    if not addresses or any(
+        not ipaddress.ip_address(host).is_global for host, _ in addresses
+    ):
+        raise ValueError("Kakao directions must resolve to public HTTPS addresses")
+    return addresses
+
+
+def network_guard(database_port, *, kakao_addresses=frozenset()):
+    destinations = {("127.0.0.1", database_port), *kakao_addresses}
+
     def audit(event, args):
         if event == "socket.getaddrinfo" and args[0] != "127.0.0.1":
-            raise PermissionError("External network is disabled in local testing")
+            if not (
+                kakao_addresses
+                and args[0] in {KAKAO_DIRECTIONS_HOST, KAKAO_DIRECTIONS_HOST.encode()}
+                and args[1] == 443
+            ):
+                raise PermissionError("External network is disabled in local testing")
         if event == "socket.connect":
             address = args[1]
-            if not isinstance(address, tuple) or address[:2] != (
-                "127.0.0.1",
-                database_port,
-            ):
-                raise PermissionError("Only the isolated test DB is reachable")
+            if not isinstance(address, tuple) or address[:2] not in destinations:
+                raise PermissionError(
+                    "Destination is outside the local preview allowlist"
+                )
 
     return audit
 
@@ -248,10 +284,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--port", type=int, default=18000)
+    parser.add_argument(
+        "--kakao-env",
+        type=Path,
+        help="Enable real Kakao directions using only the REST key in this file",
+    )
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
-    app = create_preview_app(config)
-    sys.addaudithook(network_guard(config["postgres_port"]))
+    route_key = read_kakao_route_key(args.kakao_env) if args.kakao_env else ""
+    app = create_preview_app(config, kakao_rest_api_key=route_key)
+    addresses = resolve_kakao_addresses() if route_key else frozenset()
+    sys.addaudithook(network_guard(config["postgres_port"], kakao_addresses=addresses))
     uvicorn.run(
         app,
         host="127.0.0.1",

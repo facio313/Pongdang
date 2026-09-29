@@ -456,7 +456,7 @@ export function RecommendDesktop() {
       plan,
       planInput: { request: plan.request, stops: plan.input_stops },
       recommendation: null,
-      route: null,
+      route: plan.route_snapshot ?? null,
     });
   }, [requestedPlan.data, loadedPlanId]);
 
@@ -546,6 +546,9 @@ export function RecommendDesktop() {
     };
   }, [session.route, session.recommendation, session.planInput]);
   const paths = useMemo(() => routePaths(session.route), [session.route]);
+  const roadLegCount = calculated?.legs.filter(
+    (leg) => leg.geometry?.status !== "same_registered_place",
+  ).length ?? 0;
   const unmappable = ordered.filter(
     (place) => place.lat === null || place.lng === null,
   ).length;
@@ -1232,9 +1235,9 @@ export function RecommendDesktop() {
                     {t("좌표가 없는 {count}곳은 지도에 찍지 않습니다.", { count: unmappable })}
                   </span>
                 )}
-                {calculated && paths.length < calculated.legs.length && (
+                {calculated && paths.length < roadLegCount && (
                   <span className="rd-note rd-legend-note">
-                    {t("도로 선을 받은 구간 {count}/{total}개만 그립니다.", { count: paths.length, total: calculated.legs.length })}
+                    {t("도로 선을 받은 구간 {count}/{total}개만 그립니다.", { count: paths.length, total: roadLegCount })}
                   </span>
                 )}
               </div>

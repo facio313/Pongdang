@@ -342,6 +342,7 @@ class PlanInput(Record):
     stops: list[PlanStopInput] = Field(min_length=1, max_length=20)
     selection_token: str | None = Field(default=None, max_length=16000)
     selected_ranks: list[int] = Field(default_factory=list, max_length=10)
+    route_token: str | None = Field(default=None, min_length=1, max_length=750_000)
 
     @model_validator(mode="after")
     def unique_items(self):
@@ -376,6 +377,7 @@ class TripPlan(Record):
     adjustments: list[dict]
     queried_at: AwareDatetime
     route_status: str
+    route_snapshot: dict | None = None
 
 
 class NotificationSettings(Record):

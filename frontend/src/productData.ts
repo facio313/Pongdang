@@ -263,6 +263,7 @@ export const DATA_STATUS: Record<string, string> = {
   evaluated: "평가 완료",
   current: "현재 유효",
   recorded: "기록됨",
+  saved_estimate: "저장된 경로 예상값",
   stale: "자료 유효기간 만료",
   met: "선택 기준 충족",
   not_met: "선택 기준 미충족",

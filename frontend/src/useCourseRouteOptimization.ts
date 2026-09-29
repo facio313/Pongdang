@@ -11,6 +11,7 @@ import {
   type TripPlan,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
+import { forgetResource } from "./useResource";
 import type { useAction } from "./useAction";
 
 /** 지도 코스의 방문 순서 최적화 + 저장. 데스크탑(MapDesktop.tsx)과 모바일
@@ -34,20 +35,24 @@ export function useCourseRouteOptimization(
 ) {
   const session = useTravelSession();
   const [originId, setOriginId] = useState<number | null>(null);
+  const savedOrigin = session.route?.route?.origin ?? session.planInput?.request.origin;
   const selectedOrigin =
-    candidateRows.find((place) => place.id === originId) ?? candidateRows[0];
+    candidateRows.find((place) => place.id === originId)
+    ?? candidateRows.find((place) => savedOrigin?.latitude === place.lat && savedOrigin?.longitude === place.lng)
+    ?? candidateRows.find((place) => savedOrigin?.spot_id === place.id)
+    ?? candidateRows[0];
 
   // 후보지 정차지 집합을 실제 출발지·시각으로 순열 탐색해 방문 순서를
   // 최적화합니다(추천 화면의 경로 계산과 같은 서버 로직). 이미 사용자가 고른
   // 출발지·시각으로 계산해 둔 경로가 있으면(session.route.route_calculated)
   // 다시 계산해 덮어쓰지 않고 그대로 씁니다.
-  const optimizeCourseRoute = async (signal: AbortSignal) => {
+  const optimizeCourseRoute = async (signal: AbortSignal, recalculate = false) => {
     const stops = session.planInput?.stops ?? [];
     if (!session.planInput || !stops.length)
       throw new Error(
         "경로를 계산할 방문 장소가 없습니다. 추천에서 코스를 만들거나 저장한 코스를 열어 주세요.",
       );
-    if (session.route?.route_calculated)
+    if (session.route?.route_calculated && !recalculate)
       return session.route.plan_input ?? session.planInput;
     const originPlace = selectedOrigin;
     if (!originPlace)
@@ -123,6 +128,7 @@ export function useCourseRouteOptimization(
       );
       if (!signal.aborted) {
         setTravelSession({ plan });
+        forgetResource("travel/plans?limit=100&offset=0");
         onSaved(plan);
       }
     });
@@ -133,7 +139,7 @@ export function useCourseRouteOptimization(
     void action.run(async (signal) => {
       if (!session.plan?.plan_id)
         throw new Error("다시 계산할 저장된 코스가 없습니다.");
-      const planInput = await optimizeCourseRoute(signal);
+      const planInput = await optimizeCourseRoute(signal, true);
       if (signal.aborted) return;
       const plan = await travelJson<TripPlan>(
         import.meta.env.BASE_URL,
@@ -142,7 +148,11 @@ export function useCourseRouteOptimization(
         { ...planInput, expected_revision: session.plan.revision },
         signal,
       );
-      if (!signal.aborted) setTravelSession({ plan });
+      if (!signal.aborted) {
+        setTravelSession({ plan });
+        forgetResource("travel/plans?limit=100&offset=0");
+        forgetResource(`travel/plans/${plan.plan_id}`);
+      }
     });
 
   // 아직 경로를 계산하지 않은 후보지도, 고른 출발지 + 목록 순서 그대로
