@@ -371,9 +371,14 @@ for (const desktop of [false, true]) {
     } else {
       const rows = page.getByRole("table", { name: "오늘 시간대별 수집 예보" }).locator("tbody tr");
       await expect(rows.locator("th")).toHaveText(["09시", "12시", "15시", "18시"]);
-      await expect(rows.nth(0).locator("td").first()).toContainText("21°C");
-      await expect(rows.nth(2).locator("td").first()).toHaveText("–");
-      await expect(rows.nth(3).locator("td").first()).toContainText("21°C");
+      // 모바일 표도 데스크탑 막대와 **같은 시각별 점수**를 말합니다. 예전에는
+      // 원자료(수온 · 파고 · 강수)만 있어서, 같은 화면을 두 폭에서 보면
+      // 한쪽만 「몇 시가 좋은지」를 말했습니다. 점수가 첫 칸이고 수온은 그
+      // 다음입니다.
+      await expect(rows.locator(".hc-score-num")).toHaveText(["51", "52", "–", "54"]);
+      await expect(rows.nth(0).locator("td").nth(1)).toContainText("21°C");
+      await expect(rows.nth(2).locator("td").nth(1)).toHaveText("–");
+      await expect(rows.nth(3).locator("td").nth(1)).toContainText("21°C");
     }
     await page.getByRole("link", { name: "오늘", exact: true }).click();
     await expect(page.locator(desktop ? ".td-day-score" : ".td-bar-score"))

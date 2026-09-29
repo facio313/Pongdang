@@ -1931,30 +1931,33 @@ function RecommendScreen() {
           requestedPlan.loading ||
           requestedPlan.error ||
           (mode === "flow" && !tasteOpen && profileError)) && (
-          <p
-            className={"rc-status" + (action.error ? " is-error" : "")}
-            role={action.error ? "alert" : "status"}
-          >
-            {status ||
-              (requestedPlan.loading
-                ? t("저장 상세를 불러오는 중입니다.")
-                : profileError)}
+          <>
+            {/* 상태 문장은 그 자체로 한 요소여야 합니다. 취소 버튼을 이 안에
+                넣으면 문단의 텍스트가 「… 조회 취소」가 되어, 상태 문장을
+                정확히 읽는 쪽(검사와 스크린리더의 status 영역)이 다른 말을
+                듣게 됩니다. */}
+            <p
+              className={"rc-status" + (action.error ? " is-error" : "")}
+              role={action.error ? "alert" : "status"}
+            >
+              {status ||
+                (requestedPlan.loading
+                  ? t("저장 상세를 불러오는 중입니다.")
+                  : profileError)}
+            </p>
             {/* 진행 중인 조회를 멈출 방법이 없었습니다. 추천 · 경로 계산은
                 수 초가 걸리는데 취소가 없으면 되돌아갈 방법이 화면을 떠나는
                 것뿐입니다(데스크탑은 후보 조회에 취소 버튼이 있습니다). */}
             {action.busy && (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  className="pd-inline pd-tap rc-cancel"
-                  onClick={action.cancel}
-                >
-                  {t("조회 취소")}
-                </button>
-              </>
+              <button
+                type="button"
+                className="pd-secondary rc-cancel"
+                onClick={action.cancel}
+              >
+                {t("조회 취소")}
+              </button>
             )}
-          </p>
+          </>
         )}
       </article>
     </AppShell>
