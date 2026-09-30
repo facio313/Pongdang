@@ -118,7 +118,6 @@ main:has(.pd-app.is-fullscreen) {
 
 @media (min-width: 431px) {
   .pd-app {
-    padding: 10px 14px 24px;
     --pd-frame-gap: 34px; /* 위 10 + 아래 24 */
   }
   .pd-frame {
