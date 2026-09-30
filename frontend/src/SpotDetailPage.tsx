@@ -106,6 +106,9 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
       <AppShell
         tab="spots"
         showFooterNote={false}
+        // 이 히어로에는 마스코트를 두지 않습니다. 표지는 보여 줄 수 없는 것을
+        // 대신 세우는 것이고, 여기에는 그 장소의 실제 사진이 이미 있습니다
+        // (홈 hm-pick · 추천 rc-stop 도 같은 이유로 없습니다).
         hero={
           <header className="sd-hero">
             <PlacePhoto className="sd-hero-photo" name={place?.name ?? t("장소")} photo={place?.photo} eager />

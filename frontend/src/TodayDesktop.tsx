@@ -1,7 +1,7 @@
 import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { t } from "./i18n.ts";
 import { gradeOf } from "./groupAGrade";
-import { mascotUrl } from "./mascots";
+import { activityMascot, type MascotRole } from "./mascots";
 import {
   DesktopHero,
   DesktopNav,
@@ -14,6 +14,7 @@ import {
   ComponentBars,
   GradeIcon,
   Icon,
+  Mascot,
   ScoreExplainer,
   ScoreGauge,
   ScoreReason,
@@ -67,12 +68,14 @@ import "./todayDesktop.css";
 //  - 막대는 점수의 상대 위치이지 기여도가 아닙니다.
 
 /** 활동별 점수 칸. 모바일 오늘 탭과 같은 다섯 활동입니다. */
+/** 포즈는 여기서 들고 있지 않습니다 -- activityMascot(mascots.ts)이 단일
+ *  출처이고, 모바일 「오늘」도 같은 표를 씁니다. */
 const ACTIVITY_ROWS = [
-  { id: "swim", mascot: "swim" },
-  { id: "surf", mascot: "surf" },
-  { id: "relax", mascot: "rest" },
-  { id: "rafting", mascot: "rafting" },
-  { id: "onsen", mascot: "hotspring" },
+  { id: "swim" },
+  { id: "surf" },
+  { id: "relax" },
+  { id: "rafting" },
+  { id: "onsen" },
 ] as const;
 
 /** 별도의 공식 운영 시간대가 있는 활동. */
@@ -131,7 +134,11 @@ function TodayHero({
         />
       }
       wave="animated"
-      mascot="surf"
+      /* 서버가 고른 활동의 표지입니다. "surf" 로 되돌리면 이 화면만 서버와
+         다른 활동을 그립니다. 조회 전 한 프레임 lying.png 가 보이는 것은
+         의도입니다 -- home(surfwave)은 홈 히어로의 포즈이므로 빌려 쓰지
+         않습니다. undefined 로 두면 has-mascot 패딩이 빠져 본문이 밀립니다. */
+      mascot={best ? activityMascot(best.activity) : "empty"}
     >
       <div className="td-hero">
         <div className="td-hero-lead">
@@ -322,13 +329,13 @@ function ActivityCell({
 }: {
   state?: ActivityCondition;
   activity: Activity;
-  mascot: string;
+  mascot: MascotRole;
 }) {
   const score = state?.score ?? null;
   const grade = gradeOf(score);
   return (
     <div className="td-activity" data-grade={grade.key}>
-      <img src={mascotUrl(mascot as never)} alt="" width={78} height={78} />
+      <Mascot role={mascot} size={78} />
       <div className="pd-dk-num td-activity-score">
         {state && isInitialLoad(state) ? (
           <Skeleton width="1.6em" label={t("점수 조회 중")} />
@@ -368,7 +375,7 @@ function ActivityScores({
             key={row.id}
             state={states.find((state) => state.activity === row.id)}
             activity={row.id}
-            mascot={row.mascot}
+            mascot={activityMascot(row.id)}
           />
         ))}
       </div>
@@ -626,7 +633,7 @@ export function TodayDesktop() {
         <SplitBody columns="1fr 1.35fr">
           <div className="td-first-swim">
             <div className="td-first-head">
-              <img src={mascotUrl("firstSwim")} alt="" width={58} height={58} />
+              <Mascot role="firstSwim" size={58} />
               <div>
                 <div className="td-first-date">
                   {quality.error

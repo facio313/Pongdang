@@ -7,6 +7,7 @@ import {
   AiSuggestion,
   ComponentBars,
   Icon,
+  Mascot,
   MetricValue,
   ScoreGauge,
   ScoreReason,
@@ -20,7 +21,6 @@ import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recomme
 import type { Recommendation } from "./recommendationApi";
 import type { ActivityCondition } from "./useBestActivity";
 import { AppHeader, AppShell } from "./AppShell";
-import { WaterQualityDetails } from "./WaterQualityDetails";
 import { PlacePhoto } from "./PlacePhoto";
 import type { PlacePhoto as Photo } from "./placePhotos";
 import { usePlacePhotos } from "./usePlacePhotos";
@@ -42,7 +42,6 @@ import {
   type Conditions,
   type WaterQualityGrade,
 } from "./productData";
-import { mascotUrl } from "./mascots";
 import { spotLink } from "./spotsRoute";
 import { useHomeBeaches } from "./useHomeBeaches";
 import type { TemperatureReading } from "./firstSwimTemperature";
@@ -102,6 +101,11 @@ function Hero({
               {at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}
             </time>
           </div>
+          {/* 홈만 공용 절대 슬롯(.pd-hero-mascot · 66px · top 46)을 쓰지
+              않습니다 -- 그 자리에는 바로 아래 hm-hero-visual 유리 패널이
+              올라와 표지가 패널 위에 얹힙니다. 흐름 안에서 장소 줄 오른쪽에
+              세웁니다. */}
+          <Mascot className="hm-hero-mascot" role="home" size={34} label eager />
         </div>
 
         {/* 예전에는 이 자리가 점선 pd-slot 이었습니다. 실제 수집한 기온 ·
@@ -257,8 +261,6 @@ function GlanceCard({
   loading = false,
   quality,
   qualityLoading = false,
-  qualityData,
-  qualityError,
   spotId,
   now,
 }: {
@@ -271,8 +273,6 @@ function GlanceCard({
   loading?: boolean;
   quality: string;
   qualityLoading?: boolean;
-  qualityData?: WaterQualityGrade;
-  qualityError?: string;
   spotId?: number;
   now: string;
 }) {
@@ -282,12 +282,9 @@ function GlanceCard({
       <div className="pd-card-title">
         {t("오늘 한눈에")}{activity ? t(" · {activity} 점수를 이루는 것들", { activity: t(activities[activity]) }) : ""}
       </div>
-      {loading || bars.length ? (
-        <ComponentBars bars={bars} loading={loading} />
-      ) : (
-        <p className="pd-note">
-          {t("점수를 이루는 항목을 읽지 못했습니다. 아래 상태 문장을 확인하세요.")}</p>
-      )}
+      {/* 항목을 읽지 못한 경우의 안내 문단은 내렸습니다. 같은 사실을 아래
+          상태 줄이 한 번 더 말하고 있었습니다. */}
+      {(loading || bars.length > 0) && <ComponentBars bars={bars} loading={loading} />}
       {/* 점수를 가장 많이 깎은 항목. 히어로에서 이 자리로 내려왔습니다 --
           히어로는 「왜 이 활동인가」를, 이 카드는 「그 점수가 왜 그 점수인가」를
           말합니다. 둘 다 사실이지만 같은 질문의 답이 아닙니다. */}
@@ -304,11 +301,18 @@ function GlanceCard({
         <span className="pd-state-chip">{t("점수 미반영")}</span>
       </div>
 
-      <WaterQualityDetails data={qualityData} error={qualityError} className="pd-note" />
+      {/* 수질 상세 문단(WaterQualityDetails)은 내렸습니다 -- 등급과 검사
+          시점은 바로 위 hm-glance-aside 줄이 이미 말합니다. 오류만 아래
+          상태 줄로 올라옵니다. */}
       <HourlyConditions id={spotId} now={now} activity={activity} />
-      <p className="pd-note" role={statusIsError ? "alert" : "status"}>
-        <StateChip kind={conditions ? "live" : "no_data"} /> {t("{mode} 기준이며 강수는 강수량입니다. 자료가 없거나 상충하면 –로 표시합니다. 항목 점수는 100점 만점이며, 총점은 이 항목들을 같은 비중으로 평균낸 값입니다.", { mode: conditionModeLabel(conditions) })}{" "}{t(statusText)}
-      </p>
+      {/* 기준 · 만점 · 평균 설명 장문은 내렸습니다. 다만 조회 실패와 조회 중은
+          안내가 아니라 **사실**이므로 지우지 않습니다 -- 지우면 실패한 화면이
+          「값이 없는 화면」과 구별되지 않습니다. */}
+      {statusText && (
+        <p className="pd-note" role={statusIsError ? "alert" : "status"}>
+          <StateChip kind={conditions ? "live" : "no_data"} /> {t(statusText)}
+        </p>
+      )}
     </div>
   );
 }
@@ -466,6 +470,7 @@ function TasteChipRow({ tags, loading }: { tags: string[]; loading: boolean }) {
     <div className="hm-taste-chips">
       {tags.map((tag) => (
         <span className="hm-taste-chip" key={tag}>
+          <Mascot role="snorkel" size={20} />
           {t(tag)}
           <Icon name="check" size={12} />
         </span>
@@ -495,6 +500,10 @@ function TasteBanner({
   const hasTaste = savedIds.length > 0;
   return (
     <div className="pd-card">
+      {/* 표지는 AiSuggestion **안**에 넣지 않습니다 -- 추천 화면과 데스크탑도
+          같은 컴포넌트를 쓰므로, 한 곳에 넣으면 네 화면에 함께 붙습니다. */}
+      <div className="hm-ai-row">
+        <Mascot className="hm-ai-mascot" role="ai" size={58} label />
       <AiSuggestion
         headline={
           best
@@ -511,6 +520,7 @@ function TasteBanner({
         }
         basisIsError={Boolean(recommendation.error)}
       />
+      </div>
       {profileLoading ? (
         <button type="button" className="pd-primary hm-cta" disabled>{t("조회 중")}</button>
       ) : loginRequired ? (
@@ -535,7 +545,10 @@ function RouteCard() {
   return (
     <div className="pd-card">
       <div className="hm-card-top">
-        <div className="pd-card-title">{t("물놀이 최적경로")}</div>
+        <div className="hm-card-top hm-card-top-tight">
+          <Mascot role="course" size={28} />
+          <div className="pd-card-title">{t("물놀이 최적경로")}</div>
+        </div>
         <StateChip kind={routeCourse ? "live" : "partial"} />
       </div>
       {/* 정차지를 번호 붙인 단계로 세웁니다. 예전에는 「경포 → 안목 → 사천진」
@@ -588,9 +601,7 @@ function LivecamModule() {
     <div className="pd-card">
       <div className="hm-card-top">
         <div className="hm-card-top hm-card-top-tight">
-          <span className="hm-badge-round">
-            <Icon name="livecam" size={16} />
-          </span>
+          <Mascot role="livecam" size={28} />
           <div className="pd-card-title">{t("라이브캠 물멍")}</div>
         </div>
         <button className="pd-state-chip pd-tap" disabled={loading} onClick={() => setShuffleSeed(shuffleWebcams())}>{t("다른 풍경 보기")}</button>
@@ -612,7 +623,7 @@ function LivecamModule() {
         {!cameras.length && (
           <div className="hm-cam is-empty">
             <div className="hm-cam-thumb hm-cam-empty">
-              <img src={mascotUrl("empty")} alt="" width={40} height={40} />
+              <Mascot role="empty" size={40} />
               <span className="hm-cam-empty-title">
                 {loading ? t("조회 중") : t("송출 없음")}
               </span>
@@ -627,11 +638,13 @@ function LivecamModule() {
         )}
       </div>
       <p className="pd-note" role={error ? "alert" : "status"}>
+        {/* 카메라가 있는 경우의 안내 문장은 내렸습니다. 조회 중 · 송출 없음은
+            사실이므로 남깁니다. */}
         {error ||
           (loading
             ? t("물 풍경을 고르는 중입니다.")
             : cameras.length
-              ? t("위치와 관계없이 고른 랜덤 물 풍경입니다. 카드를 누르면 해당 카메라가 열립니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")
+              ? ""
               : t("현재 목록에 열 수 있는 물 풍경 카메라가 없습니다."))}{" "}
         {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. ")}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
@@ -678,8 +691,6 @@ function HomeScreen() {
           <GlanceCard
             quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}
-            qualityData={quality.data}
-            qualityError={quality.error}
             spotId={place?.id}
             now={now}
             conditions={conditions.data}

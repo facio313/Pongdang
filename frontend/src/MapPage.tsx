@@ -8,6 +8,7 @@ import {
   ComponentBars,
   GradeChip,
   Icon,
+  Mascot,
   ScoreExplainer,
   ScoreReason,
   Skeleton,
@@ -197,7 +198,12 @@ function Stage({
 
       {/* 지도 위 띠. 공용 .pd-hero 규칙(하단 라운드 22 · 그림자)을 쓰되 지도 ·
           내 코스 두 화면만 면과 잉크를 반전합니다 -- 흰 면에 코발트 잉크
-          (mapPage.css). 그래서 onCobalt 를 주지 않습니다. */}
+          (mapPage.css). 그래서 onCobalt 를 주지 않습니다.
+
+          여기에는 마스코트를 두지 않습니다. 다른 탭의 히어로와 달리 이것은
+          「이 화면이 무엇인가」를 말하는 면이 아니라 지도 위에 얹힌 컨트롤
+          띠이고, 이 화면의 항목 표지는 지도 핀입니다. 표지는 고른 장소가 실제로
+          있는 곳 -- 바텀 시트(SpotSheet · CourseSheet) -- 안에 섭니다. */}
       <header className="pd-hero mp-topbar">
         <AppHeader
           title={view === "spots" ? t("지도") : t("코스 지도")}
@@ -281,6 +287,10 @@ function SpotSheet({
     <>
       <div className="pd-card">
         <div className="mp-spot-head">
+          {/* 지도 위 컨트롤 띠(mp-topbar)에는 표지를 두지 않습니다 -- 그 화면의
+              항목 표지는 지도 핀이고, 표지는 핀과 경쟁합니다. 고른 장소의
+              표지는 이 시트 안에 섭니다(데스크탑 mk-detail-head 와 같은 자리). */}
+          <Mascot role="swim" size={40} />
           <div>
             <div className="mp-spot-name">{spot.name}</div>
             <div className="mp-spot-address">{spot.address}</div>
@@ -446,7 +456,10 @@ function CourseSheet({
     return (
       <div className="pd-card">
         <div className="mp-card-top">
-          <div className="pd-card-title">{t("내 코스 목록")}</div>
+          <div className="mp-card-title-row">
+            <Mascot role="course" size={34} />
+            <div className="pd-card-title">{t("내 코스 목록")}</div>
+          </div>
           {!loginRequired && <StateChip kind={myPlans.data ? "live" : "no_data"} />}
         </div>
         <div className="mp-rows">

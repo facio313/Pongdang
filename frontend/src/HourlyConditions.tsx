@@ -97,8 +97,6 @@ export function HourlyConditions({
       {hours.some(hour => hour.data?.retained) && <p className="pd-retained-note" role="status">
         {conditionRetentionText(hours.find(hour => hour.data?.retained)?.data)}
       </p>}
-      <span>
-        {t("관측소·격자 예보입니다. ‘최대’는 구간 최대값, ‘강수없음’·범위는 제공기관 표현입니다. 발표시각 미제공 예보가 포함될 수 있습니다.")}</span>
     </div>
   );
 }

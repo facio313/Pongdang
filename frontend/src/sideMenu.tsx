@@ -154,6 +154,9 @@ function SideMenuPanel({ onClose }: { onClose: () => void }) {
             </button>
           </div>
           <div className="pd-menu-profile">
+            {/* 이 자리에는 마스코트를 두지 않습니다. 「사진 없음」은 *사용자*에
+                대한 말이므로, 퐁당 호랑이를 세우면 마스코트가 콘텐츠 표지가
+                아니라 「나」를 뜻하게 됩니다. */}
             <span className="pd-menu-avatar">{t("사진")}<br />{t("없음")}</span>
             <div>
               <div className="pd-menu-signin">Pongdang</div>

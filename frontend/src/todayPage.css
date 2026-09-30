@@ -9,8 +9,12 @@
 .today-page .td-hero-inner {
   padding: 8px 20px 0;
 }
+/* 마스코트는 흐름 밖(.pd-hero-mascot) 오른쪽 위에 섭니다. 긴 라벨이 그 아래로
+   들어가지 않도록 오른쪽을 비워 둡니다(spotsPage.css .sp-hero-row 와 같은
+   처리). td-hero-row 는 마스코트 띠보다 아래에서 시작하므로 무보정입니다. */
 .today-page .td-hero .pd-lbl {
   color: var(--pd-sky);
+  padding-right: 78px;
 }
 .today-page .td-hero-row {
   display: flex;
@@ -194,6 +198,10 @@
   padding: 9px 4px;
   background: var(--g-bg);
 }
+/* 활동 타일의 항목 표지. 타일이 좁으므로 가운데 정렬만 합니다. */
+.today-page .td-act-mascot {
+  margin: 0 auto 2px;
+}
 .today-page .td-act-name {
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-3);
@@ -333,6 +341,10 @@
 .today-page .td-tide-row.is-off .td-badge-round {
   background: #e7ecf2;
   color: #4b5563;
+}
+/* 첫 입수 카드 표지. 요약 줄 위에 한 번만 섭니다. */
+.today-page .td-first-mascot {
+  margin-bottom: 8px;
 }
 .today-page .td-tide-name {
   font-size: var(--pd-fs-sm);

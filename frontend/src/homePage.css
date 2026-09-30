@@ -102,6 +102,11 @@
   align-items: center;
   gap: 8px;
 }
+/* 홈 히어로 표지. 공용 절대 슬롯이 아니라 장소 줄 오른쪽 끝에 흐름 안으로
+   섭니다(HomePage.tsx 의 주석). */
+.home-page .hm-hero-mascot {
+  margin-left: auto;
+}
 .home-page .hm-hero-place {
   display: inline-flex;
   align-items: center;
@@ -261,6 +266,15 @@
 .home-page .pd-cbars {
   margin-top: 10px;
 }
+/* 점수 근거 한 줄은 카드 안 다른 문단과 섞이지 않게 옅은 강조 면으로 띄웁니다.
+   홈에만 둡니다 -- 오늘 · 추천 탭과 데스크탑의 같은 줄은 그대로입니다. */
+.home-page .pd-score-reason {
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-mist);
+}
 /* 점수에 들어가지 않는 값(수질)은 항목 줄과 자리를 나눕니다. 같은 줄에 두면
    점수 근거로 읽힙니다. */
 .home-page .hm-glance-aside {
@@ -290,6 +304,16 @@
 .home-page .hm-card-top-tight {
   justify-content: flex-start;
 }
+/* AI 제안 표지와 문장을 한 줄로 묶습니다. 표지는 첫 줄에 맞춰 위에 붙입니다. */
+.home-page .hm-ai-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.home-page .hm-ai-row > *:last-child {
+  min-width: 0;
+  flex: 1;
+}
 .home-page .hm-cta {
   margin-top: 12px;
 }
@@ -300,16 +324,8 @@
   height: 86px;
   margin-top: 10px;
 }
-.home-page .hm-badge-round {
-  width: 30px;
-  height: 30px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--pd-badge);
-  color: var(--pd-blue-deep);
-  display: grid;
-  place-items: center;
-}
+/* .hm-badge-round(원형 아이콘 배지)는 라이브캠 카드 머리가 마스코트 표지로
+   바뀌면서 쓰는 곳이 없어졌습니다. */
 .home-page .hm-cam-row {
   display: flex;
   gap: 8px;
@@ -336,6 +352,9 @@
   justify-content: center;
   gap: 2px;
   background: var(--pd-mist);
+}
+.home-page .hm-cam-empty .pd-mascot {
+  opacity: 0.6;
 }
 .home-page .hm-cam-empty-title {
   font-size: var(--pd-fs-cap);
@@ -403,6 +422,9 @@
   scrollbar-width: thin;
 }
 .home-page .hm-pick {
+  /* 가로 스크롤 첫 칸이 카드 왼쪽 선에 붙어 보이던 것을 칸 안쪽 여백으로
+     띄웁니다. hm-picks-row 의 좌우 패딩은 스크롤 끝 여백이므로 그대로 둡니다. */
+  padding-left: 5px;
   width: 126px;
   flex: none;
   scroll-snap-align: start;
