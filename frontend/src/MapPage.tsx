@@ -1,4 +1,5 @@
 import { t } from "./i18n.ts";
+import { CourseFavoriteButton } from "./CourseFavoriteButton";
 import { useTravelLanguage } from "./travelLanguage";
 import { useEffect, useMemo, useState } from "react";
 import { MapDesktop } from "./MapDesktop";
@@ -464,31 +465,32 @@ function CourseSheet({
         </div>
         <div className="mp-rows">
           {plans.map(({ plan, alarm }) => (
-            <button
-              type="button"
+            <div
               className="mp-saved-course"
               key={plan.plan_id}
-              onClick={() => onSelectPlan(plan)}
             >
-              <div className="mp-saved-course-name">
-                {plan.request.dates[0]
-                  ? t("{date} 물 코스", { date: plan.request.dates[0] })
-                  : t("저장 코스")}
-              </div>
-              <div className="mp-saved-course-meta">
-                {t("{count}곳", { count: planItems(plan).length })} ·{" "}
-                {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
-              </div>
-              <span className={"mp-saved-course-alarm" + (alarm ? "" : " is-off")}>
-                {sessions.error
-                  ? t("동행 알림 조회 실패")
-                  : sessions.loading
-                    ? t("동행 알림 조회 중")
-                    : alarm
-                      ? t("동행 알림 켬")
-                      : t("동행 알림 꺼짐")}
-              </span>
-            </button>
+              <button type="button" className="mp-saved-course-open" disabled={busy} onClick={() => onSelectPlan(plan)}>
+                <div className="mp-saved-course-name">
+                  {plan.request.dates[0]
+                    ? t("{date} 물 코스", { date: plan.request.dates[0] })
+                    : t("저장 코스")}
+                </div>
+                <div className="mp-saved-course-meta">
+                  {t("{count}곳", { count: planItems(plan).length })} ·{" "}
+                  {planItems(plan).map((item) => item.name).join(" · ") || t("장소 없음")}
+                </div>
+                <span className={"mp-saved-course-alarm" + (alarm ? "" : " is-off")}>
+                  {sessions.error
+                    ? t("동행 알림 조회 실패")
+                    : sessions.loading
+                      ? t("동행 알림 조회 중")
+                      : alarm
+                        ? t("동행 알림 켬")
+                        : t("동행 알림 꺼짐")}
+                </span>
+              </button>
+              <CourseFavoriteButton plan={plan} disabled={busy} />
+            </div>
           ))}
         </div>
         {!loginRequired && !myPlans.data?.rows.length && (

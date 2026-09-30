@@ -253,6 +253,7 @@ export interface PlanItem {
 export interface TripPlan {
   plan_id: string | null;
   revision: number;
+  is_favorite?: boolean;
   request: TravelRequest;
   input_stops: StopInput[];
   days: { date: string; items: PlanItem[] }[];
@@ -262,6 +263,7 @@ export interface TripPlan {
   route_status: string;
   route_snapshot?: RouteResult | null;
 }
+export const LATEST_FAVORITE_PLAN_PATH = "travel/plans?favorite_only=true&limit=1&offset=0";
 /** The server preserves the provider's own longitude/latitude objects. */
 export interface RoutePoint {
   longitude: number;

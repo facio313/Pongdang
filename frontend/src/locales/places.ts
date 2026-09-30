@@ -1,6 +1,18 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const placesMessages: Record<string, MessageTranslations> = {
+  "즐겨찾기 경로": ["Favorite route", "收藏路线", "お気に入りのルート"],
+  "최근 즐겨찾기 코스": ["Latest favorite course", "最新收藏行程", "最新のお気に入りコース"],
+  "즐겨찾기 중 가장 최근에 저장·수정한 코스입니다.": ["Your most recently saved or updated favorite course.", "您收藏的行程中最近保存或修改的一项。", "お気に入りの中で最後に保存・更新したコースです。"],
+  "로그인하면 즐겨찾기한 코스를 볼 수 있어요.": ["Sign in to see your favorite course.", "登录即可查看收藏的行程。", "ログインするとお気に入りのコースを確認できます。"],
+  "즐겨찾기 코스를 불러오는 중입니다.": ["Loading your favorite course.", "正在加载收藏行程。", "お気に入りのコースを読み込んでいます。"],
+  "즐겨찾기한 코스가 없습니다. 지도에서 코스의 별표를 눌러 주세요.": ["No favorite courses yet. Tap a course's star on the map.", "暂无收藏行程。请在地图中点击行程旁的星标。", "お気に入りのコースはありません。地図でコースの星を押してください。"],
+  "저장된 경로의 예상 이동 {minutes}분": ["Saved route: estimated travel time {minutes} min", "已保存路线：预计移动{minutes}分钟", "保存したルートの予想移動時間 {minutes}分"],
+  "즐겨찾기 코스 열기 →": ["Open favorite course →", "打开收藏行程 →", "お気に入りのコースを開く →"],
+  "지도에서 코스 보기 →": ["View courses on map →", "在地图上查看行程 →", "地図でコースを見る →"],
+  "코스 즐겨찾기": ["Favorite course", "收藏行程", "コースのお気に入り"],
+  "즐겨찾기 추가": ["Add to favorites", "添加收藏", "お気に入りに追加"],
+  "즐겨찾기 해제": ["Remove from favorites", "取消收藏", "お気に入りを解除"],
   "저수지": ["Reservoir", "水库", "貯水池"],
   "물가 명소 전체": ["All waterside places", "全部水边景点", "水辺のスポットすべて"],
   "같은 수역의 대표 관측소 연결 확인 필요": ["A representative station for the same water body must be verified", "需核实同一水域的代表监测站", "同じ水域の代表観測所との対応確認が必要"],

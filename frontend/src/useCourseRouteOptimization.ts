@@ -2,6 +2,7 @@ import { t } from "./i18n.ts";
 import { useState } from "react";
 import { kstDate, timeLabel, type Place } from "./productData";
 import {
+  LATEST_FAVORITE_PLAN_PATH,
   exclusionReasonsText,
   kakaoRouteLink,
   originFromPlace,
@@ -164,6 +165,7 @@ export function useCourseRouteOptimization(
         setTravelSession({ plan, planInput: calculated.input, route: calculated.route, recommendation: calculated.recommendation });
         forgetResource("travel/plans?limit=100&offset=0");
         forgetResource(`travel/plans/${plan.plan_id}`);
+        forgetResource(LATEST_FAVORITE_PLAN_PATH);
       }
     });
 

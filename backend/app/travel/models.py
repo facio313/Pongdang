@@ -363,10 +363,15 @@ class PlanUpdate(PlanInput):
     unlock_item_ids: list[Tag] = Field(default_factory=list, max_length=20)
 
 
+class PlanFavoriteUpdate(Record):
+    is_favorite: bool = Field(strict=True)
+
+
 class TripPlan(Record):
     contract_version: Literal["pongdang-travel.v1"] = "pongdang-travel.v1"
     plan_id: str | None = None
     revision: int = 0
+    is_favorite: bool = False
     request: TravelRequest
     input_stops: list[PlanStopInput]
     days: list[dict]

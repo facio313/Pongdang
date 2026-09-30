@@ -1,0 +1,40 @@
+.recommend-access-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #cbdff4;
+  border-radius: 16px;
+  background: #f2f7fd;
+  color: #1b2c3d;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.recommend-access-notice p { margin: 0; }
+.recommend-access-notice .recommend-login-button {
+  flex: none;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: #2f6aa8;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pd-desktop .recommend-access-notice { margin: 24px var(--dk-pad) 0; }
+.recommend-controls {
+  min-inline-size: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.recommend-controls:disabled { opacity: 0.45; }
+.recommend-page > .recommend-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -17,6 +17,7 @@ from app.travel.language import copy
 from app.travel.models import (
     Locale,
     Mood,
+    PlanFavoriteUpdate,
     PlanInput,
     PlanUpdate,
     PreferenceUpdate,
@@ -313,9 +314,16 @@ def create_router(settings):
         actor: Actor,
         limit: int = Query(100, ge=1, le=100),
         offset: int = Query(0, ge=0, le=10000),
+        favorite_only: bool = False,
     ):
         return {
-            "rows": storage.plans(settings, actor.subject, limit=limit, offset=offset),
+            "rows": storage.plans(
+                settings,
+                actor.subject,
+                limit=limit,
+                offset=offset,
+                favorite_only=favorite_only,
+            ),
             "limit": limit,
             "offset": offset,
         }
@@ -347,6 +355,12 @@ def create_router(settings):
             plan,
             identifier=plan_id.hex,
             expected=body.expected_revision,
+        )
+
+    @router.put("/plans/{plan_id}/favorite", response_model=TripPlan)
+    def favorite(plan_id: UUID, body: PlanFavoriteUpdate, actor: Actor):
+        return storage.set_plan_favorite(
+            settings, actor.subject, plan_id.hex, body.is_favorite
         )
 
     @router.delete("/plans/{plan_id}", status_code=204)

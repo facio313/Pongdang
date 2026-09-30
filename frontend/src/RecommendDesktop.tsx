@@ -49,6 +49,7 @@ import { setTravelSession, useTravelSession } from "./travelSession";
 import { RouteCandidatesForm } from "./RouteCandidatesForm";
 import { useRouteFormSources, useTravelConcierge } from "./useTravelConcierge";
 import { useTastePreference } from "./useTastePreference";
+import { RecommendationLoginNotice } from "./RecommendationLoginNotice";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
 import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
 import { TravelRegionSelector } from "./TravelRegionSelector";
@@ -232,9 +233,11 @@ export function RecommendDesktop() {
     savedIds,
     hasTaste,
     profileLoading,
+    loginRequired,
     profileError,
     savePreference,
   } = useTastePreference();
+  const accessBlocked = loginRequired || profileLoading || Boolean(profileError);
 
   // 고른 것. 저장된 취향이 있으면 그것으로 채워 두고 시작합니다 -- 이미 고른
   // 것을 처음부터 다시 고르게 하지 않습니다. `null` 은 「아직 채우기 전」이고
@@ -615,13 +618,13 @@ export function RecommendDesktop() {
   const openedRef = useRef<HTMLDivElement | null>(null);
   const courseRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (showTaste && !showCourse)
+    if (!accessBlocked && showTaste && !showCourse)
       openedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [tasteIndex, showTaste, showCourse]);
+  }, [tasteIndex, showTaste, showCourse, accessBlocked]);
   useEffect(() => {
-    if (showCourse)
+    if (!accessBlocked && showCourse)
       courseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [showCourse]);
+  }, [showCourse, accessBlocked]);
   const onRegion = (next: string) => {
     clearSavedNotice();
     setSelectedRegion(next);
@@ -659,6 +662,7 @@ export function RecommendDesktop() {
                     <button
                       type="button"
                       className="pd-dk-button rd-hero-ai"
+                      disabled={accessBlocked}
                       onClick={() => setStep("chat")}
                     >
                       {t("AI에게 이어서 물어보기 →")}</button>
@@ -666,6 +670,7 @@ export function RecommendDesktop() {
                   <button
                     type="button"
                     className="pd-dk-button is-quiet rd-hero-edit"
+                    disabled={accessBlocked}
                     onClick={startOver}
                   >
                     {t("취향 바꾸기")}</button>
@@ -707,6 +712,8 @@ export function RecommendDesktop() {
         </div>
       </DesktopHero>
 
+      <RecommendationLoginNotice loginRequired={loginRequired} loading={profileLoading} error={profileError} />
+      <fieldset className="recommend-controls" disabled={accessBlocked} inert={accessBlocked}>
       {candidateAction.busy && (
         <div className="rd-row-foot">
           <span role="status">{t("후보를 조회하고 있습니다…")}</span>
@@ -1255,6 +1262,7 @@ export function RecommendDesktop() {
         </div>
       )}
 
+      </fieldset>
       <FootNote
         missing={t("편의시설 · 대중교통 경로 · 코스 공유")}
         note={t("후보는 저장된 장소·조건 자료와 취향을 비교합니다. 경로 시각은 선택한 이동 수단의 예상값입니다. 조건 참고 점수는 안전 판정이 아니며, 확인하지 못한 값은 미확인으로 표시합니다.")}

@@ -29,6 +29,7 @@ import { HomeTides } from "./HomeTides";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
+import { useFavoriteCourse } from "./useFavoriteCourse";
 import { useRequireLogin } from "./loginPopoverState";
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
@@ -534,31 +535,26 @@ function TasteBanner({
 }
 
 function RouteCard() {
-  const session = useTravelSession();
-  const routeCourse = session.route?.route ?? null;
-  // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
-  // 불러온 plan)는 있을 수 있습니다. route 만 보면 그 사이엔 홈이 늘 비어
-  // 보였습니다.
-  const planStops = routeCourse
-    ? []
-    : (session.plan?.days.flatMap((day) => day.items) ?? []);
+  const favoriteCourse = useFavoriteCourse();
+  const requireLogin = useRequireLogin();
   return (
     <div className="pd-card">
       <div className="hm-card-top">
         <div className="hm-card-top hm-card-top-tight">
           <Mascot role="course" size={28} />
-          <div className="pd-card-title">{t("물놀이 최적경로")}</div>
+          <div className="pd-card-title">{t("최근 즐겨찾기 코스")}</div>
         </div>
-        <StateChip kind={routeCourse ? "live" : "partial"} />
+        <StateChip kind={favoriteCourse.plan ? "live" : "no_data"} />
       </div>
       {/* 정차지를 번호 붙인 단계로 세웁니다. 예전에는 「경포 → 안목 → 사천진」
           처럼 화살표로 이은 한 줄이라, 정차지가 셋을 넘으면 줄바꿈 위치에 따라
           순서가 흐려졌습니다. 데스크탑 홈(hd-step)은 이미 번호와 연결선으로
           그리고 있었습니다. */}
-      {routeCourse || planStops.length ? (
+      {favoriteCourse.plan ? (
         <>
+          <p className="pd-note">{t("{date} 물 코스", { date: favoriteCourse.plan.request.dates[0] })}</p>
           <ol className="hm-steps">
-            {(routeCourse?.items ?? planStops).map((item, index, all) => (
+            {favoriteCourse.items.map((item, index, all) => (
               <li className="hm-step" key={`${item.spot_id}-${index}`}>
                 <span className="hm-step-head">
                   <span className="pd-num hm-step-no">{index + 1}</span>
@@ -569,20 +565,24 @@ function RouteCard() {
             ))}
           </ol>
           <p className="pd-note">
-            {routeCourse
-              ? t("예상 이동 {minutes}분", { minutes: routeCourse.travel_minutes })
+            {favoriteCourse.route
+              ? t("저장된 경로의 예상 이동 {minutes}분", { minutes: favoriteCourse.route.travel_minutes })
               : t("경로 미계산")}
           </p>
         </>
       ) : (
-        <div className="pd-slot hm-route-slot">
-          {t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
+        <div className="pd-slot hm-route-slot" role={favoriteCourse.error ? "alert" : "status"}>
+          {favoriteCourse.message}
         </div>
       )}
-      <a className="pd-secondary hm-cta" href="#map?view=course">
-        {t("경로 탐색 →")}</a>
+      {favoriteCourse.loginRequired ? (
+        <button type="button" className="pd-secondary hm-cta" onClick={requireLogin}>{t("로그인")}</button>
+      ) : (
+        <a className="pd-secondary hm-cta" href={favoriteCourse.href}>
+          {t(favoriteCourse.plan ? "즐겨찾기 코스 열기 →" : "지도에서 코스 보기 →")}</a>
+      )}
       <p className="pd-note">
-        {t("추천에서 고른 실제 장소를 지도에서 확인하고, 출발지를 정해 경로를 요청할 수 있습니다.")}</p>
+        {t("즐겨찾기 중 가장 최근에 저장·수정한 코스입니다.")}</p>
     </div>
   );
 }

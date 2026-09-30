@@ -1,6 +1,8 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const travelMessages: Record<string, MessageTranslations> = {
+  "로그인하면 취향을 고르고 맞춤 코스를 추천받을 수 있어요.": ["Sign in to choose your preferences and get personalized course recommendations.", "登录后即可选择偏好并获取个性化行程推荐。", "ログインすると好みを選んでコースのおすすめを受け取れます。"],
+  "로그인 상태를 확인하고 있습니다.": ["Checking your sign-in status.", "正在确认登录状态。", "ログイン状態を確認しています。"],
   "취향을 골라 시작합니다": ["Start by choosing your preferences", "从选择偏好开始", "好みを選んで始めましょう"],
   "전체 체크": ["Select all", "全选", "すべて選択"],
   "전체 체크 해제": ["Deselect all", "取消全选", "すべて選択解除"],

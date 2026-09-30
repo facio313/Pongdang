@@ -2,6 +2,7 @@ import { t } from "./i18n.ts";
 import { useEffect, useRef, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { RecommendDesktop } from "./RecommendDesktop";
+import { RecommendationLoginNotice } from "./RecommendationLoginNotice";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import {
@@ -122,12 +123,14 @@ function EntryHero({
   regionTitle,
   savedTastes,
   onChat,
+  busy,
 }: {
   regionTitle: string;
   /** 서버에 **저장돼 있는** 취향 라벨. 화면에서 지금 고르는 중인 것(picked)과
    *  다른 사실이므로 따로 받습니다. */
   savedTastes: string[];
   onChat: () => void;
+  busy: boolean;
 }) {
   const saved = savedTastes.length > 0;
   return (
@@ -166,7 +169,7 @@ function EntryHero({
                   </span>
                 ))}
               </div>
-              <button type="button" className="rc-hero-ai" onClick={onChat}>
+              <button type="button" className="rc-hero-ai" onClick={onChat} disabled={busy}>
                 {t("AI에게 이어서 물어보기 →")}</button>
             </>
           )}
@@ -378,6 +381,7 @@ function TasteBlocks({
   onDone,
   preferenceSaved,
   busy,
+  autoScroll,
   signalError,
 }: {
   revealed: number;
@@ -401,6 +405,7 @@ function TasteBlocks({
   onDone: () => void;
   preferenceSaved: boolean;
   busy: boolean;
+  autoScroll: boolean;
   signalError: string;
 }) {
   const card = cards[Math.min(cardIndex, Math.max(cards.length - 1, 0))];
@@ -418,8 +423,8 @@ function TasteBlocks({
   // **아래**에 붙으므로, 데려다주지 않으면 눌러도 아무 일이 없어 보입니다.
   const openedRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    openedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [revealed]);
+    if (autoScroll) openedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [revealed, autoScroll]);
 
   if (groups.length === 0)
     return (
@@ -1137,6 +1142,7 @@ function CourseHero({
                     ? t("평가값 없음")
                     : t("{count}점 {label}", { count: item.score, label: t(gradeOf(item.score).label) }) })}
                 onClick={() => setDayIndex(index)}
+                disabled={busy}
               >
                 <div className="rc-day-score">
                   {item.score === null ? "–" : item.score}
@@ -1464,9 +1470,11 @@ function RecommendScreen() {
     preference,
     hasTaste,
     profileLoading,
+    loginRequired,
     profileError,
     savePreference: saveTaste,
   } = useTastePreference();
+  const accessBlocked = loginRequired || profileLoading || Boolean(profileError);
   const courseOpen = courseChoice ?? Boolean(planId || (!profileLoading && hasTaste && session.plan));
   const cards = groups.find((group) => group.id === CARD_CATEGORY)?.options ?? [];
   const picked = tags ?? savedIds;
@@ -1799,9 +1807,9 @@ function RecommendScreen() {
   // 아무 일이 없어 보입니다.
   const courseRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (courseOpen && mode === "flow")
+    if (!accessBlocked && courseOpen && mode === "flow")
       courseRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [courseOpen, mode]);
+  }, [courseOpen, mode, accessBlocked]);
   // 히어로는 **지금 열린 마지막 자리**가 말합니다. 셸은 하나뿐이라 화면을
   // 갈아 끼우지 않고도 머리말만 바뀝니다.
   const hero =
@@ -1810,14 +1818,14 @@ function RecommendScreen() {
         regionTitle={regionTitle}
         asked={bubbles.filter((bubble) => bubble.role === "user").length}
         onBack={goEntry}
-        busy={action.busy}
+        busy={action.busy || accessBlocked}
       />
     ) : mode === "realert" ? (
       <RealertHero
         regionTitle={regionTitle}
         proposal={proposal}
         onBack={() => setMode("flow")}
-        busy={action.busy}
+        busy={action.busy || accessBlocked}
       />
     ) : courseOpen ? (
       <CourseHero
@@ -1825,7 +1833,7 @@ function RecommendScreen() {
         dayIndex={dayIndex}
         setDayIndex={(index) => recommend(index)}
         onBack={goEntry}
-        busy={action.busy}
+        busy={action.busy || accessBlocked}
       />
     ) : tasteOpen ? (
       <TasteHero
@@ -1834,13 +1842,14 @@ function RecommendScreen() {
         label={tasteLabel}
         title={tasteTitle}
         onBack={goEntry}
-        busy={action.busy}
+        busy={action.busy || accessBlocked}
       />
     ) : (
       <EntryHero
         regionTitle={regionTitle}
         savedTastes={savedTastes}
         onChat={() => setMode("chat")}
+        busy={action.busy || accessBlocked}
       />
     );
   return (
@@ -1852,6 +1861,8 @@ function RecommendScreen() {
       hero={<div className="rc-hero-slot">{hero}</div>}
     >
       <article className="recommend-page" aria-busy={action.busy}>
+        <RecommendationLoginNotice loginRequired={loginRequired} loading={profileLoading} error={profileError} />
+        <fieldset className="recommend-controls" disabled={accessBlocked} inert={accessBlocked}>
           <div className="rc-stack">
             <button
               type="button"
@@ -1897,6 +1908,7 @@ function RecommendScreen() {
                   onDone={() => recommend(dayIndex, true)}
                   preferenceSaved={preferenceSaved}
                   busy={action.busy}
+                  autoScroll={!accessBlocked}
                   signalError={t(signalError)}
                 />
               )}
@@ -1975,6 +1987,7 @@ function RecommendScreen() {
             )}
           </>
         )}
+        </fieldset>
       </article>
     </AppShell>
   );
