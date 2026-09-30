@@ -1,5 +1,6 @@
 import { t } from "./i18n.ts";
 import type { ReactNode } from "react";
+import { InfoPopover } from "./pongdangUi";
 import {
   conditionScoreText,
   evidenceSummary,
@@ -27,6 +28,7 @@ export function EvidenceNote({
   chip = true,
   extra,
   compact = false,
+  popover = false,
 }: {
   data?: Conditions;
   className?: string;
@@ -41,17 +43,28 @@ export function EvidenceNote({
   /** 안전 상태 칩을 이 줄에 붙일지. 지도처럼 화면이 이미 같은 사실을 더 눈에
    *  띄게 말하고 있으면 끕니다 -- 끈다고 문장이 사라지지는 않습니다. */
   chip?: boolean;
+  /** 접힌 근거를 details 대신 말풍선으로 엽니다. 한 화면에 이런 손잡이가 여럿
+   *  있는 곳(「오늘」)에서만 켭니다 -- details 로 열면 카드가 그 자리에서
+   *  늘어나 아래 내용이 밀려납니다. 내용은 같습니다. */
+  popover?: boolean;
 }) {
   const status = data?.safety_status ?? "unknown";
   const controlled = status === "restricted" || status === "caution";
-  const note = (
+  const body = (
+    <>
+      <p>{conditionScoreText(data)}</p>
+      <p>{evidenceText(data)}</p>
+      {!controlled && <p>{safetyStatusText(data)}</p>}
+    </>
+  );
+  const note = popover ? (
+    <InfoPopover label={t("근거 보기")} glass={glass}>
+      {body}
+    </InfoPopover>
+  ) : (
     <details className="pd-explainer">
       <summary className="pd-tap">{t("근거 보기")}</summary>
-      <div className="pd-explainer-body">
-        <p>{conditionScoreText(data)}</p>
-        <p>{evidenceText(data)}</p>
-        {!controlled && <p>{safetyStatusText(data)}</p>}
-      </div>
+      <div className="pd-explainer-body">{body}</div>
     </details>
   );
   return (

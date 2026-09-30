@@ -52,7 +52,8 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".hm-glance-aside-value")).toHaveText("2등급 · 과거");
   await expect(page.locator(".hm-glance-aside")).toContainText("점수 미반영");
   await expect(page.locator(".pd-cbars")).not.toContainText("수질");
-  await expect(page.locator(".home-page .pd-body")).toContainText("300일 전 과거 자료");
+  // 수질 상세 문장은 홈 카드에서 내렸습니다(등급과 「점수 미반영」만 남깁니다).
+  // 같은 사실은 아래에서 「오늘」 탭 수질 카드로 확인합니다.
   // 히어로 관측 패널은 이름과 값이 <dt>/<dd> 로 나뉩니다(예전에는 한 문장
   // 안의 「기온 24.7°C」였습니다). 값이 어느 이름에 붙는지까지 확인합니다.
   const heroMetric = (name: string) =>
@@ -62,20 +63,29 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.getByRole("table", { name: "오늘 시간대별 수집 예보" })).toBeVisible();
   await page.getByRole("link", { name: "오늘", exact: true }).click();
   await expect(page.locator(".td-hero-score-num")).toHaveText(String(conditions.condition_score.score));
-  await expect(page.locator(".td-hero-note")).toContainText("대표 관측소");
+  // 히어로의 접힌 근거는 말풍선입니다(InfoPopover) -- 한 번 열어 두 사실을 함께 읽습니다.
+  await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
+  const heroNote = page.getByRole("dialog", { name: "근거 보기" });
+  await expect(heroNote).toContainText("대표 관측소");
+  await expect(heroNote).toContainText("근거 확보");
+  await page.keyboard.press("Escape");
+  await expect(heroNote).toBeHidden();
   await expect(page.locator(".td-tile-value").nth(2)).toHaveText("21.3°C");
   await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
-  await expect(page.locator(".td-hero-note")).toContainText("근거 확보");
   await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
+  await expect(page.locator(".today-page")).toContainText("300일 전 과거 자료");
   await expect(page.locator(".td-act")).toHaveCount(5);
   // 근거는 활동 6개의 <details> 6줄이 아니라 하나로 합치고 활동을 셀렉트로
   // 고릅니다. 기본값이 수영이므로 그대로 펴서 확인합니다.
-  await page.getByText("분야별 근거 확인", { exact: true }).click();
-  const activityDetails = page.locator("details.td-basis");
+  await page.getByRole("button", { name: "분야별 근거 확인" }).click();
+  // 이 손잡이들은 이제 말풍선입니다(InfoPopover). 안쪽의 「분야별 점수·산정
+  // 기준·출처」도 같은 규칙이라 말풍선 안에 말풍선이 하나 더 있습니다.
+  const activityDetails = page.getByRole("dialog", { name: "분야별 근거 확인" });
   await expect(activityDetails.getByLabel("활동")).toHaveValue("swim");
-  await activityDetails.getByText("분야별 점수·산정 기준·출처", { exact: true }).click();
-  await expect(activityDetails).toContainText("수온 21.3°C");
-  await expect(activityDetails).toContainText("산술평균");
+  await activityDetails.getByRole("button", { name: "분야별 점수·산정 기준·출처" }).click();
+  const basis = page.getByRole("dialog", { name: "분야별 점수·산정 기준·출처" });
+  await expect(basis).toContainText("수온 21.3°C");
+  await expect(basis).toContainText("산술평균");
   // 활동을 바꾸면 그 활동의 근거로 갈립니다.
   await activityDetails.getByLabel("활동").selectOption("surf");
   await expect(activityDetails.getByLabel("활동")).toHaveValue("surf");
@@ -155,9 +165,13 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
   await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
-  await expect(page.locator(".td-hero-note")).toContainText("예보 기준");
-  await expect(page.locator(".td-hero-note")).toContainText("25% (1/4개)");
-  await expect(page.locator(".td-hero-note")).toContainText("안전 판정이 아닙니다");
+  // 접힌 근거는 말풍선입니다(InfoPopover). 열기 전에는 DOM 에 없으므로 -- 화면에
+  // 보이지 않는 문장을 「있다」고 검사하지 않기 위해 -- 실제로 열고 읽습니다.
+  await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
+  const heroEvidence = page.getByRole("dialog", { name: "근거 보기" });
+  await expect(heroEvidence).toContainText("예보 기준");
+  await expect(heroEvidence).toContainText("25% (1/4개)");
+  await expect(heroEvidence).toContainText("안전 판정이 아닙니다");
   await page.goto("#home");
   // Finish Today's independent weekly reads before measuring a fresh home load.
   await page.waitForLoadState("networkidle");
@@ -168,7 +182,8 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   // 홈은 제한 상태를 예보로 우회하지 않습니다. 오늘의 별도 주간 예보 조회 전 확인합니다.
   expect(forecasts).toBe(0);
   await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
-  await expect(page.locator(".td-hero-note")).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
+  await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
+  await expect(page.getByRole("dialog", { name: "근거 보기" })).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
 });
 
 test("forecast date changes display that date's server score and clear unavailable days", async ({ page }) => {
@@ -432,7 +447,11 @@ test("empty and unauthenticated data stay explicit", { tag: "@smoke" }, async ({
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
   await expect(page.locator(".hm-hero-sentence")).toContainText("활동이 없어요");
   await expect(page.locator(".hm-glance-aside-value")).toHaveText("검사 자료 없음");
-  await expect(page.locator(".home-page")).toContainText("점수를 이루는 항목을 읽지 못했습니다");
+  // 「항목을 읽지 못했습니다」 안내 문단은 홈 카드에서 내렸습니다. 항목 줄 자체가
+  // 그려지지 않는 것과, 아래 상태 줄이 그 사실을 말하는 것으로 확인합니다 --
+  // 조회 실패를 「값이 없는 화면」과 구별하는 것이 이 검사의 요지입니다.
+  await expect(page.locator(".home-page .pd-cbars")).toHaveCount(0);
+  await expect(page.locator(".home-page")).toContainText("수집된 해수욕장이 없습니다");
   // With no selected place, do not invent a Gangneung reference.
   await expect(page.locator(".hm-hero-place")).toContainText("장소 선택 필요");
   await expect(page.locator(".hm-hero-place")).not.toContainText("강릉 경포대 해수욕장");

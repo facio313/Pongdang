@@ -1,15 +1,11 @@
 import { t } from "./i18n.ts";
 import { useState } from "react";
 import { activities, type Activity } from "./aiApi";
-import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { gradeOf } from "./groupAGrade";
 import {
   dataStatusText,
-  forecastInputText,
-  metricNameLabel,
   kstDate,
   scoreCoverageText,
-  timeLabel,
   type Forecast,
   type RowPage,
 } from "./productData";
@@ -90,8 +86,11 @@ export function TodayForecast({ id, now, activity, placeSettled = false }: {
         </div>
         {selected.error && <p className="pd-note" role="alert">{t("예보 점수 조회 실패: {error}", { error: t(selected.error) })}</p>}
         {selected.awaitingForecast && !selected.error && <p className="pd-note">{t("해당 날짜의 예보 자료를 아직 받지 못했습니다. 자료가 수집되면 점수를 표시합니다.")}</p>}
-        {selected.data && <ConditionScoreDetails data={selected.data} className="pd-note" />}
 
+        {/* 원자료 목록(관측소 · 제공기관 · 시각 · 입력값 100건)은 내렸습니다.
+            남는 것은 조회 상태와 「목록이 비어 있다」는 사실뿐입니다 -- 목록이
+            없는 것과 조회에 실패한 것을 뭉뚱그리지 않기 위해 이 줄은 지우지
+            않습니다. */}
         <div aria-label={t("선택 날짜 예보 목록")}>
           {forecasts.loading ? <p className="pd-note" role="status">{t("선택 날짜의 예보 목록을 조회하고 있습니다.")}</p>
             : forecasts.error ? <p className="pd-note" role="alert">{t("예보 목록 조회 실패: {error}", { error: t(forecasts.error) })}</p>
@@ -104,17 +103,8 @@ export function TodayForecast({ id, now, activity, placeSettled = false }: {
                 ? t(" 위 점수의 산정 근거는 점수 상세에서 확인할 수 있습니다.")
                 : ` ${dataStatusText(forecasts.data.status ?? "no_data")}`}
             </p>
-            : <>
-              <p className="pd-note">{t("{date} KST 날짜에 걸친 예보 {total}건 중 {shown}건을 표시합니다.", { date: selected.id, total: forecasts.data?.total ?? rows.length, shown: rows.length })}</p>
-              <ul className="pd-note">
-                {rows.map((row) => <li key={row.source_key}>
-                  {row.station_name} · {row.provider} · {kstDate(row.target_start_at)} {timeLabel(row.target_start_at)}–{kstDate(row.target_end_at)} {timeLabel(row.target_end_at)} KST · {dataStatusText(row.state)} · {row.inputs.map((input) => `${metricNameLabel(input.name)}: ${forecastInputText(input, row.state)}`).join(" / ")}
-                </li>)}
-              </ul>
-            </>}
+            : null}
         </div>
-        <p className="pd-note">
-          {t("원자료 목록은 선택한 KST 날짜에 걸친 예보를 최대 100건까지 표시합니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한 수집 예보로 계산합니다. 목록 조회와 점수 조회는 별개이며, 해당 시각의 점수 근거가 없으면 –입니다.")}</p>
       </div>
     </section>
   );

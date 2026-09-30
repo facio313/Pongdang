@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calendarDays, conditionPath, conditionSeriesPath, metricText, forecastInputText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription, placeRegionLabel, productPlaces } from '../src/productData.ts';
+import { calendarDays, conditionPath, conditionSeriesPath, metricText, qualityValues, qualityGrade, kstDate, waterQualityLabel, waterQualityDescription, placeRegionLabel, productPlaces } from '../src/productData.ts';
 import { travelJson, recommendationPlan, keywordSelection, directionLink } from '../src/travelApi.ts';
 
 test('place region display uses verified districts or addresses without changing provider codes', () => {
@@ -111,12 +111,10 @@ test('water quality always labels historical station samples and never fills inv
   assert.equal(waterQualityLabel(undefined), '검사 자료 없음');
 });
 
+// forecastInputText 검사는 함께 지웠습니다 -- 그 함수를 쓰던 원자료 목록이 화면에서
+// 내려갔습니다. 강수 카테고리·최대 파고 표기는 metricText 쪽에 그대로 남아 있으므로
+// 아래 검사는 유지합니다.
 test('forecast display preserves rainfall categories and maximum wave labels', () => {
-  const rainfall = { state: 'recorded', numeric_value: null, text_value: 'PCP=강수없음', unit: 'mm/1h' };
-  assert.equal(forecastInputText(rainfall, 'available'), 'PCP=강수없음');
-  assert.equal(forecastInputText({ ...rainfall, numeric_value: 0 }, 'available'), '0mm/1h');
-  assert.equal(forecastInputText(rainfall, 'stale'), '–');
-  assert.equal(forecastInputText({ ...rainfall, state: 'missing' }, 'available'), '–');
   const data = { metrics: [], display_metrics: [
     { name: 'precipitation', status: 'text', value: null, text_value: '1.0mm 미만', unit: 'mm/1h' },
     { name: 'maximum_wave_height', status: 'provisional', value: 0.4, unit: 'm' },
