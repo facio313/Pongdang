@@ -1069,6 +1069,10 @@ export function RecommendDesktop() {
                     onClick={() => editCandidates(recommendation, allSelected ? [] : recommendation.recommendations.map((item) => item.spot_id))}
                   >{allSelected ? t("전체 체크 해제") : t("전체 체크")}</button>
                 </div>}
+                {recommendation && <div className="rd-order-columns">
+                  <span className="rd-order-check-label">{t("체크")}</span>
+                  <span>{t("드래그로 순서 변경")}</span>
+                </div>}
                 <div className="rd-steps" id="rd-candidate-list" ref={stepsRef}>
                   {stepRows.map((step, index) => (
                     <RdStep

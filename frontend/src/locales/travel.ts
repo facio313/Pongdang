@@ -6,6 +6,8 @@ export const travelMessages: Record<string, MessageTranslations> = {
   "취향을 골라 시작합니다": ["Start by choosing your preferences", "从选择偏好开始", "好みを選んで始めましょう"],
   "전체 체크": ["Select all", "全选", "すべて選択"],
   "전체 체크 해제": ["Deselect all", "取消全选", "すべて選択解除"],
+  "체크": ["Select", "勾选", "選択"],
+  "드래그로 순서 변경": ["Drag to reorder", "拖动调整顺序", "ドラッグで並べ替え"],
   "번호를 눌러 방문 여부를 정하고 오른쪽 손잡이로 순서를 바꾸세요. 선택한 첫 장소에서 출발합니다.": ["Click a number to include or exclude a place, and drag the right-hand handle to reorder. Start at the first selected place.", "点击数字选择或取消地点，拖动右侧手柄调整顺序。从第一个选中的地点出发。", "番号を押して訪問先を選び、右のハンドルで順序を変更してください。選択した最初の場所から出発します。"],
   "방문 장소와 순서": ["Places and visiting order", "游览地点与顺序", "訪問先と順序"],
   "{name} 코스에 포함": ["Include {name} in the course", "将{name}加入行程", "{name}をコースに含める"],
