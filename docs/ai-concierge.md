@@ -45,14 +45,17 @@ AI는 Windy 조회 API를 호출하거나 해당 화면의 결과를 근거로 �
 
 ## 모델, 대화와 검증
 
-기본 런타임 모델은 `gpt-5.6-luna`다. 이 코드를 개발하는 모델과 서비스가 호출하는
-런타임 모델은 별개다. [공식 Luna 모델 문서](https://developers.openai.com/api/docs/models/gpt-5.6-luna),
+기본 런타임 모델은 `gpt-6-luna`다. 이 코드를 개발하는 모델과 서비스가 호출하는
+런타임 모델은 별개다. [공식 Luna 모델 문서](https://developers.openai.com/api/docs/models/gpt-6-luna),
 [함수 호출](https://developers.openai.com/api/docs/guides/function-calling),
 [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)를
-2026-09-15 확인한 설정을 사용한다. 표준 입력 USD 0.20, 출력 USD 1.20 / 100만
-토큰을 각각 **200000 / 1200000 microUSD**로 설정한다. 캐시 입력 할인을 가정하지 않는다.
+2026-10-01 확인한 설정을 사용한다. 표준 입력 USD 0.10, 출력 USD 0.50 / 100만
+토큰을 각각 **100000 / 500000 microUSD**로 설정한다. 캐시 입력 할인을 가정하지 않는다.
 명시적으로 모델을 바꾸면 `AI_PRICING_MODEL`과 양의 요금도 일치해야 하며, 자동으로
 고가 모델로 바꾸지 않는다. 명시적 null·0·모델 불일치는 과금 호출을 차단한다.
+기본 일일 상한은 모델 호출 시도 30회와 예약 예산 USD 0.60이다. 회당 최소 USD 0.02를
+예약하며 기존 누적 사용량을 초기화하지 않는다. 날짜 경계는 UTC 자정(한국 09시)이다.
+명시된 서버 환경 변수는 기본값보다 우선한다.
 
 네트워크 어댑터는 수명주기가 관리되는 `httpx.AsyncClient`다. 엔드포인트는 서버 코드의
 `https://api.openai.com/v1/responses`로 고정한다. 리다이렉트·환경 프록시·자동 재시도를

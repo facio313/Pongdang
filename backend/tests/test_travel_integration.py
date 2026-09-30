@@ -7,6 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 from psycopg.types.json import Jsonb
 from pydantic import SecretStr
+from test_ai_chat import MemoryBudget, final
+from test_ai_intent import decision
 
 from app.config import Settings
 from app.ingestion.models import Place, SourceBatch, Station
@@ -116,6 +118,73 @@ def trip_request():
         "departure_time": "09:00",
         "return_by": "20:00",
     }
+
+
+def offline_chat(
+    monkeypatch, settings, *, action="read", tool=None, arguments=None, changes=None
+):
+    """Exercise the public scope gate with a provider that cannot access a network."""
+    import json
+
+    from app.ai import chat
+
+    settings.ai_provider = "openai"
+    settings.ai_api_key = SecretStr("isolated-provider-test-key")
+    account = MemoryBudget(limit=12)
+    for name in (
+        "acquire_request",
+        "reserve_attempt",
+        "record_usage",
+        "release_request",
+    ):
+        monkeypatch.setattr(chat.budget, name, getattr(account, name))
+
+    class Provider:
+        def __init__(self):
+            self.bodies = []
+            self.tool = tool
+            self.arguments = arguments or {}
+
+        async def respond(self, payload):
+            self.bodies.append(payload)
+            if payload["text"]["format"]["name"] == "pongdang_request_intent":
+                return decision(action=action, changes=changes)
+            results = [
+                item
+                for item in payload["input"]
+                if item.get("type") == "function_call_output"
+            ]
+            if not results:
+                return {
+                    "status": "completed",
+                    "output": [
+                        {
+                            "type": "function_call",
+                            "call_id": "offline-tool-call",
+                            "name": self.tool,
+                            "arguments": json.dumps(self.arguments),
+                        }
+                    ],
+                }
+            result = json.loads(results[-1]["output"])
+            return final(
+                sections=[
+                    {
+                        "title": "itinerary",
+                        "fact_ids": [],
+                        "candidate_ids": [],
+                        "structured_ids": [result["structured_id"]],
+                    }
+                ]
+            )
+
+    provider = Provider()
+
+    async def respond(_self, payload):
+        return await provider.respond(payload)
+
+    monkeypatch.setattr(chat.ResponsesProvider, "respond", respond)
+    return provider
 
 
 @pytest.mark.parametrize("kind", ["beach", "valley"])
@@ -505,8 +574,13 @@ def test_latest_favorite_filters_before_paging_and_follows_saved_order(travel_db
     assert client.get(BASE + "/plans", params=query).json()["rows"] == []
 
 
-def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):
-    _, client, places, _ = travel_db
+def test_second_candidate_chat_to_saved_plan_and_session_with_offline_provider(
+    travel_db, monkeypatch
+):
+    settings, client, places, _ = travel_db
+    provider = offline_chat(
+        monkeypatch, settings, tool="travel_draft", arguments={"rank": 2}
+    )
     request = trip_request()
     recommendations = client.post(
         BASE + "/recommendations", json={"request": request}
@@ -522,7 +596,9 @@ def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):
     )
     assert reply.status_code == 200, reply.text
     response = reply.json()
-    assert response["fallback"] is True
+    assert response["fallback"] is False
+    assert response["provider"] == "openai"
+    assert response["model_trace"][1]["plan"]["relevance"] == "Y"
     assert "draft_plan" in response["travel_results"], response
     draft = response["travel_results"]["draft_plan"]
     assert draft["input_stops"][0]["spot_id"] == expected
@@ -589,6 +665,7 @@ def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):
         "travel": {"session_id": session_id, "request": request},
     }
     before_read = client.get(BASE + "/sessions/" + session_id).json()
+    provider.tool, provider.arguments = "travel_companion", {}
     companion_chat = client.post("/api/data/ai/chat", json=chat_body)
     assert companion_chat.status_code == 200, companion_chat.text
     checked = companion_chat.json()["travel_results"]["companion"]
@@ -629,6 +706,9 @@ def test_second_candidate_chat_to_saved_plan_and_session_without_ai(travel_db):
         client.post(BASE + f"/sessions/{session_id}/refresh", json={}).status_code
         == 409
     )
+    assert (
+        len(provider.bodies) == 10
+    )  # draft, two companion reads, and denied owner scope
 
 
 def test_token_tampering_and_cross_owner_selection_rejected(travel_db):
@@ -901,6 +981,8 @@ def test_provider_tool_result_contract_uses_server_order_and_minimal_context(tra
             assert "traveller-a" not in serialized
             assert len(serialized.encode()) < settings.ai_max_input_bytes
             if self.calls == 1:
+                return decision(action="read")
+            if self.calls == 2:
                 return {
                     "status": "completed",
                     "output": [
@@ -953,7 +1035,7 @@ def test_provider_tool_result_contract_uses_server_order_and_minimal_context(tra
             budget_api=Budget,
         )
     )
-    assert provider.calls == 2, response.reason_codes
+    assert provider.calls == 3, response.reason_codes
     assert response.provider == "openai", response.reason_codes
     assert (
         response.travel_results["recommendations"]["recommendations"][0]["spot_id"]
@@ -1057,9 +1139,21 @@ def test_v7_additive_travel_migration_preserves_real_collection_rows(travel_db):
         ).fetchone() == (0,)
 
 
-def test_saved_plan_chat_recalculates_without_implicit_save(travel_db):
-    _, client, places, _ = travel_db
+def test_saved_plan_chat_recalculates_without_implicit_save(travel_db, monkeypatch):
+    from datetime import date
+
+    settings, client, places, _ = travel_db
     request = trip_request()
+    tomorrow = (date.fromisoformat(request["dates"][0]) + timedelta(days=1)).isoformat()
+    provider = offline_chat(
+        monkeypatch,
+        settings,
+        action="recommend",
+        changes={
+            "dates": [tomorrow],
+            "companion_type": "children",
+        },
+    )
     saved = client.post(
         BASE + "/plans",
         json={
@@ -1081,6 +1175,8 @@ def test_saved_plan_chat_recalculates_without_implicit_save(travel_db):
         },
     )
     assert reply.status_code == 200, reply.text
+    assert reply.json()["fallback"] is False
+    assert len(provider.bodies) == 1
     result = reply.json()["travel_results"]
     draft = result["draft_plan"]
     assert draft["request"]["companion_type"] == "children"

@@ -70,10 +70,10 @@ def operator_db():
         update={
             "ai_api_key": SecretStr("offline-provider-test-key"),
             "ai_provider": "auto",
-            "ai_model": "gpt-5.6-luna",
-            "ai_pricing_model": "gpt-5.6-luna",
-            "ai_input_microusd_per_million_tokens": 200000,
-            "ai_output_microusd_per_million_tokens": 1200000,
+            "ai_model": "gpt-6-luna",
+            "ai_pricing_model": "gpt-6-luna",
+            "ai_input_microusd_per_million_tokens": 100000,
+            "ai_output_microusd_per_million_tokens": 500000,
             "sso_proxy_secret": SecretStr(""),
             "sso_allowed_origins": "",
         }

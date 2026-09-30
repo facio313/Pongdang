@@ -131,6 +131,53 @@ def test_explicit_kakao_key_fallback_and_missing_key(tmp_path):
         preview.read_kakao_route_key(env)
 
 
+def test_explicit_ai_opt_in_is_bounded_and_does_not_import_other_settings(
+    config, tmp_path
+):
+    env = tmp_path / "ai.env"
+    env.write_text(
+        "AI_API_KEY=explicit-ai-test-key\n"
+        "AI_MODEL=another-model\n"
+        "AI_MAX_DAILY_CALLS=1000\n"
+        "AI_DAILY_BUDGET_MICROUSD=999999999\n"
+        "KAKAO_REST_API_KEY=unused-route-test-key\n"
+        "POSTGRES_DB=production\n"
+    )
+    settings = preview.preview_settings(config, ai_api_key=preview.read_ai_key(env))
+    assert settings.ai_effective_provider == "openai"
+    assert settings.ai_api_key.get_secret_value() == "explicit-ai-test-key"
+    assert settings.ai_model == settings.ai_pricing_model == "gpt-6-luna"
+    assert settings.ai_max_daily_calls == 30
+    assert settings.ai_daily_budget_microusd == 600000
+    assert settings.postgres_db == "pongdang_test"
+    assert settings.travel_route_provider == "disabled"
+    assert not settings.kakao_rest_api_key.get_secret_value()
+    assert settings.notifications_provider == "disabled"
+    env.write_text("KAKAO_REST_API_KEY=unrelated-test-key\n")
+    with pytest.raises(ValueError, match="no AI API key"):
+        preview.read_ai_key(env)
+
+
+def test_openai_network_opt_in_allows_only_resolved_https_destination():
+    guard = preview.network_guard(15499, openai_addresses={("1.1.1.1", 443)})
+    guard("socket.getaddrinfo", (preview.OPENAI_HOST, 443))
+    guard("socket.getaddrinfo", (preview.OPENAI_HOST.encode(), 443))
+    guard("socket.connect", (None, ("1.1.1.1", 443)))
+    guard("socket.connect", (None, ("127.0.0.1", 15499)))
+    for hostname, port in [
+        (preview.OPENAI_HOST + ".example.com", 443),
+        (preview.OPENAI_HOST, 80),
+        (preview.KAKAO_DIRECTIONS_HOST, 443),
+    ]:
+        with pytest.raises(PermissionError):
+            guard("socket.getaddrinfo", (hostname, port))
+    for address in [("127.0.0.1", 5432), ("8.8.8.8", 443), ("1.1.1.1", 80)]:
+        with pytest.raises(PermissionError):
+            guard("socket.connect", (None, address))
+    with pytest.raises(PermissionError):
+        preview.network_guard(15499)("socket.getaddrinfo", (preview.OPENAI_HOST, 443))
+
+
 def test_kakao_network_opt_in_preserves_database_and_destination_boundaries():
     guard = preview.network_guard(15499, kakao_addresses={("1.1.1.1", 443)})
     guard("socket.getaddrinfo", (preview.KAKAO_DIRECTIONS_HOST, 443))
@@ -185,6 +232,38 @@ def test_login_cookie_and_real_private_auth_chain(app, config):
         assert not ai.json()["enabled"]
         client.post("/pongdang/api/auth/logout", headers={"origin": preview.ORIGIN})
         assert client.get(private).status_code == 401
+
+
+def test_disabled_preview_chat_never_repeats_old_beach_recommendations(
+    app, config, monkeypatch
+):
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("A disabled model must not select places")
+
+    monkeypatch.setattr("app.travel.chat.recommend", forbidden)
+    with client_for(app) as client:
+        assert login(client, config).status_code == 200
+        response = client.post(
+            "/pongdang/api/data/ai/chat",
+            json={
+                "message": "오전엔 해변으로 갔다가 오후에는 계곡에 가고 싶어.",
+                "travel": {
+                    "request": {
+                        "region": "gangwon",
+                        "keyword_selection": [
+                            {"category": "place_type", "values": ["beach"]}
+                        ],
+                    }
+                },
+            },
+            headers={"origin": preview.ORIGIN},
+        )
+    assert response.status_code == 200
+    value = response.json()
+    assert value["status"] == "unavailable"
+    assert "ai_scope_unavailable" in value["reason_codes"]
+    assert value["travel_results"] == {}
+    assert value["candidates"] == []
 
 
 def test_invalid_credentials_do_not_authenticate_or_accept_forged_sso(app, config):

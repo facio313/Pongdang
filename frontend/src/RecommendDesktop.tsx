@@ -283,7 +283,7 @@ export function RecommendDesktop() {
       .map(([category, values]) => ({ category, values })),
   }, locale);
 
-  const { session, bubbles, asked, draft, setDraft, publish, send: sendChat, requestRoute, lastTrace, chatRequest, changeRegion, reset } =
+  const { session, bubbles, asked, draft, setDraft, publish, send: sendChat, requestRoute, traceHistory, chatRequest, changeRegion, reset } =
     useTravelConcierge({ opener: OPENER, baseRequest, action, excludeLastCandidate: true });
   const [traceOpen, setTraceOpen] = useState(false);
   const calculated = session.route?.route;
@@ -989,12 +989,12 @@ export function RecommendDesktop() {
                 )}
               </div>
               <ModelTraceButton
-                trace={lastTrace}
+                history={traceHistory}
                 onOpen={() => setTraceOpen(true)}
               />
               {traceOpen && (
                 <ModelTraceDialog
-                  trace={lastTrace}
+                  history={traceHistory}
                   onClose={() => setTraceOpen(false)}
                 />
               )}

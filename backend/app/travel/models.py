@@ -166,7 +166,25 @@ class EnvironmentPreference(Record):
         return self
 
 
+class VisitIntent(Record):
+    place_type: Literal[
+        "beach",
+        "valley",
+        "cafe",
+        "hot_spring",
+        "lake",
+        "river",
+        "reservoir",
+        "restaurant",
+        "lodging",
+        "attraction",
+    ]
+    part_of_day: Literal["morning", "afternoon", "evening", "any"] = "any"
+    activity: Activity | None = None
+
+
 class TravelRequest(Record):
+    visit_intents: list[VisitIntent] = Field(default_factory=list, max_length=5)
     keyword_selection: list[KeywordSelection] = Field(
         default_factory=list, max_length=7
     )
@@ -307,6 +325,7 @@ class RecommendationResult(Record):
     preference: TravelPreference
     status: DataStatus
     recommendations: list[Recommendation]
+    recommendation_groups: list[dict] = Field(default_factory=list, max_length=5)
     candidate_scope: dict
     excluded: list[dict]
     relaxation_proposals: list[dict]

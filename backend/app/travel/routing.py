@@ -11,12 +11,12 @@ from fastapi import HTTPException
 from pydantic import Field, model_validator
 
 from app.travel import keywords, route_snapshot, storage, tokens
-from app.travel.catalog import KST, Catalog
+from app.travel.catalog import KST, Catalog, matches_visit_intent
 from app.travel.directions import DirectionError, KakaoDirections
 from app.travel.environment import EnvironmentReader
 from app.travel.mobility import course_transport_advice
 from app.travel.models import PlanInput, Record, TravelPreference, TravelRequest
-from app.travel.recommend import rank_places
+from app.travel.recommend import rank_places, request_for_visit
 
 
 class RouteRecommendationInput(Record):
@@ -79,6 +79,45 @@ def base_result(request, now, status, reasons):
     }
 
 
+async def rank_route_places(catalog, places, request, preference, signals):
+    if not request.visit_intents:
+        restrictions = await catalog.restrictions(list(places), request)
+        ranked, excluded = rank_places(
+            list(places.values()), request, preference, signals, restrictions
+        )
+        return ranked, excluded, {sid: request for sid in places}
+
+    ranked, excluded, visits = {}, {}, {}
+    for intent in request.visit_intents:
+        visit = keywords.normalize(request_for_visit(request, intent))
+        matching = [p for p in places.values() if matches_visit_intent(visit, p)]
+        if not matching:
+            continue
+        # Controls are activity-specific: re-read them using the same visit
+        # request used for recommendation, including cafe/valley relaxation.
+        restrictions = await catalog.restrictions(
+            [p["spot_id"] for p in matching], visit
+        )
+        rows, failures = rank_places(matching, visit, preference, signals, restrictions)
+        for row in rows:
+            sid = row[0]["spot_id"]
+            ranked.setdefault(sid, row)
+            visits.setdefault(sid, visit)
+        for failure in failures:
+            excluded.setdefault(failure["spot_id"], failure)
+    return (
+        list(ranked.values()),
+        [
+            excluded.get(
+                sid, {"spot_id": sid, "reason": "selected_place_type_unconfirmed"}
+            )
+            for sid in places
+            if sid not in ranked
+        ],
+        visits,
+    )
+
+
 async def recommend_route(
     settings, owner, body, *, now=None, catalog=None, directions=None, environment=None
 ):
@@ -138,9 +177,8 @@ async def recommend_route(
         )
     signals = await asyncio.to_thread(storage.signals, settings, owner)
     single_day = request.model_copy(update={"dates": [day]})
-    restrictions = await catalog.restrictions(ids, single_day)
-    ranked, excluded = rank_places(
-        list(places.values()), single_day, preference, signals, restrictions
+    ranked, excluded, visit_requests = await rank_route_places(
+        catalog, places, single_day, preference, signals
     )
     ranked = [row for row in ranked if row[0]["spot_id"] not in request.exclude]
     ids = [row[0]["spot_id"] for row in ranked]
@@ -235,7 +273,8 @@ async def recommend_route(
             cursor = arrival
             if sid:
                 end = cursor + timedelta(minutes=body.stay_minutes)
-                match = await environment.compare(sid, request, cursor, end)
+                visit = visit_requests[sid]
+                match = await environment.compare(sid, visit, cursor, end)
                 items.append(
                     {
                         "spot_id": sid,
@@ -247,7 +286,7 @@ async def recommend_route(
                         "arrival_at": cursor.isoformat(),
                         "departure_at": end.isoformat(),
                         "stay_minutes": body.stay_minutes,
-                        "activities": keywords.activity_options(request, places[sid]),
+                        "activities": keywords.activity_options(visit, places[sid]),
                         "preference_points": points[sid],
                         "environment_match": match,
                     }

@@ -63,7 +63,29 @@ def test_usage_is_separate_idempotent_and_unknown_cost_is_never_refunded(budget_
             "SELECT calls,observed_calls,reserved_cost_microusd,"
             "actual_input_tokens,actual_output_tokens,actual_cost_microusd "
             "FROM pongdang_data.ai_daily_budget"
-        ).fetchone() == (2, 1, 40000, 100, 20, 44)
+        ).fetchone() == (2, 1, 40000, 100, 20, 20)
+
+
+def test_model_change_keeps_old_usage_prices_and_daily_reservations(budget_db):
+    previous = budget_db.model_copy(
+        update={
+            "ai_model": "gpt-5.6-luna",
+            "ai_pricing_model": "gpt-5.6-luna",
+            "ai_input_microusd_per_million_tokens": 200000,
+            "ai_output_microusd_per_million_tokens": 1200000,
+        }
+    )
+    old_attempt = budget.reserve_attempt(previous, 1000)
+    new_attempt = budget.reserve_attempt(budget_db, 1000)
+    assert old_attempt and new_attempt
+    assert budget.record_usage(budget_db, old_attempt, 100, 20)
+    assert budget.record_usage(budget_db, new_attempt, 100, 20)
+    with connect(budget_db) as c:
+        assert c.execute(
+            "SELECT calls,observed_calls,reserved_cost_microusd,"
+            "actual_input_tokens,actual_output_tokens,actual_cost_microusd "
+            "FROM pongdang_data.ai_daily_budget"
+        ).fetchone() == (2, 2, 40000, 200, 40, 64)
 
 
 def test_observed_overage_tightens_next_budget_without_a_refund(budget_db):
@@ -74,7 +96,7 @@ def test_observed_overage_tightens_next_budget_without_a_refund(budget_db):
         assert c.execute(
             "SELECT reserved_tokens,reserved_cost_microusd "
             "FROM pongdang_data.ai_daily_budget"
-        ).fetchone() == (200000, 140000)
+        ).fetchone() == (200000, 60000)
 
 
 def test_global_concurrency_is_atomic_across_independent_connections(budget_db):

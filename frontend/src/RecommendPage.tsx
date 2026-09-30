@@ -70,7 +70,7 @@ import {
   type KeywordCatalogue,
 } from "./useTastePreference";
 import { ModelTraceButton, ModelTraceDialog } from "./ModelTraceDialog";
-import type { ModelTraceTurn } from "./aiApi";
+import type { ModelTraceRequest } from "./aiApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
 import { TravelRegionSelector } from "./TravelRegionSelector";
@@ -663,7 +663,7 @@ function ChatBody({
   draft,
   setDraft,
   busy,
-  lastTrace,
+  traceHistory,
   onSend,
   onRoute,
   onReset,
@@ -674,7 +674,7 @@ function ChatBody({
   draft: string;
   setDraft: (value: string) => void;
   busy: boolean;
-  lastTrace: ModelTraceTurn[] | null;
+  traceHistory: ModelTraceRequest[];
   onSend: (text: string) => void;
   onRoute: (value: RouteRequestValue) => void;
   onReset: () => void;
@@ -729,12 +729,12 @@ function ChatBody({
           )}
         </div>
         <ModelTraceButton
-          trace={lastTrace}
+          history={traceHistory}
           onOpen={() => setTraceOpen(true)}
         />
         {traceOpen && (
           <ModelTraceDialog
-            trace={lastTrace}
+            history={traceHistory}
             onClose={() => setTraceOpen(false)}
           />
         )}
@@ -1587,7 +1587,7 @@ function RecommendScreen() {
       day_trip: true,
     }, locale);
   };
-  const { bubbles, draft, setDraft, publish, send, requestRoute, reset, lastTrace, chatRequest, changeRegion } =
+  const { bubbles, draft, setDraft, publish, send, requestRoute, reset, traceHistory, chatRequest, changeRegion } =
     useTravelConcierge({
       opener: OPENER,
       baseRequest: () => requestFor(dayIndex),
@@ -1940,7 +1940,7 @@ function RecommendScreen() {
               draft={draft}
               setDraft={setDraft}
               busy={action.busy}
-              lastTrace={lastTrace}
+              traceHistory={traceHistory}
               onSend={send}
               onRoute={requestRoute}
               onReset={() => { setSelectedRegion(currentRegion); reset(); }}

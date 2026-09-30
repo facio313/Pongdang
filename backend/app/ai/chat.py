@@ -64,7 +64,7 @@ QUESTIONS = {
     "place": "어떤 후보 장소를 자세히 조회할까요?",
     "weekend_day": "이번 주말 중 토요일과 일요일 어느 날을 조회할까요?",
 }
-SYSTEM = """You are Pongdang's Korean concierge running on gpt-5.6-luna.
+SYSTEM = """You are Pongdang's Korean concierge.
 Use tools to resolve real travel places and read current evidence. Never recommend
 observation stations as travel places. You can understand Korean questions,
 maintain location/activity/time context, choose functions, compare facts and select
@@ -163,7 +163,7 @@ class ResponsePlan(StrictModel):
 
 
 class ModelTraceTurn(StrictModel):
-    kind: Literal["tool", "plan"]
+    kind: Literal["tool", "plan", "scope", "attempt", "error"]
     name: str | None = None
     arguments: dict | None = None
     plan: dict | None = None
@@ -353,7 +353,7 @@ def unique_object(pairs):
     return result
 
 
-def parse_response(raw):
+def parse_response(raw, *, plan_type=ResponsePlan, allow_tools=True):
     if raw.get("status") != "completed":
         detail = raw.get("incomplete_details") or {}
         if isinstance(detail, dict) and detail.get("reason") == "max_output_tokens":
@@ -386,13 +386,16 @@ def parse_response(raw):
         elif item.get("type") != "reasoning":
             raise ProviderError("ai_invalid_response")
     if calls:
+        if not allow_tools:
+            raise ProviderError("ai_scope_tool_rejected")
         if texts:
             raise ProviderError("ai_mixed_output")
         return output, calls, None
     if len(texts) != 1:
         raise ProviderError("ai_empty_output")
     try:
-        return output, [], ResponsePlan.model_validate_json(texts[0])
+        value = json.loads(texts[0], object_pairs_hook=unique_object)
+        return output, [], plan_type.model_validate(value)
     except ValueError:
         raise ProviderError("ai_output_unverified") from None
 
@@ -430,6 +433,7 @@ def validate_plan(plan, session, request):
     if (
         plan.intent not in {"clarify", "greeting"}
         and getattr(session, "travel_results", None) == {}
+        and getattr(session, "intent_action", None) != "read"
     ):
         raise ProviderError("ai_travel_read_required")
     if plan.intent == "clarify" and plan.clarification is None:
@@ -661,13 +665,25 @@ async def converse(
     now=None,
     session_factory=ToolSession,
     budget_api=budget,
+    check_scope=True,
 ):
+    from app.ai.intent import (
+        OUT_OF_SCOPE,
+        SCOPE_UNAVAILABLE,
+        IntentDecision,
+    )
+    from app.ai.intent import (
+        request_body as intent_body,
+    )
+
     now = now or datetime.now(UTC)
     session = session_factory(settings, now)
     request_id = uuid4().hex
     started, calls, tool_count = time.monotonic(), 0, 0
     reasons, plan, model, lease, trace = [], None, None, None, []
     measured_input, measured_output, reserved_bytes = 0, 0, 0
+    scope_accepted, scope_denied = not check_scope, False
+    stage = "scope" if check_scope else "response"
     try:
         async with asyncio.timeout(settings.ai_request_timeout_seconds):
             state = availability(settings)
@@ -697,16 +713,23 @@ async def converse(
                     while calls < settings.ai_max_model_calls:
                         # Reserve the last model turn for composition after reads.
                         # A first data question still must collect its own evidence.
-                        final_answer_only = bool(session.features) and (
-                            calls == settings.ai_max_model_calls - 1
+                        final_answer_only = (
+                            not check_scope
+                            and bool(session.features)
+                            and (calls == settings.ai_max_model_calls - 1)
                         )
-                        body = body_for(
-                            settings,
-                            session,
-                            inputs,
-                            require_tools=not session.features
-                            and not is_greeting(request.message),
-                            final_answer_only=final_answer_only,
+                        stage = "response" if scope_accepted else "scope"
+                        body = (
+                            body_for(
+                                settings,
+                                session,
+                                inputs,
+                                require_tools=not session.features
+                                and not is_greeting(request.message),
+                                final_answer_only=final_answer_only,
+                            )
+                            if scope_accepted
+                            else intent_body(settings, inputs, strict_schema)
                         )
                         size = len(encode_body(body))
                         if size > settings.ai_max_input_bytes:
@@ -721,6 +744,7 @@ async def converse(
                             raise ProviderError("ai_budget_exhausted")
                         reserved_bytes += size
                         calls += 1
+                        trace.append(ModelTraceTurn(kind="attempt", name=stage))
                         raw = await provider.respond(body)
                         usage = raw.get("usage", {})
                         input_tokens, output_tokens = (
@@ -744,6 +768,89 @@ async def converse(
                                 )
                             except Exception:
                                 reasons.append("ai_usage_record_unavailable")
+                        if not scope_accepted:
+                            _, _, decision = parse_response(
+                                raw, plan_type=IntentDecision, allow_tools=False
+                            )
+                            trace.append(
+                                ModelTraceTurn(
+                                    kind="scope",
+                                    plan=public_trace_value(decision.model_dump()),
+                                )
+                            )
+                            model = settings.ai_model
+                            if decision.relevance == "N":
+                                scope_denied = True
+                                reasons.append("ai_out_of_scope")
+                                plan = ResponsePlan(
+                                    intent="unsupported",
+                                    clarification=None,
+                                    sections=[],
+                                )
+                                break
+                            scope_accepted = True
+                            from app.travel.chat import TravelToolSession
+
+                            if decision.action in {
+                                "recommend",
+                                "route",
+                            } and not hasattr(session, "travel_context"):
+                                session = TravelToolSession(
+                                    settings, now, body=request, owner=subject
+                                )
+                            session.intent_action = decision.action
+                            if hasattr(session, "prepare"):
+                                await session.prepare()
+                            if (
+                                hasattr(session, "travel_context")
+                                and not session.travel_context.request.region
+                            ):
+                                session.travel_context.request.region = "gangwon"
+                            inputs.append(
+                                {
+                                    "role": "user",
+                                    "content": json.dumps(
+                                        {
+                                            "interpreted_request": public_trace_value(
+                                                decision.model_dump()
+                                            )
+                                        },
+                                        ensure_ascii=False,
+                                    ),
+                                }
+                            )
+                            if decision.action == "clarify":
+                                plan = ResponsePlan(
+                                    intent="clarify",
+                                    clarification=decision.clarification,
+                                    sections=[],
+                                )
+                                break
+                            if decision.action == "recommend":
+                                stage = "travel_recommend"
+                                args = {
+                                    "changes": decision.changes.model_dump(
+                                        mode="json", exclude_none=True
+                                    ),
+                                    "limit": 5,
+                                }
+                                trace.append(
+                                    ModelTraceTurn(
+                                        kind="tool",
+                                        name=stage,
+                                        arguments=public_trace_value(args),
+                                    )
+                                )
+                                tool_count += 1
+                                await session.execute(stage, args)
+                                plan = ResponsePlan(
+                                    intent="explain", clarification=None, sections=[]
+                                )
+                                break
+                            # Relevance and interpretation used one of the existing
+                            # bounded model attempts. Subsequent calls may only use
+                            # the registered read tools, never model-authored SQL.
+                            continue
                         try:
                             output, pending, proposed = parse_response(raw)
                         except ProviderError as exc:
@@ -809,14 +916,32 @@ async def converse(
                             )
                     if plan is None:
                         reasons.append("ai_model_call_limit")
+                        if check_scope and scope_accepted and session.features:
+                            # Composition is server-owned; keep collected evidence
+                            # when the last allowed turn was a read, not a plan.
+                            plan = ResponsePlan(
+                                intent="explain", clarification=None, sections=[]
+                            )
+                            model = settings.ai_model
 
                 else:
                     reasons.append(state["reason"])
             except (ProviderError, ToolError) as exc:
                 reasons.append(exc.code)
+                trace.append(ModelTraceTurn(kind="error", name=stage, error=exc.code))
+                model = None
+            except HTTPException:
+                # Keep the existing owner/access and storage HTTP contracts.
+                raise
             except Exception:
                 reasons.append("ai_service_unavailable")
-            if plan is None:
+                trace.append(
+                    ModelTraceTurn(
+                        kind="error", name=stage, error="ai_service_unavailable"
+                    )
+                )
+                model = None
+            if plan is None and not check_scope:
                 if hasattr(session, "fallback") and not session.travel_results:
                     plan = await deterministic_reads(session, request)
                 elif session.features:
@@ -827,10 +952,19 @@ async def converse(
                     plan = await deterministic_reads(session, request)
     except (ProviderError, ToolError) as exc:
         reasons.append(exc.code)
+        trace.append(ModelTraceTurn(kind="error", name=stage, error=exc.code))
     except TimeoutError:
         reasons.append("ai_request_timeout")
+        trace.append(
+            ModelTraceTurn(kind="error", name=stage, error="ai_request_timeout")
+        )
+    except HTTPException:
+        raise
     except Exception:
         reasons.append("ai_service_unavailable")
+        trace.append(
+            ModelTraceTurn(kind="error", name=stage, error="ai_service_unavailable")
+        )
     finally:
         if lease:
             try:
@@ -872,10 +1006,25 @@ async def converse(
         plan = ResponsePlan(intent="explain", clarification=None, sections=[])
     from app.travel.chat import assemble_travel
 
-    return assemble_travel(
+    response = assemble_travel(
         assemble(session, request, now, request_id, plan, reasons, model, trace),
         session,
     )
+    if check_scope and (scope_denied or not scope_accepted):
+        response.status = "out_of_scope" if scope_denied else "unavailable"
+        response.answer = OUT_OF_SCOPE if scope_denied else SCOPE_UNAVAILABLE
+        response.clarification = None
+        response.warnings = []
+        response.limitations = []
+        if not scope_denied:
+            response.reason_codes.append("ai_scope_unavailable")
+    elif check_scope and not session.features and not plan.clarification:
+        response.status = "unavailable"
+        response.answer = (
+            "요청은 강원도 물놀이와 관련 있지만 자료 조회를 완료하지 못했습니다. "
+            "처리 기록의 사유를 확인한 뒤 다시 시도해 주세요."
+        )
+    return response
 
 
 def create_chat_router(settings, *, provider=None, handler=None):

@@ -22,3 +22,13 @@ export function candidateCourse(result: RecommendationResult, included: readonly
   }, new Set(recommendations.map((row) => row.spot_id)));
   return { ...input, request: { ...input.request, origin: origin ?? undefined } };
 }
+
+/** Keep every explicitly requested visit group in the initial desktop course. */
+export function initialCandidateCourse(result: RecommendationResult, excludeLastCandidate = false): PlanInput | null {
+  if (!result.recommendations.length) return null;
+  if (!excludeLastCandidate) return recommendationPlan(result, result.request.dates[0]);
+  const included = result.recommendation_groups?.length
+    ? result.recommendations
+    : result.recommendations.slice(0, -1);
+  return candidateCourse(result, included.map((item) => item.spot_id));
+}

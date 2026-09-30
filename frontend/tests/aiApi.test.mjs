@@ -5,7 +5,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import { AiRequestError, aiStatusText, ConversationRequest, displayTime, requestJson, safeInternalLink, safeSourceUrl } from '../src/aiApi.ts';
+import { AiRequestError, aiStatusText, appendModelTraceRequest, ConversationRequest, displayTime, requestJson, safeInternalLink, safeSourceUrl } from '../src/aiApi.ts';
 
 registerHooks({
   resolve(specifier, context, next) {
@@ -25,6 +25,8 @@ registerHooks({
 });
 const { contextLink, featurePath, readRoute, featurePages } = await import('../src/featureRoutes.ts');
 const { AiResponseView } = await import('../src/AiConciergePage.tsx');
+const { ModelTraceButton, ModelTraceDialog } = await import('../src/ModelTraceDialog.tsx');
+const { travelChatMessages } = await import('../src/travelApi.ts');
 
 const response = {
   request_id: 'request-fixture', status: 'completed', answer: '조회된 근거를 확인해 주세요.', clarification: null, fallback: false, provider: 'openai', model: 'gpt-5.6-luna',
@@ -47,6 +49,59 @@ test('readiness is not a paid connectivity check, and failures are explicit', ()
   assert.match(aiStatusText({ enabled: false, status: 'unconfigured', reason: 'key_missing', model: null }), /준비 전/);
   assert.match(aiStatusText({ enabled: false, status: 'disabled', reason: 'disabled', model: null }), /비활성화/);
   assert.match(aiStatusText({ enabled: true, status: 'access_error', reason: 'unauthorized', model: null }), /접근 실패/);
+});
+test('an empty trace describes absent records without claiming Luna was not called', () => {
+  const html = renderToStaticMarkup(createElement(ModelTraceDialog, { trace: [], onClose() {} }));
+  assert.match(html, /표시할 처리 기록이 없습니다/);
+  assert.doesNotMatch(html, /루나 호출 없음/);
+  assert.equal(renderToStaticMarkup(createElement(ModelTraceButton, { history: [], onOpen() {} })), '');
+});
+test('scope decisions, both visit intents, attempts and known failures remain distinct', () => {
+  const html = renderToStaticMarkup(createElement(ModelTraceDialog, { history: [
+    { sequence: 1, trace: [
+      { kind: 'attempt', name: 'scope' },
+      { kind: 'scope', plan: { relevance: 'Y', action: 'recommend', changes: { visit_intents: [
+        { place_type: 'beach', part_of_day: 'morning' },
+        { place_type: 'valley', part_of_day: 'afternoon' },
+      ] } } },
+      { kind: 'tool', name: 'travel_recommend', arguments: { limit: 5 } },
+      { kind: 'plan', plan: { intent: 'explain' } },
+    ] },
+    { sequence: 2, trace: [{ kind: 'scope', plan: { relevance: 'N', action: 'clarify', changes: {} } }] },
+    { sequence: 3, trace: [{ kind: 'attempt', name: 'scope' }, { kind: 'error', name: 'scope', error: 'ai_authentication_failed' }] },
+  ], onClose() {} }));
+  assert.match(html, /1번째 요청/);
+  assert.match(html, /3번째 요청/);
+  assert.match(html, /루나 호출 시도/);
+  assert.match(html, /Y \(지원하는 질문\)/);
+  assert.match(html, /N \(지원하지 않는 질문\)/);
+  assert.match(html, /오전 · 해변 → 오후 · 계곡/);
+  assert.match(html, /travel_recommend/);
+  assert.match(html, /explain/);
+  assert.match(html, /루나 처리 실패/);
+  assert.match(html, /OpenAI 인증에 실패했습니다/);
+});
+test('request trace history retains only the latest twelve requests including empty records', () => {
+  let history = [];
+  for (let index = 1; index <= 14; index += 1)
+    history = appendModelTraceRequest(history, index === 13 ? [] : [{ kind: 'plan', plan: { request: index } }]);
+  assert.equal(history.length, 12);
+  assert.equal(history[0].sequence, 3);
+  assert.equal(history.at(-1).sequence, 14);
+  assert.deepEqual(history.at(-2), { sequence: 13, trace: [] });
+  assert.deepEqual(Object.keys(history[0]), ['sequence', 'trace']);
+});
+test('travel fallback messages explain known failures once and keep scope rejection exact', () => {
+  const failure = { answer: '요청을 처리하지 못했습니다.', clarification: '요청을 처리하지 못했습니다.',
+    status: 'unavailable', fallback: true,
+    reason_codes: ['ai_scope_unavailable', 'ai_authentication_failed', 'ai_authentication_failed', 'private upstream text'] };
+  const messages = travelChatMessages(failure);
+  assert.equal(messages.length, 2);
+  assert.match(messages[1], /관련성과 방문 의도를 확인하지 못했습니다/);
+  assert.equal(messages[1].split('OpenAI 인증에 실패했습니다.').length, 2);
+  assert.doesNotMatch(messages.join(' '), /private upstream text/);
+  assert.deepEqual(travelChatMessages({ ...failure, answer: '관련 없는 것은 질문 받지 않는다.', clarification: null, status: 'out_of_scope' }), ['관련 없는 것은 질문 받지 않는다.']);
+  assert.deepEqual(travelChatMessages({ ...failure, answer: 'OpenAI 인증에 실패했습니다. 서버 키 설정을 확인해야 합니다.', clarification: null, reason_codes: ['ai_authentication_failed'] }), ['OpenAI 인증에 실패했습니다. 서버 키 설정을 확인해야 합니다.']);
 });
 test('local operator status is explicit while ordinary readiness messages stay unchanged', () => {
   const states = [
@@ -222,6 +277,19 @@ test('fallback credits deterministic data, and stale facts are visibly distingui
   assert.doesNotMatch(html, /Luna · 서버 근거 검증 완료/);
   assert.equal(displayTime(null), '기록 없음');
   assert.equal(displayTime('bad date'), '기록 없음');
+});
+
+test('scope rejection and incomplete processing do not claim verified evidence or a data fallback', () => {
+  for (const [status, reason_codes, fallback, label] of [
+    ['out_of_scope', [], false, '지원하지 않는 질문'],
+    ['unavailable', ['ai_scope_unavailable', 'ai_timeout'], true, '관련성 판단 미완료'],
+    ['unavailable', ['ai_timeout'], true, '자료 조회 미완료'],
+  ]) {
+    const payload = { ...response, status, reason_codes, fallback, candidates: [], facts: [], sources: [], sections: [] };
+    const html = renderToStaticMarkup(createElement(AiResponseView, { response: payload }));
+    assert.match(html, new RegExp(`<strong>${label}</strong>`));
+    assert.doesNotMatch(html, /Luna · 서버 근거 검증 완료|기존 자료 기반 대체 응답/);
+  }
 });
 
 test('section references compose the response and cannot drop remaining caution facts or nested forecast inputs', () => {

@@ -31,9 +31,10 @@ COOKIE = "pongdang_local_test"
 SUBJECT = "local-test-user"
 SESSION_SECONDS = 12 * 60 * 60
 KAKAO_DIRECTIONS_HOST = "apis-navi.kakaomobility.com"
+OPENAI_HOST = "api.openai.com"
 
 
-def preview_settings(config, *, kakao_rest_api_key=""):
+def preview_settings(config, *, kakao_rest_api_key="", ai_api_key=""):
     if (
         config.get("kind") != "pongdang-isolated-local-preview-v1"
         or config.get("postgres_host") != "127.0.0.1"
@@ -64,7 +65,12 @@ def preview_settings(config, *, kakao_rest_api_key=""):
         api_root_path="",
         sso_proxy_secret=secrets.token_urlsafe(48),
         sso_allowed_origins=ORIGIN,
-        ai_provider="disabled",
+        ai_provider="openai" if ai_api_key else "disabled",
+        ai_api_key=ai_api_key,
+        # Explicit AI previews share the existing durable accounting, with a
+        # smaller local ceiling: at most 30 attempts and USD 0.60 per UTC day.
+        ai_max_daily_calls=30,
+        ai_daily_budget_microusd=600000,
         travel_route_provider="kakao" if kakao_rest_api_key else "disabled",
         kakao_rest_api_key=kakao_rest_api_key,
         notifications_provider="disabled",
@@ -170,8 +176,12 @@ class LocalSession:
         return token
 
 
-def create_preview_app(config, *, now=time.monotonic, kakao_rest_api_key=""):
-    settings = preview_settings(config, kakao_rest_api_key=kakao_rest_api_key)
+def create_preview_app(
+    config, *, now=time.monotonic, kakao_rest_api_key="", ai_api_key=""
+):
+    settings = preview_settings(
+        config, kakao_rest_api_key=kakao_rest_api_key, ai_api_key=ai_api_key
+    )
     verify_database(settings, config["database_marker"])
     access = LocalSession(config["username"], config["password"], now=now)
     app = create_app(settings)
@@ -246,29 +256,50 @@ def read_kakao_route_key(path):
 
 
 def resolve_kakao_addresses():
+    return resolve_provider_addresses(KAKAO_DIRECTIONS_HOST)
+
+
+def read_ai_key(path):
+    """Import only the explicitly selected AI key, never production settings."""
+    key = (dotenv_values(path, interpolate=False).get("AI_API_KEY") or "").strip()
+    if not key:
+        raise ValueError("The selected environment file has no AI API key")
+    return key
+
+
+def resolve_provider_addresses(hostname):
     addresses = frozenset(
         (row[4][0], 443)
-        for row in socket.getaddrinfo(
-            KAKAO_DIRECTIONS_HOST, 443, type=socket.SOCK_STREAM
-        )
+        for row in socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
     )
     if not addresses or any(
         not ipaddress.ip_address(host).is_global for host, _ in addresses
     ):
-        raise ValueError("Kakao directions must resolve to public HTTPS addresses")
+        raise ValueError("Provider must resolve to public HTTPS addresses")
     return addresses
 
 
-def network_guard(database_port, *, kakao_addresses=frozenset()):
-    destinations = {("127.0.0.1", database_port), *kakao_addresses}
+def network_guard(
+    database_port, *, kakao_addresses=frozenset(), openai_addresses=frozenset()
+):
+    destinations = {
+        ("127.0.0.1", database_port),
+        *kakao_addresses,
+        *openai_addresses,
+    }
+    providers = {
+        name
+        for hostname, addresses in (
+            (KAKAO_DIRECTIONS_HOST, kakao_addresses),
+            (OPENAI_HOST, openai_addresses),
+        )
+        if addresses
+        for name in (hostname, hostname.encode())
+    }
 
     def audit(event, args):
         if event == "socket.getaddrinfo" and args[0] != "127.0.0.1":
-            if not (
-                kakao_addresses
-                and args[0] in {KAKAO_DIRECTIONS_HOST, KAKAO_DIRECTIONS_HOST.encode()}
-                and args[1] == 443
-            ):
+            if not (args[0] in providers and args[1] == 443):
                 raise PermissionError("External network is disabled in local testing")
         if event == "socket.connect":
             address = args[1]
@@ -289,12 +320,26 @@ def main():
         type=Path,
         help="Enable real Kakao directions using only the REST key in this file",
     )
+    parser.add_argument(
+        "--ai-env",
+        type=Path,
+        help="Opt in to real Luna calls using only AI_API_KEY in this file; "
+        "limited to 30 attempts and USD 0.60 per UTC day",
+    )
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     route_key = read_kakao_route_key(args.kakao_env) if args.kakao_env else ""
-    app = create_preview_app(config, kakao_rest_api_key=route_key)
+    ai_key = read_ai_key(args.ai_env) if args.ai_env else ""
+    app = create_preview_app(config, kakao_rest_api_key=route_key, ai_api_key=ai_key)
     addresses = resolve_kakao_addresses() if route_key else frozenset()
-    sys.addaudithook(network_guard(config["postgres_port"], kakao_addresses=addresses))
+    ai_addresses = resolve_provider_addresses(OPENAI_HOST) if ai_key else frozenset()
+    sys.addaudithook(
+        network_guard(
+            config["postgres_port"],
+            kakao_addresses=addresses,
+            openai_addresses=ai_addresses,
+        )
+    )
     uvicorn.run(
         app,
         host="127.0.0.1",
