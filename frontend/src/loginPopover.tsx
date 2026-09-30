@@ -3,7 +3,7 @@ import { t } from "./i18n";
 import { LoginPopoverControl } from "./loginPopoverState";
 import { Icon } from "./pongdangUi";
 import { invalidateResources } from "./resourceRefresh";
-import { signInSso, SsoLoginError } from "./ssoLogin";
+import { readSsoLoginState, signInSso, SsoLoginError } from "./ssoLogin";
 import "./loginPopover.css";
 
 function LoginPopoverPanel({ onClose }: { onClose: () => void }) {
@@ -13,7 +13,15 @@ function LoginPopoverPanel({ onClose }: { onClose: () => void }) {
   const request = useRef<AbortController | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
+  const [localTest, setLocalTest] = useState(false);
   useEffect(() => {
+    const connection = new AbortController();
+    void readSsoLoginState(import.meta.env.BASE_URL, AbortSignal.any([connection.signal, AbortSignal.timeout(10000)]))
+      .then((state) => { if (!connection.signal.aborted) setLocalTest(state.localTest); })
+      .catch((failure: unknown) => {
+        if (!connection.signal.aborted) setError(failure instanceof SsoLoginError
+          ? failure.message : "로그인 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      });
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
@@ -29,6 +37,7 @@ function LoginPopoverPanel({ onClose }: { onClose: () => void }) {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      connection.abort();
       request.current?.abort();
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
@@ -65,6 +74,7 @@ function LoginPopoverPanel({ onClose }: { onClose: () => void }) {
     <div className="pd-login-popover" role="dialog" aria-modal="true" aria-labelledby="pd-login-title" ref={panel}>
       <button type="button" className="pd-login-close" onClick={onClose} aria-label={t("닫기")}><Icon name="close" size={20} /></button>
       <h2 id="pd-login-title">{t("로그인")}</h2>
+      {localTest && <p className="pd-login-context">{t("로컬 테스트 계정으로 로그인해 주세요.")}</p>}
       <form className="pd-login-form" onSubmit={submit} aria-busy={pending}>
         <label>{t("아이디")}<input name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required readOnly={pending} ref={usernameInput} /></label>
         <label>{t("비밀번호")}<input type="password" name="password" autoComplete="current-password" required readOnly={pending} ref={passwordInput} /></label>

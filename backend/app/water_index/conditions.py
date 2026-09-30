@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, StrictFloat, model_validator
 
+from app.place_kinds import INLAND_PLACE_KINDS, WaterPlaceKind
 from app.water_index.activity_score import ActivityScore
 from app.water_index.models import Activity, Record
 
@@ -213,6 +214,23 @@ ACTIVITIES = {
 }
 
 
+def activity_metrics(activity, place_kind=None):
+    """Inland swimming needs hydrology, never a neighbouring sea's waves."""
+    if activity == "swim" and place_kind in INLAND_PLACE_KINDS:
+        return tuple(
+            METRICS[name]
+            for name in (
+                "water_temperature",
+                "air_temperature",
+                "wind_speed",
+                "precipitation",
+                "river_level",
+                "river_flow",
+            )
+        )
+    return ACTIVITIES[activity].metrics
+
+
 class ActivityCatalog(Record):
     contract_version: Literal["water-conditions.v1"] = CONTRACT
     model: ConditionModel = Field(default_factory=ConditionModel)
@@ -331,6 +349,7 @@ class ConditionsEnvelope(Record):
     model: ConditionModel = Field(default_factory=ConditionModel)
     spot_id: int
     place_name: str | None
+    place_kind: WaterPlaceKind | None = None
     activity: Activity
     mode: Literal["observation", "forecast"]
     at: AwareDatetime

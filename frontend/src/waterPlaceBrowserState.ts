@@ -14,7 +14,7 @@ export function parseWaterPlaceBrowserState(raw: string | null): WaterPlaceBrows
     return {
       search: typeof saved.search === "string" ? saved.search.slice(0, 100) : "",
       district: typeof saved.district === "string" && /^[a-z]{1,20}$/.test(saved.district) ? saved.district : "",
-      kind: saved.kind === "beach" || saved.kind === "valley" ? saved.kind : "",
+      kind: saved.kind === "beach" || saved.kind === "valley" || saved.kind === "lake" || saved.kind === "reservoir" ? saved.kind : "",
       page: Number.isSafeInteger(saved.page) && saved.page! >= 1 && saved.page! <= 10000 ? saved.page! : 1,
       pageSize: saved.pageSize === 10 ? 10 : 100,
     };

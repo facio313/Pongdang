@@ -38,7 +38,9 @@ export function routeReasonsText(reasons: string[]): string {
     route_provider_unconfigured: "서버의 카카오 길찾기 REST 키 설정이 필요합니다",
     route_provider_disabled: "운영 설정에서 길찾기가 비활성화되어 있습니다",
     route_provider_authentication_failed: "카카오 길찾기 인증에 실패했습니다. 서버 REST 키와 서비스 권한을 확인해야 합니다",
-    route_transport_not_configured: "현재 자동 경로 계산은 자동차 이동만 지원합니다",
+    route_transport_not_configured: "선택한 이동 수단의 경로를 지원하지 않습니다",
+    route_provider_quota_exceeded: "카카오 경로 조회 한도에 도달했습니다. 잠시 후 다시 시도해 주세요",
+    provider_does_not_accept_departure_time: "이 이동 수단은 출발시각별 조회를 지원하지 않습니다. 실제 운행·소요시간은 출발 전에 확인해 주세요",
     route_date_required: "경로를 계산할 여행 날짜를 선택해 주세요",
     route_origin_and_departure_required: "출발지와 출발 시각을 입력해 주세요",
     route_departure_in_past: "출발 시각이 지났습니다. 앞으로의 시각을 선택해 주세요",
@@ -49,6 +51,7 @@ export function routeReasonsText(reasons: string[]): string {
     environment_or_route_comparison_incomplete: "일부 환경 또는 경로 비교 자료가 없습니다",
     visit_support_and_total_cost_unverified: "실제 이용 가능 여부와 총비용은 별도 확인이 필요합니다",
     reference_time_matrix_estimate: "요청 출발시각 기준의 예상 경로입니다",
+    provider_time_independent_estimate: "출발시각을 반영하지 않는 제공사 예상시간으로 계산했습니다",
   };
   return reasons.map(reason => t(Object.hasOwn(labels, reason) ? labels[reason] : "경로 조건을 확인해 주세요")).join(" · ");
 }
@@ -67,6 +70,40 @@ export interface Preference {
   companion_type?: string | null;
   learning_enabled?: boolean;
   [key: string]: unknown;
+}
+export const TRANSPORT_MODES = ["driving", "transit", "walking", "cycling"] as const;
+export type TransportMode = typeof TRANSPORT_MODES[number];
+
+export function transportLabel(mode: TransportMode): string {
+  return t({ driving: "자동차", transit: "대중교통", walking: "도보", cycling: "자전거" }[mode]);
+}
+
+export function selectedTransport(request?: Pick<TravelRequest, "transport" | "keyword_selection">): TransportMode {
+  const mode = request?.keyword_selection?.find((item) => item.category === "transport")?.values[0];
+  return TRANSPORT_MODES.find((item) => item === mode) ?? request?.transport ?? "driving";
+}
+
+/** A route form is the latest explicit choice, including an older keyword choice. */
+export function withTransport(request: TravelRequest, transport: TransportMode): TravelRequest {
+  return { ...request, transport, keyword_selection: request.keyword_selection?.map((item) =>
+    item.category === "transport" ? { ...item, values: [transport] } : item) };
+}
+
+export interface TransportAdvice {
+  selected_transport: TransportMode;
+  suggested_transport: TransportMode | null;
+  straight_line_distance_m: number | null;
+  route_verified: false;
+  alternatives_compared: false;
+}
+
+export function transportAdviceText(advice?: TransportAdvice): string {
+  if (!advice) return "";
+  if (!advice.suggested_transport || advice.straight_line_distance_m === null)
+    return t("선택한 이동 수단: {mode}. 출발지를 정하면 거리 기준 이동 수단 제안을 볼 수 있습니다.", { mode: transportLabel(advice.selected_transport) });
+  return t("이동 수단 제안: {mode} · 직선거리 합 {km}km 기준. 실제 경로·장비·운행 여부를 확인해 주세요. 이동 수단별 소요시간 비교는 아직 하지 않았습니다.", {
+    mode: transportLabel(advice.suggested_transport), km: (advice.straight_line_distance_m / 1000).toFixed(1),
+  });
 }
 export interface Origin {
   label: string;
@@ -104,7 +141,7 @@ export interface TravelRequest {
   region?: string;
   preferred_tags: string[];
   activity: Activity;
-  transport: "driving" | "transit" | "walking" | "cycling";
+  transport: TransportMode;
   companion_type?: "solo" | "friends";
   people?: number;
   day_trip?: boolean;
@@ -124,6 +161,7 @@ export interface Recommendation {
   conditions: { status: string };
   matched_preferences: { tag: string }[];
   evidence: { provider: string; fetched_at: string | null }[];
+  transport_advice?: TransportAdvice;
   /** Registered place facts the server confirmed, never user wishes. */
   confirmed: {
     latitude: number | null;
@@ -255,6 +293,8 @@ export interface RouteResult {
   reason_codes: string[];
   optimality?: string;
   route: {
+    transport?: TransportMode;
+    transport_advice?: TransportAdvice;
     items: RouteItem[];
     legs: RouteLeg[];
     travel_minutes: number;
@@ -425,12 +465,14 @@ function schemeCoordinate(point: RouteStopPoint | null | undefined) {
 export function kakaoRouteLink(
   origin: RouteStopPoint | null | undefined,
   stops: readonly RouteStopPoint[],
+  mode: TransportMode = "driving",
 ): string | null {
   const points = [origin, ...stops].map(schemeCoordinate);
   if (
     points.length < 2 ||
     points.some((point) => point === null) ||
-    points.length - 2 > KAKAO_WAYPOINT_LIMIT
+    points.length - 2 > KAKAO_WAYPOINT_LIMIT ||
+    (mode === "transit" && points.length > 2)
   )
     return null;
   const query = [
@@ -439,7 +481,7 @@ export function kakaoRouteLink(
       .slice(1, -1)
       .map((point, index) => `${index ? `vp${index + 1}` : "vp"}=${point}`),
     `ep=${points[points.length - 1]}`,
-    "by=car",
+    `by=${{ driving: "car", walking: "foot", cycling: "bicycle", transit: "publictransit" }[mode]}`,
   ].join("&");
   return `${KAKAO_ROUTE_SCHEME}?${query}`;
 }

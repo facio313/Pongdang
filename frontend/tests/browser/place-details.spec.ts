@@ -15,7 +15,12 @@ const storedDetail: PlaceDetails = {
   opening_hours: "09:00–18:00", rest_days: "매주 월요일", opening_period: null, opening_date: "1982-05-01",
   parking: "주차장 30면", facilities: "샤워실\n화장실", contact: "033-000-0000", homepage: "https://example.test/place",
   overview: '<img src=x onerror="alert(1)"> 원문 소개',
-  details: [{ section: "info", key: "pets", label: "반려동물 안내", value: "목줄 착용" }],
+  details: [
+    { section: "intro", key: "usetime", label: "이용시간", value: "09:00–18:00" },
+    { section: "intro", key: "parking", label: "주차시설", value: "주차장 30면" },
+    { section: "intro", key: "infocenter", label: "문의및안내", value: "033-000-0000" },
+    { section: "info", key: "pets", label: "반려동물 안내", value: "목줄 착용" },
+  ],
 };
 
 /** Every API response is intercepted; these tests never access a provider or DB. */
@@ -61,13 +66,26 @@ for (const width of [390, 1440]) {
     await expect(season).not.toContainText("1982");
     await expect(info).toContainText(storedDetail.overview!);
     await expect(info.locator("img,script")).toHaveCount(0);
+    await expect(page.locator(".place-distance strong")).toHaveText("0 m");
+    await expect(page.locator(".place-distance")).toContainText(`기준: ${places[0].name}`);
     await expect(info.getByRole("link", { name: storedDetail.homepage! })).toHaveAttribute("href", storedDetail.homepage!);
-    await info.locator("summary").click();
-    await expect(info).toContainText("목줄 착용");
+    await expect(info.getByRole("heading", { name: "추가 상세정보 1개", exact: true })).toBeVisible();
+    await expect(info.locator(".place-details-extra .place-detail-item")).toHaveCount(1);
+    await expect(info.getByText("목줄 착용", { exact: true })).toBeVisible();
     await expect(info).toContainText("출처: 한국관광공사 TourAPI");
     await expect(info).toContainText("수집일:");
     await expect(info).not.toContainText("API 가 아직 없습니다");
     await expect(page.locator("body")).not.toContainText("아직 실연동되지 않은 항목");
+    if (isDesktopWidth(width)) {
+      const introduction = await info.locator(".place-details-introduction").boundingBox();
+      const extra = await info.locator(".place-details-extra").boundingBox();
+      expect(introduction).not.toBeNull();
+      expect(extra).not.toBeNull();
+      expect(extra!.x).toBeGreaterThan(introduction!.x + introduction!.width);
+      expect(Math.abs(extra!.y - introduction!.y)).toBeLessThan(1);
+      expect(Math.abs(extra!.height - introduction!.height)).toBeLessThan(1);
+    }
+    await expect(page.locator(byWidth(width, ".pd-foot-body", ".pd-dk-foot-body"))).toHaveText("");
     expect(reads).toEqual([[41]]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
@@ -118,31 +136,79 @@ test("collection states remain distinct and a failed refresh keeps stored detail
   await expect(info).toContainText("javascript:alert(1)");
 });
 
-test("distance requires an explicit location click and uses coordinates without a directions request", async ({ page }) => {
+for (const width of [390, 1440]) {
+  test(`${width}px distance follows the home reference selection across changes and reloads without device location or directions`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await mockStoredPlaces(page);
+    await page.addInitScript(() => {
+      let requests = 0;
+      Object.defineProperty(window, "locationRequests", { get: () => requests });
+      Object.defineProperty(navigator, "geolocation", { value: {
+        getCurrentPosition: (success: PositionCallback) => {
+          requests += 1;
+          success({ coords: { latitude: 37.9, longitude: 128.9 } } as GeolocationPosition);
+        },
+      } });
+    });
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem("pongdang.product-place.v1")) {
+        sessionStorage.setItem("pongdang.product-place.v1", JSON.stringify({
+          mode: "selected", spotId: 43, district: "", search: "", page: 1,
+        }));
+      }
+    });
+    const routeCalls: string[] = [];
+    page.on("request", (request) => {
+      if (/directions|route-recommendation/.test(request.url())) routeCalls.push(request.url());
+    });
+    await page.goto("#spots?spot_id=41");
+    const distance = page.locator(".place-distance");
+    await expect(distance.locator("strong")).toHaveText("11.1 km");
+    await expect(distance).toContainText(`기준: ${places[2].name}`);
+    await expect(page.getByRole("button", { name: "현재 위치로 거리 보기" })).toHaveCount(0);
+    await expect(page.getByText("좌표로 계산한 직선거리이며 도로 이동거리가 아닙니다.", { exact: true })).toHaveCount(0);
+
+    await page.goto("#home");
+    await page.getByRole("button", { name: `${places[2].name} · 장소 바꾸기`, exact: true }).click();
+    await page.getByLabel("홈·오늘 기준 장소", { exact: true }).selectOption("42");
+    await page.goto("#spots?spot_id=41");
+    await expect(distance.locator("strong")).toHaveText("1.1 km");
+    await expect(distance).toContainText(`기준: ${places[1].name}`);
+    await page.reload();
+    await expect(distance.locator("strong")).toHaveText("1.1 km");
+    await expect(distance).toContainText(`기준: ${places[1].name}`);
+    expect(await page.evaluate(() => Reflect.get(window, "locationRequests"))).toBe(0);
+    expect(routeCalls).toEqual([]);
+  });
+}
+
+test("an unavailable selected origin never borrows default coordinates or shows an empty distance row", async ({ page }) => {
   await mockStoredPlaces(page);
   await page.addInitScript(() => {
-    let requests = 0;
-    Object.defineProperty(window, "locationRequests", { get: () => requests });
-    Object.defineProperty(navigator, "geolocation", { value: {
-      getCurrentPosition: (success: PositionCallback) => {
-        requests += 1;
-        success({ coords: { latitude: 37.9, longitude: 128.9 } } as GeolocationPosition);
-      },
-    } });
+    sessionStorage.setItem("pongdang.product-place.v1", JSON.stringify({
+      mode: "selected", spotId: 42, district: "", search: "", page: 1,
+    }));
   });
-  const routeCalls: string[] = [];
-  page.on("request", (request) => {
-    if (/directions|route-recommendation/.test(request.url())) routeCalls.push(request.url());
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/data/livecams/preview/places?spot_id=42", async (route) => {
+    await pending;
+    return route.fulfill({ json: [{ ...places[1], lat: null }] });
   });
   await page.goto("#spots?spot_id=41");
-  const distance = page.locator(".place-distance");
-  await expect(distance.locator("strong")).toHaveText("–");
-  expect(await page.evaluate(() => Reflect.get(window, "locationRequests"))).toBe(0);
-  await page.getByRole("button", { name: "현재 위치로 거리 보기" }).click();
-  await expect(distance.locator("strong")).toHaveText("11.1 km");
-  await expect(distance).toContainText("기준: 현재 위치");
-  expect(await page.evaluate(() => Reflect.get(window, "locationRequests"))).toBe(1);
-  expect(routeCalls).toEqual([]);
+  try {
+    await expect(page.getByRole("region", { name: "명소 상세정보" })).toContainText("09:00–18:00");
+    await expect(page.locator(".place-distance")).toHaveCount(0);
+  } finally {
+    release();
+  }
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator(".place-distance")).toHaveCount(0);
+  await page.route("**/api/data/livecams/preview/places?spot_id=42", (route) => route.fulfill({ status: 503, json: { detail: "offline unavailable origin" } }));
+  await page.reload();
+  await expect(page.getByRole("region", { name: "명소 상세정보" })).toContainText("09:00–18:00");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator(".place-distance")).toHaveCount(0);
 });
 
 test("desktop related places show coordinate distances from the selected place", async ({ page }) => {

@@ -329,6 +329,7 @@ def test_openai_responses_contract_is_fixed_bounded_and_has_no_key_in_body(
     assert service.openai_order(ai_settings, facts) == {"ordered_fact_ids": ["one"]}
     request, timeout = opener.requests[0]
     body = json.loads(request.data)
+    assert body["reasoning"] == {"effort": "none"}
     assert request.full_url == "https://api.openai.com/v1/responses"
     assert request.get_header("Authorization") == "Bearer private-test-key"
     assert "private-test-key" not in request.data.decode()

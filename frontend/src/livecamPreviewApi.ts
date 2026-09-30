@@ -1,6 +1,6 @@
 import { t } from "./i18n.ts";
 import { resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh.ts";
-export type PreviewPlace = { id: number; name: string; place_kind: 'beach' | 'valley'; address: string | null; region: string | null; lat: number | null; lng: number | null };
+export type PreviewPlace = { id: number; name: string; place_kind: 'beach' | 'valley' | 'lake' | 'reservoir'; address: string | null; region: string | null; lat: number | null; lng: number | null };
 export type PreviewCamera = {
   provider_camera_id: string; title: string; country_code: string | null;
   region: string | null; city: string | null; provider_status: string;
@@ -10,7 +10,7 @@ export type PreviewCamera = {
   timelapse_period: string | null; photo_available: boolean;
   thumbnail_url: string | null; thumbnail_saved_at: string | null;
   distance_km: number | null; relationship: 'nearby' | 'unknown'; playback_verified: false;
-  nearby_place: { id: number; name: string; place_kind: 'beach' | 'valley'; distance_km: number } | null;
+  nearby_place: { id: number; name: string; place_kind: 'beach' | 'valley' | 'lake' | 'reservoir'; distance_km: number } | null;
 };
 export type PreviewResult = {
   contract_version: 'livecams.preview.v1'; scope: 'korea_list' | 'place';

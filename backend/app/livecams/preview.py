@@ -22,6 +22,7 @@ from app.livecams.catalog import CatalogSnapshot, CatalogStore
 from app.livecams.places import PLACE_SELECT, PreviewPlace, place_catalog_cte
 from app.livecams.thumbnails import source_image
 from app.livecams.windy import WindyClient, WindyError, discover, distance_km, normalize
+from app.place_kinds import WaterPlaceKind
 from app.regions import place_search_predicate
 
 Category = Literal["beach", "coast", "port", "lake", "river"]
@@ -56,7 +57,7 @@ class PreviewRequest(BaseModel):
 class NearbyPlace(BaseModel):
     id: int
     name: str
-    place_kind: Literal["beach", "valley"]
+    place_kind: WaterPlaceKind
     distance_km: float = Field(ge=0, le=10)
 
 

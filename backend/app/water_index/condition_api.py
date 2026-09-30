@@ -21,6 +21,8 @@ from pydantic import (
 
 from app.data_reader import DataReader
 from app.ingestion.weather import grid_coordinates
+from app.livecams.places import PLACE_SELECT
+from app.place_kinds import INLAND_PLACE_KINDS
 from app.twin.api import station_links
 from app.water_index.activity_score import calculate_activity_score, select_metric
 from app.water_index.api import WaterIndexRoute, error_response
@@ -37,6 +39,7 @@ from app.water_index.conditions import (
     ScoreEnvelope,
     SourceValue,
     SummaryFailure,
+    activity_metrics,
     calculate_conditions,
     validate_criteria,
 )
@@ -204,9 +207,37 @@ PRODUCT_ACTIVITIES = {
     "khoa_surfing": {"surf"},
     "khoa_mudflat": {"mudflat"},
 }
+WEATHER_PROVIDERS = {
+    "kma_nowcast",
+    "kma_ultra_forecast",
+    "kma_short_forecast",
+    "kma_aws",
+}
+MARINE_PROVIDERS = {
+    "kma_buoy",
+    "nifs_risa",
+    "khoa_buoy_recent",
+    "khoa_water_temperature",
+    "khoa_tide_recent",
+    *PRODUCT_ACTIVITIES,
+}
+INLAND_PROVIDERS = {"nier_water_quality", "hrfco_waterlevel"}
 
 
-def group_metric(rows, link, q, at, as_of):
+def context_providers(place_kind, activity=None):
+    providers = WEATHER_PROVIDERS | (
+        INLAND_PROVIDERS if place_kind in INLAND_PLACE_KINDS else MARINE_PROVIDERS
+    )
+    return {
+        provider
+        for provider in providers
+        if activity is None
+        or provider not in PRODUCT_ACTIVITIES
+        or activity in PRODUCT_ACTIVITIES[provider]
+    }
+
+
+def group_metric(rows, link, q, at, as_of, place_kind=None):
     """Select the latest target, retaining tied evidence instead of picking a win."""
     name = ALIASES.get(rows[0]["name"], rows[0]["name"])
     definition = METRICS[name]
@@ -216,7 +247,18 @@ def group_metric(rows, link, q, at, as_of):
     status = "available"
     value = None
     # No averaging, revision fallback, grade conversion, or hidden unit guessing.
-    if any(
+    if place_kind in INLAND_PLACE_KINDS and (
+        name in {"wave_height", "maximum_wave_height", "wave_period"}
+        or any(
+            r["provider"] in MARINE_PROVIDERS or r["provider"].startswith("koem_")
+            for r in rows
+        )
+    ):
+        status, reasons = (
+            "not_applicable",
+            ["marine_measurement_not_applicable_to_inland_place"],
+        )
+    elif any(
         PRODUCT_ACTIVITIES.get(r["provider"])
         and q.activity not in PRODUCT_ACTIVITIES[r["provider"]]
         for r in rows
@@ -307,22 +349,7 @@ async def context_station_links(c, place, q, at, as_of, metric_names=None):
     ):
         return []
     nx, ny = grid_coordinates(place["lat"], place["lng"])
-    providers = [
-        "kma_nowcast",
-        "kma_ultra_forecast",
-        "kma_short_forecast",
-        "kma_aws",
-        "kma_buoy",
-        "nifs_risa",
-        "khoa_buoy_recent",
-        "khoa_water_temperature",
-        "khoa_tide_recent",
-        *(
-            provider
-            for provider, activities in PRODUCT_ACTIVITIES.items()
-            if q.activity in activities
-        ),
-    ]
+    providers = sorted(context_providers(place.get("place_kind"), q.activity))
     metric_names = set(metric_names or {m.name for m in ACTIVITIES[q.activity].metrics})
     metric_names.update(
         alias for alias, name in ALIASES.items() if name in metric_names
@@ -458,36 +485,39 @@ async def read_conditions(
     other out of connections and answered 503.
     """
     at, as_of = q.times(now or datetime.now(UTC))
-    allowed = {m.name for m in ACTIVITIES[q.activity].metrics}
     if metric_names is not None:
         # Internal travel reader only; public activity calculation still uses
         # its original activity allowlist and explicit scoring contract.
         if not set(metric_names) <= METRICS.keys() or len(metric_names) > 8:
             raise ValueError("invalid_internal_metric_selection")
-        allowed = set(metric_names)
-    # Weather display is independent of the activity score components.
-    requested = allowed | {"precipitation"}
-    if q.mode == "forecast":
-        requested |= {
-            f"maximum_{name}"
-            for name in ("wave_height", "wind_speed")
-            if name in allowed
-        }
-    source_names = sorted(
-        requested | {alias for alias, name in ALIASES.items() if name in requested}
-    )
     async with (
         nullcontext(connection) if connection is not None else reader.connection()
     ) as c:
         place = await (
             await c.execute(
-                "SELECT id,name,lat,lng,catalog_verified_at "
-                "FROM pongdang_data.spots_waterspot WHERE id=%s",
+                f"SELECT * FROM ({PLACE_SELECT}) p WHERE id=%s",
                 [q.spot_id],
             )
         ).fetchone()
         if not place:
             raise HTTPException(404, "place_not_found")
+        allowed = (
+            set(metric_names)
+            if metric_names is not None
+            else {m.name for m in activity_metrics(q.activity, place.get("place_kind"))}
+        )
+        requested = allowed | {"precipitation"}
+        if place.get("place_kind") in INLAND_PLACE_KINDS:
+            requested |= {"water_temperature", "river_level", "river_flow"}
+        if q.mode == "forecast":
+            requested |= {
+                f"maximum_{name}"
+                for name in ("wave_height", "wind_speed")
+                if name in allowed
+            }
+        source_names = sorted(
+            requested | {alias for alias, name in ALIASES.items() if name in requested}
+        )
         links = await station_links(c, [q.spot_id], q, at, as_of)
         context = await context_station_links(c, place, q, at, as_of, requested)
         linked_ids = {link["station_id"] for link in links}
@@ -577,7 +607,7 @@ def assemble_conditions(
         groups[(row["station_id"], ALIASES.get(row["name"], row["name"]))].append(row)
     link_by_id = {link["station_id"]: link for link in links}
     all_metrics = tuple(
-        group_metric(values, link_by_id[station], q, at, as_of)
+        group_metric(values, link_by_id[station], q, at, as_of, place.get("place_kind"))
         for (station, _), values in sorted(groups.items())
     )
     metrics = tuple(
@@ -603,6 +633,7 @@ def assemble_conditions(
     result = ConditionsEnvelope(
         spot_id=q.spot_id,
         place_name=name,
+        place_kind=place.get("place_kind"),
         activity=q.activity,
         mode=q.mode,
         at=at,

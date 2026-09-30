@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { kakaoRouteLink, originFromPlace, routePaths } from '../src/travelApi.ts';
+import { kakaoRouteLink, originFromPlace, routePaths, selectedTransport, withTransport, transportAdviceText } from '../src/travelApi.ts';
 
 function leg(polyline) {
   return { from_spot_id: null, to_spot_id: 7, duration_minutes: 12, geometry: polyline === null ? undefined : { polyline } };
@@ -118,4 +118,24 @@ test('a travel-catalog origin keeps its spot_id; another list keeps coordinates 
     spot_id: 7,
   });
   assert.equal(originFromPlace({ ...place, lat: null }, new Set([584])), null);
+});
+
+test('route links preserve the chosen mode and never silently discard transit waypoints', () => {
+  for (const [mode, by] of [['walking', 'foot'], ['cycling', 'bicycle'], ['transit', 'publictransit']]) {
+    const url = new URL(kakaoRouteLink(gyeongpo, [gangmun], mode));
+    assert.equal(url.searchParams.get('by'), by);
+  }
+  assert.equal(kakaoRouteLink(gyeongpo, [gangmun, sacheonjin], 'transit'), null);
+  assert.ok(kakaoRouteLink(gyeongpo, [gangmun, sacheonjin], 'walking'));
+});
+
+test('route form choices replace an earlier saved transport keyword', () => {
+  const prior = { transport: 'driving', keyword_selection: [{ category: 'transport', values: ['walking'] }] };
+  assert.equal(selectedTransport(prior), 'walking');
+  const changed = withTransport(prior, 'cycling');
+  assert.equal(selectedTransport(changed), 'cycling');
+  assert.equal(changed.transport, 'cycling');
+  assert.deepEqual(prior.keyword_selection[0].values, ['walking']);
+  assert.match(transportAdviceText({ selected_transport: 'cycling', suggested_transport: null, straight_line_distance_m: null }), /출발지/);
+  assert.match(transportAdviceText({ selected_transport: 'cycling', suggested_transport: 'walking', straight_line_distance_m: 1200 }), /직선거리 합 1.2km/);
 });

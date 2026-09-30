@@ -1,9 +1,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { travelJson } from "./travelApi";
-import { queueResourceRead } from "./resourceQueue";
-import { useI18n } from "./i18n";
-import { RESOURCE_REFRESH_INTERVAL, resourceRefreshInterval, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh";
-import { conditionDataInRange, retainConditionData, retainsDisplayData } from "./retainConditionData";
+import { travelJson } from "./travelApi.ts";
+import { queueResourceRead } from "./resourceQueue.ts";
+import { useI18n } from "./i18n.ts";
+import { RESOURCE_REFRESH_INTERVAL, resourceRefreshInterval, resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh.ts";
+import { conditionDataInRange, retainConditionData, retainsDisplayData } from "./retainConditionData.ts";
 
 /** Skeletons are for the first read; later reads keep the displayed result. */
 export function isInitialLoad(state: {
@@ -47,7 +47,12 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<{ data?: unknown; error?: string }>>();
+interface ResourceRead<T> {
+  data?: T;
+  error?: string;
+  refreshError?: string;
+}
+const inflight = new Map<string, Promise<ResourceRead<unknown>>>();
 /** 이 시간이 지나면 같은 키라도 한 번 더 읽습니다. 폭 전환 · 탭 왕복은 이보다
  *  훨씬 짧아 요청이 나가지 않고, 오래 열어 둔 탭으로 돌아오면 갱신됩니다. */
 const CACHE_TTL = RESOURCE_REFRESH_INTERVAL;
@@ -100,14 +105,14 @@ function remember(key: string, data: unknown, generation: number, refreshError?:
  *  사라져도 취소되지 않습니다** -- 예전에는 폭 전환 중에 진행 중이던 요청이
  *  `controller.abort()` 로 죽고, 새 레이아웃이 같은 것을 처음부터 다시
  *  물었습니다. */
-function readResource(key: string, resourceKey: string, path: string, generation: number) {
+function readResource(base: string, key: string, resourceKey: string, path: string, generation: number) {
   const shared = inflight.get(key);
   if (shared) return shared;
   const signal = AbortSignal.timeout(20000);
   const pending = (async () => {
     try {
       const incoming = await queueResourceRead(signal, () =>
-        travelJson<unknown>(import.meta.env.BASE_URL, path, "GET", undefined, signal),
+        travelJson<unknown>(base, path, "GET", undefined, signal),
       );
       const data = retainConditionData(path, cache.get(resourceKey)?.data, incoming);
       // A read started before a manual refresh cannot repopulate its new cache.
@@ -137,6 +142,16 @@ function readResource(key: string, resourceKey: string, path: string, generation
   return pending;
 }
 
+/** Imperative reads share the hook's cache, in-flight requests and bounded queue. */
+export function loadResource<T>(base: string, path: string, revision = 0, generation = resourceRefreshGeneration()): Promise<ResourceRead<T>> {
+  const resourceKey = `data:${path}:${revision}`;
+  const entry = cache.get(resourceKey);
+  if (entry && conditionDataInRange(path, entry.data) && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)) {
+    return Promise.resolve({ data: entry.data as T, refreshError: entry.refreshError });
+  }
+  return readResource(base, `${resourceKey}:${generation}`, resourceKey, path, generation) as Promise<ResourceRead<T>>;
+}
+
 export function useResource<T>(path: ResourcePath, revision = 0) {
   const { t } = useI18n();
   const origin = "data";
@@ -161,10 +176,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
-      const entry = cache.get(resourceKey);
-      const next = entry && conditionDataInRange(path, entry.data) && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)
-        ? await Promise.resolve({ data: entry.data, error: undefined, refreshError: entry.refreshError })
-        : await readResource(key, resourceKey, path, generation);
+      const next = await loadResource<T>(import.meta.env.BASE_URL, path, revision, generation);
       if (!alive) return;
       setResult({ key, resourceKey, ...(next as { data?: T; error?: string }) });
       const refreshed = cache.get(resourceKey);
@@ -177,7 +189,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
       alive = false;
       clearTimeout(timer);
     };
-  }, [path, key, resourceKey, generation, stamp]);
+  }, [path, key, resourceKey, revision, generation, stamp]);
   // 기억에 있는 값은 **첫 프레임부터** 보여줍니다. 리마운트했다는 것은 화면을
   // 다시 그렸다는 뜻이지 사실을 잊었다는 뜻이 아닙니다.
   const cached =

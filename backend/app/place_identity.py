@@ -54,7 +54,7 @@ def aliases_for(rows):
             and district
             and coordinates
             and (row["lat"], row["lng"]) != (0, 0)
-            and row["place_kind"] in {"beach", "valley"}
+            and row["place_kind"] in {"beach", "valley", "lake", "reservoir"}
         ):
             groups[(name, province, district, row["place_kind"])].append(row)
     aliases = {}

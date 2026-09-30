@@ -3,7 +3,7 @@ import type { ClassifiedWaterPlace } from "./productData";
 export const DEFAULT_PROVINCE = "gangwon";
 export const WATER_PLACE_PAGE_SIZE = 100;
 export type WaterPlacePageSize = 10 | 100;
-export type WaterPlaceKind = "" | "beach" | "valley";
+export type WaterPlaceKind = "" | "beach" | "valley" | "lake" | "reservoir";
 export interface WaterPlaceQuery {
   district?: string;
   kind?: WaterPlaceKind;

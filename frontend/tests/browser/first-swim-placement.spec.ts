@@ -135,6 +135,14 @@ for (const width of [390, 1440]) {
     expect(reads.every(url => url.searchParams.get("spot_id") === "42" && url.searchParams.has("year"))).toBe(true);
     expect(errors).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width === 1440) {
+      const observation = await guide.locator(".first-swim-observation").boundingBox();
+      const explanation = await guide.locator(".first-swim-explanation").boundingBox();
+      expect(observation).not.toBeNull();
+      expect(explanation).not.toBeNull();
+      expect(Math.abs(explanation!.y - observation!.y)).toBeLessThan(1);
+      expect(Math.abs(explanation!.height - observation!.height)).toBeLessThan(1);
+    }
     await guide.screenshot({ path: `test-results/first-swim-detail-${width}.png` });
   });
 

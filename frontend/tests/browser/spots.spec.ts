@@ -51,7 +51,7 @@ test("a spot's score is fetched on the detail page and is – rather than 0 when
   await expect(info).toContainText("운영");
   await expect(page.locator(".place-details")).toContainText(/미수집|정보 미제공|상세정보 연결 없음|수집 대상 아님/);
   await expect(page.locator(".spot-detail")).not.toContainText("내려주는 API 가 아직 없습니다");
-  await expect(page.locator(".place-distance-result")).toContainText("–");
+  await expect(page.getByRole("button", { name: "현재 위치로 거리 보기" })).toHaveCount(0);
 });
 
 test("the spots map pins only verified coordinates and scores only the chosen pin", async ({ page }) => {

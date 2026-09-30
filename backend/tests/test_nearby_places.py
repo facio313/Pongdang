@@ -24,7 +24,7 @@ def alias(c, alias_id, canonical):
     )
 
 
-@pytest.mark.parametrize("kind", ["beach", "valley"])
+@pytest.mark.parametrize("kind", ["beach", "valley", "lake", "reservoir"])
 def test_nearest_same_kind_across_whole_catalog_excludes_all_aliases(identity_db, kind):
     with connect(identity_db) as c:
         reference = place(c, "기준", kind)

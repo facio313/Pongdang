@@ -295,8 +295,9 @@
 .pd-desktop .sk-detail-followup { grid-column: 2; min-width: 0; }
 .pd-desktop .sk-detail-information {
   min-width: 0;
-  padding: 36px var(--dk-pad) 48px;
+  padding: 36px var(--dk-pad) 24px;
 }
+.pd-desktop .sk-detail + .pd-dk-row { padding-top: 28px; }
 .pd-desktop .sk-detail-score-row {
   display: flex;
   align-items: flex-end;

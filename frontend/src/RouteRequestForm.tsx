@@ -3,7 +3,8 @@ import { useState } from "react";
 import { AppActions } from "./AppShell";
 import { Icon } from "./pongdangUi";
 import { kstDate, timeLabel } from "./productData";
-import { originFromPlace, type Origin } from "./travelApi";
+import { originFromPlace, type Origin, type TransportMode } from "./travelApi";
+import { TransportSelect } from "./TransportSelect";
 import "./routeRequestForm.css";
 
 /** A registered place the user may start from. Places without stored
@@ -25,6 +26,7 @@ export interface RouteCandidate {
 }
 
 export interface RouteRequestValue {
+  transport: TransportMode;
   origin: Origin;
   date: string;
   departure_time: string;
@@ -45,6 +47,7 @@ export function RouteRequestForm({
   places,
   candidates = [],
   defaultDate,
+  defaultTransport = "driving",
   disabled = false,
   busy = false,
   submitLabel = "이 조건으로 경로 계산",
@@ -53,6 +56,7 @@ export function RouteRequestForm({
   places: readonly OriginOption[];
   candidates?: readonly RouteCandidate[];
   defaultDate?: string;
+  defaultTransport?: TransportMode;
   disabled?: boolean;
   /** True while the submitted request is in flight. Shown as a spinner on
    *  the submit button -- `disabled` alone doesn't tell the user whether the
@@ -62,6 +66,7 @@ export function RouteRequestForm({
   onSubmit: (value: RouteRequestValue) => void;
 }) {
   const [mode, setMode] = useState<"place" | "current">("place");
+  const [transport, setTransport] = useState<TransportMode | null>(null);
   const [placeId, setPlaceId] = useState("");
   const [current, setCurrent] = useState<{ lat: number; lng: number } | null>(
     null,
@@ -150,6 +155,7 @@ export function RouteRequestForm({
       return;
     }
     onSubmit({
+      transport: transport ?? defaultTransport,
       origin,
       date: departure.slice(0, 10),
       departure_time: departure.slice(11),
@@ -163,7 +169,9 @@ export function RouteRequestForm({
     <div className="pd-card rt-form">
       <div className="pd-card-title">{t("방문 순서 최적화")}</div>
       <p className="pd-note rt-note-flush">
-        {t("출발지와 출발 시각이 있어야 선택한 후보의 방문 순서를 최적화하고 이동 시간을 계산합니다. 자동차 이동만 계산하며, 이 결과는 예상값이고 안전 판정이 아닙니다.")}</p>
+        {t("출발지와 이동 수단을 고르면 방문 순서와 예상 이동 시간을 계산합니다. 도보·자전거·대중교통은 출발시각별 조회를 지원하지 않습니다.")}</p>
+
+      <TransportSelect value={transport ?? defaultTransport} onChange={setTransport} disabled={disabled} />
 
       <fieldset className="rt-field" disabled={disabled}>
         <legend className="rt-legend">{t("출발지")}</legend>

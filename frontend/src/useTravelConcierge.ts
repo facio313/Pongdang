@@ -3,6 +3,7 @@ import {
   recommendationPlan,
   travelJson,
   TravelRequestError,
+  withTransport,
   type RecommendationResult,
   type RouteResult,
   type TravelChatResponse,
@@ -212,7 +213,7 @@ export function useTravelConcierge({
         )
         .filter((id): id is number => typeof id === "number");
       const request: TravelRequest = {
-        ...base.request,
+        ...withTransport(base.request, value.transport),
         dates: [value.date],
         day_trip: true,
         origin: value.origin,

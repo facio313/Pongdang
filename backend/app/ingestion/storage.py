@@ -32,8 +32,13 @@ def store_batch(settings: Settings, batch: SourceBatch, *, connection=None) -> i
                 "WHERE provider=%s AND source_id=%s",
                 [batch.provider, station.source_id],
             ).fetchone()
-            identity_dirty |= station.kind in {"beach", "valley"} or bool(
-                previous and previous[2] in {"beach", "valley"}
+            identity_dirty |= station.kind in {
+                "beach",
+                "valley",
+                "lake",
+                "reservoir",
+            } or bool(
+                previous and previous[2] in {"beach", "valley", "lake", "reservoir"}
             )
             if previous:
                 sid, spot, _ = previous

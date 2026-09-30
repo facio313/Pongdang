@@ -17,7 +17,7 @@ export interface Place {
   photo?: PlacePhoto;
 }
 export interface ClassifiedWaterPlace extends Omit<Place, "type" | "catalog_verification"> {
-  place_kind: "beach" | "valley";
+  place_kind: "beach" | "valley" | "lake" | "reservoir";
 }
 export function placeMatchesId(place: Pick<Place, "id" | "alias_ids">, id: number | undefined) {
   return id !== undefined && (place.id === id || Boolean(place.alias_ids?.includes(id)));
@@ -91,6 +91,7 @@ export interface Conditions {
   retained_at?: string | null;
   spot_id: number;
   place_name: string | null;
+  place_kind?: "beach" | "valley" | "lake" | "reservoir" | null;
   activity: Activity;
   at: string;
   mode: string;
@@ -189,6 +190,8 @@ export const SCORE_REASONS: Record<string, string> = {
   conflicting_station_measurements: "관측소 간 값 충돌",
   measurement_out_of_domain: "측정값 범위 오류",
   local_operating_range_required: "장소별 운영 기준 설정 필요",
+  inland_waterbody_mapping_required: "같은 수역의 대표 관측소 연결 확인 필요",
+  marine_measurement_not_applicable_to_inland_place: "내륙 장소에 해양 관측값 미적용",
   nearby_station_context: "주변 관측소 참고 · 장소 실측 아님",
   containing_forecast_grid: "해당 장소를 포함한 격자 기상 예보",
   identical_provider_variants: "같은 값의 제공기관 세부 분류를 묶어 계산",
@@ -385,12 +388,19 @@ export interface WaterQualityGrade {
   measurements: { item: string; value: number | null; unit: string | null; layer: string | null; is_missing: boolean }[];
 }
 export function waterQualityLabel(data?: WaterQualityGrade) {
+  if (data?.method_version === "inland-sampling.v1") return t(data.measurements.length ? "담수 검사값 · 등급 미산정" : "담수 검사 자료 없음");
   return data?.grade != null && Number.isInteger(data.grade) && data.grade >= 1 && data.grade <= 5 && ["available", "historical"].includes(data.status)
     ? t("{grade}등급{historical}", { grade: data.grade, historical: data.status === "historical" ? t(" · 과거") : "" })
     : data?.status === "conflict" ? t("자료 상충") : data?.status === "unsupported" ? t("평가 기준 없음") : t("검사 자료 없음");
 }
 export function waterQualityDescription(data?: WaterQualityGrade) {
   if (!data) return t("수질 검사 자료를 조회하고 있습니다.");
+  if (data.method_version === "inland-sampling.v1") {
+    if (!data.station_name || !data.observed_at) return t("10km 안에 수집된 담수 수질 검사 자료가 없습니다.");
+    return t("{station} · {date} 채수 검사 · {days}일 전. 관측소 검사값이며 이 장소와 같은 수역인지, 현재 입수할 수 있는지는 별도 확인이 필요합니다. 해양 WQI 등급을 적용하지 않습니다.", {
+      station: data.station_name, date: kstDate(data.observed_at), days: data.age_days ?? "–",
+    });
+  }
   if (data.status === "unsupported") return t("해양 WQI는 하천·계곡에 적용하지 않습니다. 이 장소의 별도 수질 평가 기준이 필요합니다.");
   if (!data.station_name || !data.observed_at) return t("10km 안에 수집된 해양 수질 검사 자료가 없습니다.");
   const location = data.relation === "nearby_station_context"

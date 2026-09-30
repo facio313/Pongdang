@@ -1,6 +1,6 @@
 import { useResource } from "./useResource";
 import type { TripPlan } from "./travelApi";
-import { suppressLoginRequired } from "./authError";
+import { isLoginRequiredMessage, suppressLoginRequired } from "./authError";
 
 export interface PlanWithAlarm {
   plan: TripPlan;
@@ -25,8 +25,9 @@ export function useMyPlansWithAlarm() {
     }[];
   }>("travel/sessions?limit=100&offset=0");
   // 저장 코스 · 동행 세션 둘 다 개인정보라 익명 방문자는 로그인 필요를
-  // 받습니다. 그건 실패가 아니라 「저장한 코스 없음」과 같은 사실이므로,
-  // 코스 뷰를 열자마자 알림으로 띄우지 않고 빈 목록으로 다룹니다.
+  // 받습니다. 배경 조회의 경고는 숨기되, 미로그인과 빈 목록은 구분하여
+  // 필요한 화면이 로그인 버튼을 표시할 수 있게 합니다.
+  const loginRequired = isLoginRequiredMessage(myPlansResource.error);
   const myPlans = suppressLoginRequired(myPlansResource);
   const sessions = suppressLoginRequired(sessionsResource);
   const plans: PlanWithAlarm[] = (myPlans.data?.rows ?? []).map((plan) => ({
@@ -39,5 +40,5 @@ export function useMyPlansWithAlarm() {
           session.notifications.enabled,
       ) ?? false,
   }));
-  return { myPlans, sessions, plans };
+  return { myPlans, sessions, plans, loginRequired };
 }

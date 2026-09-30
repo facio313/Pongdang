@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginSsoLogin, resumeSsoLogin, signInSso, SsoLoginError } from '../src/ssoLogin.ts';
+import { beginSsoLogin, readSsoLoginState, resumeSsoLogin, signInSso, SsoLoginError } from '../src/ssoLogin.ts';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -26,6 +26,21 @@ test('HTML fallback cannot receive credentials', async () => {
     calls++; return new Response('<html>App</html>', { headers: { 'Content-Type': 'text/html' } });
   }), SsoLoginError);
   assert.equal(calls, 1);
+});
+
+test('the login state identifies a local test provider without treating a 401 body as authentication', async () => {
+  const state = await readSsoLoginState('/pongdang/', new AbortController().signal, async () =>
+    json({ authenticated: true, environment: 'local_test' }, 401));
+  assert.deepEqual(state, { authenticated: false, localTest: true });
+});
+
+test('invalid local credentials report the test account instead of the production SSO account', async () => {
+  let calls = 0;
+  await assert.rejects(signInSso('/pongdang/', 'fixture', 'offline-password', new AbortController().signal, async () => {
+    calls++;
+    return json({ authenticated: false, environment: 'local_test' }, 401);
+  }), { message: '로컬 테스트 계정의 아이디 또는 비밀번호를 확인해 주세요.' });
+  assert.equal(calls, 2);
 });
 
 for (const status of [401, 403, 429, 503]) test(`inline login reports ${status} without claiming a session`, async () => {

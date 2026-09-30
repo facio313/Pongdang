@@ -39,6 +39,9 @@ import {
 } from "./productData";
 import {
   kakaoRouteLink,
+  selectedTransport,
+  transportAdviceText,
+  transportLabel,
   planItems,
   placeRoleLabel,
   unknownConditionsText,
@@ -172,6 +175,7 @@ function EntryHero({
 
 function EntryBody({
   region,
+  transport,
   onRegion,
   shortcuts,
   picked,
@@ -182,6 +186,7 @@ function EntryBody({
   tasteOpen,
 }: {
   region: string;
+  transport: TravelRequest["transport"];
   onRegion: (region: string) => void;
   /** 서버 활동 카테고리의 앞 세 가지. 예전에는 「서핑 · 온천 · 카페」가 파일
    *  안에 박혀 있었고, 그 중 「카페」는 서버에 없는 이름이었습니다. */
@@ -242,11 +247,11 @@ function EntryBody({
             </div>
             <div className="rc-fact">
               <div className="rc-fact-name">{t("이동")}</div>
-              <div className="rc-fact-value">{t("자동차 기본")}</div>
+              <div className="rc-fact-value">{transportLabel(transport)}</div>
             </div>
           </div>
           <p className="pd-note">
-            {t("선택한 태그는 이번 추천에 반영합니다. 「취향 저장하고 코스 보기」를 누르면 저장합니다. 동행과 이동은 대화 답변으로 변경할 수 있습니다.")}</p>
+            {t("선택한 태그와 이동 수단은 이번 추천에 반영합니다. 취향을 저장하면 다음 추천에도 사용하며, 경로를 계산할 때 이동 수단을 다시 고를 수 있습니다.")}</p>
         </div>
 
         {!tasteOpen && (
@@ -785,7 +790,7 @@ function ChatBody({
               </div>
             ))}
             <p className="pd-note">
-              {t("첫 후보의 선택 날짜 정오 예보입니다. ")}{conditions.error} {t(" 추천 순서는 취향 일치 기준이며 안전 점수가 아닙니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.")}</p>
+              {t("첫 후보의 선택 날짜 정오 예보입니다. ")}{conditions.error} {t(" 추천 순서는 취향과 저장된 조건 자료를 비교한 결과이며 안전 점수가 아닙니다. 답변 문장은 서버가 조회한 장소·시각으로 구성하며 모델이 장소를 만들지 않습니다.")}</p>
             <ConditionScoreDetails data={conditions.data} className="pd-note" />
           </div>
         ) : (
@@ -799,6 +804,7 @@ function ChatBody({
             바로 그 조건을 넣는 폼을 둡니다. */}
         {candidates.length > 0 && session.recommendation?.selection_token && (
           <RouteRequestForm
+            defaultTransport={selectedTransport(session.planInput?.request ?? session.recommendation.request)}
             places={originOptions}
             candidates={candidates}
             defaultDate={session.recommendation.request.dates[0]}
@@ -930,7 +936,8 @@ function RoutePanel({ route }: { route: RouteResult }) {
       </div>
     );
   const { items, legs, travel_minutes, return_at, origin } = route.route;
-  const wholeTrip = kakaoRouteLink(origin, items);
+  const transport = route.route.transport ?? selectedTransport(route.plan_input?.request);
+  const wholeTrip = kakaoRouteLink(origin, items, transport);
   return (
     <div className="pd-card">
       <div className="rc-card-top">
@@ -942,7 +949,7 @@ function RoutePanel({ route }: { route: RouteResult }) {
           // Each leg starts at the origin or the place visited before it.
           const leg = kakaoRouteLink(index === 0 ? origin : items[index - 1], [
             item,
-          ]);
+          ], transport);
           return (
             <div className="rc-route-row" key={`${item.spot_id}:${index}`}>
               <span className="rc-route-no">{index + 1}</span>
@@ -987,12 +994,13 @@ function RoutePanel({ route }: { route: RouteResult }) {
         </div>
       </div>
       <p className="pd-note">
-        {t("출발 기준 교통 자료로 계산한 예상 시각입니다.")}{" "}
+        {transportLabel(transport)}{" · "}
         {route.optimality === "provisional_missing_comparison_evidence"
           ? t("일부 환경·경로 비교 자료가 없어 최적 경로로 확정하지 않은 잠정 순서입니다.")
           : t("선택한 후보 안에서 비교한 순서이며 전체 지역의 최적 경로가 아닙니다.")}{" "}
         {routeReasonsText(route.reason_codes)}
       </p>
+      {route.route.transport_advice && <p className="pd-note">{transportAdviceText(route.route.transport_advice)}</p>}
       <div className="rc-stack">
         <a className="pd-secondary" href="#map?view=course">
           <Icon name="course" size={16} />
@@ -1049,7 +1057,7 @@ function useCourseView(dayIndex: number) {
         time: t("후보 {count}", { count: item.rank }),
         name: item.name,
         place: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
-        basis: t("{reason} 미확인: {conditions}", { reason: item.reason, conditions: unknownConditionsText(item.unknown_conditions) || t("없음") }),
+        basis: [t("{reason} 미확인: {conditions}", { reason: item.reason, conditions: unknownConditionsText(item.unknown_conditions) || t("없음") }), !session.route?.route ? transportAdviceText(item.transport_advice) : ""].filter(Boolean).join(" "),
         chips: item.matched_preferences.map((preference) => t(preference.tag)).length
           ? item.matched_preferences.map((preference) => t(preference.tag))
           : [t("카탈로그 후보")],
@@ -1220,6 +1228,7 @@ function CourseBody({
 
             {candidates.length > 0 && session.recommendation?.selection_token && (
               <RouteRequestForm
+                defaultTransport={selectedTransport(session.planInput?.request ?? session.recommendation.request)}
                 places={originOptions}
                 candidates={candidates}
                 defaultDate={day.id}
@@ -1557,7 +1566,7 @@ function RecommendScreen() {
       preferred_tags: [...new Set(chosenIds.map(labelOf))],
       activity: chosen?.[0] ?? "relax",
       keyword_selection,
-      transport: "driving",
+      transport: selectedTransport({ transport: "driving", keyword_selection }),
       day_trip: true,
     }, locale);
   };
@@ -1847,6 +1856,7 @@ function RecommendScreen() {
             <>
               <EntryBody
                 region={region}
+                transport={selectedTransport(requestFor())}
                 onRegion={onRegion}
                 shortcuts={cards.slice(0, 3)}
                 picked={selectedIds}

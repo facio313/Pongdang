@@ -28,7 +28,9 @@ export function activityRecommendationDisplay(
     return { score: null, eligibility: t("활동 미지원") };
   if (ranked?.dropped) {
     const rules = ranked.rules_applied;
-    const eligibility = rules.includes("essential_measurement_missing")
+    const eligibility = rules.includes("inland_swimming_authorization_unconfirmed")
+      ? t("추천 제외 · 수영 운영 구역 미확인")
+      : rules.includes("essential_measurement_missing")
       ? t("추천 제외 · 필수 근거 부족")
       : rules.includes("water_too_cold_for_immersion")
         ? t("추천 제외 · 수온 기준 미충족")
@@ -177,6 +179,10 @@ export function rejectionReason(rec?: Recommendation): ReasonLine | null {
       }),
     };
   }
+  if (find(rec, "inland_swimming_authorization_unconfirmed")) return {
+    code: "inland_swimming_authorization_unconfirmed",
+    text: t("이 계곡·호수·저수지의 수영 운영 구역을 확인하지 못해 수영 추천을 보류했습니다. 방문 기상 점수와 입수 허가는 다릅니다."),
+  };
   const missing = all(rec, "essential_measurement_missing");
   if (missing.length) {
     // 빠진 지표가 아니라 **빠진 활동**을 말합니다. 「시설 욕조 수온 자료가

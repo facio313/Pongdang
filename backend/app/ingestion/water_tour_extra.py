@@ -128,7 +128,11 @@ def tourism_place(row, fetched):
     return Place(
         source_id=code,
         name=title,
-        kind="tourism",
+        # TourAPI's official Lake category includes lakes and reservoirs.
+        # Preserve the content type separately for detail requests.
+        kind=("reservoir" if re.search(r"저수지(?:\s*\([^)]*\))?$", title) else "lake")
+        if str(row.get("contenttypeid")) == "12" and row.get("cat3") == "A01011700"
+        else "tourism",
         latitude=lat,
         longitude=lon,
         address=" ".join(str(row[k]) for k in ("addr1", "addr2") if row.get(k)),

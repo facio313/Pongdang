@@ -111,7 +111,7 @@ class QualityGradeEnvelope(Record):
     label: str | None = None
     wqi: float | None = None
     basis: Literal["official_grade", "official_wqi_index", "none"] = "none"
-    provider: Literal["koem_water_quality"] | None = None
+    provider: Literal["koem_water_quality", "nier_water_quality"] | None = None
     station_id: int | None = None
     station_name: str | None = None
     source_spot_id: int | None = None

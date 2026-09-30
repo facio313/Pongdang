@@ -108,6 +108,7 @@ def request_body(settings, payload):
         "model": settings.ai_model,
         "store": False,
         "service_tier": "default",
+        "reasoning": {"effort": "none"},
         "instructions": "Order the supplied fact IDs for a concise explanation. "
         "Return every ID exactly once. Do not produce any other text.",
         "input": json.dumps(payload, ensure_ascii=False),

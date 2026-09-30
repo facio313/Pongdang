@@ -84,7 +84,7 @@ def test_real_collected_historical_grade_reaches_beach_without_seeding(database)
 
 @pytest.mark.parametrize(
     "kind,latitude,status",
-    [("valley", 37.001, "unsupported"), ("beach", 38.001, "no_data")],
+    [("valley", 37.001, "no_data"), ("beach", 38.001, "no_data")],
 )
 def test_marine_grade_never_transfers_to_river_or_distant_beach(
     database, kind, latitude, status
@@ -94,6 +94,9 @@ def test_marine_grade_never_transfers_to_river_or_distant_beach(
     with TestClient(create_app(database)) as client:
         data = read(client, spot)
         assert data["grade"] is None and data["status"] == status
+        if kind == "valley":
+            assert data["method_version"] == "inland-sampling.v1"
+            assert data["reason_codes"] == ["no_collected_inland_sample_within_10km"]
 
 
 def test_latest_missing_result_never_falls_back_to_older_good_grade(database):

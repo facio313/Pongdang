@@ -38,6 +38,9 @@ import {
   routeReasonsText,
   travelJson,
   travelActivityLabel,
+  selectedTransport,
+  transportAdviceText,
+  transportLabel,
   type RecommendationResult,
   type TravelRequest,
   type TripPlan,
@@ -86,6 +89,7 @@ interface RdStepRow {
   name: string;
   when: string;
   chips: string[];
+  basis?: string;
   link: string | null;
   photo?: Photo;
 }
@@ -138,6 +142,7 @@ function RdStep({
       <div className="rd-step-body">
         <div className="rd-step-name">{step.name}</div>
         <div className="rd-step-when">{step.when}</div>
+        {step.basis && <p className="rd-note">{step.basis}</p>}
         {step.chips.length > 0 && (
           <div className="rd-step-chips">
             {step.chips.map((chip) => (
@@ -268,7 +273,7 @@ export function RecommendDesktop() {
     // keyword_selection 이 전합니다(서버가 옵션의 tag 를 스스로 붙입니다).
     preferred_tags: [...new Set(chosenIds.map(labelOf))],
     activity: "relax",
-    transport: "driving",
+    transport: selectedTransport({ transport: "driving", keyword_selection: [{ category: "transport", values: chosen.transport ?? [] }] }),
     day_trip: true,
     keyword_selection: Object.entries(chosen)
       .filter(([, values]) => values.length)
@@ -483,8 +488,9 @@ export function RecommendDesktop() {
             ? t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(routeItem.arrival_at), departure: timeLabel(routeItem.departure_at), minutes: calculated?.legs[routeIndex] ? t("{minutes}분 이동", { minutes: calculated.legs[routeIndex].duration_minutes }) : t("이동시간 –") })
             : t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
           chips: item.matched_preferences.map((preference) => t(preference.tag)),
+          basis: [item.reason, !calculated ? transportAdviceText(item.transport_advice) : ""].filter(Boolean).join(" "),
           link: routeItem && !(routeIndex === 0 && calculated?.origin?.spot_id === item.spot_id)
-            ? kakaoRouteLink(routeIndex === 0 ? calculated?.origin : items[routeIndex - 1], [routeItem]) : null,
+            ? kakaoRouteLink(routeIndex === 0 ? calculated?.origin : items[routeIndex - 1], [routeItem], calculated?.transport) : null,
         };
       })
     : savedStops.map((stop, index) => ({
@@ -554,7 +560,7 @@ export function RecommendDesktop() {
   ).length;
   const wholeTrip = calculated
     ? kakaoRouteLink(calculated.origin, calculated.items[0]?.spot_id === calculated.origin?.spot_id
-      ? calculated.items.slice(1) : calculated.items)
+      ? calculated.items.slice(1) : calculated.items, calculated.transport)
     : null;
 
   const currentRegion = (step === "chat" ? chatRequest?.region
@@ -628,6 +634,7 @@ export function RecommendDesktop() {
           코스 저장(towel) · 장소 목록(bucket)과 겹치지 않습니다. */}
       <DesktopHero
         nav={<DesktopNav active="recommend" context={context} />}
+        wave="animated"
         mascot="snorkel"
       >
         <div className="rd-hero">
@@ -1090,6 +1097,7 @@ export function RecommendDesktop() {
                 )}
                 {calculated && (
                   <p className="rd-note">
+                    {transportLabel(calculated.transport ?? selectedTransport(session.planInput?.request))}{" · "}
                     {session.route?.optimality === "user_selected_order"
                       ? t("직접 정한 방문 순서로 계산한 예상 이동 시간입니다.")
                       : session.route?.optimality === "provisional_missing_comparison_evidence"
@@ -1098,7 +1106,10 @@ export function RecommendDesktop() {
                     {routeReasonsText(session.route?.reason_codes ?? [])}
                   </p>
                 )}
+                {calculated?.transport_advice && <p className="rd-note">{transportAdviceText(calculated.transport_advice)}</p>}
+                {!calculated && recommendation?.recommendations[0]?.transport_advice && <p className="rd-note">{transportAdviceText(recommendation.recommendations[0].transport_advice)}</p>}
                 {recommendation && <RouteCandidatesForm
+                  defaultTransport={selectedTransport(session.planInput?.request ?? recommendation.request)}
                   places={originOptions}
                   candidates={recommendation.recommendations.flatMap((item) =>
                     candidates.filter((candidate) => candidate.spot_id === item.spot_id && includedIds.includes(candidate.spot_id)))}
@@ -1246,7 +1257,7 @@ export function RecommendDesktop() {
 
       <FootNote
         missing={t("편의시설 · 대중교통 경로 · 코스 공유")}
-        note={t("후보 순서는 취향 일치 기준이고, 경로 시각은 출발 기준 교통 자료의 예상값입니다. 점수 · 신뢰도 · 안전 판정은 서로 다른 값이며 하나로 요약하지 않습니다. 값이 없으면 «–» 로 두며 0 이나 안전으로 치환하지 않습니다.")}
+        note={t("후보는 저장된 장소·조건 자료와 취향을 비교합니다. 경로 시각은 선택한 이동 수단의 예상값입니다. 조건 참고 점수는 안전 판정이 아니며, 확인하지 못한 값은 미확인으로 표시합니다.")}
       />
     </DesktopShell>
   );

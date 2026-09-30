@@ -7,10 +7,13 @@ import {
   originFromPlace,
   routeReasonsText,
   travelJson,
+  selectedTransport,
+  withTransport,
   type PlanInput,
   type RecommendationResult,
   type RouteResult,
   type TripPlan,
+  type TransportMode,
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { forgetResource } from "./useResource";
@@ -38,6 +41,13 @@ export function useCourseRouteOptimization(
   editing?: { input: PlanInput | null; changed: boolean },
 ) {
   const session = useTravelSession();
+  const [transportChoice, setTransportChoice] = useState<{
+    source: typeof session.planInput;
+    mode: TransportMode;
+  } | null>(null);
+  const transport = transportChoice?.source === session.planInput
+    ? transportChoice.mode : selectedTransport(session.planInput?.request);
+  const setTransport = (mode: TransportMode) => setTransportChoice({ source: session.planInput, mode });
   const [originId, setOriginId] = useState<number | null>(null);
   const savedOrigin = session.route?.route?.origin ?? session.planInput?.request.origin;
   const selectedOrigin =
@@ -57,7 +67,8 @@ export function useCourseRouteOptimization(
         "경로를 계산할 방문 장소가 없습니다. 추천에서 코스를 만들거나 저장한 코스를 열어 주세요.",
       );
     if (stops.length > 5) throw new Error(t("경로 후보는 최대 5곳입니다. 추천에서 코스를 다시 골라 주세요."));
-    if (session.route?.route_calculated && !recalculate && !editing?.changed)
+    if (session.route?.route_calculated && !recalculate && !editing?.changed
+      && selectedTransport(session.route.plan_input?.request) === transport)
       return { input: session.route.plan_input ?? input, route: session.route, recommendation: session.recommendation };
     const originPlace = selectedOrigin;
     if (!originPlace)
@@ -70,7 +81,7 @@ export function useCourseRouteOptimization(
     if (!origin) throw new Error(t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다."));
     const departure = new Date(Date.now() + 600000).toISOString();
     const request = {
-      ...input.request,
+      ...withTransport(input.request, transport),
       dates: [kstDate(departure)],
       day_trip: true,
       departure_time: timeLabel(departure),
@@ -166,11 +177,14 @@ export function useCourseRouteOptimization(
           const place = coursePlaceRows.find((row) => row.id === id);
           return { latitude: place?.lat ?? null, longitude: place?.lng ?? null };
         }),
+        transport,
       )
     : null;
 
   return {
     originId,
+    transport,
+    setTransport,
     setOriginId,
     selectedOrigin,
     createCourse,

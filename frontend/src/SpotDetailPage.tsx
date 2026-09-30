@@ -105,6 +105,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
     <article className="spots-page spot-detail">
       <AppShell
         tab="spots"
+        showFooterNote={false}
         hero={
           <header className="sd-hero">
             <PlacePhoto className="sd-hero-photo" name={place?.name ?? t("장소")} photo={place?.photo} eager />

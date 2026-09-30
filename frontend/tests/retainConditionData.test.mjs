@@ -127,3 +127,22 @@ test('past score generations cannot survive successful, failed or cached reads a
     assert.equal(conditionDataInRange(path, previous), true);
   }
 });
+
+
+test('a model revision never revives old marine scoring while inland results are pending', () => {
+  const previous = condition();
+  previous.condition_score.model_id = 'pongdang-activity-conditions';
+  previous.condition_score.model_version = '1.0.0';
+  const pending = condition(null, []);
+  pending.condition_score.model_id = 'pongdang-activity-conditions';
+  pending.condition_score.model_version = '1.1.0';
+  assert.equal(retainConditions(previous, pending), pending);
+  for (const path of ['water-index/conditions/summary?spot_ids=7,8', 'water-index/conditions/series?spot_id=7&targets=a,b']) {
+    const before = { rows: [previous, { ...previous, spot_id: 8 }] };
+    const after = { rows: [pending] };
+    assert.equal(retainConditionData(path, before, after), after);
+  }
+  const before = { model_version: '1.0.0', choice: { activity: 'swim', score: 80 }, conditions: [previous] };
+  const after = { model_version: '1.1.0', choice: null, conditions: [pending] };
+  assert.equal(retainConditionData('water-index/recommendation?spot_id=7', before, after), after);
+});

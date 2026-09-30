@@ -48,7 +48,7 @@ import "./spotsDesktop.css";
 function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
     <a className="sk-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
-      <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : "beach"} />
+      <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
       <div className="sk-row-body">
         <div className="sk-row-head">
           <b className="sk-row-name">{place.name}</b>
@@ -368,7 +368,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
         </SplitBody>
       </LabelRow>
 
-      <FootNote />
+      <FootNote note={null} />
     </DesktopShell>
   );
 }

@@ -20,7 +20,7 @@ export interface KeywordCatalogue {
 }
 
 /** 서버가 발행한 카테고리 중 추천 화면이 고르게 하는 것들. */
-export const PICKABLE = ["place_type", "activity", "companion", "atmosphere"];
+export const PICKABLE = ["place_type", "activity", "companion", "atmosphere", "transport"];
 
 /** 카드로 확정하는 단계가 쓰는 카테고리. 활동은 서버가 발행한 목록입니다. */
 export const CARD_CATEGORY = "activity";

@@ -13,7 +13,7 @@ export interface Recommendation {
   scientific_validation: "not_evaluated";
   spot_id: number;
   place_name: string | null;
-  place_kind: "beach" | "valley" | null;
+  place_kind: "beach" | "valley" | "lake" | "reservoir" | null;
   at: string;
   as_of: string;
   mode: "observation" | "forecast";

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
+from app.place_kinds import INLAND_PLACE_KINDS
 from app.water_index.activity_score import BEACH_AIR, SURF_WAVE, SWIM_WAVE, WATER
 from app.water_index.models import RECOMMENDED_ACTIVITIES, Activity, Number, Record
 
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 
 CONTRACT = "water-recommendation.v1"
 MODEL_ID = "pongdang-activity-recommendation"
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
@@ -88,10 +89,19 @@ RULES: tuple[Rule, ...] = (
         basis="data_contract",
     ),
     Rule(
+        code="inland_swimming_authorization_unconfirmed",
+        text=(
+            "계곡·호수·저수지 수영은 해당 장소의 활동 지원 근거가 확인될 때만 "
+            "추천 후보가 됩니다. 관측값이 있다는 사실은 수영 허가가 아닙니다."
+        ),
+        basis="data_contract",
+    ),
+    Rule(
         code="essential_measurement_missing",
         text=(
             "활동을 정의하는 지표가 없으면 후보에서 뺍니다. 바다 수영·서핑은 "
-            "수온과 파고, 온천은 시설 욕조 수온, 래프팅은 하천 수위 또는 유량이 "
+            "수온과 파고, 담수 수영은 수온과 강수, 온천은 시설 욕조 수온, "
+            "래프팅은 하천 수위 또는 유량이 "
             "있어야 합니다. 기상 자료만으로 그 활동을 권하지 않습니다."
         ),
         basis="data_contract",
@@ -285,8 +295,17 @@ def _reason_from(code: str, activity: Activity, component, **extra) -> Reason:
     )
 
 
-def _essentials_present(evidence: ConditionsEnvelope) -> bool:
-    groups = ESSENTIAL_METRICS.get(evidence.activity, ())
+def _essential_groups(evidence: ConditionsEnvelope, place_kind=None):
+    if (
+        evidence.activity == "swim"
+        and (place_kind or evidence.place_kind) in INLAND_PLACE_KINDS
+    ):
+        return (("water_temperature",), ("precipitation",))
+    return ESSENTIAL_METRICS.get(evidence.activity, ())
+
+
+def _essentials_present(evidence: ConditionsEnvelope, place_kind=None) -> bool:
+    groups = _essential_groups(evidence, place_kind)
     return all(
         any(_component(evidence, metric) is not None for metric in group)
         for group in groups
@@ -313,12 +332,17 @@ def decide(
         evidence = envelopes.get(activity)
         if evidence is None:
             continue
+        inland = (place_kind or evidence.place_kind) in INLAND_PLACE_KINDS
         score = evidence.condition_score
         applied: list[str] = []
         dropped = False
         demoted = False
 
-        if score is None or score.status in {"blocked", "unavailable"}:
+        if (
+            (inland and activity in {"surf", "mudflat"})
+            or score is None
+            or score.status in {"blocked", "unavailable"}
+        ):
             dropped = True
             applied.append("activity_blocked")
             reasons.append(
@@ -328,12 +352,20 @@ def decide(
                     metric=None,
                 )
             )
-        elif not _essentials_present(evidence):
+        elif inland and activity == "swim" and evidence.support_status != "supported":
+            dropped = True
+            applied.append("inland_swimming_authorization_unconfirmed")
+            reasons.append(
+                Reason(
+                    code="inland_swimming_authorization_unconfirmed", activity=activity
+                )
+            )
+        elif not _essentials_present(evidence, place_kind):
             dropped = True
             applied.append("essential_measurement_missing")
             missing = [
                 group[0]
-                for group in ESSENTIAL_METRICS.get(activity, ())
+                for group in _essential_groups(evidence, place_kind)
                 if not any(_component(evidence, name) is not None for name in group)
             ]
             for name in missing:
@@ -369,7 +401,11 @@ def decide(
                             threshold=BEACH_AIR_C,
                         )
                     )
-            elif tide is not None and tide.phase in {"near_high", "near_low"}:
+            elif (
+                not inland
+                and tide is not None
+                and tide.phase in {"near_high", "near_low"}
+            ):
                 demoted = True
                 sea_blocked_by_tide = True
                 applied.append("tide_phase_product_rule")
@@ -428,7 +464,11 @@ def decide(
                 )
             )
 
-    if best is not None and best.activity in SEA_ACTIVITIES:
+    if (
+        best is not None
+        and best.activity in SEA_ACTIVITIES
+        and place_kind not in INLAND_PLACE_KINDS
+    ):
         rival: Activity = "surf" if best.activity == "swim" else "swim"
         rival_live = any(c.activity == rival and not c.dropped for c in candidates)
         reasons.extend(_wave_reasons(envelopes, best.activity, rival, rival_live))

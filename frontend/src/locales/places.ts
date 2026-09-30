@@ -1,6 +1,23 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const placesMessages: Record<string, MessageTranslations> = {
+  "저수지": ["Reservoir", "水库", "貯水池"],
+  "물가 명소 전체": ["All waterside places", "全部水边景点", "水辺のスポットすべて"],
+  "같은 수역의 대표 관측소 연결 확인 필요": ["A representative station for the same water body must be verified", "需核实同一水域的代表监测站", "同じ水域の代表観測所との対応確認が必要"],
+  "내륙 장소에 해양 관측값 미적용": ["Marine measurements do not apply to inland places", "内陆地点不采用海洋观测值", "内陸の場所に海洋観測値は適用しません"],
+  "담수 검사값 · 등급 미산정": ["Freshwater samples · no grade", "淡水检测值 · 未评级", "淡水の検査値・等級なし"],
+  "담수 검사 자료 없음": ["No freshwater sample data", "无淡水检测资料", "淡水の検査資料なし"],
+  "담수 관측소 검사값": ["Freshwater station sample values", "淡水监测站检测值", "淡水観測所の検査値"],
+  "10km 안에 수집된 담수 수질 검사 자료가 없습니다.": ["No collected freshwater samples within 10 km.", "10公里范围内无已收集的淡水水质检测资料。", "10km以内の淡水水質検査資料が収集されていません。"],
+  "{station} · {date} 채수 검사 · {days}일 전. 관측소 검사값이며 이 장소와 같은 수역인지, 현재 입수할 수 있는지는 별도 확인이 필요합니다. 해양 WQI 등급을 적용하지 않습니다.": ["{station} · sampled {date} · {days} days ago. Station measurements require separate checks for the same water body and current bathing permission. Marine WQI grades do not apply.", "{station} · {date}采样 · {days}天前。监测站数值不能确认是否属于同一水域或当前能否下水，需另行核实。不采用海洋WQI等级。", "{station}・{date}採水・{days}日前。観測所の検査値です。同じ水域か、現在入水できるかは別途確認が必要です。海洋WQI等級は適用しません。"],
+  "국립환경과학원 물환경정보시스템": ["NIER Water Environment Information System", "国立环境科学院水环境信息系统", "国立環境科学院の水環境情報システム"],
+  "계곡·호수·저수지는 기상과 담수 관측을 사용합니다. 해양 파고·물때를 적용하지 않으며 수영 허가, 수질, 상류 강우·방류는 별도 확인이 필요합니다.": ["Valleys, lakes and reservoirs use weather and freshwater observations. Marine waves and tides do not apply. Check swimming permission, water quality and upstream rain or releases separately.", "溪谷、湖泊和水库使用气象与淡水观测，不采用海浪和潮汐。游泳许可、水质及上游降雨和放水须单独确认。", "渓谷・湖・貯水池は気象と淡水観測を使います。海の波高や潮汐は適用せず、遊泳許可、水質、上流の雨・放流は別途確認が必要です。"],
+  "담수 수온·수위·유량 자료": ["Freshwater temperature, level and flow", "淡水水温、水位和流量资料", "淡水の水温・水位・流量資料"],
+  "연결된 담수 관측값이 없습니다. 수위·유량이나 입수 안전을 추정하지 않습니다.": ["No linked freshwater observations. Water level, flow and bathing safety are not inferred.", "无关联淡水观测值，不推测水位、流量或下水安全。", "対応する淡水観測値がありません。水位・流量や入水の安全は推測しません。"],
+  "과거 관측 · 현재값 아님": ["Historical observation · not current", "历史观测 · 非当前值", "過去の観測・現在値ではありません"],
+  "주변 관측소 · 같은 수역 여부 미확인": ["Nearby station · same water body unverified", "附近监测站 · 是否同一水域未确认", "周辺観測所・同じ水域か未確認"],
+  "추천 제외 · 수영 운영 구역 미확인": ["Not recommended · swimming area unverified", "不推荐 · 游泳开放区域未确认", "おすすめ対象外・遊泳区域未確認"],
+  "이 계곡·호수·저수지의 수영 운영 구역을 확인하지 못해 수영 추천을 보류했습니다. 방문 기상 점수와 입수 허가는 다릅니다.": ["Swimming recommendations are withheld because a swimming area has not been confirmed for this valley, lake or reservoir. Visit weather scores do not establish bathing permission.", "未确认该溪谷、湖泊或水库的游泳开放区域，暂缓游泳推荐。出行气象分数不代表允许下水。", "この渓谷・湖・貯水池の遊泳区域を確認できないため、水泳のおすすめを保留しました。訪問時の気象スコアと入水許可は異なります。"],
   "첫 입수 자료 확인 중": ["Loading first-swim data", "正在查询首次下水资料", "初泳ぎデータを確認中"],
   "첫 입수 자료 조회 실패": ["First-swim data unavailable", "首次下水资料加载失败", "初泳ぎデータの取得失敗"],
   "첫 입수 자료 없음": ["No first-swim data", "暂无首次下水资料", "初泳ぎデータなし"],

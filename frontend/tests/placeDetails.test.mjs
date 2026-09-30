@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeHomepageUrl, placeOperatingSchedule } from '../src/placeDetails.ts';
+import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeExtraDetails, placeHomepageUrl, placeOperatingSchedule } from '../src/placeDetails.ts';
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from '../src/placeDistance.ts';
 
 test('stored detail reads batch stable unique positive IDs and enforce the page bound', () => {
@@ -68,6 +68,37 @@ test('additional activity schedules preserve provider labels without duplicating
 test('missing schedules remain empty instead of acquiring generic opening times', () => {
   assert.deepEqual(placeOperatingSchedule(), []);
   assert.deepEqual(placeOperatingSchedule({ opening_hours: null, opening_period: '', rest_days: ' ', details: [] }), []);
+});
+
+test('extra details omit visitor information duplicates while preserving unique and conflicting provider guidance', () => {
+  const entries = [
+    { section: 'intro', key: 'usetime', label: '이용시간', value: ' 상시  개방 ' },
+    { section: 'intro', key: 'parking', label: '주차시설', value: '가능' },
+    { section: 'intro', key: 'infocenter', label: '문의및안내', value: '033-640-4920' },
+    { section: 'info', key: 'info:1', label: '휴무일', value: '연중무휴' },
+    { section: 'intro', key: 'usetimeleports', label: '이용시간', value: '09:00–18:00' },
+    { section: 'info', key: 'info:2', label: '래프팅 운영시간', value: '상시 개방' },
+    { section: 'room', key: '0:parking', label: '객실 · 주차시설', value: '가능' },
+    { section: 'intro', key: 'heritage1', label: '세계문화유산유무', value: '0' },
+    { section: 'common', key: 'addr1', label: '주소', value: '강원특별자치도 강릉시' },
+    { section: 'info', key: 'info:3', label: '입장료', value: '무료' },
+  ];
+  const detail = { opening_hours: '상시 개방', parking: '가능', contact: '033-640-4920', rest_days: '연중무휴', details: entries };
+  assert.deepEqual(placeExtraDetails(detail), entries.slice(4));
+  assert.equal(detail.details.length, 10);
+  assert.deepEqual(placeExtraDetails({ ...detail, contact: null }).filter(entry => entry.key === 'infocenter'), [entries[2]]);
+  assert.deepEqual(placeExtraDetails(), []);
+});
+
+test('facility details disappear only when the same labeled value is included in the visible facility summary', () => {
+  const entries = [
+    { section: 'intro', key: 'restroom', label: '화장실', value: '가능' },
+    { section: 'info', key: 'info:1', label: '샤워 시설', value: '유료' },
+    { section: 'info', key: 'info:2', label: '탈의실', value: '가능' },
+    { section: 'info', key: 'info:3', label: '샤워 시설', value: '무료' },
+  ];
+  assert.deepEqual(placeExtraDetails({ facilities: '화장실: 가능\n샤워 시설: 유료', details: entries }), entries.slice(2));
+  assert.deepEqual(placeExtraDetails({ facilities: null, details: entries }), entries);
 });
 
 test('straight-line distances use coordinates including zero and never manufacture missing locations', () => {

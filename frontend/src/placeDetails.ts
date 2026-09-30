@@ -27,6 +27,45 @@ export interface PlaceDetails {
   details: PlaceDetailEntry[];
 }
 
+// TourAPI fields copied into the visitor-information summary. A different
+// published value, or a room/course-specific field, remains additional detail.
+const SUMMARY_DETAIL_FIELDS = [
+  ["opening_hours", ["usetime", "usetimeculture", "usetimeleports", "opentime", "opentimefood", "operationtimetraffic", "playtime"], ["운영", "이용시간", "운영시간", "영업시간", "공연시간"]],
+  ["rest_days", ["restdate", "restdateculture", "restdateleports", "restdateshopping", "restdatefood"], ["휴무일", "쉬는날"]],
+  ["opening_period", ["openperiod", "useseason"], ["개장 기간", "개장기간", "이용시기"]],
+  ["opening_date", ["opendate", "opendateshopping", "opendatefood"], ["개장일", "개업일"]],
+  ["parking", ["parking", "parkingculture", "parkingleports", "parkinglodging", "parkingshopping", "parkingfood", "parkingtraffic"], ["주차", "주차시설"]],
+  ["contact", ["infocenter", "infocenterculture", "infocenterleports", "infocenterlodging", "infocentershopping", "infocenterfood", "infocentertraffic", "sponsor1tel", "tel"], ["문의", "문의및안내", "전화번호"]],
+  ["homepage", ["homepage"], ["홈페이지", "홈페이지주소"]],
+  ["facilities", ["subfacility", "conven", "restroom", "restroomtraffic", "disablefacility"], ["편의시설", "부대시설", "부대시설 (기타)", "화장실", "화장실설명", "장애인편의시설"]],
+] as const;
+
+function comparableDetailText(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+/** Hide only information already displayed above; keep the stored evidence. */
+export function placeExtraDetails(detail?: PlaceDetails): PlaceDetailEntry[] {
+  if (!detail) return [];
+  return detail.details.filter(entry => {
+    if (!["intro", "info", "common"].includes(entry.section)) return true;
+    const value = comparableDetailText(entry.value);
+    for (const [field, keys, labels] of SUMMARY_DETAIL_FIELDS) {
+      const matches = entry.section === "info"
+        ? labels.some(label => label === entry.label.trim())
+        : keys.some(key => key === entry.key);
+      const summary = detail[field];
+      if (matches && summary?.trim() && comparableDetailText(summary) === value) return false;
+    }
+    // Facilities can be a summary of multiple labeled provider fields. Remove
+    // a row only when its whole label and value occur together in that summary.
+    if (detail.facilities?.split("\n").some(line =>
+      comparableDetailText(line) === comparableDetailText(`${entry.label}: ${entry.value}`),
+    )) return false;
+    return true;
+  });
+}
+
 /** Keep published opening guidance, including older stored notices, as text.
  * It describes this place; it is not an activity-specific permission or a window
  * calculated from tides. Extra schedule fields retain the provider's own label. */
@@ -98,6 +137,8 @@ export function placeHomepageUrl(value: string | null | undefined) {
 const KIND_LABEL: Record<string, string> = {
   beach: "해변",
   valley: "계곡",
+  lake: "호수",
+  reservoir: "저수지",
 };
 
 export function kindLabel(place?: { type?: string | null }): string {

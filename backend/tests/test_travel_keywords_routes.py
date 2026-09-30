@@ -275,13 +275,18 @@ def add_weather(settings, place_ids, *, future=False):
                         source_url="https://www.weather.go.kr/test",
                         authority="test authority",
                         reviewed_by="test",
-                        activities=("relax",),
+                        activities=("relax", "surf"),
                         valid_from=now - timedelta(hours=1),
                         valid_until=at + timedelta(hours=13),
                     )
                 ]
             ),
         )
+    # Recommendation previews consume the worker's published result; adding raw
+    # fixture readings alone must no longer cause HTTP-time recalculation.
+    from app.water_index.condition_producer import produce_conditions
+
+    produce_conditions(settings)
     return at
 
 
@@ -296,6 +301,22 @@ def test_keyword_recommendation_uses_actual_sql_weather_before_ranking(
         pytest.fail("Stage one must not call directions")
 
     monkeypatch.setattr(KakaoDirections, "leg", forbid_routes)
+    from app.travel import environment as environment_module
+    from app.travel import published
+
+    async def forbid_recalculation(*args, **kwargs):
+        pytest.fail("Recommendation HTTP must only read published conditions")
+
+    reads = []
+    read_saved = published.read_condition_set
+
+    async def counted_read(reader, queries, **kwargs):
+        reads.append(len(queries))
+        return await read_saved(reader, queries, **kwargs)
+
+    monkeypatch.setattr(environment_module, "read_conditions", forbid_recalculation)
+    monkeypatch.setattr(Catalog, "conditions", forbid_recalculation)
+    monkeypatch.setattr(published, "read_condition_set", counted_read)
     request = {
         "keyword_selection": [
             {"category": "weather", "values": ["mild", "dry", "small_waves"]}
@@ -304,6 +325,12 @@ def test_keyword_recommendation_uses_actual_sql_weather_before_ranking(
     response = client.post(BASE + "/recommendations", json={"request": request})
     assert response.status_code == 200, response.text
     result = response.json()
+    assert len(reads) == 1
+    assert result["candidate_scope"]["ranking"]["model_used"] is False
+    assert (
+        result["recommendations"][0]["conditions"]["source"]
+        == "published_condition_result"
+    )
     assert result["stage"] == "places_activities"
     assert result["route_calculated"] is False
     assert result["recommendations"][0]["spot_id"] == ids[1]
@@ -616,7 +643,9 @@ def test_route_items_carry_catalog_coordinates_without_exposing_origin_to_model(
 
     from app.travel import routing
 
-    monkeypatch.setattr(routing, "KakaoDirections", lambda *args: RoutesFixture())
+    monkeypatch.setattr(
+        routing, "KakaoDirections", lambda *args, **kwargs: RoutesFixture()
+    )
     session = TravelToolSession(
         s,
         now,
@@ -650,7 +679,9 @@ def test_public_two_stage_chat_route_and_unconfigured_state(travel_db, monkeypat
     assert first["route_calculated"] is False
     from app.travel import routing
 
-    monkeypatch.setattr(routing, "KakaoDirections", lambda *args: RoutesFixture())
+    monkeypatch.setattr(
+        routing, "KakaoDirections", lambda *args, **kwargs: RoutesFixture()
+    )
     chat = client.post(
         "/api/data/ai/chat",
         json={
@@ -736,3 +767,47 @@ def test_selected_place_category_filters_before_candidate_cap(travel_db):
     result = response.json()
     assert result["recommendations"][0]["name"] == "Late registered onsen"
     assert result["candidate_scope"]["matched_count"] == 1
+
+
+def test_stored_generic_reservoir_matches_same_kind_in_list_and_recommendation(
+    travel_db,
+):
+    from app.ingestion.models import Place, SourceBatch
+    from app.ingestion.storage import store_batch
+
+    settings, client, _, _ = travel_db
+    store_batch(
+        settings,
+        SourceBatch(
+            provider="TOURAPI_KOREAN",
+            fetched_at=datetime.now(UTC),
+            places=[
+                Place(
+                    source_id="existing-generic-reservoir",
+                    name="격리저수지",
+                    kind="place",
+                    category="12",
+                    region="격리",
+                    latitude=37.6,
+                    longitude=128.8,
+                )
+            ],
+        ),
+    )
+    listed = client.get("/api/data/places", params={"kind": "reservoir"}).json()["rows"]
+    response = client.post(
+        BASE + "/recommendations",
+        json={
+            "request": {
+                "keyword_selection": [
+                    {"category": "place_type", "values": ["reservoir"]}
+                ],
+            }
+        },
+    )
+    assert response.status_code == 200, response.text
+    recommendations = response.json()["recommendations"]
+    assert len(recommendations) == 1, response.text
+    assert recommendations[0]["spot_id"] == listed[0]["id"]
+    assert recommendations[0]["confirmed"]["kind"] == "reservoir"
+    assert "저수지" in recommendations[0]["confirmed"]["catalog_tags"]

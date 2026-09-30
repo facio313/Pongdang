@@ -9,11 +9,19 @@ from app.regions import region_query
 from app.travel import keywords, storage, tokens
 from app.travel.catalog import Catalog
 from app.travel.language import copy, label
+from app.travel.mobility import transport_advice
 from app.travel.models import (
     PreferenceMatch,
     Recommendation,
     RecommendationResult,
     TravelRequest,
+)
+from app.travel.published import (
+    PublishedEnvironmentReader,
+    condition_summary,
+    describe_score,
+    preview_sample,
+    ranking_score,
 )
 
 WEIGHTS = {
@@ -237,10 +245,13 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
     catalog = catalog or Catalog(settings, now)
     preference = body.preference
     if preference is None:
-        preference = (await asyncio.to_thread(storage.profile, settings, owner))[
-            "preference"
-        ]
-    signals = await asyncio.to_thread(storage.signals, settings, owner)
+        profile, signals = await asyncio.gather(
+            asyncio.to_thread(storage.profile, settings, owner),
+            asyncio.to_thread(storage.signals, settings, owner),
+        )
+        preference = profile["preference"]
+    else:
+        signals = await asyncio.to_thread(storage.signals, settings, owner)
     try:
         request = keywords.normalize(body.request)
     except ValueError as exc:
@@ -279,60 +290,100 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
             persona=persona(preference, signals),
         )
     ranked, excluded = rank_places(places, request, preference, signals, restrictions)
-    environment_matches = {}
-    if request.keyword_selection or request.environment_preferences:
-        from app.travel.environment import (
-            PREVIEW_LIMIT,
-            EnvironmentReader,
-            preview_time,
+    from app.travel.environment import PREVIEW_LIMIT, preview_time
+
+    environment = environment or PublishedEnvironmentReader(catalog)
+    target, time_basis = preview_time(request, now)
+    shortlist = ranked[:PREVIEW_LIMIT]
+    if hasattr(environment, "prefetch"):
+        await environment.prefetch(
+            [row[0]["spot_id"] for row in shortlist], request, target
         )
 
-        environment = environment or EnvironmentReader(catalog)
-        target, time_basis = preview_time(request, now)
-        shortlist = ranked[:PREVIEW_LIMIT]
-
-        async def read_match(row):
-            return row[0]["spot_id"], await environment.compare(
-                row[0]["spot_id"], request, target
-            )
-
-        environment_matches = dict(
-            await asyncio.gather(*(read_match(row) for row in shortlist))
+    async def read_match(row):
+        return row[0]["spot_id"], await environment.compare(
+            row[0]["spot_id"], request, target
         )
-        broad_region = region_query(request.region or "") == ("gangwon", None)
-        shortlist_order = {
-            row[0]["spot_id"]: index for index, row in enumerate(shortlist)
-        }
-        scope["environment_comparison"] = {
-            "candidate_limit": PREVIEW_LIMIT,
-            "compared_count": len(shortlist),
-            "truncated": len(ranked) > len(shortlist),
-            "shortlist_order": "explicit_preference_then_district_round_robin"
-            if broad_region
-            else "explicit_preference_then_spot_id",
-            "time_basis": time_basis,
-            "target_at": target.isoformat(),
-            "optimality": "only_within_compared_candidates_and_available_evidence",
-        }
 
-        required = set(request.must_include)
-
-        def environment_order(row):
-            points = environment_matches[row[0]["spot_id"]]["preference_points"]
-            return (
-                row[0]["spot_id"] not in required,
-                points is None if request.environment_preferences else False,
-                -sum(m.weight for m in row[1]) - (points or 0),
-                shortlist_order[row[0]["spot_id"]]
-                if broad_region
-                else row[0]["spot_id"],
+    environment_matches = dict(
+        await asyncio.gather(*(read_match(row) for row in shortlist))
+    )
+    eligible = []
+    for row in shortlist:
+        sample = preview_sample(environment_matches[row[0]["spot_id"]])
+        if (
+            sample.get("safety_status") == "restricted"
+            or sample.get("support_status") == "unsupported"
+        ):
+            excluded.append(
+                {
+                    "spot_id": row[0]["spot_id"],
+                    "reason": "official_restriction"
+                    if sample.get("safety_status") == "restricted"
+                    else "selected_activity_unsupported",
+                    "evidence": sample.get("restriction_refs", []),
+                }
             )
+        else:
+            eligible.append(row)
+    profiles = {
+        tuple(
+            component["metric"]
+            for component in preview_sample(match)
+            .get("condition_score", {})
+            .get("components", [])
+        )
+        for match in environment_matches.values()
+        if ranking_score(match) is not None
+    }
+    # A beach-water profile and an inland-weather profile are different scales.
+    comparable = len(profiles) <= 1
+    broad_region = region_query(request.region or "") == ("gangwon", None)
+    shortlist_order = {row[0]["spot_id"]: index for index, row in enumerate(shortlist)}
+    scope["environment_comparison"] = {
+        "candidate_limit": PREVIEW_LIMIT,
+        "compared_count": len(shortlist),
+        "truncated": len(ranked) > len(shortlist),
+        "shortlist_order": "explicit_preference_then_district_round_robin"
+        if broad_region
+        else "explicit_preference_then_spot_id",
+        "time_basis": time_basis,
+        "target_at": target.isoformat(),
+        "source": "published_condition_result",
+        "score_profiles_comparable": comparable,
+        "optimality": "only_within_compared_candidates_and_available_evidence",
+    }
+    scope["ranking"] = {
+        "engine": "deterministic",
+        "model_used": False,
+        "priority": [
+            "must_include",
+            "explicit_preferences_and_environment_match",
+            "complete_comparable_condition_score",
+            "catalog_order",
+        ],
+        "safety_status": "unknown",
+    }
+    required = set(request.must_include)
 
-        ranked = sorted(shortlist, key=environment_order)
+    def environment_order(row):
+        match = environment_matches[row[0]["spot_id"]]
+        points = match["preference_points"]
+        score = ranking_score(match) if comparable else None
+        return (
+            row[0]["spot_id"] not in required,
+            points is None if request.environment_preferences else False,
+            -sum(m.weight for m in row[1]) - (points or 0),
+            score is None,
+            -(score if score is not None else 0),
+            shortlist_order[row[0]["spot_id"]] if broad_region else row[0]["spot_id"],
+        )
+
+    ranked = sorted(eligible, key=environment_order)
     recommendations = []
     for rank, (place, matches, unknown) in enumerate(ranked[: body.limit], 1):
-        conditions = await catalog.conditions(place["spot_id"], request)
         sid = place["spot_id"]
+        conditions = condition_summary(environment_matches[sid])
         # Source facts cannot be overwritten by user wishes or behavioural tags.
         confirmed = {
             k: v for k, v in place.items() if k not in {"evidence", "catalog_locale"}
@@ -352,6 +403,9 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
         environment_text = describe_match(environment_matches.get(sid), request.locale)
         if environment_text:
             reason += " " + environment_text
+        reason += " " + describe_score(
+            environment_matches[sid], request.locale, comparable=comparable
+        )
         recommendations.append(
             Recommendation(
                 recommendation_id=f"recommendation:{rank}:{sid}",
@@ -378,6 +432,7 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
                 },
                 activities=keywords.activity_options(request, place),
                 environment_match=environment_matches.get(sid, {}),
+                transport_advice=transport_advice(request, place),
             )
         )
     clarification = (
@@ -396,9 +451,7 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
     )
     return RecommendationResult(
         request=body.request,
-        policy_version="keyword-environment.v2"
-        if request.keyword_selection or request.environment_preferences
-        else "explicit-preference.v1",
+        policy_version="published-evidence.v3",
         preference=preference,
         status="partial" if recommendations else "no_data",
         recommendations=recommendations,

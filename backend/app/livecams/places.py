@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.data_reader import DataReader
+from app.place_kinds import WATER_PLACE_KINDS, WaterPlaceKind
 from app.regions import (
     PLACE_REGION_JOIN,
     DistrictCode,
@@ -17,13 +18,16 @@ from app.regions import (
     region_options,
 )
 
+
 # Classification uses provider categories, never a keyword search result alone.
 # The original IDs, types, names, addresses and coordinates stay untouched.
-PLACE_SELECT = (
-    """
-SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,
- r.province_code AS verified_province_code,r.district_code AS verified_district_code,
- CASE WHEN s.type IN ('beach','valley') THEN s.type
+def water_place_kind_sql(alias="s"):
+    """Classify stored catalogues; alias is a trusted internal SQL identifier."""
+    return _WATER_PLACE_KIND_SQL.replace("s.", f"{alias}.")
+
+
+_WATER_PLACE_KIND_SQL = """
+CASE WHEN s.type IN ('beach','valley','lake','reservoir') THEN s.type
  WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
    AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 해수욕장%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
@@ -32,9 +36,29 @@ SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,
    AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 계곡%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
          AND s.name ~ '계곡$'))) THEN 'valley'
- ELSE NULL END AS place_kind
-FROM pongdang_data.spots_waterspot s
+ WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
+   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 저수지%%')
+     OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
+         AND s.name ~ '저수지( *[(][^)]*[)])?$'))) THEN 'reservoir'
+ WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
+   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 호수%%')
+     OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
+         AND s.name ~ '호수( *[(][^)]*[)])?$'))) THEN 'lake'
+ WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p
+   JOIN pongdang_data.place_detail d ON d.place_id=p.id AND d.state='active'
+   WHERE p.spot_id=s.id AND p.provider='TOURAPI_KOREAN' AND p.category='12'
+     AND d.details @> '[{"section":"common","key":"cat3","value":"A01011700"}]'
+ ) THEN CASE WHEN s.name ~ '저수지( *[(][^)]*[)])?$'
+             THEN 'reservoir' ELSE 'lake' END
+ ELSE NULL END
 """
+PLACE_SELECT = (
+    "SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,"
+    "s.catalog_verified_at,"
+    "r.province_code AS verified_province_code,"
+    "r.district_code AS verified_district_code,"
+    + water_place_kind_sql()
+    + " AS place_kind FROM pongdang_data.spots_waterspot s "
     + PLACE_REGION_JOIN
 )
 
@@ -42,7 +66,7 @@ FROM pongdang_data.spots_waterspot s
 class PreviewPlace(BaseModel):
     id: int
     name: str
-    place_kind: Literal["beach", "valley"]
+    place_kind: WaterPlaceKind
     address: str | None
     region: str | None
     lat: float | None
@@ -150,7 +174,7 @@ async def read_places_page(
         where += " AND " + predicate
         params.extend(region_params)
     if kind:
-        if kind not in {"beach", "valley"}:
+        if kind not in WATER_PLACE_KINDS:
             raise ValueError("Unknown place kind")
         where += " AND place_kind=%s"
         params.append(kind)
@@ -209,7 +233,7 @@ def create_places_router(settings, *, reader=None):
         q: str = Query("", max_length=100),
         province: ProvinceCode | None = None,
         district: DistrictCode | None = None,
-        kind: Literal["beach", "valley"] | None = None,
+        kind: WaterPlaceKind | None = None,
         page: int = Query(1, ge=1, le=10000),
         page_size: int = Query(100, ge=1, le=100),
     ):

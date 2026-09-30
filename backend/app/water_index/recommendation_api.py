@@ -17,6 +17,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validato
 from app.data_reader import DataReader
 from app.forecast.storage import select_forecasts
 from app.livecams.places import PLACE_SELECT
+from app.place_kinds import WaterPlaceKind
 from app.tides.context import mark_context, nearby_tide_station
 from app.tides.service import tide_event
 from app.travel.catalog import ROLE_CODES, VISIT_KINDS
@@ -109,7 +110,7 @@ class Recommendation(Record):
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     spot_id: int = Field(gt=0)
     place_name: str | None
-    place_kind: Literal["beach", "valley"] | None
+    place_kind: WaterPlaceKind | None
     at: AwareDatetime
     as_of: AwareDatetime
     mode: Literal["observation", "forecast"]

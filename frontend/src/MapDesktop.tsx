@@ -42,6 +42,8 @@ import {
   planItems,
   routePaths,
   routeReasonsText,
+  transportAdviceText,
+  transportLabel,
   travelJson,
   unknownConditionsText,
   type PlanItem,
@@ -51,7 +53,9 @@ import {
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useAction } from "./useAction";
 import { suppressLoginRequired } from "./authError";
+import { useRequireLogin } from "./loginPopoverState";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
+import { TransportSelect } from "./TransportSelect";
 import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
@@ -268,7 +272,8 @@ export function MapDesktop() {
 
   // ── 내 코스 목록 (항상 표시하는 좌측 패널) ──────────────────
   // 저장한 코스와 동행 알림 상태를 함께 조회합니다(useMyPlansWithAlarm).
-  const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
+  const { myPlans, sessions, plans: myPlansWithAlarm, loginRequired } = useMyPlansWithAlarm();
+  const requireLogin = useRequireLogin();
   const openSavedPlan = (plan: TripPlan) => {
     setCourseEdit(null);
     action.cancel();
@@ -392,6 +397,7 @@ export function MapDesktop() {
           ? kakaoRouteLink(
               index === 0 ? calculated.origin : calculated.items[index - 1],
               [calculated.items[index]],
+              calculated.transport,
             )
           : null,
       }))
@@ -431,7 +437,7 @@ export function MapDesktop() {
   const editedInput = courseInputForSelection(session.planInput, courseSpotIds, coursePlaces.rows);
   const allSelected = courseSpotIds.length === courseStops.length;
   const wholeTrip = calculated
-    ? kakaoRouteLink(calculated.origin, calculated.items)
+    ? kakaoRouteLink(calculated.origin, calculated.items, calculated.transport)
     : null;
   const action = useAction();
   const courseAccess = useAction();
@@ -449,6 +455,8 @@ export function MapDesktop() {
     createCourse: createCourseFor,
     recalculateCourse,
     candidateTrip,
+    transport,
+    setTransport,
   } = useCourseRouteOptimization(rows, courseSpotIds, coursePlaces.rows, action, { input: editedInput, changed: courseChanged });
   const courseLink = wholeTrip ?? candidateTrip;
   const coursePaths = useMemo(
@@ -858,8 +866,12 @@ export function MapDesktop() {
               <div className="pd-dk-mappanel-badge">{t("추천 탭에서 저장한 코스가 그대로 쌓입니다")}</div>
               <div className="mk-course-panel-head">
                 <span className="pd-dk-kick">{t("내 코스 목록")}</span>
-                <StateChip kind={myPlans.data ? "live" : "no_data"} />
+                {!loginRequired && <StateChip kind={myPlans.data ? "live" : "no_data"} />}
               </div>
+              {loginRequired && <>
+                <p className="mk-note">{t("로그인하면 저장한 코스를 볼 수 있어요.")}</p>
+                <button type="button" className="pd-dk-button" onClick={requireLogin}>{t("로그인")}</button>
+              </>}
               {myPlansWithAlarm.map(({ plan, alarm }) => (
                 <button
                   type="button"
@@ -891,7 +903,7 @@ export function MapDesktop() {
                   </div>
                 </button>
               ))}
-              {!myPlans.data?.rows.length && (
+              {!loginRequired && !myPlans.data?.rows.length && (
                 <p className="mk-note" role={myPlans.error ? "alert" : "status"}>
                   {myPlans.error ??
                     (myPlans.loading
@@ -988,10 +1000,15 @@ export function MapDesktop() {
                 <dl className="mk-course-summary">
                   <div><dt>{t("방문 장소")}</dt><dd>{t("{count}곳", { count: courseSpotIds.length })}</dd></div>
                   {calculated && <>
+                    <div><dt>{t("계산한 이동 수단")}</dt><dd>{transportLabel(calculated.transport ?? session.planInput?.request.transport ?? "driving")}</dd></div>
                     <div><dt>{t("예상 이동")}</dt><dd>{t("{minutes}분", { minutes: calculated.travel_minutes })}</dd></div>
                     <div><dt>{t("예상 귀가")}</dt><dd>{timeLabel(calculated.return_at)}</dd></div>
                   </>}
                 </dl>
+                {calculated?.transport_advice && <p className="mk-note">{transportAdviceText(calculated.transport_advice)}</p>}
+                <div className="rt-form">
+                  <TransportSelect value={transport} onChange={setTransport} disabled={action.busy} />
+                </div>
                 <div className="mk-course-actions">
                   <button
                     type="button"
@@ -1043,7 +1060,7 @@ export function MapDesktop() {
               <FootNote
                 wave={false}
                 missing={t("편의 시설 · 안전요원 정보 · 조위 시계열")}
-                note={t("경로는 자동차 이동만 계산하며 예상값이고 안전 판정이 아닙니다. 좌표가 없는 정차지는 지도에 찍지 않습니다.")}
+                note={t("선택한 이동 수단으로 계산한 예상 경로입니다. 도보·자전거·대중교통은 출발시각별 조회를 지원하지 않습니다. 좌표가 없는 정차지는 지도에 찍지 않습니다.")}
               />
             </aside>
           </>

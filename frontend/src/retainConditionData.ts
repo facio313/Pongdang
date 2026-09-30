@@ -32,6 +32,20 @@ function blocked(data: { safety_status?: string; support_status?: string; condit
     data.safety_status === "restricted" || data.support_status === "unsupported" || data.condition_score?.status === "blocked";
 }
 
+
+type ScoreModel = { condition_score?: { model_id?: string; model_version?: string } | null };
+
+function modelChanged(previous: ScoreModel, next: ScoreModel) {
+  const before = previous.condition_score;
+  const after = next.condition_score;
+  return Boolean(before?.model_version && after?.model_version &&
+    (before.model_version !== after.model_version || before.model_id !== after.model_id));
+}
+
+function changedRowModel(previous: ScoreModel[], next: ScoreModel[]) {
+  return previous.some(old => next.some(current => modelChanged(old, current)));
+}
+
 function availableMetrics(data: Conditions) {
   return new Set([
     ...(data.condition_score?.components ?? []).filter(c => c.status === "evaluated" && c.score !== null).map(c => c.metric),
@@ -43,7 +57,7 @@ function availableMetrics(data: Conditions) {
 
 export function retainConditions(previous: Conditions | undefined, next: Conditions): Conditions {
   if (!previous || previous.spot_id !== next.spot_id || previous.activity !== next.activity || previous.mode !== next.mode ||
-      !conditionTargetInRange(previous.at) || blocked(next) || blocked(previous)) return next;
+      !conditionTargetInRange(previous.at) || blocked(next) || blocked(previous) || modelChanged(previous, next)) return next;
   const oldMetrics = availableMetrics(previous);
   const newMetrics = availableMetrics(next);
   const lostScore = conditionScore(previous) !== null && conditionScore(next) === null;
@@ -56,7 +70,7 @@ export function retainConditions(previous: Conditions | undefined, next: Conditi
 }
 
 function retainSummary(previous: ConditionSummary | undefined, next: ConditionSummary): ConditionSummary {
-  if (!previous || blocked(next) || blocked(previous)) return next;
+  if (!previous || blocked(next) || blocked(previous) || modelChanged(previous, next)) return next;
   const old = previous.condition_score;
   const current = next.condition_score;
   if ((conditionScore(previous) !== null && (conditionScore(next) === null ||
@@ -98,6 +112,7 @@ export function retainConditionData(path: string, previous: unknown, next: unkno
   if (path.startsWith("water-index/conditions/series?")) {
     const before = previous as ConditionSeries;
     const after = next as ConditionSeries;
+    if (changedRowModel(before.rows, after.rows)) return after;
     const rows = new Map(after.rows.map(row => [Date.parse(row.at), row]));
     for (const old of before.rows) {
       const current = rows.get(Date.parse(old.at));
@@ -108,6 +123,7 @@ export function retainConditionData(path: string, previous: unknown, next: unkno
   if (path.startsWith("water-index/conditions/summary?")) {
     const before = previous as ConditionSummaries;
     const after = next as ConditionSummaries;
+    if (changedRowModel(before.rows, after.rows)) return after;
     const rows = new Map(after.rows.map(row => [row.spot_id, row]));
     for (const old of before.rows) {
       const current = rows.get(old.spot_id);
@@ -118,6 +134,8 @@ export function retainConditionData(path: string, previous: unknown, next: unkno
   if (path.startsWith("water-index/recommendation?")) {
     const before = previous as Recommendation;
     const after = next as Recommendation;
+    if ((before.model_version && after.model_version && before.model_version !== after.model_version) ||
+        changedRowModel(before.conditions, after.conditions)) return after;
     // A new official restriction must never be masked by an old recommendation.
     // Unchanged unsupported activities (e.g. onsen at a beach) are not a reason
     // to discard the still-usable swimming score and its measurements.

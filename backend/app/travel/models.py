@@ -168,7 +168,7 @@ class EnvironmentPreference(Record):
 
 class TravelRequest(Record):
     keyword_selection: list[KeywordSelection] = Field(
-        default_factory=list, max_length=6
+        default_factory=list, max_length=7
     )
     environment_preferences: list[EnvironmentPreference] = Field(
         default_factory=list, max_length=7
@@ -293,13 +293,14 @@ class Recommendation(Record):
     actions: dict
     activities: list[dict] = Field(default_factory=list)
     environment_match: dict = Field(default_factory=dict)
+    transport_advice: dict = Field(default_factory=dict)
 
 
 class RecommendationResult(Record):
     contract_version: Literal["pongdang-travel.v1"] = "pongdang-travel.v1"
-    policy_version: Literal["explicit-preference.v1", "keyword-environment.v2"] = (
-        "explicit-preference.v1"
-    )
+    policy_version: Literal[
+        "explicit-preference.v1", "keyword-environment.v2", "published-evidence.v3"
+    ] = "explicit-preference.v1"
     stage: Literal["places_activities"] = "places_activities"
     route_calculated: Literal[False] = False
     request: TravelRequest

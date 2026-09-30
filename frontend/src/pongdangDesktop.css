@@ -418,7 +418,7 @@ main:has(.pd-desktop.is-fullscreen) {
   height: 58px;
 }
 
-/* 홈 히어로만 쓰는 애니메이션 파도 2겹. 2880 폭 SVG 를 하단에 절대배치하고
+/* 히어로 하단에 흐르는 애니메이션 파도 2겹. 2880 폭 SVG 를 하단에 절대배치하고
    가로로 흘립니다. 뒤 겹이 느리고 옅어서 깊이가 생깁니다. */
 .pd-dk-hero-anim {
   position: absolute;

@@ -1,6 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function anonymous(page: Page) {
+  const place = { id: 11, name: "OFFLINE TEST 로그인 해변", lat: 37.8, lng: 128.9, place_kind: "beach", region: "강릉시" };
+  // All reads stay inside this browser contract; no DB or identity provider is used.
+  await page.route("**/api/**", route => {
+    const path = new URL(route.request().url()).pathname.split("/api/")[1];
+    if (path === "data/water-index/default-place") return route.fulfill({ json: { place, rows: [place], status: "resolved" } });
+    if (path === "data/places") return route.fulfill({ json: { rows: [place], total: 1, page: 1, page_size: 100, has_more: false } });
+    if (path?.startsWith("data/travel/")) return route.fulfill({ status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } });
+    return route.fulfill({ status: 503, json: { detail: "OFFLINE_OPTIONAL_SERVICE" } });
+  });
   await page.route("**/api/data/notifications/**", route => route.fulfill({ status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
   await page.route("**/api/data/travel/preferences", route => route.fulfill({ status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
 }
@@ -20,6 +29,7 @@ for (const width of [390, 1440]) {
     await summary.getByRole("button", { name: "로그인", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("로컬 테스트 계정으로 로그인해 주세요.", { exact: true })).toHaveCount(0);
     await expect(dialog.getByLabel("아이디", { exact: true })).toBeFocused();
     await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
     await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-invalid");
@@ -58,9 +68,9 @@ test("inline SSO completion rereads saved settings and history without navigatin
       delivery_state: "available_in_app", attempts: 0, last_error: null,
     }] } } : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } });
   });
-  let stateReads = 0;
+  let acceptedStateReads = 0;
   await page.route("**/api/auth/state", route => {
-    stateReads++;
+    if (returned) acceptedStateReads++;
     return route.fulfill({ status: returned ? 200 : 401, json: { authenticated: returned } });
   });
   await page.route("**/api/auth/login", route => {
@@ -84,7 +94,8 @@ test("inline SSO completion rereads saved settings and history without navigatin
   await expect(page.getByRole("region", { name: "발생한 알림", exact: true })).toContainText("앱 내 알림 생성됨");
   expect(subscriptionReads).toBeGreaterThan(before.subscriptions);
   expect(eventReads).toBeGreaterThan(before.events);
-  expect(stateReads).toBe(2);
+  // Opening the popup also reads provider metadata; success requires a fresh session read after POST.
+  expect(acceptedStateReads).toBe(1);
   await expect(subscriptions.getByRole("button", { name: "로그인", exact: true })).toHaveCount(0);
 });
 
@@ -149,3 +160,48 @@ test("private fetch redirects do not follow the login portal or leak Failed to f
   await expect(page.locator("body")).not.toContainText("Failed to fetch");
   expect(followed).toBe(0);
 });
+
+for (const width of [390, 1440]) {
+  test(`map login can reopen after closing and completes a local test session at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await anonymous(page);
+    let authenticated = false;
+    let attempts = 0;
+    await page.route("**/api/auth/state", route => route.fulfill({
+      status: authenticated ? 200 : 401, json: { authenticated, environment: "local_test" },
+    }));
+    await page.route("**/api/auth/login", route => {
+      attempts++;
+      expect(route.request().method()).toBe("POST");
+      authenticated = route.request().postDataJSON().password === "offline-correct";
+      return route.fulfill({ status: authenticated ? 200 : 401, json: { authenticated, environment: "local_test" } });
+    });
+    await page.route("**/api/data/travel/plans?**", route => route.fulfill(authenticated
+      ? { json: { rows: [] } }
+      : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
+    await page.goto("#map?view=course");
+    const login = page.getByRole("button", { name: "로그인", exact: true });
+    await expect(login).toBeVisible();
+    await expect(page.getByText("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.", { exact: true })).toHaveCount(0);
+    await login.click();
+    const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+    await expect(dialog).toContainText("로컬 테스트 계정으로 로그인해 주세요.");
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(login).toBeVisible();
+    await login.click();
+    await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
+    await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-wrong");
+    await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+    await expect(dialog.getByRole("alert")).toContainText("로컬 테스트 계정의 아이디 또는 비밀번호를 확인해 주세요.");
+    await expect(dialog.getByLabel("비밀번호", { exact: true })).toHaveValue("");
+    await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-correct");
+    await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(login).toHaveCount(0);
+    await expect(page.getByText("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.", { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/#map\?view=course$/);
+    expect(attempts).toBe(2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}

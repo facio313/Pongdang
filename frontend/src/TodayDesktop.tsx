@@ -130,6 +130,7 @@ function TodayHero({
           </div>}
         />
       }
+      wave="animated"
       mascot="surf"
     >
       <div className="td-hero">

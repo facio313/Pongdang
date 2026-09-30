@@ -5,8 +5,11 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
-from app.ai.tools import PLACE_COLUMNS, PLACE_JOIN, ToolSession, _safe_url
+from app.ai.tools import PLACE_COLUMNS as SOURCE_PLACE_COLUMNS
+from app.ai.tools import PLACE_JOIN as SOURCE_PLACE_JOIN
+from app.ai.tools import ToolSession, _safe_url
 from app.data_reader import DataReader
+from app.livecams.places import water_place_kind_sql
 from app.place_details.api import read_place_details
 from app.regions import district_group_expression, place_search_predicate, region_query
 from app.travel.models import Evidence
@@ -22,6 +25,11 @@ PROVIDERS = {
 }
 PROVIDER_LOCALE = {p: lang for lang, providers in PROVIDERS.items() for p in providers}
 MAX_CANDIDATES = 300
+PLACE_COLUMNS = SOURCE_PLACE_COLUMNS + ",water.place_kind"
+PLACE_JOIN = (
+    SOURCE_PLACE_JOIN
+    + f" CROSS JOIN LATERAL (SELECT {water_place_kind_sql()} AS place_kind) water "
+)
 # KTO published v4.4 manuals, checked 2026-09-15. These classify catalogue
 # records only; they establish no opening/access/amenity/safety property.
 # https://www.data.go.kr/data/15101578/openapi.do (Korean)
@@ -39,6 +47,7 @@ VISIT_KINDS = [
     "onsen",
     "hotspring",
     "lake",
+    "reservoir",
     "river",
     "valley",
 ]
@@ -93,15 +102,22 @@ def place_view(row, now):
     )
     # A category is a catalogue label, never a depth/current/crowding assertion.
     category = row.get("category") or ""
-    kind = row.get("type") or ""
+    kind = row.get("place_kind") or row.get("type") or ""
     tags = []
     for token, tag in (("온천", "온천"), ("서핑", "서핑"), ("해수욕장", "해변")):
         if token in category:
             tags.append(tag)
     if kind in {"hotspring", "onsen"}:
         tags.append("온천")
-    if kind == "beach":
-        tags.append("해변")
+    kind_tags = {
+        "beach": "해변",
+        "valley": "계곡",
+        "lake": "호수",
+        "reservoir": "저수지",
+        "river": "강",
+    }
+    if kind in kind_tags:
+        tags.append(kind_tags[kind])
     return {
         "spot_id": row["spot_id"],
         "name": row["name"],
@@ -182,13 +198,16 @@ class Catalog:
         # matching lake/onsen must not disappear behind unrelated low-ID places.
         type_predicates = {
             "beach": (
-                "(s.type='beach' OR strpos(coalesce(p.category,''),'해수욕장')>0)"
+                "(water.place_kind='beach' OR "
+                "strpos(coalesce(p.category,''),'해수욕장')>0)"
             ),
             "hot_spring": (
                 "(s.type IN ('onsen','hotspring') OR "
                 "strpos(coalesce(p.category,''),'온천')>0)"
             ),
-            "lake": "s.type='lake'",
+            "lake": "water.place_kind='lake'",
+            "reservoir": "water.place_kind='reservoir'",
+            "valley": "water.place_kind='valley'",
             "river": "s.type='river'",
         }
         selected_types = choices(request, "place_type")
@@ -205,7 +224,8 @@ class Catalog:
                 VISIT_KINDS if request.place_role == "visit" else [request.place_role]
             )
             where += (
-                " AND ((p.provider<>'KAKAO_LOCAL' AND (s.type=ANY(%s) OR "
+                " AND ((p.provider<>'KAKAO_LOCAL' AND "
+                "(coalesce(water.place_kind,s.type)=ANY(%s) OR "
                 "(s.type='tourism' AND p.category=ANY(%s)))) OR "
                 "(p.provider='KAKAO_LOCAL' AND p.category LIKE %s))"
             )

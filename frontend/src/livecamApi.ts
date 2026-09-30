@@ -19,7 +19,7 @@ export type WatchCamera = {
 };
 export type SearchState = 'unconfigured' | 'not_searched' | 'coordinates_missing' | 'failed' | 'no_nearby_cameras' | 'found' | 'expired';
 export type WatchPlace = {
-  id: number; name: string; type: string; place_kind: 'beach' | 'valley';
+  id: number; name: string; type: string; place_kind: 'beach' | 'valley' | 'lake' | 'reservoir';
   address: string | null; region: string | null; lat: number | null; lng: number | null;
   search_state: SearchState; reason_code: string | null; attempted_at: string | null;
   fetched_at: string | null; valid_until: string | null; radius_km: number | null;

@@ -74,11 +74,13 @@ def link_places(settings):
                   AND p.longitude BETWEEN s.lng-0.01 AND s.lng+0.01
                   AND {name_sql("p.name")}={name_sql("s.name")}
                 WHERE s.lat IS NOT NULL AND s.lng IS NOT NULL
-                  AND (s.type IN ('beach','valley') OR EXISTS (
+                  AND (s.type IN ('beach','valley','lake','reservoir') OR EXISTS (
                     SELECT 1 FROM pongdang_data.collection_place source
                     WHERE source.spot_id=s.id AND source.provider='KAKAO_LOCAL'
                       AND (source.category LIKE '여행 > 관광,명소 > 해수욕장%%'
-                        OR source.category LIKE '여행 > 관광,명소 > 계곡%%')))
+                        OR source.category LIKE '여행 > 관광,명소 > 계곡%%'
+                        OR source.category LIKE '여행 > 관광,명소 > 호수%%'
+                        OR source.category LIKE '여행 > 관광,명소 > 저수지%%')))
                   AND NOT EXISTS (SELECT 1 FROM pongdang_data.collection_place own
                     WHERE own.spot_id=s.id AND own.provider=ANY(%s))
                 ORDER BY s.id,p.id
@@ -150,7 +152,7 @@ def due_places(settings, now, *, check_budget=True):
               {"AND coalesce(b.calls,0)+3<=%s" if check_budget else ""}
             ORDER BY (p.id IN (SELECT place_id FROM priority_places)) DESC,
               (p.provider='TOURAPI_KOREAN'
-                AND p.name ~ '(해수욕장|해변|계곡)$') DESC,
+                AND p.name ~ '(해수욕장|해변|계곡|호수|저수지)$') DESC,
               a.checked_at NULLS FIRST,p.id
             LIMIT %s
             """,

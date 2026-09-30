@@ -3,17 +3,35 @@ const UNAVAILABLE = "로그인 서비스에 연결하지 못했습니다. 잠시
 
 export class SsoLoginError extends Error {}
 
-async function sessionResponse(response: Response, allowAnonymous = false): Promise<boolean> {
+export interface SsoLoginState {
+  authenticated: boolean;
+  localTest: boolean;
+}
+
+async function sessionResponse(response: Response, allowAnonymous = false, localTest = false): Promise<SsoLoginState> {
   if (response.redirected || !response.headers.get("content-type")?.includes("application/json")) {
     throw new SsoLoginError(UNAVAILABLE);
   }
   if (response.status === 429) throw new SsoLoginError("로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
-  if (allowAnonymous && [401, 403].includes(response.status)) return false;
-  if (response.status === 401) throw new SsoLoginError("아이디 또는 비밀번호를 확인해 주세요.");
-  if (response.status === 403) throw new SsoLoginError("Pongdang 접근 권한이 없습니다. 관리자에게 문의해 주세요.");
-  if (!response.ok) throw new SsoLoginError(UNAVAILABLE);
+  if (!(allowAnonymous && [401, 403].includes(response.status))) {
+    if (response.status === 401) throw new SsoLoginError(localTest
+      ? "로컬 테스트 계정의 아이디 또는 비밀번호를 확인해 주세요."
+      : "아이디 또는 비밀번호를 확인해 주세요.");
+    if (response.status === 403) throw new SsoLoginError("Pongdang 접근 권한이 없습니다. 관리자에게 문의해 주세요.");
+    if (!response.ok) throw new SsoLoginError(UNAVAILABLE);
+  }
   const result: unknown = await response.json();
-  return typeof result === "object" && result !== null && "authenticated" in result && result.authenticated === true;
+  return {
+    authenticated: response.ok && typeof result === "object" && result !== null && "authenticated" in result && result.authenticated === true,
+    localTest: typeof result === "object" && result !== null && "environment" in result && result.environment === "local_test",
+  };
+}
+
+/** The bridge identifies the isolated local provider before credentials are entered. */
+export async function readSsoLoginState(base: string, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<SsoLoginState> {
+  return sessionResponse(await fetcher(`${base}api/auth/state`, {
+    credentials: "same-origin", redirect: "error", cache: "no-store", signal,
+  }), true);
 }
 
 /** The same-origin bridge completes the existing SSO/OAuth exchange. Passwords
@@ -21,12 +39,12 @@ async function sessionResponse(response: Response, allowAnonymous = false): Prom
 export async function signInSso(base: string, username: string, password: string, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<void> {
   const options = { credentials: "same-origin", redirect: "error", cache: "no-store", signal } as const;
   // Never send credentials to a Vite/SPA HTML fallback on an unconfigured host.
-  await sessionResponse(await fetcher(`${base}api/auth/state`, options), true);
-  if (!await sessionResponse(await fetcher(`${base}api/auth/login`, {
+  const state = await readSsoLoginState(base, signal, fetcher);
+  if (!(await sessionResponse(await fetcher(`${base}api/auth/login`, {
     ...options, method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username: username.trim(), password }),
-  }))) throw new SsoLoginError(UNAVAILABLE);
-  if (!await sessionResponse(await fetcher(`${base}api/auth/state`, options))) throw new SsoLoginError(UNAVAILABLE);
+  }), false, state.localTest)).authenticated) throw new SsoLoginError(UNAVAILABLE);
+  if (!(await readSsoLoginState(base, signal, fetcher)).authenticated) throw new SsoLoginError(UNAVAILABLE);
 }
 
 type LoginLocation = Pick<Location, "origin" | "pathname" | "search" | "hash" | "assign" | "replace">;

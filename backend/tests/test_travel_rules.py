@@ -240,6 +240,7 @@ def test_recommend_tool_payload_uses_spot_candidate_ids(monkeypatch):
         },
         reason="등록된 장소",
         activities=[],
+        conditions={"source": "published_condition_result", "ranking_score": 42},
         unknown_conditions=[],
         evidence=[SimpleNamespace(evidence_id="e1", provider="TEST")],
         actions={"view": "#spots"},
@@ -271,6 +272,7 @@ def test_recommend_tool_payload_uses_spot_candidate_ids(monkeypatch):
         session.execute("travel_recommend", {"changes": {}, "limit": 1})
     )
     listed = payload["result"]["recommendations"][0]
+    assert listed["condition_comparison"]["score"] == 42
     assert listed["candidate_id"] == "spot:7"
     assert "recommendation_id" not in listed
     assert "spot:7" in session.candidates

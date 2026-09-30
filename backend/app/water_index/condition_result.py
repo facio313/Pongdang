@@ -83,7 +83,10 @@ def summary_fields(payload):
 
 def detail_fields(payload):
     """Pack cold response fields together while leaving list fields selectable."""
-    return {key: payload[key] for key in DETAIL_FIELDS}
+    return {
+        "place_kind": payload.get("place_kind"),
+        **{key: payload[key] for key in DETAIL_FIELDS},
+    }
 
 
 def result_payload(row):
@@ -93,6 +96,7 @@ def result_payload(row):
         "contract_version": "water-conditions.v1",
         "spot_id": row["spot_id"],
         "place_name": row["place_name"],
+        "place_kind": detail.get("place_kind"),
         "activity": row["activity"],
         "mode": row["mode"],
         "at": row["evidence_at"],

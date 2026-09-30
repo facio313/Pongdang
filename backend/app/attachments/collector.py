@@ -146,7 +146,7 @@ def due_places(settings):
             JOIN pongdang_data.place_detail d ON d.place_id=l.place_id
               AND d.state='active' AND d.provider='TOURAPI_KOREAN'
             LEFT JOIN pongdang_data.attachment_collection a ON a.spot_id=w.id
-            WHERE w.place_kind IN ('beach','valley')
+            WHERE w.place_kind IS NOT NULL
               AND (a.spot_id IS NULL OR a.source_detail_id IS DISTINCT FROM d.id
                 OR a.next_attempt_at<=now())
             ORDER BY a.next_attempt_at NULLS FIRST,w.id LIMIT %s

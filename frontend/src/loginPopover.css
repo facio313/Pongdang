@@ -30,6 +30,7 @@
   color: var(--pd-ink, #1b2430);
 }
 .pd-app .pd-login-popover h2 { margin: 0 44px 24px 0; font-size: 24px; }
+.pd-app .pd-login-context { margin: -8px 0 20px; color: var(--pd-ink-2, #4c657f); font-size: 14px; line-height: 1.6; }
 .pd-app .pd-login-close {
   position: absolute;
   top: 12px;

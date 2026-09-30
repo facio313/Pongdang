@@ -3,7 +3,8 @@ import { useState } from "react";
 import { AppActions } from "./AppShell";
 import { Icon } from "./pongdangUi";
 import { kstDate, timeLabel } from "./productData";
-import { originFromPlace } from "./travelApi";
+import { originFromPlace, type TransportMode } from "./travelApi";
+import { TransportSelect } from "./TransportSelect";
 import type { OriginOption, RouteCandidate, RouteRequestValue } from "./RouteRequestForm";
 
 const DEFAULT_STAY_MINUTES = 60;
@@ -18,6 +19,7 @@ export function RouteCandidatesForm({
   places,
   candidates,
   defaultDate,
+  defaultTransport = "driving",
   disabled = false,
   busy = false,
   submitLabel = "이 조건으로 경로 계산",
@@ -26,6 +28,7 @@ export function RouteCandidatesForm({
   places: readonly OriginOption[];
   candidates: readonly RouteCandidate[];
   defaultDate?: string;
+  defaultTransport?: TransportMode;
   disabled?: boolean;
   /** True while the submitted request is in flight -- shown as a spinner on
    *  the submit button, same as RouteRequestForm. */
@@ -34,6 +37,7 @@ export function RouteCandidatesForm({
   onSubmit: (value: RouteRequestValue) => void;
 }) {
   const [problem, setProblem] = useState("");
+  const [transport, setTransport] = useState<TransportMode | null>(null);
   const first = candidates[0];
   const originPlace = places.find((place) => place.id === first?.spot_id);
 
@@ -53,6 +57,7 @@ export function RouteCandidatesForm({
       ? `${defaultDate}T${defaultDeparture().slice(11)}`
       : defaultDeparture();
     onSubmit({
+      transport: transport ?? defaultTransport,
       origin,
       date: departure.slice(0, 10),
       departure_time: departure.slice(11),
@@ -65,6 +70,7 @@ export function RouteCandidatesForm({
 
   return (
     <div className="rt-form">
+      <TransportSelect value={transport ?? defaultTransport} onChange={setTransport} disabled={disabled} />
       <AppActions>
         <button
           type="button"

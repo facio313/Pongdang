@@ -14,6 +14,7 @@ from app.travel import keywords, route_snapshot, storage, tokens
 from app.travel.catalog import KST, Catalog
 from app.travel.directions import DirectionError, KakaoDirections
 from app.travel.environment import EnvironmentReader
+from app.travel.mobility import course_transport_advice
 from app.travel.models import PlanInput, Record, TravelPreference, TravelRequest
 from app.travel.recommend import rank_places
 
@@ -113,10 +114,6 @@ async def recommend_route(
     start = datetime.combine(day, request.departure_time, KST)
     if start < now - timedelta(minutes=5):
         return base_result(original, now, "clarification", ["route_departure_in_past"])
-    if request.transport != "driving":
-        return base_result(
-            original, now, "unconfigured", ["route_transport_not_configured"]
-        )
     catalog = catalog or Catalog(settings, now)
     places = await catalog.places(ids)
     origin, origin_spot_id = await resolve_origin(catalog, request.origin)
@@ -159,7 +156,7 @@ async def recommend_route(
         result.update(excluded=excluded, available_count=len(ids))
         return result
     points = {row[0]["spot_id"]: sum(m.weight for m in row[1]) for row in ranked}
-    directions = directions or KakaoDirections(settings, now)
+    directions = directions or KakaoDirections(settings, now, mode=request.transport)
     if directions.status != "configured":
         return base_result(
             original, now, directions.status, ["route_provider_" + directions.status]
@@ -198,6 +195,10 @@ async def recommend_route(
     if directions.status == "authentication_failed":
         return base_result(
             original, now, "unconfigured", ["route_provider_authentication_failed"]
+        )
+    if directions.status == "quota_exceeded":
+        return base_result(
+            original, now, "query_failed", ["route_provider_quota_exceeded"]
         )
     candidates, rejected = [], []
     considered = 0
@@ -262,15 +263,23 @@ async def recommend_route(
             )
             continue
         known_toll = sum(edge["evidence"]["toll_krw"] or 0 for edge in legs)
+        known_fare = sum(
+            (edge["evidence"].get("fare_krw") or 0) * request.people for edge in legs
+        )
         budget = (
             request.budget.amount
             * (request.people if request.budget.basis == "per_person" else 1)
             if request.budget
             else None
         )
-        if budget is not None and known_toll > budget:
+        if budget is not None and known_toll + known_fare > budget:
             rejected.append(
-                {"spot_ids": list(order), "reason": "known_toll_exceeds_budget"}
+                {
+                    "spot_ids": list(order),
+                    "reason": "known_toll_exceeds_budget"
+                    if request.transport == "driving"
+                    else "known_transport_cost_exceeds_budget",
+                }
             )
             continue
         env_known = (
@@ -296,6 +305,7 @@ async def recommend_route(
                 "environment_complete": env_known,
                 "cost": {
                     "known_toll_krw": known_toll,
+                    "known_fare_krw": known_fare,
                     "total_krw": None,
                     "budget_status": "unknown",
                 },
@@ -315,7 +325,7 @@ async def recommend_route(
             "formula": (
                 "mean(place preference points) + mean(explicit"
                 " environment range match points) - 0.25 * "
-                "driving minutes"
+                "travel minutes"
             ),
             "environment_weight": 1,
             "travel_minute_penalty": 0.25,
@@ -345,6 +355,10 @@ async def recommend_route(
         )
         return result
     winner = candidates[0]
+    winner["transport"] = request.transport
+    winner["transport_advice"] = course_transport_advice(
+        request, origin, winner["items"]
+    )
     # The owner's own origin, echoed next to the order it starts from. The
     # model never receives this; only the requesting client does.
     winner["origin"] = {
@@ -363,12 +377,16 @@ async def recommend_route(
         if complete
         else "provisional_missing_comparison_evidence",
         reason_codes=[
-            "reference_time_matrix_estimate",
+            "reference_time_matrix_estimate"
+            if request.transport == "driving"
+            else "provider_time_independent_estimate",
             "visit_support_and_total_cost_unverified",
         ],
     )
     if not complete:
         result["reason_codes"].append("environment_or_route_comparison_incomplete")
+    if request.transport != "driving":
+        result["reason_codes"].append("provider_does_not_accept_departure_time")
     # Detailed paths are fetched only after order selection and only on explicit
     # route requests. Reference departure stays the same as the comparison.
     if body.include_geometry:
@@ -383,7 +401,7 @@ async def recommend_route(
                     "polyline": detail["polyline"],
                     "source_record_id": detail["source_record_id"],
                     "fetched_at": detail["fetched_at"],
-                    "independently_fetched": True,
+                    "independently_fetched": request.transport == "driving",
                     "summary_may_differ": detail["duration_seconds"]
                     != leg["evidence"]["duration_seconds"],
                 }
@@ -396,6 +414,7 @@ async def recommend_route(
     result["plan_input"] = {
         "request": {
             **original.model_dump(mode="json"),
+            "transport": request.transport,
             "dates": [day.isoformat()],
             "day_trip": True,
         },
@@ -430,7 +449,8 @@ def render_route(result, locale="ko"):
                 "route_provider_authentication_failed": "길찾기 인증 설정을 확인해요.",
                 "route_provider_unconfigured": "길찾기 설정이 필요해요.",
                 "route_provider_disabled": "길찾기가 비활성 상태예요.",
-                "route_transport_not_configured": "자동차 이동을 선택해요.",
+                "route_transport_not_configured": "지원하는 이동 수단을 선택해 주세요.",
+                "route_provider_quota_exceeded": "경로 조회 한도에 도달했습니다.",
                 "insufficient_verified_candidates_for_stop_count": "후보가 부족해요.",
                 "no_verifiable_feasible_route": "조건에 맞는 경로를 못 찾았어요.",
                 "must_include_not_in_selected_candidates": "필수 장소를 선택해요.",

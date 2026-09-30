@@ -60,7 +60,7 @@ test('unknown server details and prototype property names are never echoed', asy
 test('route setup, authentication and unsupported transport have distinct explanations', () => {
   assert.match(routeReasonsText(['route_provider_unconfigured']), /REST 키 설정/);
   assert.match(routeReasonsText(['route_provider_authentication_failed']), /인증에 실패/);
-  assert.match(routeReasonsText(['route_transport_not_configured']), /자동차/);
+  assert.match(routeReasonsText(['route_transport_not_configured']), /선택한 이동 수단/);
   assert.doesNotMatch(routeReasonsText(['secret upstream url', 'constructor']), /secret|constructor/);
 });
 

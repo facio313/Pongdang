@@ -35,12 +35,12 @@ import "./placeDetails.css";
 //
 // 목록은 서버가 분류한 실제 장소이며 운영 안내는 저장된 상세정보를 묶어 읽습니다.
 
-/** 서버가 유도하는 분류는 beach · valley 둘뿐입니다(place_kind). 예전의 다섯
- *  갈래(해변 · 온천 · 카페 · 문화 · 서핑)는 서버에 대응하는 값이 없어, 고르면
- *  아무 일도 일어나지 않는 칩이었습니다. */
+/** Stored provider classification; a category does not establish swimming permission. */
 const MAP_FILTERS = [
   { key: "beach", label: "해변" },
   { key: "valley", label: "계곡" },
+  { key: "lake", label: "호수" },
+  { key: "reservoir", label: "저수지" },
 ] as const;
 
 
@@ -130,7 +130,7 @@ function ListSearch({
 function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
   return (
     <a className="sp-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
-      <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : "beach"} />
+      <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
       <span className="sp-row-body">
         <span className="sp-row-head">
           <span className="sp-row-name">{place.name}</span>

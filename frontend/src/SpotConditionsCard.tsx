@@ -3,12 +3,35 @@ import { EvidenceNote } from "./EvidenceNote";
 import { gradeOf } from "./groupAGrade";
 import { t } from "./i18n";
 import { GradeIcon, ScoreExplainer, ScoreGauge, Skeleton } from "./pongdangUi";
-import { conditionModeLabel, dateLabel, timeLabel } from "./productData";
+import { conditionModeLabel, dateLabel, formatValue, timeLabel, type Conditions } from "./productData";
 import type { Recommendation } from "./recommendationApi";
 import { RecommendationReason } from "./RecommendationReason";
 import { spotConditionDisplay } from "./recommendationText";
 import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import "./spotConditionsCard.css";
+
+function InlandContext({ conditions }: { conditions?: Conditions }) {
+  if (!conditions || !["valley", "lake", "reservoir"].includes(conditions.place_kind ?? "")) return null;
+  const records = [...conditions.metrics, ...(conditions.context_metrics ?? [])]
+    .filter(metric => ["water_temperature", "river_level", "river_flow"].includes(metric.name));
+  return <div className="pd-note">
+    <p>{t("계곡·호수·저수지는 기상과 담수 관측을 사용합니다. 해양 파고·물때를 적용하지 않으며 수영 허가, 수질, 상류 강우·방류는 별도 확인이 필요합니다.")}</p>
+    <details>
+      <summary>{t("담수 수온·수위·유량 자료")}</summary>
+      {records.length === 0 && <p>{t("연결된 담수 관측값이 없습니다. 수위·유량이나 입수 안전을 추정하지 않습니다.")}</p>}
+      {records.map(metric => {
+        const source = metric.evidence.length === 1 ? metric.evidence[0] : undefined;
+        const number = metric.value ?? (metric.status === "stale" && !source?.is_missing ? source?.numeric_value : undefined);
+        return <p key={`${metric.station_id}:${metric.name}`}>
+          {metric.station_name ?? t("관측소")} · {t(metric.label)} {typeof number === "number" ? formatValue(number, metric.unit) : t("자료 없음")}
+          {source && <> · {dateLabel(source.observed_at)} {timeLabel(source.observed_at)}</>}
+          {metric.status === "stale" && <> · {t("과거 관측 · 현재값 아님")}</>}
+          {metric.relation === "nearby_station_context" && <> · {t("주변 관측소 · 같은 수역 여부 미확인")}</>}
+        </p>;
+      })}
+    </details>
+  </div>;
+}
 
 export function SpotConditionsCard({ data, loading, error }: {
   data?: Recommendation;
@@ -52,6 +75,7 @@ export function SpotConditionsCard({ data, loading, error }: {
       </div>)}
     </dl>}
     <RecommendationReason data={data} error={error} loading={loading} />
+    <InlandContext conditions={conditions} />
     <EvidenceNote data={conditions} compact chip={false} extra={<ScoreExplainer data={conditions} />} />
   </section>;
 }

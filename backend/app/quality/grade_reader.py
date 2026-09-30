@@ -1,8 +1,9 @@
-"""Bounded read of the latest collected marine laboratory result, including history."""
+"""Bounded read of collected marine grades or ungraded inland laboratory samples."""
 
 from fastapi import HTTPException
 
 from app.livecams.places import PLACE_SELECT
+from app.place_kinds import INLAND_PLACE_KINDS
 from app.quality.grading import GRADE_LABELS, QualityGradeEnvelope, resolve_grade
 
 
@@ -15,6 +16,9 @@ async def read_grade(c, spot_id, now):
     ).fetchone()
     if place is None:
         raise HTTPException(404, "place_not_found")
+    inland = place["place_kind"] in INLAND_PLACE_KINDS
+    provider = "nier_water_quality" if inland else "koem_water_quality"
+    station_kind = "river_water_quality" if inland else "marine_water_quality"
     # Select the nearest collected station before looking at its grade or age.
     # A nearby station is context, never an implicit representative mapping.
     station = await (
@@ -25,10 +29,10 @@ async def read_grade(c, spot_id, now):
             "power(sin(radians(latitude-%s)/2),2)+cos(radians(%s))*"
             "cos(radians(latitude))*power(sin(radians(longitude-%s)/2),2))))) "
             "END AS distance_km FROM pongdang_data.collection_station st "
-            "WHERE provider='koem_water_quality' AND kind='marine_water_quality' "
+            "WHERE provider=%s AND kind=%s "
             "AND fetched_at<=%s AND EXISTS (SELECT 1 FROM "
             "pongdang_data.conditions_observationsnapshot s WHERE s.station_id=st.id "
-            "AND s.provider='koem_water_quality' AND s.fetched_at<=%s "
+            "AND s.provider=%s AND s.fetched_at<=%s "
             "AND s.observed_at<=%s AND (s.issued_at IS NULL OR s.issued_at<=%s))) "
             "SELECT * FROM candidates WHERE spot_id=%s OR (%s AND distance_km<=10) "
             "ORDER BY (spot_id=%s) DESC,distance_km NULLS LAST,id LIMIT 1",
@@ -38,25 +42,36 @@ async def read_grade(c, spot_id, now):
                 place["lat"],
                 place["lat"],
                 place["lng"],
+                provider,
+                station_kind,
                 now,
+                provider,
                 now,
                 now,
                 now,
                 spot_id,
-                place["place_kind"] == "beach",
+                place["place_kind"] == "beach" or inland,
                 spot_id,
             ],
         )
     ).fetchone()
     base = {"spot_id": spot_id, "queried_at": now}
+    if inland:
+        base.update(
+            method_version="inland-sampling.v1",
+            standard_url="https://water.nier.go.kr/",
+            research_url="https://water.nier.go.kr/",
+        )
     if station is None:
-        unsupported = place["place_kind"] != "beach"
+        unsupported = place["place_kind"] != "beach" and not inland
         return QualityGradeEnvelope(
             **base,
             status="unsupported" if unsupported else "no_data",
             reason_codes=(
                 "marine_wqi_not_applicable"
                 if unsupported
+                else "no_collected_inland_sample_within_10km"
+                if inland
                 else "no_collected_marine_sample_within_10km",
             ),
         )
@@ -67,7 +82,7 @@ async def read_grade(c, spot_id, now):
             "WITH revisions AS (SELECT DISTINCT ON "
             "(COALESCE(source_record_id,provider_record_id)) * FROM "
             "pongdang_data.conditions_observationsnapshot WHERE station_id=%s "
-            "AND provider='koem_water_quality' AND fetched_at<=%s AND observed_at<=%s "
+            "AND provider=%s AND fetched_at<=%s AND observed_at<=%s "
             "AND (issued_at IS NULL OR issued_at<=%s) "
             "ORDER BY COALESCE(source_record_id,provider_record_id),"
             "fetched_at DESC,id DESC) "
@@ -75,7 +90,7 @@ async def read_grade(c, spot_id, now):
             "issued_at,valid_until,spatial_scope,state FROM revisions "
             "WHERE observed_at=(SELECT max(observed_at) FROM revisions) "
             "ORDER BY id LIMIT 101",
-            [station["id"], now, now, now],
+            [station["id"], provider, now, now, now],
         )
     ).fetchall()
     if len(snapshots) > 100:
@@ -90,7 +105,16 @@ async def read_grade(c, spot_id, now):
     ).fetchall()
     if len(metrics) > 100:
         raise HTTPException(422, "quality_source_scope_too_large")
-    grade, index, basis, reasons = resolve_grade(metrics)
+    grade, index, basis, reasons = (
+        (
+            None,
+            None,
+            "none",
+            ["inland_sample_not_bathing_safety", "inland_grade_not_implemented"],
+        )
+        if inland
+        else resolve_grade(metrics)
+    )
     if any(row["state"] == "superseded" for row in snapshots):
         grade, index, basis = None, None, "none"
         reasons.append("revision_history_ambiguous")
@@ -102,7 +126,11 @@ async def read_grade(c, spot_id, now):
         reasons.append("historical_sample_not_current_water_quality")
     direct = station["spot_id"] == spot_id
     if not direct:
-        reasons.append("nearby_station_not_beach_sample")
+        reasons.append(
+            "nearby_station_not_same_waterbody"
+            if inland
+            else "nearby_station_not_beach_sample"
+        )
     layers = {
         m["snapshot_id"]: m["text_value"] for m in metrics if m["name"] == "water_layer"
     }
@@ -125,7 +153,7 @@ async def read_grade(c, spot_id, now):
             if "conflicting_or_invalid_wqi" in reasons
             or "revision_history_ambiguous" in reasons
             else "no_data"
-            if grade is None
+            if grade is None and not inland
             else "historical"
             if historical
             else "available"
@@ -134,7 +162,7 @@ async def read_grade(c, spot_id, now):
         label=GRADE_LABELS.get(grade),
         wqi=index,
         basis=basis,
-        provider="koem_water_quality",
+        provider=provider,
         station_id=station["id"],
         station_name=station["name"],
         source_spot_id=station["spot_id"],

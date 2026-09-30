@@ -16,6 +16,8 @@ from psycopg.rows import dict_row
 
 from app.ingestion.errors import SourceScopeTooLargeError
 from app.ingestion.weather import grid_coordinates
+from app.livecams.places import PLACE_SELECT
+from app.place_kinds import INLAND_PLACE_KINDS
 from app.schema import connect
 from app.water_index.condition_api import (
     ALIASES,
@@ -23,23 +25,12 @@ from app.water_index.condition_api import (
     ConditionQuery,
     assemble_conditions,
     authority_conditions,
+    context_providers,
 )
-from app.water_index.conditions import ACTIVITIES, METRICS
+from app.water_index.conditions import ACTIVITIES, METRICS, activity_metrics
 from app.water_index.sources import AuthorityRecord
 
 KST = ZoneInfo("Asia/Seoul")
-CONTEXT_PROVIDERS = {
-    "kma_nowcast",
-    "kma_ultra_forecast",
-    "kma_short_forecast",
-    "kma_aws",
-    "kma_buoy",
-    "nifs_risa",
-    "khoa_buoy_recent",
-    "khoa_water_temperature",
-    "khoa_tide_recent",
-    *PRODUCT_ACTIVITIES,
-}
 MAX_RECORDS = 1_000_000
 MAX_ENVELOPE_CACHE = 2048
 
@@ -51,9 +42,11 @@ def _bounded(cursor, query, params, limit):
     return rows
 
 
-def _requested(activity, mode):
-    allowed = {m.name for m in ACTIVITIES[activity].metrics}
+def _requested(activity, mode, place_kind=None):
+    allowed = {m.name for m in activity_metrics(activity, place_kind)}
     requested = allowed | {"precipitation"}
+    if place_kind in INLAND_PLACE_KINDS:
+        requested |= {"water_temperature", "river_level", "river_flow"}
     if mode == "forecast":
         requested |= {
             f"maximum_{name}"
@@ -70,8 +63,7 @@ def _load_inputs(c, now, start, end):
     with c.cursor(row_factory=dict_row) as cursor:
         places = _bounded(
             cursor,
-            "SELECT id,name,lat,lng,catalog_verified_at "
-            "FROM pongdang_data.spots_waterspot ORDER BY id",
+            f"SELECT * FROM ({PLACE_SELECT}) p ORDER BY id",
             [],
             50_000,
         )
@@ -223,7 +215,9 @@ class ProjectionInputs:
             nx, ny = grid_coordinates(place["lat"], place["lng"])
             grid_id = f"kma-grid-{nx}-{ny}"
             for station in self.stations.values():
-                if station["provider"] not in CONTEXT_PROVIDERS:
+                if station["provider"] not in context_providers(
+                    place.get("place_kind")
+                ):
                     continue
                 grid = (
                     station["source_id"] == grid_id
@@ -414,7 +408,9 @@ class ProjectionInputs:
         return list(zip(times, times[1:], strict=False))
 
     def envelope(self, place, q, at, as_of):
-        allowed, requested, source_names = _requested(q.activity, q.mode)
+        allowed, requested, source_names = _requested(
+            q.activity, q.mode, place.get("place_kind")
+        )
         links = self.links(place, q, at, as_of, source_names)
         rows = self.selected_rows(links, q.mode, source_names, at)
         authorities = [
@@ -427,7 +423,10 @@ class ProjectionInputs:
         authority = authority_conditions(authorities, q, at, as_of)
         key = None
         if q.as_of is None:
-            key = self._envelope_key(q, at, as_of, links, rows, authority)
+            key = (
+                place.get("place_kind"),
+                self._envelope_key(q, at, as_of, links, rows, authority),
+            )
             if cached := self.envelopes.get(key):
                 self.envelopes.move_to_end(key)
                 return self._place_envelope(cached, place, q, at, as_of, links)
@@ -506,6 +505,7 @@ class ProjectionInputs:
             update={
                 "spot_id": q.spot_id,
                 "place_name": place["name"],
+                "place_kind": place.get("place_kind"),
                 "at": at,
                 "as_of": as_of,
                 "metrics": tuple(located(m) for m in cached.metrics),
@@ -533,7 +533,9 @@ class ProjectionInputs:
                     q = ConditionQuery(
                         spot_id=place["id"], activity=activity, mode=mode
                     )
-                    _, _, source_names = _requested(activity, mode)
+                    _, _, source_names = _requested(
+                        activity, mode, place.get("place_kind")
+                    )
                     previous = None
                     previous_content = None
                     for begin, finish in self.intervals(

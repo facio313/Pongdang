@@ -12,7 +12,7 @@ import { useResource } from "./useResource";
 export function useComparisonPlaces(
   place: Place | undefined, activity: Activity, reference: Conditions | undefined, loading: boolean,
 ) {
-  const catalog = useResource<RowPage<ClassifiedWaterPlace>>(place && ["beach", "valley"].includes(place.type ?? "")
+  const catalog = useResource<RowPage<ClassifiedWaterPlace>>(place && ["beach", "valley", "lake", "reservoir"].includes(place.type ?? "")
     ? `places?kind=${place.type}&page_size=100` : null);
   const places = productPlaces(catalog.data?.rows ?? []).rows;
   const catalogReference = places.find((candidate) => placeMatchesId(candidate, place?.id));

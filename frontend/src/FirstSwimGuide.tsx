@@ -17,25 +17,27 @@ export function FirstSwimPreview({ reading }: { reading: TemperatureReading }) {
 
 function FirstSwimObservation({ spotId }: { spotId: number }) {
   const { state, reason, reading, error } = useFirstSwimTemperature(spotId);
-  return <div className="first-swim-observation">
-    {state === "loading" ? <div className="first-swim-card" role="status">{t("수온 조회 중")}</div>
-      : state === "error" ? <div className="first-swim-card" role="alert">{error}</div>
+  return <div className="first-swim-card first-swim-observation">
+    {state === "loading" ? <p role="status">{t("수온 조회 중")}</p>
+      : state === "error" ? <p role="alert">{error}</p>
       : <>
-        <div className="first-swim-card first-swim-temperature">
+        <div className="first-swim-temperature">
           <p>{reading
             ? <strong><span>{t(reading.relation === "station_observation_point" ? "수온" : "주변 수온")}</span> {reading.value}°C</strong>
             : t(reason)}</p>
           {state === "stale" && <span className="first-swim-status" role="status">{t("이전 관측")}</span>}
-          {reading?.relation === "nearby_station_context" && <p className="first-swim-context-note">{t("주변 수온은 참고 자료이며, 이 장소의 첫 입수 알림 기준에는 사용하지 않습니다.")}</p>}
         </div>
-        {reading && <dl className="first-swim-explanation">
-          <div><dt>{t("관측소")}</dt><dd>{reading.stationName}{reading.relation === "representative_station" && <> · {t("대표 관측소 자료")}</>}</dd></div>
-          <div><dt>{t("장소에서 거리")}</dt><dd>{distanceLabel(reading.distanceKm)}{reading.distanceKm !== null && <> · {t("직선거리")}</>}</dd></div>
+        {reading && <dl className="first-swim-observation-details">
+          <div className="first-swim-station"><dt>{t("관측소")}</dt><dd>
+            <strong>{reading.stationName}</strong>{reading.relation === "representative_station" && <> · {t("대표 관측소 자료")}</>}
+            <span className="first-swim-station-distance">{t("장소에서 거리")} {distanceLabel(reading.distanceKm)}{reading.distanceKm !== null && <> · {t("직선거리")}</>}</span>
+          </dd></div>
           <div><dt>{t("관측 시각")}</dt><dd>{displayTime(reading.observedAt)}</dd></div>
           <div><dt>{t("수온 유효 시각")}</dt><dd>{displayTime(reading.validUntil)}</dd></div>
           <div><dt>{t("관측 출처")}</dt><dd>{reading.provider}</dd></div>
           {reading.observationScope && <div><dt>{t("관측 범위")}</dt><dd>{reading.observationScope}</dd></div>}
         </dl>}
+        {reading?.relation === "nearby_station_context" && <p className="first-swim-context-note">{t("주변 수온은 참고 자료이며, 이 장소의 첫 입수 알림 기준에는 사용하지 않습니다.")}</p>}
       </>}
   </div>;
 }
@@ -64,7 +66,7 @@ export function FirstSwimGuide({ spotId, desktop = false }: { spotId: number; de
     <p className="first-swim-intro">{t("이 장소의 수온이 내가 정한 기준에 닿으면 첫 입수 알림을 받을 수 있어요.")}</p>
     <div className="first-swim-grid">
       <FirstSwimObservation spotId={spotId} />
-      <dl className="first-swim-explanation">
+      <dl className="first-swim-card first-swim-explanation">
         <div><dt>{t("내 수온 기준")}</dt><dd>
           <p>{t("원하는 수온을 직접 정하고, 이 장소의 관측 수온과 비교합니다.")}</p>
           <p className="first-swim-card-note">{t("수온 기준 충족은 입수 안전 판정이 아닙니다.")}</p>

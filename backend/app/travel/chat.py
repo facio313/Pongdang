@@ -154,7 +154,31 @@ def apply_patch(request, patch):
     if "mood" in changes:
         # Model-produced emotional interpretations always require a form action.
         changes["mood"]["confirmed"] = False
+    if "transport" in changes:
+        changes["keyword_selection"] = [
+            selection.model_copy(update={"values": [changes["transport"]]})
+            if selection.category == "transport"
+            else selection
+            for selection in request.keyword_selection
+        ]
     return TravelRequest.model_validate(request.model_dump(mode="json") | changes)
+
+
+def explicit_transport(text):
+    modes = [
+        mode
+        for mode, pattern in (
+            ("walking", r"도보|걸어서|\bwalking\b"),
+            ("cycling", r"자전거|\bbicycle\b|\bcycling\b"),
+            ("driving", r"드라이브|자동차|자가용|\bdriving\b"),
+            ("transit", r"대중교통|버스|지하철|\btransit\b"),
+        )
+        if re.search(pattern, text, re.I)
+    ]
+    # Alternatives and negated modes need an explicit form choice.
+    if len(modes) != 1 or re.search(r"말고|제외|아니|않|without|\bnot\b", text, re.I):
+        return None
+    return modes[0]
 
 
 class TravelToolSession(ToolSession):
@@ -426,6 +450,15 @@ class TravelToolSession(ToolSession):
                     "region": row.region,
                     "reason": row.reason,
                     "activities": row.activities,
+                    "condition_comparison": {
+                        "source": row.conditions.get("source", "unknown"),
+                        "score": row.conditions.get("ranking_score"),
+                        "mode": row.conditions.get("forecast_status"),
+                        "safety_status": "unknown",
+                        "projection": row.conditions.get("published_condition", {}).get(
+                            "projection"
+                        ),
+                    },
                     "unknown_conditions": row.unknown_conditions,
                     "evidence_refs": [e.evidence_id for e in row.evidence],
                 }
@@ -532,8 +565,12 @@ class TravelToolSession(ToolSession):
         }
 
     async def fallback(self):
+        transport = explicit_transport(self.body.message)
         if explicit_route(self.body):
-            await self.execute("travel_route", {})
+            await self.execute(
+                "travel_route",
+                {"changes": {"transport": transport}} if transport else {},
+            )
             return
         if self.travel_context.session_id:
             await self.execute("travel_companion", {})
@@ -545,8 +582,8 @@ class TravelToolSession(ToolSession):
             changes["companion_type"] = "children"
         elif "연인" in text:
             changes["companion_type"] = "couple"
-        if "드라이브" in text:
-            changes["transport"] = "driving"
+        if transport:
+            changes["transport"] = transport
         if any(word in text for word in ("물 보", "물보", "쉬고", "휴식")):
             changes.update(activity="relax", activity_intensity="low")
         if any(word in text for word in ("가까", "짧게")):

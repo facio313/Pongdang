@@ -101,7 +101,9 @@ def compare_samples(criteria, samples, start, until):
         values, evidence, reasons = [], [], []
         for sample in samples:
             rows = [
-                m for m in sample.get("metrics", []) if m["name"] == criterion.metric
+                m
+                for m in sample.get("preference_metrics", sample.get("metrics", []))
+                if m["name"] == criterion.metric
             ]
             valid = [
                 m
@@ -109,6 +111,7 @@ def compare_samples(criteria, samples, start, until):
                 if m["status"] == "available"
                 and m["relation"] == "representative_station"
                 and m.get("mapping_id")
+                and not sample.get("retained")
             ]
             if len(rows) != 1 or len(valid) != 1:
                 reasons.extend(sample.get("reason_codes", []))

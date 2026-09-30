@@ -10,6 +10,8 @@ CATEGORIES = [
             {"id": "beach", "label": "해변", "tag": "해변"},
             {"id": "hot_spring", "label": "온천", "tag": "온천"},
             {"id": "lake", "label": "호수", "kind": "lake"},
+            {"id": "valley", "label": "계곡", "kind": "valley"},
+            {"id": "reservoir", "label": "저수지", "kind": "reservoir"},
             {"id": "river", "label": "강", "kind": "river"},
         ],
     },
@@ -60,6 +62,17 @@ CATEGORIES = [
                 "label": "이동시간 제한 없음",
                 "max_travel_minutes": None,
             },
+        ],
+    },
+    {
+        "id": "transport",
+        "label": "이동 수단",
+        "max_selections": 1,
+        "options": [
+            {"id": "driving", "label": "자동차"},
+            {"id": "transit", "label": "대중교통"},
+            {"id": "walking", "label": "도보"},
+            {"id": "cycling", "label": "자전거"},
         ],
     },
     {
@@ -167,6 +180,8 @@ def normalize(request):
                 data["companion_type"] = value
             if selection.category == "mobility":
                 data["max_travel_minutes"] = option["max_travel_minutes"]
+            if selection.category == "transport":
+                data["transport"] = value
     activities = choices(request, "activity")
     if activities:
         data["activity"] = activities[0]

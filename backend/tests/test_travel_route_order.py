@@ -68,6 +68,7 @@ def route_case(monkeypatch):
     monkeypatch.setattr(routing.keywords, "activity_options", lambda *args: [])
     settings = Settings(
         _env_file=None,
+        postgres_password="unused-unit-test",
         sso_proxy_secret="unit-ordered-route-secret-at-least-32-characters",
     )
     now = datetime.now(UTC)
@@ -165,6 +166,49 @@ def test_default_still_compares_candidate_permutations(route_case):
         == "exhaustive_permutations_of_selected_candidates"
     )
     assert result["optimality"] == "best_under_reference_matrix_and_sampled_preferences"
+
+
+@pytest.mark.parametrize("mode", ["walking", "cycling", "transit"])
+def test_selected_mode_is_kept_in_saved_request_and_snapshot(route_case, mode):
+    result, _ = route_case(
+        candidate_ranks=[3, 1],
+        preserve_order=True,
+        request=TravelRequest(
+            dates=[(datetime.now(UTC) + timedelta(days=1)).date()],
+            departure_time="09:00",
+            transport=mode,
+            origin={"label": "First place", "spot_id": 12},
+        ),
+    )
+    assert result["route_calculated"] is True
+    assert result["route"]["transport"] == mode
+    assert result["plan_input"]["request"]["transport"] == mode
+    assert result["plan_input"]["route_token"]
+    assert "provider_does_not_accept_departure_time" in result["reason_codes"]
+
+
+def test_transit_budget_uses_return_legs_and_each_person(route_case, monkeypatch):
+    async def fare_leg(self, origin, destination, departure, *, geometry=False):
+        return {"duration_seconds": 600, "toll_krw": None, "fare_krw": 1500}
+
+    monkeypatch.setattr(Directions, "leg", fare_leg)
+    result, _ = route_case(
+        candidate_ranks=[3, 1],
+        preserve_order=True,
+        include_geometry=False,
+        request=TravelRequest(
+            dates=[(datetime.now(UTC) + timedelta(days=1)).date()],
+            departure_time="09:00",
+            transport="transit",
+            people=2,
+            budget={"amount": 2000, "basis": "per_person"},
+            origin={"label": "First place", "spot_id": 12},
+        ),
+    )
+    assert result["route_calculated"] is False
+    assert (
+        result["rejected_orders"][0]["reason"] == "known_transport_cost_exceeds_budget"
+    )
 
 
 @pytest.mark.parametrize(

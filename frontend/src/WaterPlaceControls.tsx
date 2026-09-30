@@ -20,9 +20,11 @@ export function WaterPlaceFilters({ district, kind, onDistrict, onKind }: {
     </label>
     {onKind && <label>{t("분류")}
       <select aria-label={t("장소 분류")} value={kind ?? ""} onChange={(event) => onKind(event.target.value as WaterPlaceKind)}>
-        <option value="">{t("해변·계곡 전체")}</option>
+        <option value="">{t("물가 명소 전체")}</option>
         <option value="beach">{t("해변")}</option>
         <option value="valley">{t("계곡")}</option>
+        <option value="lake">{t("호수")}</option>
+        <option value="reservoir">{t("저수지")}</option>
       </select>
     </label>}
     {regions.error && <p role="alert">{regions.error}</p>}

@@ -29,7 +29,7 @@ from app.water_index.conditions import (
     summarize_conditions,
 )
 
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 REFRESH_SECONDS = 600
 KST = ZoneInfo("Asia/Seoul")
 RESULT_LOCK = "pongdang-condition-results"

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field, StrictFloat
 
+from app.place_kinds import INLAND_PLACE_KINDS
 from app.water_index.models import Record
 
 if TYPE_CHECKING:
@@ -102,7 +103,7 @@ class ScoreComponent(Record):
 
 class ActivityScore(Record):
     model_id: Literal["pongdang-activity-conditions"] = "pongdang-activity-conditions"
-    model_version: Literal["1.0.0"] = "1.0.0"
+    model_version: Literal["1.1.0"] = "1.1.0"
     label: Literal["활동 조건 참고 점수"] = "활동 조건 참고 점수"
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     status: Literal["evaluated", "partial", "unavailable", "blocked"]
@@ -279,6 +280,13 @@ def _provisional_value(metric: ConditionMetric, evidence: ConditionsEnvelope):
     }:
         return None, metric.reason_codes or ("measurement_" + metric.status,)
     sources = metric.evidence
+    if evidence.place_kind in INLAND_PLACE_KINDS and any(
+        s.provider.startswith(("khoa_", "koem_"))
+        or s.provider in {"nifs_risa", "kma_buoy"}
+        or s.name == "sea_water_temperature"
+        for s in sources
+    ):
+        return None, ("marine_measurement_not_applicable_to_inland_place",)
     unit = METRICS[metric.name].unit
     units = (
         {unit, "degC"} if unit == "°C" else {unit, "m3/s"} if unit == "m³/s" else {unit}
@@ -369,19 +377,30 @@ def select_metric(metrics: list[ConditionMetric], evidence: ConditionsEnvelope):
     if len({value for _, value, _ in values}) > 1:
         return None, None, ("conflicting_station_measurements",)
     metric = min(candidates, key=lambda item: item.station_id)
+    if (
+        evidence.place_kind in INLAND_PLACE_KINDS
+        and metric.name in {"water_temperature", "river_level", "river_flow"}
+        and metric.relation == "nearby_station_context"
+    ):
+        return metric, None, ("inland_waterbody_mapping_required",)
     value, reasons = _provisional_value(metric, evidence)
     return metric, value, reasons
 
 
 def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
-    from app.water_index.conditions import ACTIVITIES, ConditionsEnvelope
+    from app.water_index.conditions import ConditionsEnvelope, activity_metrics
 
     # Retain the strict time/unit/source validation for all invocation paths.
     evidence = ConditionsEnvelope.model_validate(evidence.model_dump())
     components = []
-    for definition in ACTIVITIES[evidence.activity].metrics:
+    inland = evidence.place_kind in INLAND_PLACE_KINDS
+    for definition in activity_metrics(evidence.activity, evidence.place_kind):
         name = definition.name
-        curve = DEFAULT_CURVES[evidence.activity][name]
+        curve = DEFAULT_CURVES[evidence.activity].get(name)
+        if inland and evidence.activity == "swim":
+            curve = {"air_temperature": OUTDOOR_AIR, "precipitation": RAIN}.get(
+                name, curve
+            )
         metric, value, reasons = select_metric(
             [
                 m
@@ -416,12 +435,24 @@ def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
                 source_ids=curve.source_ids if curve else (),
             )
         )
-    return aggregate_activity_score(
+    result = aggregate_activity_score(
         components,
         activity=evidence.activity,
         support_status=evidence.support_status,
         safety_status=evidence.safety_status,
     )
+    if inland and evidence.activity in {"surf", "mudflat"}:
+        return result.model_copy(
+            update={
+                "score": None,
+                "status": "blocked",
+                "reason_codes": (
+                    *result.reason_codes,
+                    "marine_activity_not_applicable_to_inland_place",
+                ),
+            }
+        )
+    return result
 
 
 def aggregate_activity_score(components, *, activity, support_status, safety_status):

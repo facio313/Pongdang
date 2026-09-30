@@ -24,6 +24,7 @@ import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { useAction } from "./useAction";
 import { suppressLoginRequired } from "./authError";
+import { useRequireLogin } from "./loginPopoverState";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import {
@@ -41,6 +42,9 @@ import {
 import {
   directionLink,
   kakaoRouteLink,
+  transportAdviceText,
+  transportLabel,
+  type TransportMode,
   planItems,
   routePaths,
   travelJson,
@@ -51,6 +55,7 @@ import {
 } from "./travelApi";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
+import { TransportSelect } from "./TransportSelect";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { mappablePlaces } from "./useWaterPlaces";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
@@ -376,6 +381,7 @@ function CourseSheet({
   selectedPlanId,
   onBack,
   myPlans,
+  loginRequired,
   plans,
   sessions,
   onSelectPlan,
@@ -383,6 +389,8 @@ function CourseSheet({
   originId,
   onOriginChange,
   candidateTrip,
+  transport,
+  onTransportChange,
 }: {
   onCreate: () => void;
   onRecalculate: () => void;
@@ -395,6 +403,7 @@ function CourseSheet({
     loading: boolean;
     error?: string;
   };
+  loginRequired: boolean;
   plans: PlanWithAlarm[];
   sessions: { loading: boolean; error?: string };
   onSelectPlan: (plan: TripPlan) => void;
@@ -404,6 +413,8 @@ function CourseSheet({
   originId: number | null;
   onOriginChange: (id: number) => void;
   candidateTrip: string | null;
+  transport: TransportMode;
+  onTransportChange: (mode: TransportMode) => void;
 }) {
   const session = useTravelSession();
   // 선택한(저장한) 코스의 동행 알림 상태. useMyPlansWithAlarm 이 travel/plans ·
@@ -436,7 +447,7 @@ function CourseSheet({
       <div className="pd-card">
         <div className="mp-card-top">
           <div className="pd-card-title">{t("내 코스 목록")}</div>
-          <StateChip kind={myPlans.data ? "live" : "no_data"} />
+          {!loginRequired && <StateChip kind={myPlans.data ? "live" : "no_data"} />}
         </div>
         <div className="mp-rows">
           {plans.map(({ plan, alarm }) => (
@@ -467,7 +478,7 @@ function CourseSheet({
             </button>
           ))}
         </div>
-        {!myPlans.data?.rows.length && (
+        {!loginRequired && !myPlans.data?.rows.length && (
           <p className="pd-note" role={myPlans.error ? "alert" : "status"}>
             {myPlans.error ??
               (myPlans.loading
@@ -499,6 +510,7 @@ function CourseSheet({
           ? kakaoRouteLink(
               index === 0 ? calculated.origin : calculated.items[index - 1],
               [calculated.items[index]],
+              calculated.transport,
             )
           : null,
       }))
@@ -516,7 +528,7 @@ function CourseSheet({
           leg: null,
         }));
   const wholeTrip = calculated
-    ? kakaoRouteLink(calculated.origin, calculated.items)
+    ? kakaoRouteLink(calculated.origin, calculated.items, calculated.transport)
     : null;
   const lines = routePaths(session.route).length;
   return (
@@ -566,6 +578,11 @@ function CourseSheet({
             {t("출발지로 쓸 좌표가 있는 등록 장소가 없습니다.")}
           </p>
         )}
+        <div className="rt-form">
+          <TransportSelect value={transport} onChange={onTransportChange} disabled={busy} />
+        </div>
+        {calculated && <p className="pd-note">{t("계산한 이동 수단")}: {transportLabel(calculated.transport ?? session.planInput?.request.transport ?? "driving")}</p>}
+        {calculated?.transport_advice && <p className="pd-note">{transportAdviceText(calculated.transport_advice)}</p>}
         <div className="mp-rows">
           {stops.map((stop) => (
             <div className="mp-stop" key={stop.no}>
@@ -590,13 +607,16 @@ function CourseSheet({
         </div>
         <p className="pd-note">
           {session.route?.route_calculated
-            ? t("출발 기준 교통 자료의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, {detail}", { detail: session.route.optimality === "provisional_missing_comparison_evidence" ? t("일부 비교 자료가 부족한 임시 결과입니다.") : t("전체 지역의 최적 경로를 뜻하지 않습니다.") })
+            ? t("선택한 이동 수단의 예상시간입니다. 선택한 후보 안에서 비교한 경로이며, {detail}", { detail: session.route.optimality === "provisional_missing_comparison_evidence" ? t("일부 비교 자료가 부족한 임시 결과입니다.") : t("전체 지역의 최적 경로를 뜻하지 않습니다.") })
             : hasStoredDurations
               ? t("저장된 구간별 이동시간입니다. 도로 경로선은 이 화면에서 다시 계산해야 표시됩니다.")
               : t("이동시간과 도로 경로는 아직 계산하지 않았습니다.")}{" "}
           {stops.length === 0 &&
             t("추천에서 장소를 고르거나 지도에서 코스에 넣어 주세요.")}
         </p>
+        {session.route?.route_calculated && routeReasonsText(session.route.reason_codes) && (
+          <p className="pd-note">{routeReasonsText(session.route.reason_codes)}</p>
+        )}
         {calculated && (
           <p className="pd-note">
             {t("도로 선은 길찾기 응답을 받은 {count}/{total}구간만 그립니다. 받지 못한 구간은 직선으로 채우지 않습니다.", { count: lines, total: calculated.legs.filter((leg) => leg.geometry?.status !== "same_registered_place").length })}
@@ -683,7 +703,8 @@ function MapScreen() {
   // 내 코스 목록(코스 시트 초기 화면). 저장한 코스와 동행 알림 상태를 함께
   // 조회합니다(useMyPlansWithAlarm, 데스크탑 MapDesktop.tsx 와 같은 훅).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
-  const { myPlans, sessions, plans: myPlansWithAlarm } = useMyPlansWithAlarm();
+  const { myPlans, sessions, plans: myPlansWithAlarm, loginRequired } = useMyPlansWithAlarm();
+  const requireLogin = useRequireLogin();
   const openSavedPlan = (plan: TripPlan) => {
     setTravelSession({
       plan,
@@ -861,6 +882,8 @@ function MapScreen() {
   // 있었습니다.
   const {
     selectedOrigin,
+    transport,
+    setTransport,
     setOriginId,
     createCourse: createCourseFor,
     recalculateCourse,
@@ -922,6 +945,10 @@ function MapScreen() {
             </div>
           }
         >
+          {view === "course" && loginRequired && <div className="pd-card">
+            <p className="pd-note">{t("로그인하면 저장한 코스를 볼 수 있어요.")}</p>
+            <button type="button" className="pd-primary" onClick={requireLogin}>{t("로그인")}</button>
+          </div>}
           <fieldset className="mp-fieldset" disabled={action.busy}>
             {view === "spots" && <>
               <WaterPlaceFilters
@@ -997,6 +1024,7 @@ function MapScreen() {
                 selectedPlanId={selectedPlanId}
                 onBack={backToCourseList}
                 myPlans={myPlans}
+                loginRequired={loginRequired}
                 plans={myPlansWithAlarm}
                 sessions={sessions}
                 onSelectPlan={openSavedPlan}
@@ -1004,6 +1032,8 @@ function MapScreen() {
                 originId={selectedOrigin?.id ?? null}
                 onOriginChange={setOriginId}
                 candidateTrip={candidateTrip}
+                transport={transport}
+                onTransportChange={setTransport}
               />
             )}
             <p
