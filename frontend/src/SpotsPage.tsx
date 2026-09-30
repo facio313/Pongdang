@@ -11,8 +11,7 @@ import { hasPlaceCoordinates } from "./placeDistance";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
-import { MASCOT_ALT, mascotUrl } from "./mascots";
-import { Icon, Skeleton, StateChip } from "./pongdangUi";
+import { Icon, Mascot, Skeleton, StateChip } from "./pongdangUi";
 import { conditionScore, placeRegionLabel, timeLabel, type Place } from "./productData";
 import { useConditions } from "./useConditions";
 import { mappablePlaces } from "./useWaterPlaces";
@@ -85,13 +84,7 @@ function ListHero({
               )}
             </div>
           </div>
-          <img
-            className="pd-hero-mascot"
-            src={mascotUrl("spot")}
-            alt={t(MASCOT_ALT)}
-            width={66}
-            height={66}
-          />
+          <Mascot className="pd-hero-mascot" role="spot" size={66} label eager />
         </div>
       </div>
     </header>

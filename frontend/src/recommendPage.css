@@ -28,6 +28,13 @@
 .rc-hero-slot .rc-hero-inner {
   padding: 8px 20px 0;
 }
+/* 마스코트는 흐름 밖(.pd-hero-mascot.is-sm) 오른쪽 위에 섭니다. 제목 · 라벨이 그
+   아래로 들어가지 않도록 오른쪽을 비워 둡니다(spotsPage.css .sp-hero-row 와 같은
+   처리). rc-progress · rc-days · rc-change 는 표지 아래라 무보정입니다. */
+.rc-hero-slot .rc-hero.has-mascot .rc-hero-title,
+.rc-hero-slot .rc-hero.has-mascot .pd-lbl {
+  padding-right: 58px;
+}
 .rc-hero-slot .rc-hero .pd-lbl {
   color: var(--pd-sky);
 }

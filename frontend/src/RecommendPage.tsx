@@ -9,6 +9,7 @@ import {
   GradeChip,
   GradeIcon,
   Icon,
+  Mascot,
   ScoreGauge,
   Skeleton,
   StateChip,
@@ -127,12 +128,13 @@ function EntryHero({
 }) {
   const saved = savedTastes.length > 0;
   return (
-        <header className="pd-hero rc-hero">
+        <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
+        <Mascot className="pd-hero-mascot is-sm" role="snorkel" size={46} label eager />
         <div className="rc-hero-inner">
           {/* 이미 취향을 고른 사람에게 「고르시겠어요?」를 다시 묻지 않습니다.
               저장된 것을 그대로 말하고, 거기서 대화로 바로 이어 갑니다. */}
@@ -310,12 +312,14 @@ function TasteHero({
   busy: boolean;
 }) {
   return (
-    <header className="pd-hero rc-hero">
+    <header className="pd-hero rc-hero has-mascot">
       <AppHeader
         title={t("STEP {current} / {total}", { current: stepNo, total: stepTotal })}
         time={timeLabel(new Date().toISOString())}
         onCobalt
       />
+      {/* 취향 고르기는 진입 화면과 같은 흐름이므로 같은 포즈입니다. */}
+      <Mascot className="pd-hero-mascot is-sm" role="snorkel" size={46} label eager />
       <div className="rc-hero-inner">
         <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
           {t("← 추천 처음으로")}</button>
@@ -457,6 +461,7 @@ function TasteBlocks({
                   disabled={!canPick(option.id)}
                   onClick={() => togglePick(option.id)}
                 >
+                  <Mascot role="snorkel" size={20} />
                   {t(option.label)}
                   {selectedIds.includes(option.id) && <Icon name="check" size={11} />}
                 </button>
@@ -620,7 +625,8 @@ function ChatHero({
         />
         <div className="rc-bot-head">
           <span className="rc-bot-avatar">
-            <Icon name="sparkle" size={21} />
+            {/* 이름이 옆에 있으므로 읽히지 않게 둡니다. */}
+            <Mascot role="ai" size={28} eager />
           </span>
           <div>
             <div className="rc-bot-name">{t("퐁당 컨시어지")}</div>
@@ -1086,12 +1092,13 @@ function CourseHero({
   const { session, days, stops, firstConditions, firstScore } = useCourseView(dayIndex);
   const day = days[dayIndex];
   return (
-        <header className="pd-hero rc-hero">
+        <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
+        <Mascot className="pd-hero-mascot is-sm" role="course" size={46} label eager />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             {t("← 추천 처음으로")}</button>
@@ -1330,12 +1337,14 @@ function RealertHero({
 }) {
   const { previousScore, nextScore } = useRealertView(proposal);
   return (
-        <header className="pd-hero rc-hero">
+        <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
           time={timeLabel(new Date().toISOString())}
           onCobalt
         />
+        {/* 재추천은 「이 코스의 새 후보」이므로 코스와 같은 포즈입니다. */}
+        <Mascot className="pd-hero-mascot is-sm" role="course" size={46} label eager />
         <div className="rc-hero-inner">
           <button type="button" className="rc-hero-back" onClick={onBack} disabled={busy}>
             {t("← 코스로 돌아가기")}</button>

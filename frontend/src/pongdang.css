@@ -436,6 +436,20 @@ main:has(.pd-app.is-fullscreen) {
   width: 66px;
   height: 66px;
 }
+/* 표지 공통. 크기는 width/height 속성이 들고 있으므로 여기서 쓰지 않습니다.
+   flex 줄에서 눌리지 않아야 하고, 애니메이션 · transition · hover 변형은 두지
+   않습니다 -- prefers-reduced-motion 이 덮을 것을 애초에 만들지 않습니다. */
+.pd-mascot {
+  display: block;
+  flex: none;
+}
+/* 66px 이 들어가지 않는 히어로(추천처럼 제목이 두 줄인 화면)만 이 변형으로
+   줄입니다. 자리는 그대로 오른쪽 위 한 곳입니다. */
+.pd-hero-mascot.is-sm {
+  top: 38px;
+  width: 46px;
+  height: 46px;
+}
 
 /* ── 터치 타깃 ─────────────────────────────────────────────
    누를 수 있는 것은 44px 이상이어야 합니다. 본문 안에 섞여 흐르는 인라인

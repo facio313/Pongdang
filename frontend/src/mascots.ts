@@ -5,6 +5,8 @@
 // 포즈가 와야 합니다. 화면 코드가 파일명을 직접 쓰면 그 규칙이 조용히
 // 깨지므로, 화면은 파일명이 아니라 용도(MascotRole)로만 고릅니다.
 
+import type { Activity } from "./aiApi";
+
 export type MascotRole =
   | "home"
   | "surf"
@@ -50,6 +52,26 @@ const MASCOT_FILE: Record<MascotRole, string> = {
  *  Vite base 는 APP_BASE_PATH 로 바뀝니다. BASE_URL 은 항상 `/` 로 끝납니다. */
 export function mascotUrl(role: MascotRole): string {
   return import.meta.env.BASE_URL + "mascot/" + MASCOT_FILE[role];
+}
+
+/** 활동의 표지. 「오늘 가장 좋은 활동」은 서버가 고르므로(useBestActivity) 화면은
+ *  그 결과를 이 표로 번역만 합니다 -- 수영이나 서핑을 화면에 박아 두면 홈 ·
+ *  오늘이 서버가 고른 활동과 다른 그림을 답니다.
+ *
+ *  Record<Activity, …> 이므로 서버 활동이 늘면 타입 단계에서 멈춥니다.
+ *  mudflat 이 명소와 같은 bucket.png 인 것은 핸드오프 §5 표가 「갯벌 체험 ·
+ *  명소」를 한 줄로 묶어 둔 것이며, 우리가 포즈를 겹쳐 쓴 것이 아닙니다. */
+const ACTIVITY_MASCOT: Record<Activity, MascotRole> = {
+  swim: "swim",
+  surf: "surf",
+  relax: "rest",
+  rafting: "rafting",
+  onsen: "hotspring",
+  mudflat: "spot",
+};
+
+export function activityMascot(activity: Activity): MascotRole {
+  return ACTIVITY_MASCOT[activity];
 }
 
 /** 표지용 alt 텍스트. 마스코트는 정보를 더하지 않는 표지이므로, 옆에 이름이

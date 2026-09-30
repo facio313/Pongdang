@@ -44,6 +44,7 @@ import {
   GradeChip,
   GradeIcon,
   Icon,
+  Mascot,
   MetricValue,
   ScoreExplainer,
   ScoreReason,
@@ -51,6 +52,7 @@ import {
   StateChip,
 } from "./pongdangUi";
 import { AppHeader, AppShell } from "./AppShell";
+import { activityMascot } from "./mascots";
 import "./todayPage.css";
 
 function SectionHead({
@@ -87,8 +89,8 @@ const ACTIVITY_ROWS = [
   { name: "온천", id: "onsen" },
 ] as const;
 const TIDE_ACTIVITIES = [
-  { name: "래프팅", icon: "rafting" },
-  { name: "튜브 물놀이", icon: "tube" },
+  { name: "래프팅", icon: "rafting", mascot: "rafting" },
+  { name: "튜브 물놀이", icon: "tube", mascot: "tube" },
 ] as const;
 
 function Hero({
@@ -133,6 +135,16 @@ function Hero({
         onCobalt
       />
       <div className="td-hero-inner">
+        {/* 서버가 고른 오늘의 활동 표지입니다. 한 종목을 박아 두면 이 화면만
+            서버와 다른 활동을 그립니다(퐁당 점수는 추천형입니다). 조회 전에는
+            빈 상태 포즈로 두고, 홈 히어로의 포즈를 빌려 쓰지 않습니다. */}
+        <Mascot
+          className="pd-hero-mascot"
+          role={best ? activityMascot(best.activity) : "empty"}
+          size={66}
+          label
+          eager
+        />
         <p className="pd-lbl">
           {t("{date} · {place} {mode} 기준", { date: dateLabel(), place: displayName, mode: conditionModeLabel(conditions) })}</p>
         <ProductPlaceSelector placeName={displayName} />
@@ -400,6 +412,8 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
                 key={activity.name}
                 data-grade={grade.key}
               >
+                {/* 이름이 바로 아래에 있으므로 표지는 읽히지 않게 둡니다. */}
+                <Mascot className="td-act-mascot" role={activityMascot(activity.id)} size={28} />
                 <div className="td-act-name">{t(activity.name)}</div>
                 <div className="pd-num td-act-score">
                   <GradeIcon gradeKey={grade.key} size={12} />
@@ -473,6 +487,7 @@ function OperatingRow({
       <span className="td-badge-round">
         <Icon name={activity.icon} size={14} />
       </span>
+      <Mascot role={activity.mascot} size={20} />
       <span className="td-tide-name">{t(activity.name)}</span>
       <span className={"td-fit-chip" + (active && !restricted ? "" : " is-off")}>
         {restricted ? t("운영 제한") : active ? t("공식 운영") : t("확인 필요")}
@@ -669,6 +684,7 @@ function FirstSwimSection({ id }: { id?: number }) {
         linkLabel={t("내 알림 조회 →")}
       />
       <div className="pd-card">
+        <Mascot className="td-first-mascot" role="firstSwim" size={46} label />
         <NotificationSummary spotId={id} />
       </div>
     </section>

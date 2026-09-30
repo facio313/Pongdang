@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { t } from "./i18n";
 import { gradeOf, grades } from "./groupAGrade";
 import { metricText, type Conditions } from "./productData";
+import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import type { ComponentBar } from "./scoreMeaning";
 
 // 핸드오프 디자인(Pongdang 디자인 시스템 v2)의 공용 표시 요소입니다. 제품 화면
@@ -227,6 +228,47 @@ export function Icon({
     >
       {ICON_PATHS[name]}
     </svg>
+  );
+}
+
+/** 마스코트 표지. 마스코트는 장식이 아니라 항목 표지이므로(mascots.ts) 크기를
+ *  핸드오프 「구현 가이드」 §1 의 대역으로 못 박습니다 -- 모바일 표지 20~66px,
+ *  데스크탑 항목 표지 34~84px. 임의 숫자를 허용하면 같은 개념이 화면마다 다른
+ *  크기로 섭니다. 데스크탑 히어로(186~250px)는 이 컴포넌트가 아니라
+ *  DesktopHero 의 mascot prop 이 그립니다.
+ *
+ *  alt 는 기본값이 빈 문자열입니다. 옆에 이름이 이미 있는 자리에서는 표지가
+ *  읽히지 않아야 하고(mascots.ts 의 MASCOT_ALT 주석), 그 자리가 대부분이므로
+ *  규칙을 기본값으로 둡니다. 홀로 서는 자리에서만 label 을 켭니다.
+ *
+ *  width/height 는 CSS 가 아니라 속성으로 줍니다 -- 디코드 전에 1:1 상자가
+ *  잡혀야 목록이 이미지 도착마다 들썩이지 않습니다. */
+export function Mascot({
+  role,
+  size,
+  label = false,
+  eager = false,
+  className,
+}: {
+  role: MascotRole;
+  size: 20 | 28 | 34 | 40 | 46 | 52 | 58 | 62 | 66 | 78 | 84;
+  label?: boolean;
+  /** 첫 화면에 바로 보이는 히어로 표지만 켭니다. 스크롤해야 보이는 것은
+   *  기본값(lazy)으로 두어야 첫 화면 바이트를 쓰지 않습니다. */
+  eager?: boolean;
+  className?: string;
+}) {
+  return (
+    <img
+      className={"pd-mascot" + (className ? " " + className : "")}
+      src={mascotUrl(role)}
+      alt={label ? t(MASCOT_ALT) : ""}
+      width={size}
+      height={size}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      draggable={false}
+    />
   );
 }
 

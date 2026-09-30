@@ -51,7 +51,6 @@ export function HomeTides({ id, placeSettled }: { id?: number; placeSettled: boo
       ) : events.length < 2 ? (
         <p role="status">{t("일부 물때만 수집되었습니다.")}</p>
       ) : null}
-      <p className="pd-home-tides-source">{t("사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.")}</p>
     </section>
   );
 }
