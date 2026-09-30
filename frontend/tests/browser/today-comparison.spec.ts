@@ -62,17 +62,26 @@ for (const desktop of [false, true]) {
     await page.getByLabel("홈·오늘 기준 장소", { exact: true }).selectOption("4");
     try {
       await expect(names).toHaveText([places[3].name]);
-      await expect(page.getByText("다른 지역 비교 장소 조회 중", { exact: false })).toBeVisible();
+      // 조회 중이라는 사실은 모바일에서 문장을 내렸습니다(카드에 상태 문단을
+      // 두지 않기로 했습니다). 모바일에서는 목록이 아직 기준 장소 한 곳뿐이라는
+      // 것으로 같은 상태를 확인하고, 문장은 그것을 계속 적는 데스크탑에서 봅니다.
+      if (desktop)
+        await expect(page.getByText("다른 지역 비교 장소 조회 중", { exact: false })).toBeVisible();
     } finally { release(); }
     await expect(names).toHaveText(places.slice(3).map(place => place.name));
     await expect(scores).toHaveText(["64", "65", "66"]);
     expect(calls).toEqual(["beach", "valley"]);
-    await expect(page.getByText(/다른 시·군 우선 · 근거가 많은 곳부터 최대 2곳/)).toBeVisible();
+    if (desktop)
+      await expect(page.getByText(/다른 시·군 우선 · 근거가 많은 곳부터 최대 2곳/)).toBeVisible();
   });
 }
 
 test("missing coordinates do not prevent comparisons with other regions", async ({ page }) => {
   await fixture(page, undefined, true);
+  // 선택 규칙 문장(「다른 시·군 우선 …」)은 모바일 카드에서 내렸으므로, 좌표가
+  // 없어도 비교 목록이 실제로 채워지는지로 확인합니다. 데스크탑은 위 검사에서
+  // 그 문장까지 봅니다.
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("#today");
   await expect(page.locator(".td-spot-name")).toHaveText(places.slice(0, 3).map(place => place.name));
   await expect(page.getByText(/다른 시·군 우선/)).toBeVisible();

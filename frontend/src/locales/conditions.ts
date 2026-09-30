@@ -712,11 +712,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "评分",
     "スコア"
   ],
-  "장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다. 자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.": [
-    "Select a place to load its component scores and condition evidence. Components without data show –. Check the evidence coverage alongside partial scores.",
-    "选择地点可查看各项目评分及条件依据。无资料的项目显示–，请同时查看部分评分的依据覆盖率。",
-    "場所を選ぶと項目別スコアと条件の根拠を読み込みます。資料がない項目は–です。部分スコアでは根拠の確保率もご確認ください。"
-  ],
   "활동별 점수 · 선택 장소 조건": [
     "Activity scores · Selected place conditions",
     "活动评分 · 所选地点条件",
@@ -741,11 +736,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "Support unconfirmed",
     "支持情况未确认",
     "対応状況未確認"
-  ],
-  "활동별 참고 점수입니다. 일부 근거로 계산한 값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.": [
-    "These are reference scores for each activity. A score based on partial evidence does not represent all conditions. Safety and operation require separate confirmation.",
-    "这些是各活动的参考评分。基于部分依据计算的评分不能代表全部条件。安全及运营情况需另行确认。",
-    "活動ごとの参考スコアです。一部の根拠で計算した値は条件全体を代表しません。安全性と営業状況は別途確認が必要です。"
   ],
   "분야별 근거 확인": [
     "View component evidence",
@@ -772,30 +762,10 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "无运营信息",
     "営業情報なし"
   ],
-  "주변 {station}{distance} 참고": [
-    "Nearby {station}{distance} · Reference",
-    "周边{station}{distance} · 参考",
-    "周辺の{station}{distance} · 参考"
-  ],
-  "관측소 {station}{distance}": [
-    "Station {station}{distance}",
-    "观测站{station}{distance}",
-    "観測所 {station}{distance}"
-  ],
-  "공식 조석 예측의 간조·만조 시각입니다. 이 시각이 오늘의 활동 선택에 어떻게 작용했는지는 위 추천 근거에 있습니다 -- 여기 값과 그쪽 값은 서로 다른 조회라 시각이 어긋날 수 있어 합치지 않습니다.": [
-    "These are low- and high-tide times from official tide predictions. The recommendation evidence above explains their role in today's activity choice. The two sections use separate queries and may have different reference times, so they are not combined.",
-    "以下为官方潮汐预报的低潮与高潮时间。它们对今日活动选择的影响可在上方推荐依据中查看。两部分分别查询，参考时刻可能不同，因此不合并。",
-    "公式潮汐予測の干潮・満潮時刻です。今日の活動選択への影響は上のおすすめの根拠で確認できます。別々の照会で基準時刻が異なる場合があるため、値は統合しません。"
-  ],
   "이 시각의 한계": [
     "Limits of these times",
     "这些时间的局限",
     "この時刻の限界"
-  ],
-  "사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.": [
-    "Event times alone do not determine current currents or activity suitability.",
-    "仅凭潮汐事件时间无法判断当前海流或活动适宜性。",
-    "潮汐の時刻だけで現在の潮流や活動の適合性を判断しません。"
   ],
   "관측소명 없음": [
     "Station name unavailable",
@@ -886,11 +856,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "Places, conditions, official forecasts, tides, water-quality comparisons, and personal alerts are queried separately. Empty values and unknown do not mean safe.",
     "地点、条件、官方预报、潮汐、水质比较和个人提醒分别查询。空值和unknown并不意味着安全。",
     "場所・条件・公式予報・潮汐・水質比較・個人通知はそれぞれ照会します。空欄やunknownは安全を意味しません。"
-  ],
-  "물때 조회 중": [
-    "Loading tides",
-    "正在加载潮汐",
-    "潮汐を読み込み中"
   ],
   "장소 선택 필요": [
     "Select a place",
@@ -1116,16 +1081,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     " The evidence for the score above is available in the score details.",
     " 可在评分详情中查看上方评分的计算依据。",
     " 上のスコアの算出根拠はスコア詳細で確認できます。"
-  ],
-  "{date} KST 날짜에 걸친 예보 {total}건 중 {shown}건을 표시합니다.": [
-    "Showing {shown} of {total} forecasts covering {date} KST.",
-    "显示覆盖{date} KST日期的{total}条预报中的{shown}条。",
-    "{date} KSTの日付にかかる予報{total}件中{shown}件を表示します。"
-  ],
-  "원자료 목록은 선택한 KST 날짜에 걸친 예보를 최대 100건까지 표시합니다. 날짜별 점수는 해당 날짜 12:00 KST에 유효한 수집 예보로 계산합니다. 목록 조회와 점수 조회는 별개이며, 해당 시각의 점수 근거가 없으면 –입니다.": [
-    "The source list shows up to 100 forecasts covering the selected KST date. Daily scores use collected forecasts valid at 12:00 KST that day. List and score queries are separate; no score evidence for that time is shown as –.",
-    "原始资料列表最多显示覆盖所选KST日期的100条预报。每日评分使用当日12:00 KST有效的已收集预报计算。列表和评分分别查询；该时刻无评分依据时显示–。",
-    "原資料一覧は選択したKST日付にかかる予報を最大100件表示します。日別スコアはその日の12:00 KSTに有効な収集済み予報から計算します。一覧とスコアは別に照会し、該当時刻の根拠がなければ–です。"
   ],
   "오늘 시간대별 수집 예보": [
     "Today's collected hourly forecasts",
@@ -1792,15 +1747,13 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "1非常好 · 2好 · 3一般 · 4差 · 5非常差",
     "1とても良い · 2良い · 3普通 · 4悪い · 5とても悪い"
   ],
-  "공식 WQI 등급을 우선 사용하며, 등급 없이 WQI 지수만 제공되면 23 이하 / 24~33 / 34~46 / 47~59 / 60 이상으로 분류합니다.": [
-    "Official WQI grades take priority. When only a WQI index is provided, the ranges are ≤23 / 24–33 / 34–46 / 47–59 / ≥60.",
-    "优先使用官方WQI等级。仅提供WQI指数时，按23及以下／24至33／34至46／47至59／60及以上划分。",
-    "公式WQI等級を優先し、指数のみ提供される場合は23以下／24〜33／34〜46／47〜59／60以上で分類します。"
-  ],
-  "표층 영양염·클로로필 a·투명도와 저층 산소포화도를 평가한 생태 기준입니다. 대장균·장구균 검사와 입수 통제는 별도로 확인해야 합니다.": [
-    "This ecological measure evaluates surface nutrients, chlorophyll a, transparency, and bottom oxygen saturation. Check E. coli/enterococci tests and swimming restrictions separately.",
-    "这是评估表层营养盐、叶绿素a、透明度及底层氧饱和度的生态标准。大肠杆菌、肠球菌检测及下水管制需另行确认。",
-    "表層の栄養塩・クロロフィルa・透明度と底層の酸素飽和度を評価した生態基準です。大腸菌・腸球菌検査と入水規制は別途確認が必要です。"
+  // 위 두 문장(WQI 분류 + 생태 평가 기준)을 한 문장으로 합친 것입니다. 같은
+  // 「이 등급이 무엇으로 정해지는가」이며, 대장균·장구균과 입수 통제를 따로
+  // 확인해야 한다는 단서는 그대로 남아 있습니다.
+  "공식 WQI 등급을 우선 사용하며, 등급 없이 지수만 오면 23 이하 / 24~33 / 34~46 / 47~59 / 60 이상으로 분류합니다. 표층 영양염·클로로필 a·투명도와 저층 산소포화도를 평가한 생태 기준이며, 대장균·장구균 검사와 입수 통제는 별도로 확인해야 합니다.": [
+    "Official WQI grades take priority; when only an index is provided the ranges are ≤23 / 24–33 / 34–46 / 47–59 / ≥60. This ecological measure evaluates surface nutrients, chlorophyll a, transparency and bottom oxygen saturation, and E. coli/enterococci tests and swimming restrictions must be checked separately.",
+    "优先使用官方WQI等级；仅提供指数时，按23及以下／24至33／34至46／47至59／60及以上划分。该生态标准评估表层营养盐、叶绿素a、透明度及底层氧饱和度，大肠杆菌、肠球菌检测及下水管制需另行确认。",
+    "公式WQI等級を優先し、指数のみ提供される場合は23以下／24〜33／34〜46／47〜59／60以上で分類します。表層の栄養塩・クロロフィルa・透明度と底層の酸素飽和度を評価した生態基準であり、大腸菌・腸球菌検査と入水規制は別途確認が必要です。"
   ],
   "해양환경정보포털 기준": [
     "Marine Environment Information System criteria",

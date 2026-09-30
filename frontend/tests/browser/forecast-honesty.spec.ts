@@ -58,11 +58,17 @@ test("the selected forecast date requests its own bounded KST day and keeps over
   await expect(forecast.locator(".td-bar")).toHaveCount(7);
   await expect(forecast.locator(".td-bar-score").first()).toHaveText("64.2");
   await expect(forecast.locator(".td-bar-detail")).toContainText("근거 2/4");
-  await expect(forecast.getByLabel("선택 날짜 예보 목록")).toContainText("DATE ");
+  // 예보 원자료 목록(관측소 · 제공기관 · 입력값)은 화면에서 내렸으므로, 겹치는
+  // 구간이 버려지지 않았는지는 **빈 목록 문구가 뜨지 않는 것**으로 봅니다 --
+  // 전날 시작해 이 날에 걸친 행을 시작일로만 걸러내면 rows 가 0 이 되어
+  // 「비어 있습니다」가 나타납니다.
+  const list = forecast.getByLabel("선택 날짜 예보 목록");
+  await expect(list).not.toContainText("비어 있습니다");
+  await expect(list).not.toContainText("표시할 수 없습니다");
   const firstDay = queries[0].get("from")!;
   const lastDay = new Date(Date.parse(`${firstDay.slice(0, 10)}T00:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10);
   await forecast.locator(".td-bar").last().click();
-  await expect(forecast.getByLabel("선택 날짜 예보 목록")).toContainText(`DATE ${lastDay}`);
+  await expect(list).not.toContainText("비어 있습니다");
   expect(queries.some((query) => query.get("from") === `${lastDay}T00:00:00+09:00`)).toBe(true);
   for (const query of queries) {
     expect(query.get("from")).toMatch(/T00:00:00\+09:00$/);

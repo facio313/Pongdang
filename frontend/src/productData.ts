@@ -277,13 +277,10 @@ export const DATA_STATUS: Record<string, string> = {
 };
 export const dataStatusText = (status?: string) =>
   status ? (DATA_STATUS[status] !== undefined ? t(DATA_STATUS[status]) : t("자료 상태 {status}.", { status })) : "";
-const METRIC_LABELS: Record<string, string> = {
-  water_temperature: "수온", sea_water_temperature: "수온", bath_water_temperature: "시설 욕조 수온",
-  air_temperature: "외부 기온", relative_humidity: "상대습도", wind_speed: "풍속",
-  maximum_wind_speed: "최대 풍속", wave_height: "파고", maximum_wave_height: "최대 파고",
-  wave_period: "파주기", precipitation: "1시간 강수량", river_level: "하천 수위", river_flow: "하천 유량",
-};
-export const metricNameLabel = (name: string) => t(METRIC_LABELS[name] ?? name);
+/* 지표 이름 사전(METRIC_LABELS · metricNameLabel)은 지웠습니다 -- 유일한 소비자
+   였던 「오늘」 주간 예보의 원자료 목록을 화면에서 내렸습니다. 점수 항목의 이름은
+   서버가 label 로 함께 내려주므로(conditionComponentsText) 이 사전이 없어도
+   화면에서 이름이 사라지지 않습니다. */
 export function conditionScoreExpiry(data?: Conditions): number | undefined {
   const used = data?.condition_score?.components.filter((item) => item.status === "evaluated" && item.score !== null) ?? [];
   const expiries = [...(data?.metrics ?? []), ...(data?.context_metrics ?? [])]
@@ -331,12 +328,8 @@ export interface Forecast {
     state: string;
   }[];
 }
-export function forecastInputText(input: Forecast["inputs"][number], forecastState: string) {
-  if (forecastState === "stale" || !["current", "recorded"].includes(input.state)) return "–";
-  return input.numeric_value !== null
-    ? formatValue(input.numeric_value, input.unit ?? "")
-    : input.text_value?.trim() || "–";
-}
+/* 예보 입력값 표기(forecastInputText)도 같은 이유로 지웠습니다. Forecast 타입은
+   점수 조회(useResource<RowPage<Forecast>>)가 계속 씁니다. */
 export interface TideEvent {
   event_id: string;
   kind: string;

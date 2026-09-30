@@ -25,7 +25,6 @@ import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import {
   conditionPath,
   conditionModeLabel,
-  dataStatusText,
   periodPath,
   dateLabel,
   placeRegionLabel,
@@ -44,6 +43,7 @@ import {
   GradeChip,
   GradeIcon,
   Icon,
+  InfoPopover,
   Mascot,
   MetricValue,
   ScoreExplainer,
@@ -251,7 +251,17 @@ function Hero({
         />
         {/* 「값이 없으면 –…」 같은 전역 규칙 문장은 화면 바닥의 AppFootNote 가
             한 번만 말합니다. 여기는 이 지점의 근거만 남깁니다. */}
-        <EvidenceNote data={conditions} className="td-hero-note" glass extra={<ScoreExplainer data={conditions} />} />
+        {/* 한 화면에 이런 손잡이가 다섯 개입니다(근거 보기 · 퐁당 점수란 ·
+            분야별 근거 확인 · 분야별 점수·산정 기준·출처 · 수질 등급 기준).
+            details 로 펴면 그 자리에서 카드가 늘어나 아래 내용이 한 화면 밖으로
+            밀려나므로, 이 탭에서는 말풍선으로 엽니다(InfoPopover). */}
+        <EvidenceNote
+          data={conditions}
+          className="td-hero-note"
+          glass
+          popover
+          extra={<ScoreExplainer data={conditions} popover />}
+        />
       </div>
     </header>
   );
@@ -300,14 +310,10 @@ function SpotSection({
   rows,
   activity,
   reference,
-  status,
-  statusIsError,
 }: {
   rows: ComparisonPlace[];
   activity: Activity;
   reference?: Conditions;
-  status: string;
-  statusIsError?: boolean;
 }) {
   const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const resolved = rows;
@@ -360,14 +366,9 @@ function SpotSection({
                 {details.error ?? evidenceText(conditions)}
               </dd>
             </dl>
-            <ConditionScoreDetails data={conditions} className="pd-note" />
+            <ConditionScoreDetails data={conditions} className="pd-note" popover />
           </div>
         )}
-
-        <p className="pd-note" role={statusIsError ? "alert" : "status"}>
-          {status} {t("장소를 선택하면 해당 지점의 분야별 점수와 조건 근거를 조회합니다. 자료가 없는 분야는 –이며, 부분 점수의 근거 확보율을 함께 확인하세요.")}</p>
-        {resolved.some((spot) => spot.conditions?.condition_score?.status === "partial") &&
-          <p className="pd-note">{t("부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.")}</p>}
       </div>
     </section>
   );
@@ -396,8 +397,6 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
   });
   const [basisId, setBasisId] = useState<string>(ACTIVITY_ROWS[0].id);
   const basis = activities.find((activity) => activity.id === basisId);
-  // 한 번의 조회이므로 오류도 하나입니다. 같은 문장을 다섯 번 잇지 않습니다.
-  const errors = states.find((state) => state.error)?.error ?? "";
   return (
     <section>
       <SectionHead label={t("활동별 점수 · 선택 장소 조건")} />
@@ -431,30 +430,29 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
           })}
         </div>
         ))}
-        <p className="pd-note">
-          <StateChip kind="partial" /> {t("활동별 참고 점수입니다. 일부 근거로 계산한 값은 조건 전체를 대표하지 않습니다. 안전·운영 여부는 별도 확인이 필요합니다.")}</p>
-        {errors && <p className="pd-note" role="alert">{errors}</p>}
+
         {/* 예전에는 활동 6개의 근거가 카드 아래 <details> 6줄로 따로 쌓여
             있었습니다. 위 타일과 짝이 맞지 않아 어느 활동의 근거인지 두 번
             읽어야 했고, 아코디언 줄만 6줄이었습니다. 하나만 펴 두고 활동은
             셀렉트로 고릅니다 -- 근거를 감추는 것이 아니라 자리를 옮깁니다. */}
-        <details className="pd-note td-basis">
-          <summary>{t("분야별 근거 확인")}</summary>
-          <label className="td-basis-pick">
-            {t("활동")}<select
-              value={basisId}
-              onChange={(event) => setBasisId(event.target.value)}
-            >
-              {activities.map((activity) => (
-                <option key={activity.id} value={activity.id}>
-                  {t(activity.name)}
-                </option>
-              ))}
-            </select>
-          </label>
-          {basis?.error && <p role="alert">{basis.error}</p>}
-          <ConditionScoreDetails data={basis?.data} />
-        </details>
+        <div className="pd-note td-basis">
+          <InfoPopover label={t("분야별 근거 확인")}>
+            <label className="td-basis-pick">
+              {t("활동")}<select
+                value={basisId}
+                onChange={(event) => setBasisId(event.target.value)}
+              >
+                {activities.map((activity) => (
+                  <option key={activity.id} value={activity.id}>
+                    {t(activity.name)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {basis?.error && <p role="alert">{basis.error}</p>}
+            <ConditionScoreDetails data={basis?.data} popover />
+          </InfoPopover>
+        </div>
       </div>
     </section>
   );
@@ -503,52 +501,9 @@ function OperatingRow({
   );
 }
 
-/** 물때 카드의 근거 줄. 예전에는 status enum(「available」) · 주의문 · 관측소명 ·
- *  거리가 한 문단에 섞여 있었고, spatial_relation 이 nearby_station_context 가
- *  아니면 관측소 이름만 덩그러니 남았습니다.
- *
- *  거리(예: 33.5km)는 접지 않습니다 -- 이 화면에서 가장 중요한 한계입니다.
- *  나머지 주의문은 「이 시각의 한계」 안에 그대로 둡니다. */
-function TideNote({ tides, status }: { tides?: TideResult; status: string }) {
-  const event = tides?.next_high ?? tides?.next_low;
-  const distance =
-    typeof event?.distance_km === "number" ? `${event.distance_km.toFixed(1)}km` : null;
-  const nearby = event?.spatial_relation === "nearby_station_context";
-  return (
-    <div className="pd-note">
-      <p className="pd-evidence-line">
-        <StateChip kind={tides?.rows.length ? "live" : "no_data"} />
-        {event?.station_name && (
-          <span className="pd-state-chip">
-            {/* 관계를 알 수 없으면 「주변 참고」라고 단정하지 않고 관측소로만
-                적습니다. 모르는 것을 가까운 것으로 바꾸지 않기 위해서입니다. */}
-            {nearby
-              ? t("주변 {station}{distance} 참고", { station: event.station_name, distance: distance ? ` ${distance}` : "" })
-              : t("관측소 {station}{distance}", { station: event.station_name, distance: distance ? ` ${distance}` : "" })}
-          </span>
-        )}
-        <span>
-          {t("공식 조석 예측의 간조·만조 시각입니다. 이 시각이 오늘의 활동 선택에 어떻게 작용했는지는 위 추천 근거에 있습니다 -- 여기 값과 그쪽 값은 서로 다른 조회라 시각이 어긋날 수 있어 합치지 않습니다.")}{" "}
-          {dataStatusText(status)}
-        </span>
-      </p>
-      <details className="pd-explainer">
-        <summary className="pd-tap">{t("이 시각의 한계")}</summary>
-        <div className="pd-explainer-body">
-          <p>
-            {t("사건 시각만으로 현재 조류나 활동 적합 여부를 판단하지 않습니다.")}</p>
-          {event && (
-            <p>
-              {event.station_name ?? t("관측소명 없음")} · {event.provider}
-              {distance ? ` · ${distance}` : ""}
-              {nearby ? t(" · 해당 해변의 직접 예측이 아닙니다.") : ""}
-            </p>
-          )}
-        </div>
-      </details>
-    </div>
-  );
-}
+/* 「이 시각의 한계」 설명 줄(TideNote)은 물때 카드에서 내렸습니다. 관측소 ·
+   제공기관 · 거리는 그 카드가 이미 시각과 함께 적고 있어, 같은 사실이 두 층에
+   있었습니다. 되살릴 때는 카드 안 어디에도 그 값이 없는지 먼저 확인하세요. */
 
 /** 점수를 이루는 항목들.
  *
@@ -588,13 +543,11 @@ function ScoreBasisSection({
 
 function TideSection({
   tides,
-  status,
   id,
   now,
   place,
 }: {
   tides?: TideResult;
-  status: string;
   id?: number;
   now: string;
   place?: Place;
@@ -666,9 +619,6 @@ function TideSection({
             </span>
           </div>
         </div>
-        <TideNote tides={tides} status={status} />
-        {/* 물때는 점수와 다른 값이라는 것을 데스크탑만 적고 있었습니다. */}
-        <p className="pd-note">{t("물때 조건만 기준이며 점수 · 안전 판정과 다른 값입니다.")}</p>
       </div>
     </section>
   );
@@ -703,7 +653,7 @@ function QualitySection({
       <SectionHead label={t("수질 등급 · 최근 검사")} suffix="A8" />
       <div className="pd-card">
         <div className="td-conf-row"><b>{error ? t("조회 실패") : waterQualityLabel(data)}</b><span>{t(data?.label ?? "")}</span></div>
-        <WaterQualityDetails data={data} error={error} className="pd-note" />
+        <WaterQualityDetails data={data} error={error} className="pd-note" popover />
       </div>
     </section>
   );
@@ -738,7 +688,7 @@ function TodayScreen() {
   // 화면은 수영 조건만 늘어놓았습니다.
   const {
     now, place, conditions, baseline, activities: activityStates, best,
-    recommendation, displayName, selectionMessage, placeSettled, placeRequired,
+    recommendation, displayName, placeSettled, placeRequired,
   } = useProductData("best");
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   // 지점 비교·주간 예보는 고른 활동을 따라갑니다. 고른 것이 없으면 수영으로
@@ -768,32 +718,11 @@ function TodayScreen() {
           />
         }
       >
-          <SpotSection
-            rows={comparison.rows}
-            activity={activity}
-            reference={conditions.data}
-            statusIsError={Boolean(comparison.error ?? conditions.error)}
-            status={
-              comparison.error ??
-              conditions.error ??
-              comparison.status ?? selectionMessage
-            }
-          />
+          <SpotSection rows={comparison.rows} activity={activity} reference={conditions.data} />
           <ActivitySection states={activityStates} />
           <ScoreBasisSection activity={activity} conditions={conditions} />
           <TodayForecast id={place?.id} now={now} activity={activity} placeSettled={placeSettled} />
-          <TideSection
-            id={place?.id}
-            now={now}
-            place={place}
-            tides={tides.data}
-            status={
-              tides.error ??
-              (tides.loading
-                ? t("물때 조회 중")
-                : (tides.data?.status ?? t("장소 선택 필요")))
-            }
-          />
+          <TideSection id={place?.id} now={now} place={place} tides={tides.data} />
           <FirstSwimSection id={place?.id} />
           <QualitySection
             data={quality.data}

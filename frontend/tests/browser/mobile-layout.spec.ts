@@ -37,10 +37,23 @@ for (const width of [MOBILE_WIDTH, TABLET_WIDTH, MOBILE_MAX_WIDTH]) {
       // still lead to a working explanation at every mobile breakpoint.
       await link.click();
       await expect(page).toHaveURL(/#today$/);
-      await page.getByText("퐁당 점수란?", { exact: true }).click();
-      const explanation = page.locator(".pd-explainer").filter({ has: page.getByText("퐁당 점수란?", { exact: true }) });
-      await expect(explanation).toHaveAttribute("open", "");
+      // 「오늘」 탭의 근거 손잡이는 details 가 아니라 말풍선입니다(InfoPopover)
+      // -- 한 화면에 손잡이가 다섯이라, 펴면 카드가 늘어나 아래가 밀려났습니다.
+      const trigger = page.getByRole("button", { name: "퐁당 점수란?" });
+      const explanation = page.getByRole("dialog", { name: "퐁당 점수란?" });
+      await expect(explanation).toBeHidden();
+      // 열어도 아래 내용이 밀려나지 않아야 합니다 -- 그것이 말풍선으로 바꾼 이유입니다.
+      const below = page.locator(".td-hero").first();
+      const beforeTop = (await below.boundingBox())!.y;
+      await trigger.click();
+      await expect(explanation).toBeVisible();
       await expect(explanation).toContainText("안전 판정이 아니며");
+      expect((await below.boundingBox())!.y).toBe(beforeTop);
+      // Esc 로 닫히고 초점이 손잡이로 돌아옵니다.
+      await page.keyboard.press("Escape");
+      await expect(explanation).toBeHidden();
+      await expect(trigger).toBeFocused();
+      await trigger.click();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ path: `test-results/score-help-${width}.png`, fullPage: true });
     });

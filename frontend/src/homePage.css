@@ -266,15 +266,9 @@
 .home-page .pd-cbars {
   margin-top: 10px;
 }
-/* 점수 근거 한 줄은 카드 안 다른 문단과 섞이지 않게 옅은 강조 면으로 띄웁니다.
-   홈에만 둡니다 -- 오늘 · 추천 탭과 데스크탑의 같은 줄은 그대로입니다. */
-.home-page .pd-score-reason {
-  align-items: flex-start;
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: var(--pd-r-ctl);
-  background: var(--pd-mist);
-}
+/* 근거 한 줄의 강조 면은 pongdang.css 의 .pd-app .pd-score-reason 으로
+   올렸습니다 -- 홈과 오늘이 같은 모양이어야 하고, 한 화면에만 두면 같은 줄이
+   탭마다 달라 보입니다. */
 /* 점수에 들어가지 않는 값(수질)은 항목 줄과 자리를 나눕니다. 같은 줄에 두면
    점수 근거로 읽힙니다. */
 .home-page .hm-glance-aside {
@@ -307,6 +301,7 @@
 /* AI 제안 표지와 문장을 한 줄로 묶습니다. 표지는 첫 줄에 맞춰 위에 붙입니다. */
 .home-page .hm-ai-row {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   gap: 12px;
 }
@@ -471,24 +466,8 @@
   color: var(--pd-ink-2);
   margin-top: 2px;
 }
-.home-page .hm-pick-score {
-  display: block;
-  margin-top: 6px;
-}
-/* 126px 칸보다 긴 등급 표기(「퐁당 – 산정 대상 아님」)가 옆 칸으로 삐져나가지
-   않도록 칩 안에서 줄바꿈시킵니다. 등급명을 줄여 네 겹 표기를 깨지 않습니다. */
-.home-page .hm-pick-score .pd-grade-chip {
-  font-size: var(--pd-fs-cap);
-  padding: 3px 8px;
-  max-width: 100%;
-  white-space: normal;
-  align-items: flex-start;
-  line-height: 1.45;
-}
-.home-page .hm-pick-score .pd-grade-chip svg {
-  flex: none;
-  margin-top: 2px;
-}
+/* 명소 칸의 점수 칩 규칙(.hm-pick-score*)은 지웠습니다 -- 목록에 점수를 싣지
+   않기로 한 자리입니다(HomePage.tsx 의 주석). */
 .home-page .hm-picks-foot {
   display: flex;
   align-items: center;

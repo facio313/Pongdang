@@ -189,6 +189,7 @@
 .today-page .td-acts {
   display: flex;
   gap: 8px;
+  margin-bottom: 8px;
 }
 .today-page .td-act {
   flex: 1;
@@ -387,34 +388,8 @@
   color: var(--pd-ink);
 }
 
-/* ── 올해 첫 입수 ──────────────────────────────────────── */
-
-.today-page .td-swim {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.today-page .td-swim-badge {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--pd-badge);
-  color: var(--pd-blue-deep);
-  display: grid;
-  place-items: center;
-}
-.today-page .td-swim-date {
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1;
-}
-.today-page .td-swim-sub {
-  font-size: var(--pd-fs-cap);
-  color: var(--pd-ink-2);
-  margin-top: 4px;
-  line-height: 1.55;
-}
+/* 「올해 첫 입수」 전용 규칙(.td-swim*)은 지웠습니다 -- 그 자리는
+   NotificationSummary 가 자기 클래스로 그립니다. */
 
 /* ── 수질 신뢰도 ───────────────────────────────────────── */
 
@@ -429,11 +404,6 @@
 .today-page .td-conf-row:last-of-type {
   border-bottom: 0;
 }
-.today-page .td-conf-value {
-  font-family: var(--pd-font-num);
-  font-variant-numeric: tabular-nums;
-}
-
 /* ── 미연동 통합 알림 ──────────────────────────────────── */
 
 .today-page .td-alert {
@@ -460,18 +430,14 @@
   line-height: 1.7;
 }
 
-/* 신뢰도는 점수와 다른 값이므로 색을 따로 씁니다(--pd-conf). */
-.today-page .td-conf-value.is-confidence {
-  color: var(--pd-conf);
-}
-
 /* ── 분야별 근거 (활동 선택) ───────────────────────────────
    예전에는 활동 6개의 <details> 가 카드 아래 6줄로 쌓여 있었습니다. 하나로
    합치고 활동을 셀렉트로 고릅니다 -- 근거를 감추는 것이 아니라 위 타일과 짝을
-   맞춰 자리를 옮긴 것입니다. */
+   맞춰 자리를 옮긴 것입니다. 이제 그 하나는 details 가 아니라 말풍선입니다
+   (InfoPopover) -- 카드 안에서 펴면 아래 내용이 밀려났습니다. */
 
-.today-page .td-basis summary {
-  cursor: pointer;
+.today-page .td-basis .pd-info-trigger {
+  font-size: var(--pd-fs-sm);
   font-weight: 700;
 }
 .today-page .td-basis-pick {

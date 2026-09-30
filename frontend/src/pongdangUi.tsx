@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { t } from "./i18n";
 import { gradeOf, grades } from "./groupAGrade";
 import { metricText, type Conditions } from "./productData";
@@ -628,62 +628,196 @@ export function ComponentBars({
   );
 }
 
+/** 접힌 근거를 담는 말풍선. 손잡이를 누르면 카드 흐름을 밀어내지 않고 위에
+ *  떠서 열립니다.
+ *
+ *  왜 details 가 아닌가: 「오늘」 탭 한 화면에 이런 손잡이가 다섯 개
+ *  있습니다(근거 보기 · 퐁당 점수란 · 분야별 근거 확인 · 분야별 점수·산정
+ *  기준·출처 · 수질 등급 기준). details 로 열면 카드가 그 자리에서 늘어나
+ *  아래 내용이 한 화면 밖으로 밀려나고, 접었다 펴는 사이 스크롤 위치가
+ *  튑니다. 말풍선은 열어도 아래가 움직이지 않습니다.
+ *
+ *  네이티브 details 가 주던 것(키보드 · 보조기술 · Esc)은 직접 채웁니다 --
+ *  ProductPlacePopover 와 같은 규칙입니다: 바깥을 누르면 닫히고, Esc 로 닫히고,
+ *  닫으면 초점이 손잡이로 돌아옵니다. 모달이 아니므로 뒤 본문을 잠그지
+ *  않습니다. */
+export function InfoPopover({
+  label,
+  title,
+  glass = false,
+  align = "start",
+  children,
+}: {
+  /** 손잡이에 적히는 말. 이미 번역된 문자열을 받습니다. */
+  label: string;
+  /** 말풍선 머리. 없으면 손잡이와 같은 말을 씁니다. */
+  title?: string;
+  /** 코발트 면 위의 손잡이. 말풍선 자체는 흰 면을 유지합니다. */
+  glass?: boolean;
+  /** 손잡이가 카드 오른쪽 끝에 있으면 "end" 로 두어야 말풍선이 화면 밖으로
+   *  나가지 않습니다. */
+  align?: "start" | "end";
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  // 열기 전에는 패널을 만들지 않습니다 -- 화면 하나에 손잡이가 다섯이고, 그
+  // 안에는 출처 목록과 표가 들어 있습니다.
+  const [mounted, setMounted] = useState(false);
+  const id = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  // 말풍선은 손잡이에 붙지만, 손잡이가 카드 오른쪽에 있으면 그대로는 화면 밖으로
+  // 나갑니다(390px 에서 문서가 가로로 스크롤됐습니다). CSS 만으로는 손잡이 위치를
+  // 알 수 없으므로 열 때 한 번 재서 좌우로 밀어 넣습니다. 여는 순간의 1회
+  // 측정이며 스크롤·리사이즈마다 따라다니지 않습니다 -- 열린 채로 화면을 돌리면
+  // 닫고 다시 열면 됩니다.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!open || !panel) return;
+    panel.style.setProperty("--pd-info-shift", "0px");
+    const margin = 12;
+    const box = panel.getBoundingClientRect();
+    let shift = 0;
+    if (box.right > window.innerWidth - margin) shift = window.innerWidth - margin - box.right;
+    if (box.left + shift < margin) shift = margin - box.left;
+    panel.style.setProperty("--pd-info-shift", `${Math.round(shift)}px`);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const dismissOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target))
+        setOpen(false);
+    };
+    const dismissEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape);
+    };
+  }, [open]);
+
+  return (
+    <div
+      className={"pd-info" + (glass ? " is-glass" : "") + (align === "end" ? " is-end" : "")}
+      ref={rootRef}
+    >
+      <button
+        type="button"
+        className="pd-info-trigger pd-tap"
+        ref={triggerRef}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={mounted ? id : undefined}
+        onClick={() => {
+          setMounted(true);
+          setOpen(!open);
+        }}
+      >
+        {label}
+        <span aria-hidden="true">▾</span>
+      </button>
+      {mounted && (
+        <div
+          id={id}
+          ref={panelRef}
+          className="pd-info-panel"
+          role="dialog"
+          aria-label={title ?? label}
+          hidden={!open}
+        >
+          <div className="pd-info-head">
+            <strong>{title ?? label}</strong>
+            <button type="button" className="pd-info-close" onClick={close}>
+              {t("닫기")}
+            </button>
+          </div>
+          <div className="pd-info-body pd-explainer-body">{children}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** 「이 점수가 대체 뭔가」에 한 번에 답하는 자리. 정의 · 척도 · 계산 방식 ·
  *  근거 확보율 · 출처가 화면마다 흩어져 있어 어디서도 전체가 보이지 않았습니다.
  *
- *  네이티브 «details» 입니다. 직접 만든 모달보다 키보드와 보조기술 동작이
- *  확실하고, 이 저장소의 다른 근거 블록과도 같은 문법입니다. */
-export function ScoreExplainer({ data }: { data?: Conditions }) {
+ *  기본은 네이티브 «details» 입니다. 손잡이가 여럿인 화면에서는 popover 로
+ *  말풍선(InfoPopover)이 되며, 어느 쪽이든 내용은 같습니다. */
+export function ScoreExplainer({
+  data,
+  popover = false,
+}: {
+  data?: Conditions;
+  /** details 대신 말풍선으로 엽니다(InfoPopover 주석 참고). */
+  popover?: boolean;
+}) {
   const index = data?.condition_score;
+  const body = (
+    <>
+      <p>{t("고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100으로 나타낸 참고 점수입니다. 안전 판정이 아니며, 현장 상황과 공식 운영 여부는 따로 확인해야 합니다.")}</p>
+      <table className="pd-explainer-scale">
+        <tbody>
+          {grades.map((grade) => (
+            <tr key={grade.key}>
+              <th scope="row">
+                <span className="pd-grade-chip" data-grade={grade.key}>
+                  <GradeIcon gradeKey={grade.key} />
+                  {t(grade.label)}
+                </span>
+              </th>
+              <td className="pd-num">
+                {grade.min}
+                {grade.key === "excellent" ? "~100" : `~${grade.min + 19}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>{t("활동과 장소에 따라 보는 조건이 다릅니다. 바다 수영은 수온 · 기온 · 바람 · 파고, 담수 수영은 수온 · 기온 · 바람 · 강수를 봅니다. 담수 수위·유량의 점수 기준은 아직 미설정입니다. 평가한 항목만 같은 비중으로 평균내며, 없는 값은 0점으로 넣지 않습니다.")}</p>
+      <p>{t("근거 확보율은 그 활동이 보는 조건 중 실제 측정값이 들어온 비율입니다. 확보율이 낮으면 총점도 조건 전체를 대표하지 못합니다.")}</p>
+      <p>{t("자료가 없으면 –로 둡니다. 0점이 아니며, 정상이나 안전으로 바꾸어 표시하지 않습니다.")}</p>
+      {index && (
+        <>
+          <p>
+            {t(index.methodology)} · {t("방법론")} {index.model_id} {index.model_version}
+          </p>
+          <ul>
+            {index.sources.map((source) => (
+              <li key={source.id}>
+                <a
+                  href={/^https:\/\//.test(source.url) ? source.url : undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t(source.title)}
+                </a>{" "}
+                · {t(source.usage)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+  if (popover)
+    return <InfoPopover label={t("퐁당 점수란?")}>{body}</InfoPopover>;
   return (
     <details className="pd-explainer">
       <summary className="pd-tap">{t("퐁당 점수란?")}</summary>
-      <div className="pd-explainer-body">
-        <p>{t("고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100으로 나타낸 참고 점수입니다. 안전 판정이 아니며, 현장 상황과 공식 운영 여부는 따로 확인해야 합니다.")}</p>
-        <table className="pd-explainer-scale">
-          <tbody>
-            {grades.map((grade) => (
-              <tr key={grade.key}>
-                <th scope="row">
-                  <span className="pd-grade-chip" data-grade={grade.key}>
-                    <GradeIcon gradeKey={grade.key} />
-                    {t(grade.label)}
-                  </span>
-                </th>
-                <td className="pd-num">
-                  {grade.min}
-                  {grade.key === "excellent" ? "~100" : `~${grade.min + 19}`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p>{t("활동과 장소에 따라 보는 조건이 다릅니다. 바다 수영은 수온 · 기온 · 바람 · 파고, 담수 수영은 수온 · 기온 · 바람 · 강수를 봅니다. 담수 수위·유량의 점수 기준은 아직 미설정입니다. 평가한 항목만 같은 비중으로 평균내며, 없는 값은 0점으로 넣지 않습니다.")}</p>
-        <p>
-          {t("근거 확보율은 그 활동이 보는 조건 중 실제 측정값이 들어온 비율입니다. 확보율이 낮으면 총점도 조건 전체를 대표하지 못합니다.")}</p>
-        <p>{t("자료가 없으면 –로 둡니다. 0점이 아니며, 정상이나 안전으로 바꾸어 표시하지 않습니다.")}</p>
-        {index && (
-          <>
-            <p>
-              {t(index.methodology)} · {t("방법론")} {index.model_id} {index.model_version}
-            </p>
-            <ul>
-              {index.sources.map((source) => (
-                <li key={source.id}>
-                  <a
-                    href={/^https:\/\//.test(source.url) ? source.url : undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t(source.title)}
-                  </a>{" "}
-                  · {t(source.usage)}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+      <div className="pd-explainer-body">{body}</div>
     </details>
   );
 }
