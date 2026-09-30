@@ -18,6 +18,7 @@ from app.water_index.condition_api import ConditionQuery
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.condition_result import RESULT_COLUMNS
 from app.water_index.condition_storage import (
+    MODEL_VERSION,
     _copy_result_batch,
     _create_result_stage,
     _unavailable,
@@ -226,7 +227,7 @@ def test_forecast_retention_is_scoped_to_original_target_interval(database):
 def test_retention_lookup_bounds_and_valid_observation_predecessor(
     database, monkeypatch, at_boundary
 ):
-    """Batch lookups skip revoked/unpublished history and preserve exact edges."""
+    """Skip revoked, unpublished and old-model history, preserving exact edges."""
     store_batch(database, source())
     _, spot = station(database)
     now = datetime.now(UTC)
@@ -250,17 +251,23 @@ def test_retention_lookup_bounds_and_valid_observation_predecessor(
     with connect(database) as c:
         revision = projection_revision(c)
         generations = []
-        for offset, source_revision, published in (
-            (3, revision, True),
-            (2, revision - 1, True),
-            (1, revision, False),
+        for offset, source_revision, published, model_version in (
+            (3, revision, True, MODEL_VERSION),
+            (2, revision - 1, True, MODEL_VERSION),
+            (1, revision, False, MODEL_VERSION),
+            (0.5, revision, True, "1.0.0"),
         ):
             generations.append(
                 c.execute(
                     "INSERT INTO pongdang_data.condition_generation "
                     "(source_revision,model_version,computed_at,record_count,"
-                    "result_published) VALUES (%s,'1.0.0',%s,0,%s) RETURNING id",
-                    [source_revision, now - timedelta(hours=offset), published],
+                    "result_published) VALUES (%s,%s,%s,0,%s) RETURNING id",
+                    [
+                        source_revision,
+                        model_version,
+                        now - timedelta(hours=offset),
+                        published,
+                    ],
                 ).fetchone()[0]
             )
         c.execute(
@@ -269,7 +276,7 @@ def test_retention_lookup_bounds_and_valid_observation_predecessor(
             [revision],
         )
         _create_result_stage(c)
-        for offset, generation in zip((3, 2, 1), generations, strict=True):
+        for offset, generation in zip((3, 2, 1, 0.5), generations, strict=True):
             _copy_result_batch(
                 c,
                 [

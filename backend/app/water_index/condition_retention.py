@@ -6,8 +6,14 @@ from datetime import timedelta
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from app.water_index.activity_score import ScoreComponent, aggregate_activity_score
+from app.water_index.activity_score import (
+    ActivityScore,
+    ScoreComponent,
+    aggregate_activity_score,
+)
 from app.water_index.condition_result import result_payload
+
+SCORE_MODEL_VERSION = ActivityScore.model_fields["model_version"].default
 
 
 def _blocked(payload):
@@ -58,7 +64,7 @@ def _retain_independent_fields(previous, current, lost):
     after = current.get("condition_score") or {}
     if any(
         score.get("model_id") != "pongdang-activity-conditions"
-        or score.get("model_version") != "1.0.0"
+        or score.get("model_version") != SCORE_MODEL_VERSION
         for score in (before, after)
     ):
         # Only this model declares single-metric, independent components.
@@ -123,6 +129,10 @@ def _retain_independent_fields(previous, current, lost):
 def retain_payload(previous, current, origin):
     """Retain failed independent fields; a lower valid new score is published."""
     if not previous or _blocked(previous) or _blocked(current):
+        return current
+    before = previous.get("condition_score") or {}
+    after = current.get("condition_score") or {}
+    if any(before.get(key) != after.get(key) for key in ("model_id", "model_version")):
         return current
     lost_score = (previous.get("condition_score") or {}).get("score") is not None and (
         current.get("condition_score") or {}
@@ -206,12 +216,13 @@ class RetainedPublication:
                     "WHERE k.mode='observation' AND prior.spot_id=k.spot_id "
                     "AND prior.activity=k.activity AND prior.mode=k.mode "
                     "AND prior.target_start<=k.min_start "
+                    "AND valid.model_version=%s "
                     "AND valid.source_revision >= (SELECT invalidated_revision "
                     "FROM pongdang_data.condition_source_revision WHERE id=1) "
                     "ORDER BY prior.target_start DESC LIMIT 1)) s "
                     "JOIN pongdang_data.condition_generation origin "
                     "ON origin.id=s.generation_id AND origin.result_published "
-                    "WHERE origin.source_revision >= "
+                    "WHERE origin.model_version=%s AND origin.source_revision >= "
                     "(SELECT invalidated_revision FROM "
                     "pongdang_data.condition_source_revision WHERE id=1) "
                     "ORDER BY s.spot_id,s.activity,s.mode,s.target_start",
@@ -230,6 +241,8 @@ class RetainedPublication:
                                 )
                             ]
                         ),
+                        SCORE_MODEL_VERSION,
+                        SCORE_MODEL_VERSION,
                     ],
                 ).fetchall()
             for row in rows:

@@ -105,7 +105,7 @@ class RecommendationQuery(BaseModel):
 class Recommendation(Record):
     contract_version: Literal["water-recommendation.v1"] = CONTRACT
     model_id: Literal["pongdang-activity-recommendation"] = MODEL_ID
-    model_version: Literal["1.0.0"] = MODEL_VERSION
+    model_version: Literal["1.1.0"] = MODEL_VERSION
     #: 이 결과가 안전 판정이 아니라는 사실은 계약에 남습니다.
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     spot_id: int = Field(gt=0)

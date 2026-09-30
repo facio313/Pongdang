@@ -28,29 +28,32 @@ def water_place_kind_sql(alias="s"):
 
 _WATER_PLACE_KIND_SQL = """
 CASE WHEN s.type IN ('beach','valley','lake','reservoir') THEN s.type
- WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
-   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 해수욕장%%')
+ ELSE (SELECT CASE
+ WHEN bool_or((p.provider='KAKAO_LOCAL'
+               AND p.category LIKE '여행 > 관광,명소 > 해수욕장%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
-         AND s.name ~ '(해수욕장|해변)$'))) THEN 'beach'
- WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
-   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 계곡%%')
+         AND s.name ~ '(해수욕장|해변)$')) THEN 'beach'
+ WHEN bool_or((p.provider='KAKAO_LOCAL'
+               AND p.category LIKE '여행 > 관광,명소 > 계곡%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
-         AND s.name ~ '계곡$'))) THEN 'valley'
- WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
-   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 저수지%%')
+         AND s.name ~ '계곡$')) THEN 'valley'
+ WHEN bool_or((p.provider='KAKAO_LOCAL'
+               AND p.category LIKE '여행 > 관광,명소 > 저수지%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
-         AND s.name ~ '저수지( *[(][^)]*[)])?$'))) THEN 'reservoir'
- WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p WHERE p.spot_id=s.id
-   AND ((p.provider='KAKAO_LOCAL' AND p.category LIKE '여행 > 관광,명소 > 호수%%')
+         AND s.name ~ '저수지( *[(][^)]*[)])?$')) THEN 'reservoir'
+ WHEN bool_or((p.provider='KAKAO_LOCAL'
+               AND p.category LIKE '여행 > 관광,명소 > 호수%%')
      OR (p.provider='TOURAPI_KOREAN' AND p.category='12'
-         AND s.name ~ '호수( *[(][^)]*[)])?$'))) THEN 'lake'
- WHEN EXISTS (SELECT 1 FROM pongdang_data.collection_place p
-   JOIN pongdang_data.place_detail d ON d.place_id=p.id AND d.state='active'
-   WHERE p.spot_id=s.id AND p.provider='TOURAPI_KOREAN' AND p.category='12'
-     AND d.details @> '[{"section":"common","key":"cat3","value":"A01011700"}]'
- ) THEN CASE WHEN s.name ~ '저수지( *[(][^)]*[)])?$'
+         AND s.name ~ '호수( *[(][^)]*[)])?$')) THEN 'lake'
+ WHEN bool_or(d.id IS NOT NULL)
+ THEN CASE WHEN s.name ~ '저수지( *[(][^)]*[)])?$'
              THEN 'reservoir' ELSE 'lake' END
  ELSE NULL END
+ FROM pongdang_data.collection_place p
+ LEFT JOIN pongdang_data.place_detail d ON d.place_id=p.id AND d.state='active'
+   AND p.provider='TOURAPI_KOREAN' AND p.category='12'
+   AND d.details @> '[{"section":"common","key":"cat3","value":"A01011700"}]'
+ WHERE p.spot_id=s.id AND p.provider IN ('KAKAO_LOCAL','TOURAPI_KOREAN')) END
 """
 PLACE_SELECT = (
     "SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,"
