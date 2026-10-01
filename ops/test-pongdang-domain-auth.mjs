@@ -145,3 +145,38 @@ test('existing authz still rejects stale claims, disabled accounts and revoked g
     assert.equal(status, 403);
   }
 });
+
+test('logout expires only Pongdang host session cookies including every supplied chunk', async () => withServer(async (url, p) => {
+  const response = await fetch(`${url}/inline/logout`, { method: 'POST', headers: { ...headers,
+    Cookie: '__Host-pongdang_session=valid-oauth; __Host-pongdang_session_0=chunk; __Host-pongdang_session_1=chunk; central_session=unrelated; other_app=unrelated; __Host-pongdang_session_extra=unrelated',
+  }, body: '{}' });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { authenticated: false });
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const cookies = response.headers.getSetCookie();
+  assert.deepEqual(cookies.map(cookie => cookie.split('=', 1)[0]), ['__Host-pongdang_session', '__Host-pongdang_session_0', '__Host-pongdang_session_1']);
+  assert.ok(cookies.every(cookie => cookie.endsWith('=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax')));
+  assert.equal(p.calls.length, 0);
+  const repeated = await fetch(`${url}/inline/logout`, { method: 'POST', headers, body: '{}' });
+  assert.equal(repeated.status, 200);
+  assert.deepEqual(await repeated.json(), { authenticated: false });
+}));
+
+for (const [name, update, status] of [
+  ['missing edge secret', { 'X-Portfolio-Edge-Secret': '' }, 401],
+  ['wrong host', { 'X-Original-Host': 'outside.invalid' }, 401],
+  ['cross-origin POST', { Origin: 'https://outside.invalid' }, 403],
+  ['missing Origin', { Origin: '' }, 403],
+  ['cross-site request', { 'Sec-Fetch-Site': 'cross-site' }, 403],
+  ['form POST', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+]) test(`logout refuses ${name} without changing cookies`, async () => withServer(async (url) => {
+  const response = await fetch(`${url}/inline/logout`, { method: 'POST', headers: { ...headers, ...update }, body: '{}' });
+  assert.equal(response.status, status);
+  assert.equal(response.headers.get('set-cookie'), null);
+}));
+
+test('logout is never triggered by a GET navigation', async () => withServer(async (url) => {
+  const response = await fetch(`${url}/inline/logout`, { headers });
+  assert.equal(response.status, 405);
+  assert.equal(response.headers.get('set-cookie'), null);
+}));

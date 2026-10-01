@@ -568,7 +568,7 @@ export function RecommendDesktop() {
 
   const currentRegion = (step === "chat" ? chatRequest?.region
     : step === "course" ? session.plan?.request.region ?? recommendation?.request.region : undefined) ?? region;
-  const context = t("{region} · {date} · 취향 {count}개 선택", { region: travelRegionLabel(currentRegion, regions.data), date: dateLabel(), count: selectionCount || savedLabels.length });
+  const context = `${travelRegionLabel(currentRegion, regions.data)} · ${dateLabel()}`;
   const listHeadline = candidateAction.busy ? t("후보 조회 중")
     : candidateAction.error ? t("후보 조회 실패")
     : recommendation ? t("후보 {count}곳", { count: recommendation.recommendations.length }) : t("후보 조회 전");

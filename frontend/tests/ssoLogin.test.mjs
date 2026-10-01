@@ -1,8 +1,41 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginSsoLogin, readSsoLoginState, resumeSsoLogin, signInSso, SsoLoginError } from '../src/ssoLogin.ts';
+import { beginSsoLogin, readSsoLoginState, resumeSsoLogin, signInSso, signOutSso, SsoLoginError } from '../src/ssoLogin.ts';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+test('logout posts once and verifies the fresh anonymous browser session', async () => {
+  const calls = [];
+  await signOutSso('/pongdang/', new AbortController().signal, async (url, options) => {
+    calls.push({ url, options });
+    return json({ authenticated: false }, calls.length === 1 ? 200 : 401);
+  });
+  assert.deepEqual(calls.map(c => c.url), ['/pongdang/api/auth/logout', '/pongdang/api/auth/state']);
+  assert.equal(calls[0].options.method, 'POST');
+  assert.equal(calls[0].options.body, '{}');
+  for (const call of calls) {
+    assert.equal(call.options.credentials, 'same-origin');
+    assert.equal(call.options.redirect, 'error');
+    assert.equal(call.options.cache, 'no-store');
+  }
+});
+
+for (const stage of ['logout', 'state']) {
+  for (const outcome of ['still authenticated', 'HTML fallback', 'missing state', 'forbidden', 'server error']) {
+    test(`${stage} ${outcome} cannot claim logout success`, async () => {
+      let calls = 0;
+      const invalid = () => outcome === 'HTML fallback'
+        ? new Response('<html>App</html>', { headers: { 'Content-Type': 'text/html' } })
+        : json(outcome === 'missing state' ? {} : { authenticated: outcome === 'still authenticated' },
+          outcome === 'forbidden' ? 403 : outcome === 'server error' ? 503 : 200);
+      await assert.rejects(signOutSso('/pongdang/', new AbortController().signal, async () => {
+        calls++;
+        return calls === (stage === 'logout' ? 1 : 2) ? invalid() : json({ authenticated: false });
+      }), { message: '로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.' });
+      assert.equal(calls, stage === 'logout' ? 1 : 2);
+    });
+  }
+}
 
 test('inline login checks the same-origin bridge, posts credentials once and verifies the browser session', async () => {
   const calls = [];

@@ -34,7 +34,6 @@ import type { Recommendation } from "./recommendationApi";
 import { PlacePhoto } from "./PlacePhoto";
 import { usePlacePhotos } from "./usePlacePhotos";
 import {
-  conditionModeLabel,
   dateLabel,
   timeLabel,
   placeRegionLabel,
@@ -123,7 +122,6 @@ function HomeHero({
             <time className="home-condition-time" dateTime={at}>
               {at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}
             </time>
-            <span>· {t("{mode} 기준", { mode: conditionModeLabel(baseline) })}</span>
           </div>}
         />
       }

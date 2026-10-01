@@ -1,10 +1,17 @@
 import type { MessageTranslations } from "../i18n";
 export const commonMessages: Record<string, MessageTranslations> = {
   "로그인": ["Sign in", "登录", "ログイン"],
+  "로그아웃": ["Sign out", "退出登录", "ログアウト"],
+  "취소": ["Cancel", "取消", "キャンセル"],
+  "로그아웃하시겠어요?": ["Would you like to sign out?", "确定要退出登录吗？", "ログアウトしますか？"],
+  "로그아웃 중…": ["Signing out…", "正在退出登录…", "ログアウト中…"],
+  "로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.": ["Unable to sign out. Please try again later.", "未能退出登录，请稍后重试。", "ログアウトできませんでした。しばらくしてからお試しください。"],
   "로그인 닫기": ["Close sign-in", "关闭登录", "ログインを閉じる"],
   "아이디": ["Username", "用户名", "ユーザー名"],
   "비밀번호": ["Password", "密码", "パスワード"],
   "로그인 중…": ["Signing in…", "正在登录…", "ログイン中…"],
+  "로그인 확인 중…": ["Checking sign-in…", "正在确认登录…", "ログインを確認中…"],
+  "계정 확인 필요": ["Account check needed", "需要确认账号", "アカウントの確認が必要です"],
   "로그인하면 저장한 코스를 볼 수 있어요.": ["Sign in to view your saved trips.", "登录后可查看保存的行程。", "ログインすると保存したコースを確認できます。"],
   "로컬 테스트 계정으로 로그인해 주세요.": ["Sign in with your local test account.", "请使用本地测试账号登录。", "ローカルのテストアカウントでログインしてください。"],
   "로컬 테스트 계정의 아이디 또는 비밀번호를 확인해 주세요.": ["Check your local test username or password.", "请检查本地测试账号的用户名或密码。", "ローカルのテストアカウントのユーザー名またはパスワードを確認してください。"],

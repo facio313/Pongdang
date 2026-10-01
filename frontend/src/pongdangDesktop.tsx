@@ -1,5 +1,5 @@
 import { t } from "./i18n";
-import { useRef, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
@@ -7,6 +7,10 @@ import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import { LOGO_ALT, logoUrl } from "./brand";
 import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
+import { useResource } from "./useResource";
+import { isLoginRequiredMessage } from "./authError";
+import { useRequireLogin } from "./loginPopoverState";
+import { LogoutDialog } from "./LogoutDialog";
 // 물결 굴곡은 모바일 홈 히어로와 공유합니다(waveShape.ts 주석).
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 import "./pongdangDesktop.css";
@@ -21,8 +25,8 @@ import "./pongdangDesktop.css";
 //   LabelRow       200px 라벨 열 + 1fr 본문. 본문의 기본 단위
 //   FootNote       미연동 항목 · 안전 판단 불가 문구
 //
-// 표시 전용입니다. 데이터 훅을 부르지 않고 전부 props 로만 받습니다 -- 같은
-// 값을 모바일 레이아웃과 나눠 쓰기 위해서입니다.
+// 화면 자료는 props 로 받습니다. 공통 헤더의 계정 표시만 인증된 프로필을
+// 공유 조회하며, 페이지별 자료와 같은 조회 캐시를 사용합니다.
 //
 // 카드 · 그림자 · 흰 테두리는 쓰지 않습니다. 구분은 괘선과 여백으로만 만듭니다.
 
@@ -56,6 +60,23 @@ function DesktopLanguageSwitcher() {
   );
 }
 
+function DesktopAccount() {
+  const profile = useResource<{ account_id?: string }>("travel/preferences");
+  const requireLogin = useRequireLogin();
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  if (isLoginRequiredMessage(profile.error)) {
+    return <button type="button" className="pd-dk-nav-login" onClick={requireLogin}>{t("로그인")}</button>;
+  }
+  if (profile.data?.account_id) {
+    return <>
+      <button type="button" className="pd-dk-nav-account-id" title={profile.data.account_id}
+        aria-haspopup="dialog" onClick={() => setLogoutOpen(true)}>{profile.data.account_id}</button>
+      {logoutOpen && <LogoutDialog accountId={profile.data.account_id} onClose={() => setLogoutOpen(false)} />}
+    </>;
+  }
+  return <span>{t(profile.loading ? "로그인 확인 중…" : "계정 확인 필요")}</span>;
+}
+
 export function DesktopNav({
   active,
   context,
@@ -64,7 +85,7 @@ export function DesktopNav({
 }: {
   /** 현재 화면. 모바일 탭바와 같은 키를 씁니다. */
   active: TabKey;
-  /** 오른쪽 끝 컨텍스트 문구. 예: "강릉 경포해변 · 9월 15일 · 예보 06:00 기준" */
+  /** 로그인 상태 앞의 화면 정보. 예: "강릉 경포해변 · 9월 15일" */
   context?: ReactNode;
   /** 흰 배경 위에 얹힐 때(코발트 히어로가 없는 화면). */
   onSurface?: boolean;
@@ -104,9 +125,10 @@ export function DesktopNav({
         ))}
       </span>
       <DesktopLanguageSwitcher />
-      {context !== undefined && (
-        <div className="pd-dk-nav-context">{context}</div>
-      )}
+      <div className="pd-dk-nav-context">
+        {context !== undefined && <>{context}<span aria-hidden="true">·</span></>}
+        <div className="pd-dk-nav-account"><DesktopAccount /></div>
+      </div>
     </nav>
   );
 }

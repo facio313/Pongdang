@@ -196,7 +196,9 @@ def create_router(settings):
 
     @router.get("/preferences")
     def get_preferences(actor: Actor):
-        return storage.profile(settings, actor.subject)
+        # The existing trusted SSO subject is the signed-in account ID. Do not
+        # take a display identity from query parameters or stored preferences.
+        return {**storage.profile(settings, actor.subject), "account_id": actor.subject}
 
     @router.put("/preferences")
     def put_preferences(body: PreferenceUpdate, actor: Actor):

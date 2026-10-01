@@ -190,11 +190,11 @@ export function createDomainServer(dependencies) {
   const { store, edgeSecret, refreshApplications, audit = () => {} } = dependencies;
   const attempts = new Map();
   let active = 0;
-  const send = (response, status, detail, cookies = []) => response.writeHead(status, {
+  const send = (response, status, detail, cookies = [], authenticated = status === 200) => response.writeHead(status, {
     'Content-Type': 'application/json', 'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff', ...(cookies.length ? { 'Set-Cookie': cookies } : {}),
     ...(status === 429 ? { 'Retry-After': '60' } : {}),
-  }).end(JSON.stringify({ authenticated: status === 200, ...(detail ? { detail } : {}) }));
+  }).end(JSON.stringify({ authenticated, ...(detail ? { detail } : {}) }));
   const authorizedStatus = async (request, cookie) => {
     let status = 503;
     await authorizePongdang({ headers: { ...request.headers, cookie } }, {
@@ -214,20 +214,33 @@ export function createDomainServer(dependencies) {
         return;
       }
       if (request.url === '/authz') { await authorizePongdang(request, response, dependencies); return; }
-      if (!['/inline/state', '/inline/login'].includes(request.url)) { send(response, 404, 'NOT_FOUND'); return; }
+      if (!['/inline/state', '/inline/login', '/inline/logout'].includes(request.url)) { send(response, 404, 'NOT_FOUND'); return; }
       if (!trusted(request, edgeSecret)) { send(response, 401, 'SSO_AUTHENTICATION_REQUIRED'); return; }
       if (request.url === '/inline/state' && request.method === 'GET') {
         const status = await authorizedStatus(request, request.headers.cookie ?? '');
         send(response, status, status === 401 ? 'SSO_AUTHENTICATION_REQUIRED' : status === 403 ? 'SSO_GRANT_REQUIRED' : undefined);
         return;
       }
-      if (request.url !== '/inline/login' || request.method !== 'POST') { send(response, 405, 'METHOD_NOT_ALLOWED'); return; }
+      if (!['/inline/login', '/inline/logout'].includes(request.url) || request.method !== 'POST') { send(response, 405, 'METHOD_NOT_ALLOWED'); return; }
       if (request.headers.origin !== ORIGIN || request.headers['sec-fetch-site'] === 'cross-site') {
         send(response, 403, 'ORIGIN_NOT_ALLOWED'); return;
       }
       if (!/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? '')) { send(response, 415, 'JSON_REQUIRED'); return; }
       const ip = request.headers['x-real-ip'];
       if (typeof ip !== 'string' || !isIP(ip)) { send(response, 403, 'TRUSTED_CLIENT_IP_REQUIRED'); return; }
+      if (request.url === '/inline/logout') {
+        // Expire only this browser's host-scoped Pongdang session, including
+        // chunked cookies. Central SSO and other applications keep their sessions.
+        const names = new Set(['__Host-pongdang_session']);
+        for (const pair of (request.headers.cookie ?? '').split(';')) {
+          const name = pair.trim().split('=', 1)[0];
+          if (SESSION.test(name)) names.add(name);
+        }
+        const cookies = [...names].map(name => `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure; HttpOnly; SameSite=Lax`);
+        send(response, 200, undefined, cookies, false);
+        audit('inline-logout-completed');
+        return;
+      }
       const now = Date.now();
       for (const [key, entry] of attempts) if (entry.until <= now) attempts.delete(key);
       const previous = attempts.get(ip);

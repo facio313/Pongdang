@@ -226,7 +226,10 @@ def test_login_cookie_and_real_private_auth_chain(app, config):
         assert "httponly" in cookie and "samesite=strict" in cookie
         assert "path=/pongdang/" in cookie and "domain=" not in cookie
         assert client.get("/pongdang/api/auth/state").json()["authenticated"]
-        assert client.get(private).json() == {"test_subject": preview.SUBJECT}
+        assert client.get(private).json() == {
+            "test_subject": preview.SUBJECT,
+            "account_id": preview.SUBJECT,
+        }
         ai = client.get("/pongdang/api/data/ai/status")
         assert ai.status_code == 200
         assert not ai.json()["enabled"]
