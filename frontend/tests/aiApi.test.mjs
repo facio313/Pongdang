@@ -96,12 +96,30 @@ test('travel fallback messages explain known failures once and keep scope reject
     status: 'unavailable', fallback: true,
     reason_codes: ['ai_scope_unavailable', 'ai_authentication_failed', 'ai_authentication_failed', 'private upstream text'] };
   const messages = travelChatMessages(failure);
-  assert.equal(messages.length, 2);
-  assert.match(messages[1], /관련성과 방문 의도를 확인하지 못했습니다/);
-  assert.equal(messages[1].split('OpenAI 인증에 실패했습니다.').length, 2);
+  assert.equal(messages.length, 1);
+  assert.doesNotMatch(messages[0], /관련성과 방문 의도를 확인하지 못했습니다/);
+  assert.equal(messages[0].split('OpenAI 인증에 실패했습니다.').length, 2);
   assert.doesNotMatch(messages.join(' '), /private upstream text/);
   assert.deepEqual(travelChatMessages({ ...failure, answer: '관련 없는 것은 질문 받지 않는다.', clarification: null, status: 'out_of_scope' }), ['관련 없는 것은 질문 받지 않는다.']);
   assert.deepEqual(travelChatMessages({ ...failure, answer: 'OpenAI 인증에 실패했습니다. 서버 키 설정을 확인해야 합니다.', clarification: null, reason_codes: ['ai_authentication_failed'] }), ['OpenAI 인증에 실패했습니다. 서버 키 설정을 확인해야 합니다.']);
+});
+test('empty Luna decisions show one cause while recovered retries remain in the trace', () => {
+  const failure = { answer: '지금은 요청이 강원도 물놀이와 관련 있는지 확인하지 못했습니다. 잠시 후 다시 질문해 주세요.',
+    clarification: null, status: 'unavailable', fallback: true,
+    reason_codes: ['ai_empty_output', 'ai_scope_unavailable'] };
+  assert.deepEqual(travelChatMessages(failure), ['루나의 판단 응답이 비어 있어 요청을 완료하지 못했습니다. 다시 질문해 주세요.']);
+  assert.deepEqual(travelChatMessages({ ...failure, reason_codes: ['private upstream text', 'ai_scope_unavailable'] }),
+    ['질문의 관련성과 방문 의도를 확인하지 못했습니다. 잠시 후 다시 질문해 주세요.']);
+  const html = renderToStaticMarkup(createElement(ModelTraceDialog, { trace: [
+    { kind: 'attempt', name: 'scope' },
+    { kind: 'retry', name: 'scope', error: 'ai_empty_output', plan: { text_parts: 0 } },
+    { kind: 'attempt', name: 'scope' },
+    { kind: 'scope', plan: { relevance: 'Y', action: 'recommend', changes: {} } },
+  ], onClose() {} }));
+  assert.match(html, /빈 응답 · 재시도 준비/);
+  assert.match(html, /ai_empty_output/);
+  assert.match(html, /Y \(지원하는 질문\)/);
+  assert.doesNotMatch(html, /루나 처리 실패|다시 질문해 주세요/);
 });
 test('local operator status is explicit while ordinary readiness messages stay unchanged', () => {
   const states = [

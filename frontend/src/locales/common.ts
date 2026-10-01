@@ -12,6 +12,8 @@ export const commonMessages: Record<string, MessageTranslations> = {
   "로그인 중…": ["Signing in…", "正在登录…", "ログイン中…"],
   "로그인 확인 중…": ["Checking sign-in…", "正在确认登录…", "ログインを確認中…"],
   "계정 확인 필요": ["Account check needed", "需要确认账号", "アカウントの確認が必要です"],
+  "빈 응답 · 재시도 준비": ["Empty response · Preparing retry", "空响应 · 准备重试", "空の応答 · 再試行の準備"],
+  "루나의 판단 응답이 비어 있어 요청을 완료하지 못했습니다. 다시 질문해 주세요.": ["Luna returned an empty decision, so the request could not be completed. Please ask again.", "Luna 返回了空的判断结果，未能完成请求。请重新提问。", "Luna の判定結果が空のため、リクエストを完了できませんでした。もう一度質問してください。"],
   "로그인하면 저장한 코스를 볼 수 있어요.": ["Sign in to view your saved trips.", "登录后可查看保存的行程。", "ログインすると保存したコースを確認できます。"],
   "로컬 테스트 계정으로 로그인해 주세요.": ["Sign in with your local test account.", "请使用本地测试账号登录。", "ローカルのテストアカウントでログインしてください。"],
   "로컬 테스트 계정의 아이디 또는 비밀번호를 확인해 주세요.": ["Check your local test username or password.", "请检查本地测试账号的用户名或密码。", "ローカルのテストアカウントのユーザー名またはパスワードを確認してください。"],

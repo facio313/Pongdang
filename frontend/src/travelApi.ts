@@ -233,13 +233,20 @@ export interface TravelChatResponse {
   };
 }
 
-/** Keep the server answer intact and explain only known fallback reasons.
+/** Explain failed scope decisions once, using their known cause when available.
+ *  Other responses keep the server answer and known fallback reasons.
  *  A deliberate scope rejection is already the complete response. */
 export function travelChatMessages(result: TravelChatResponse): string[] {
   const messages = [result.answer, result.clarification]
     .filter((content): content is string => Boolean(content?.trim()))
     .filter((content, index, all) => all.indexOf(content) === index);
   if (!result.fallback || result.status === "out_of_scope") return messages;
+  if (result.status === "unavailable" && result.reason_codes?.includes("ai_scope_unavailable")) {
+    const causes = [...new Set(result.reason_codes)]
+      .filter((code) => code !== "ai_scope_unavailable" && Object.hasOwn(aiReasonTexts, code))
+      .map((code) => t(aiReasonTexts[code]));
+    return [causes.join(" ") || t(aiReasonTexts.ai_scope_unavailable)];
+  }
   const reasons = (result.reason_codes ?? [])
     .filter((code) => Object.hasOwn(aiReasonTexts, code))
     .map((code) => t(aiReasonTexts[code]))

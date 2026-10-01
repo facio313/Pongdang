@@ -1,8 +1,8 @@
-"""Authenticated, stateless concierge. Models plan reads and evidence composition.
+"""Authenticated, stateless concierge with bounded interpretation and read plans.
 
-No model-authored factual prose crosses the response boundary. This differs from
-fact ordering: the model resolves conversation, chooses and executes domain reads,
-filters candidates, then builds comparisons/sections using this request's evidence.
+Common reads need one model interpretation; the server resolves places, reads
+evidence and composes the answer. Complex requests retain the bounded tool loop.
+No model-authored factual prose crosses the response boundary.
 """
 
 import asyncio
@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.ai import budget
 from app.ai.provider import ProviderError, ResponsesProvider, encode_body
+from app.ai.reads import evidence_answer, execute_read_intent
 from app.ai.service import DISCLAIMER, pricing_configured
 from app.ai.tools import ToolError, ToolSession
 from app.auth import LOCAL_OPERATOR_SUBJECT, require_principal
@@ -163,7 +164,7 @@ class ResponsePlan(StrictModel):
 
 
 class ModelTraceTurn(StrictModel):
-    kind: Literal["tool", "plan", "scope", "attempt", "error"]
+    kind: Literal["tool", "plan", "scope", "attempt", "retry", "error"]
     name: str | None = None
     arguments: dict | None = None
     plan: dict | None = None
@@ -198,6 +199,10 @@ def strict_schema(schema):
     """Responses requires every object field required, including nullable ones."""
     if isinstance(schema, dict):
         schema.pop("default", None)
+        # Human-facing schema titles repeat property names. Keep a real property
+        # named "title" (whose value is a schema object), and all constraints.
+        if isinstance(schema.get("title"), str):
+            schema.pop("title")
         if schema.get("type") == "object":
             schema["additionalProperties"] = False
             schema["required"] = list(schema.get("properties", {}))
@@ -270,8 +275,23 @@ def public_trace_value(value):
     return None
 
 
+def compact_context(value):
+    """Redact strings and omit empty snapshot values without losing false/zero.
+
+    Preserve list positions. Never apply to patches: empty lists clear a wish.
+    """
+    if isinstance(value, dict):
+        compact = {key: compact_context(item) for key, item in value.items()}
+        return {
+            key: item for key, item in compact.items() if item not in (None, [], {})
+        }
+    if isinstance(value, list):
+        return [compact_context(item) for item in value]
+    return private_text(value) if isinstance(value, str) else value
+
+
 def initial_input(request, now):
-    context = request.context.model_dump(exclude_none=True)
+    context = compact_context(request.context.model_dump(exclude_none=True))
     if context.get("region"):
         context["region"] = private_text(context["region"])
     if context.get("time_text"):
@@ -291,6 +311,7 @@ def initial_input(request, now):
                     "untrusted_context": context,
                 },
                 ensure_ascii=False,
+                separators=(",", ":"),
             ),
         }
     ]
@@ -304,6 +325,9 @@ def is_greeting(message):
         "hi",
         "고마워",
         "감사합니다",
+        "고맙습니다",
+        "thanks",
+        "thank you",
     }
 
 
@@ -325,7 +349,7 @@ def body_for(settings, session, inputs, *, require_tools, final_answer_only=Fals
             else ""
         ),
         "input": inputs,
-        "tools": session.schemas(),
+        "tools": strict_schema(session.schemas()),
         "parallel_tool_calls": False,
         "tool_choice": "none"
         if final_answer_only
@@ -376,13 +400,20 @@ def parse_response(raw, *, plan_type=ResponsePlan, allow_tools=True):
                 raise ProviderError("ai_invalid_tool_call")
             calls.append(item)
         elif item.get("type") == "message":
-            for part in item.get("content", []):
+            content = item.get("content")
+            if not isinstance(content, list):
+                raise ProviderError("ai_invalid_response")
+            for part in content:
+                if not isinstance(part, dict):
+                    raise ProviderError("ai_invalid_response")
                 if part.get("type") == "refusal":
                     raise ProviderError("ai_refusal")
                 if part.get("type") == "output_text" and isinstance(
                     part.get("text"), str
                 ):
                     texts.append(part["text"])
+                else:
+                    raise ProviderError("ai_invalid_response")
         elif item.get("type") != "reasoning":
             raise ProviderError("ai_invalid_response")
     if calls:
@@ -391,10 +422,21 @@ def parse_response(raw, *, plan_type=ResponsePlan, allow_tools=True):
         if texts:
             raise ProviderError("ai_mixed_output")
         return output, calls, None
-    if len(texts) != 1:
-        raise ProviderError("ai_empty_output")
+    # Responses may split text across content parts or message items. Assemble
+    # in provider order, then validate one complete JSON object as before.
+    text = "".join(texts)
+    if not text.strip():
+        raise ProviderError(
+            "ai_empty_output",
+            details={
+                "output_items": len(output),
+                "message_items": sum(item.get("type") == "message" for item in output),
+                "text_parts": len(texts),
+                "text_characters": len(text),
+            },
+        )
     try:
-        value = json.loads(texts[0], object_pairs_hook=unique_object)
+        value = json.loads(text, object_pairs_hook=unique_object)
         return output, [], plan_type.model_validate(value)
     except ValueError:
         raise ProviderError("ai_output_unverified") from None
@@ -677,13 +719,58 @@ async def converse(
     )
 
     now = now or datetime.now(UTC)
-    session = session_factory(settings, now)
     request_id = uuid4().hex
+    if is_greeting(request.message) and (
+        request.travel is None or request.travel.action == "conversation"
+    ):
+        thanks = request.message.strip(" .!?").lower() in {
+            "고마워",
+            "감사합니다",
+            "고맙습니다",
+            "thanks",
+            "thank you",
+        }
+        return ChatResponse(
+            request_id=request_id,
+            status="available",
+            answer="도움이 되었다니 다행이에요. 더 궁금한 여행 조건을 말씀해 주세요."
+            if thanks
+            else INTRO["greeting"],
+            fallback=False,
+            provider="deterministic",
+            model=None,
+            scope={"timezone": "Asia/Seoul", "as_of": now.isoformat(), "queries": []},
+            candidates=[],
+            facts=[],
+            sources=[],
+            warnings=[],
+            limitations=[],
+            features=[],
+            reason_codes=[],
+            sections=[],
+            context=request.context.model_copy(deep=True),
+            travel=request.travel.model_copy(deep=True) if request.travel else None,
+        )
+    session = session_factory(settings, now)
     started, calls, tool_count = time.monotonic(), 0, 0
     reasons, plan, model, lease, trace = [], None, None, None, []
     measured_input, measured_output, reserved_bytes = 0, 0, 0
     scope_accepted, scope_denied = not check_scope, False
+    scope_action, read_completed = None, False
+    scope_retries = 0
     stage = "scope" if check_scope else "response"
+
+    async def execute_planned_read(name, args):
+        nonlocal tool_count, stage
+        tool_count += 1
+        if tool_count > settings.ai_max_tool_calls:
+            raise ToolError("ai_tool_limit")
+        stage = name
+        trace.append(
+            ModelTraceTurn(kind="tool", name=name, arguments=public_trace_value(args))
+        )
+        return await session.execute(name, args)
+
     try:
         async with asyncio.timeout(settings.ai_request_timeout_seconds):
             state = availability(settings)
@@ -706,6 +793,7 @@ async def converse(
                                 "content": json.dumps(
                                     {"travel_request": session.model_context()},
                                     ensure_ascii=False,
+                                    separators=(",", ":"),
                                 ),
                             }
                         )
@@ -769,9 +857,30 @@ async def converse(
                             except Exception:
                                 reasons.append("ai_usage_record_unavailable")
                         if not scope_accepted:
-                            _, _, decision = parse_response(
-                                raw, plan_type=IntentDecision, allow_tools=False
-                            )
+                            try:
+                                _, _, decision = parse_response(
+                                    raw, plan_type=IntentDecision, allow_tools=False
+                                )
+                            except ProviderError as exc:
+                                if (
+                                    exc.code != "ai_empty_output"
+                                    or scope_retries >= 1
+                                    or calls >= settings.ai_max_model_calls
+                                ):
+                                    raise
+                                scope_retries += 1
+                                trace.append(
+                                    ModelTraceTurn(
+                                        kind="retry",
+                                        name=stage,
+                                        error=exc.code,
+                                        plan=exc.details,
+                                    )
+                                )
+                                # No domain reads have run. The next iteration
+                                # reserves another paid attempt under the same
+                                # daily budget, call count and request deadline.
+                                continue
                             trace.append(
                                 ModelTraceTurn(
                                     kind="scope",
@@ -789,6 +898,7 @@ async def converse(
                                 )
                                 break
                             scope_accepted = True
+                            scope_action = decision.action
                             from app.travel.chat import TravelToolSession
 
                             if decision.action in {
@@ -812,10 +922,13 @@ async def converse(
                                     "content": json.dumps(
                                         {
                                             "interpreted_request": public_trace_value(
-                                                decision.model_dump()
+                                                decision.model_dump(
+                                                    mode="json", exclude_none=True
+                                                )
                                             )
                                         },
                                         ensure_ascii=False,
+                                        separators=(",", ":"),
                                     ),
                                 }
                             )
@@ -823,6 +936,23 @@ async def converse(
                                 plan = ResponsePlan(
                                     intent="clarify",
                                     clarification=decision.clarification,
+                                    sections=[],
+                                )
+                                break
+                            if decision.action == "read" and decision.read is not None:
+                                clarification = await execute_read_intent(
+                                    decision.read,
+                                    request,
+                                    execute_planned_read,
+                                    now,
+                                    settings.ai_max_tool_calls,
+                                )
+                                read_completed = any(
+                                    name != "search_places" for name in session.features
+                                )
+                                plan = ResponsePlan(
+                                    intent="clarify" if clarification else "explain",
+                                    clarification=clarification,
                                     sections=[],
                                 )
                                 break
@@ -877,6 +1007,9 @@ async def converse(
                                 ModelTraceTurn(kind="plan", plan=proposed.model_dump())
                             )
                             plan, model = proposed, settings.ai_model
+                            read_completed = any(
+                                name != "search_places" for name in session.features
+                            )
                             break
                         # Preserve original output/reasoning items and call IDs
                         # only inside this bounded, store=false request lifecycle.
@@ -911,7 +1044,11 @@ async def converse(
                                 {
                                     "type": "function_call_output",
                                     "call_id": call["call_id"],
-                                    "output": json.dumps(result, ensure_ascii=False),
+                                    "output": json.dumps(
+                                        result,
+                                        ensure_ascii=False,
+                                        separators=(",", ":"),
+                                    ),
                                 }
                             )
                     if plan is None:
@@ -928,7 +1065,14 @@ async def converse(
                     reasons.append(state["reason"])
             except (ProviderError, ToolError) as exc:
                 reasons.append(exc.code)
-                trace.append(ModelTraceTurn(kind="error", name=stage, error=exc.code))
+                trace.append(
+                    ModelTraceTurn(
+                        kind="error",
+                        name=stage,
+                        error=exc.code,
+                        plan=getattr(exc, "details", None),
+                    )
+                )
                 model = None
             except HTTPException:
                 # Keep the existing owner/access and storage HTTP contracts.
@@ -1024,6 +1168,25 @@ async def converse(
             "요청은 강원도 물놀이와 관련 있지만 자료 조회를 완료하지 못했습니다. "
             "처리 기록의 사유를 확인한 뒤 다시 시도해 주세요."
         )
+    if scope_action == "read":
+        if plan.clarification == "place" and response.candidates:
+            choices = ", ".join(
+                " · ".join(str(c[key]) for key in ("name", "region") if c.get(key))
+                for c in response.candidates[:8]
+            )
+            response.clarification = f"{QUESTIONS['place']} 검색된 후보: {choices}"
+        if (
+            not read_completed
+            and not plan.clarification
+            and response.status != "query_failed"
+        ):
+            response.status = "unavailable"
+            response.answer = (
+                "요청한 자료 조회를 끝까지 완료하지 못했습니다. "
+                "아래 내용은 확인된 범위입니다."
+            )
+            response.reason_codes.append("ai_read_incomplete")
+        response.answer = evidence_answer(response.facts, response.answer)
     return response
 
 

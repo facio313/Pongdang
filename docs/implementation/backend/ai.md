@@ -130,9 +130,9 @@ JSON schema 준수만으로 사실성을 보장하지 않으므로 서버에서 
 | `AI_TIMEOUT_SECONDS` | 8, 범위 1~30초; 전체 응답 대기 상한은 이 값+1초 |
 | `AI_MAX_INPUT_BYTES` | 8000, 최대 16000; 전체 provider HTTP JSON UTF-8 bytes |
 | `AI_MAX_OUTPUT_TOKENS` | 256, 범위 64~1024 |
-| `AI_MAX_DAILY_CALLS` | 20, 0이면 모델 요청 금지 |
+| `AI_MAX_DAILY_CALLS` | 50, 0이면 모델 요청 금지 |
 | `AI_MAX_DAILY_TOKENS` | 20000, 0이면 모델 요청 금지 |
-| `AI_RESERVED_CALL_MICROUSD` | 100000; 호출당 비용 예약의 최소값 |
+| `AI_RESERVED_CALL_MICROUSD` | 20000; 호출당 비용 예약의 최소값 |
 | `AI_DAILY_BUDGET_MICROUSD` | 1000000; 1 USD = 1000000 microUSD |
 
 전체 request body를 만드는 `request_bytes`를 바이트상한, 예산, 실제 HTTP 요청에서

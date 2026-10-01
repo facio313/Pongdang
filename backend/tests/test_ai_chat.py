@@ -418,13 +418,14 @@ def test_data_question_without_tool_cannot_get_model_answer(settings):
 
 
 def test_greeting_does_not_require_db_or_tools(settings):
-    result, provider, _ = run(
+    result, provider, account = run(
         settings,
-        [final(intent="greeting", sections=[])],
+        [],
         request=chat.ChatRequest(message="안녕하세요"),
     )
-    assert result.provider == "openai" and not result.features
-    assert provider.bodies[0]["tool_choice"] == "auto"
+    assert result.provider == "deterministic" and not result.features
+    assert not result.fallback and not provider.bodies
+    assert not account.sizes and account.admissions == 0
 
 
 def test_budget_exhaustion_no_attempt_and_accounting_failure_closed(settings):
@@ -632,6 +633,10 @@ def test_strict_schema_every_object_required_and_no_arbitrary_prose():
 
     check(schema)
     assert set(schema["properties"]) == {"intent", "clarification", "sections"}
+    section = schema["$defs"]["SectionPlan"]
+    assert "title" in section["properties"] and "title" in section["required"]
+    assert "conditions" in section["properties"]["title"]["enum"]
+    assert "title" not in section["properties"]["title"]
 
 
 def test_smoke_default_is_unpaid_without_settings(monkeypatch, capsys):

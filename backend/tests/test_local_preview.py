@@ -147,8 +147,8 @@ def test_explicit_ai_opt_in_is_bounded_and_does_not_import_other_settings(
     assert settings.ai_effective_provider == "openai"
     assert settings.ai_api_key.get_secret_value() == "explicit-ai-test-key"
     assert settings.ai_model == settings.ai_pricing_model == "gpt-6-luna"
-    assert settings.ai_max_daily_calls == 30
-    assert settings.ai_daily_budget_microusd == 600000
+    assert settings.ai_max_daily_calls == 50
+    assert settings.ai_daily_budget_microusd == 1000000
     assert settings.postgres_db == "pongdang_test"
     assert settings.travel_route_provider == "disabled"
     assert not settings.kakao_rest_api_key.get_secret_value()

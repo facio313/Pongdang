@@ -28,8 +28,8 @@ def test_key_only_enables_luna_with_matched_nonzero_prices(monkeypatch):
     assert configured.ai_model == configured.ai_pricing_model == "gpt-6-luna"
     assert configured.ai_input_microusd_per_million_tokens == 100000
     assert configured.ai_output_microusd_per_million_tokens == 500000
-    assert configured.ai_max_daily_calls == 30
-    assert configured.ai_daily_budget_microusd == 600000
+    assert configured.ai_max_daily_calls == 50
+    assert configured.ai_daily_budget_microusd == 1000000
 
 
 @pytest.mark.parametrize(

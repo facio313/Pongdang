@@ -232,16 +232,18 @@ class TravelToolSession(ToolSession):
                 context.request = previous.request
 
     def model_context(self):
-        from app.ai.chat import private_text
+        from app.ai.chat import compact_context
 
-        request = self.travel_context.request.model_dump(mode="json")
+        request = compact_context(
+            self.travel_context.request.model_dump(mode="json", exclude_none=True)
+        )
         if request.get("origin"):
             request["origin"] = {"label": "user_supplied_origin", "available": True}
         if request.get("mood"):
             request["mood"].pop("text", None)
         # Origin coordinates, SSO subjects, signed tokens, private signal IDs,
         # review notes and saved plan IDs never enter the provider body.
-        return json.loads(private_text(json.dumps(request, ensure_ascii=False)))
+        return request
 
     def schemas(self):
         return super().schemas() + [

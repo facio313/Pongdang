@@ -67,10 +67,10 @@ def preview_settings(config, *, kakao_rest_api_key="", ai_api_key=""):
         sso_allowed_origins=ORIGIN,
         ai_provider="openai" if ai_api_key else "disabled",
         ai_api_key=ai_api_key,
-        # Explicit AI previews share the existing durable accounting, with a
-        # smaller local ceiling: at most 30 attempts and USD 0.60 per UTC day.
-        ai_max_daily_calls=30,
-        ai_daily_budget_microusd=600000,
+        # Explicit AI previews share the existing durable accounting, with an
+        # explicit local ceiling: at most 50 attempts and USD 1.00 per UTC day.
+        ai_max_daily_calls=50,
+        ai_daily_budget_microusd=1000000,
         travel_route_provider="kakao" if kakao_rest_api_key else "disabled",
         kakao_rest_api_key=kakao_rest_api_key,
         notifications_provider="disabled",

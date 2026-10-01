@@ -121,19 +121,35 @@ def test_n_returns_fixed_response_before_any_domain_read(settings, message):
     assert response.model_trace[1].plan["relevance"] == "N"
 
 
-def test_two_visits_are_interpreted_before_one_bounded_db_action(settings):
+@pytest.mark.parametrize(
+    "message,visits",
+    [
+        (MESSAGE, VISITS),
+        (
+            "오전엔 계곡을 갔다 오후엔 해변을 가고 싶어.",
+            [
+                {"place_type": "valley", "part_of_day": "morning", "activity": None},
+                {"place_type": "beach", "part_of_day": "afternoon", "activity": None},
+            ],
+        ),
+    ],
+)
+def test_two_visits_are_interpreted_before_one_bounded_db_action(
+    settings, message, visits
+):
     response, session, provider, _ = run(
         settings,
         [
             decision(
                 action="recommend",
-                changes={"visit_intents": VISITS},
+                changes={"visit_intents": visits},
             )
         ],
+        message=message,
     )
     assert [
         v.model_dump() for v in session.travel_context.request.visit_intents
-    ] == VISITS
+    ] == visits
     assert session.calls == [
         (
             "travel_recommend",
@@ -145,7 +161,7 @@ def test_two_visits_are_interpreted_before_one_bounded_db_action(settings):
                             for key, value in visit.items()
                             if value is not None
                         }
-                        for visit in VISITS
+                        for visit in visits
                     ]
                 },
                 "limit": 5,
@@ -156,7 +172,140 @@ def test_two_visits_are_interpreted_before_one_bounded_db_action(settings):
     assert len(provider.bodies) == 1  # no unnecessary final model composition
     assert response.provider == "openai" and not response.fallback
     assert [t.kind for t in response.model_trace] == ["attempt", "scope", "tool"]
-    assert response.model_trace[1].plan["changes"]["visit_intents"] == VISITS
+    assert response.model_trace[1].plan["changes"]["visit_intents"] == visits
+
+
+def empty_decision():
+    return {
+        "status": "completed",
+        "output": [{"type": "reasoning", "summary": []}],
+        "usage": {"input_tokens": 80, "output_tokens": 0},
+    }
+
+
+def test_empty_scope_is_retried_once_with_its_own_budget_reservation(settings):
+    response, session, provider, account = run(
+        settings,
+        [
+            empty_decision(),
+            decision(action="recommend", changes={"visit_intents": VISITS}),
+        ],
+    )
+    assert response.provider == "openai" and not response.fallback
+    assert not response.reason_codes
+    assert len(provider.bodies) == len(account.sizes) == 2
+    assert provider.bodies[0] == provider.bodies[1]
+    assert account.usage == [("1", 80, 0), ("2", 80, 50)]
+    assert len(session.calls) == 1
+    assert [turn.kind for turn in response.model_trace] == [
+        "attempt",
+        "retry",
+        "attempt",
+        "scope",
+        "tool",
+    ]
+    retry = response.model_trace[1]
+    assert retry.error == "ai_empty_output"
+    assert retry.plan == {
+        "output_items": 1,
+        "message_items": 0,
+        "text_parts": 0,
+        "text_characters": 0,
+    }
+
+
+def test_repeated_empty_scope_stops_without_reads_and_keeps_diagnostics(settings):
+    response, session, provider, account = run(
+        settings,
+        [empty_decision(), empty_decision()],
+    )
+    assert response.status == "unavailable"
+    assert response.reason_codes == ["ai_empty_output", "ai_scope_unavailable"]
+    assert not session.prepared and not session.calls
+    assert len(provider.bodies) == len(account.sizes) == 2
+    assert response.model_trace[-1].plan["text_parts"] == 0
+    assert account.released == ["local-lease"]
+
+
+@pytest.mark.parametrize("bounded_by", ["daily_budget", "request_calls"])
+def test_empty_scope_retry_cannot_exceed_existing_limits(settings, bounded_by):
+    account = MemoryBudget(limit=1 if bounded_by == "daily_budget" else 3)
+    if bounded_by == "request_calls":
+        settings = settings.model_copy(update={"ai_max_model_calls": 1})
+    response, session, provider, account = run(
+        settings,
+        [empty_decision()],
+        account=account,
+    )
+    assert response.status == "unavailable" and not session.calls
+    assert len(provider.bodies) == len(account.sizes) == 1
+    assert (
+        "ai_budget_exhausted" if bounded_by == "daily_budget" else "ai_empty_output"
+    ) in response.reason_codes
+
+
+def test_retry_can_still_reject_an_unrelated_request_without_reads(settings):
+    response, session, provider, _ = run(
+        settings,
+        [empty_decision(), decision("N", "reject")],
+        message="주식 추천해줘",
+    )
+    assert response.status == "out_of_scope"
+    assert response.answer == "관련 없는 것은 질문 받지 않는다."
+    assert not session.prepared and not session.calls
+    assert len(provider.bodies) == 2
+
+
+def test_empty_scope_retry_keeps_the_original_request_deadline(settings):
+    class SlowRetry(ScriptedProvider):
+        async def respond(self, body):
+            if self.bodies:
+                self.bodies.append(body)
+                await asyncio.sleep(10)
+            return await super().respond(body)
+
+    provider, account = SlowRetry([empty_decision()]), MemoryBudget()
+    session = IntentSession(settings, NOW)
+    response = asyncio.run(
+        chat.converse(
+            settings.model_copy(update={"ai_request_timeout_seconds": 0.2}),
+            chat.ChatRequest(message=MESSAGE),
+            "owner",
+            provider,
+            now=NOW,
+            session_factory=lambda *_: session,
+            budget_api=account,
+        )
+    )
+    assert "ai_request_timeout" in response.reason_codes
+    assert len(provider.bodies) == len(account.sizes) == 2
+    assert not session.prepared and not session.calls
+    assert account.released == ["local-lease"]
+
+
+@pytest.mark.parametrize("split_messages", [False, True])
+def test_split_text_is_assembled_before_strict_intent_validation(split_messages):
+    raw = decision(action="recommend", changes={"visit_intents": VISITS})
+    text = raw["output"][0]["content"][0]["text"]
+    pieces = [text[:73], text[73:141], text[141:]]
+    if split_messages:
+        raw["output"] = [
+            {"type": "message", "content": [{"type": "output_text", "text": piece}]}
+            for piece in pieces
+        ]
+    else:
+        raw["output"][0]["content"] = [
+            {"type": "output_text", "text": piece} for piece in pieces
+        ]
+    _, _, parsed = chat.parse_response(raw, plan_type=IntentDecision, allow_tools=False)
+    assert [v.model_dump() for v in parsed.changes.visit_intents] == VISITS
+
+
+def test_multiple_complete_decisions_are_invalid_not_empty():
+    raw = decision()
+    raw["output"] += decision("N", "reject")["output"]
+    with pytest.raises(ProviderError, match="ai_output_unverified"):
+        chat.parse_response(raw, plan_type=IntentDecision, allow_tools=False)
 
 
 @pytest.mark.parametrize("travel_screen", [False, True])

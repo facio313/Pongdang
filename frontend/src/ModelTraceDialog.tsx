@@ -11,6 +11,7 @@ interface TraceSource {
 function traceLabel(turn: ModelTraceTurn): string {
   if (turn.kind === "tool") return turn.name ?? t("도구");
   if (turn.kind === "attempt") return `${t("루나 호출 시도")} · ${t(turn.name === "scope" ? "관련성·의도 판단" : "자료 조회 계획")}`;
+  if (turn.kind === "retry") return t("빈 응답 · 재시도 준비");
   if (turn.kind === "error") return t("루나 처리 실패");
   if (turn.kind === "scope") {
     const relevance = turn.plan?.relevance;
@@ -47,7 +48,7 @@ function TraceTurns({ trace }: { trace: ModelTraceTurn[] }) {
           <li key={`${turn.kind}:${index}`}>
             <strong>{traceLabel(turn)}</strong>
             {visits && <p>{visits}</p>}
-            {turn.error && <p>{t(Object.hasOwn(aiReasonTexts, turn.error) ? aiReasonTexts[turn.error] : "루나 응답을 처리하지 못했습니다.")}</p>}
+            {turn.error && turn.kind !== "retry" && <p>{t(Object.hasOwn(aiReasonTexts, turn.error) ? aiReasonTexts[turn.error] : "루나 응답을 처리하지 못했습니다.")}</p>}
             <pre>
               <code>
                 {JSON.stringify(
