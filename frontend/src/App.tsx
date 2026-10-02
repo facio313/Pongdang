@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { DataWorkspace } from "./DataWorkspace";
+import { DataSourcesPage } from "./DataSourcesPage";
 import { DevIndexPage } from "./DevIndexPage";
 import { DesktopKitPage } from "./DesktopKitPage";
 import { AiConciergePage } from "./AiConciergePage";
@@ -123,8 +124,12 @@ export default function App() {
             from={screen.route.from}
             until={screen.route.until}
           />
-        ) : (
+        ) : screen.route.dev ? (
           <DataWorkspace page={screen.route.page === "info" ? "info" : "data"} />
+        ) : (
+          // 개발자 콘솔은 `?dev=1` 로만 열립니다(featureRoutes 의 dev 주석).
+          // 그 손잡이 없이 온 사람에게는 사용자용 데이터 출처 요약을 보여 줍니다.
+          <DataSourcesPage />
         )}
       </main>
     </DataOrigin.Provider>

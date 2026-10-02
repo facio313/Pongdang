@@ -23,8 +23,10 @@ const MENU_ITEMS: {
   { label: "저장한 코스", href: "#map?view=course" },
   { label: "지점 즐겨찾기", href: "#favorites" },
   { label: "알림 설정", href: "#first-swim" },
-  { label: "데이터 출처와 갱신", href: "#info" },
-  { label: "이용 안내", href: "#info" },
+  // 「데이터 출처와 갱신」은 수집 DB 테이블과 내부 이력을 보여 주는 개발자
+  // 콘솔로 가 있었습니다. 지금은 제공 기관 · 갱신 주기 · 점수 산정 방식만 담은
+  // 사용자용 화면으로 갑니다(DataSourcesPage). 원래 화면은 `#info?dev=1`.
+  { label: "데이터 출처", href: "#info" },
   // 「설정」은 #recommend 로 갔습니다. 거기는 설정 화면이 아니라 추천 탭이고,
   // 탭바에서 이미 갈 수 있는 곳입니다. 설정 화면이 생기기 전까지는 그 이름으로
   // 다른 곳에 데려다 놓지 않습니다.
@@ -60,11 +62,11 @@ export function SideMenuButton() {
 function SideMenuPanel({ onClose }: { onClose: () => void }) {
   const refresh = useDataRefresh();
   const refreshMessage = refresh.error ?? (refresh.pending
-    ? "최신 자료와 점수를 갱신하고 있습니다."
-    : refresh.job?.status === "succeeded" ? "자료 확인 완료 · 부족한 항목은 이전 값 유지"
-    : refresh.job?.status === "partial" ? "일부 자료 또는 점수를 갱신하지 못했습니다. 다시 시도해 주세요."
+    ? "최신 자료와 점수를 확인하고 있습니다."
+    : refresh.job?.status === "succeeded" ? "자료를 확인했습니다."
+    : refresh.job?.status === "partial" ? "일부 자료를 갱신하지 못했습니다. 다시 시도해 주세요."
     : refresh.job?.status === "failed" ? "새로고침하지 못했습니다. 잠시 후 다시 시도해 주세요."
-    : "30분마다 자동 갱신 · 자료가 부족하면 이전 값 유지");
+    : "30분마다 자동으로 확인합니다.");
   const refreshFailed = !!refresh.error || ["partial", "failed"].includes(refresh.job?.status ?? "");
   const panel = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);

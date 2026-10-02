@@ -175,7 +175,12 @@ test('unexpected configuration-shaped error bodies remain generic and do not ove
   }
 });
 test('real feature links resolve to bounded existing reads and preserve context', () => {
-  assert.deepEqual(readRoute('#ai?spot_id=17&activity=surf'), { page: 'ai', spotId: 17, activity: 'surf', from: null, until: null });
+  assert.deepEqual(readRoute('#ai?spot_id=17&activity=surf'), { page: 'ai', dev: false, spotId: 17, activity: 'surf', from: null, until: null });
+  // 개발자 콘솔은 숨김 손잡이로만 열립니다(featureRoutes 의 dev 주석).
+  assert.equal(readRoute('#info').dev, false);
+  assert.equal(readRoute('#info?dev=1').dev, true);
+  assert.equal(readRoute('#info?dev=0').dev, false);
+  assert.equal(readRoute('#data?dev=1').page, 'data');
   assert.equal(readRoute('#demo').page, 'data');
   assert.equal(readRoute('#collector').page, 'info');
   assert.equal(readRoute('#livecam').page, 'livecam');

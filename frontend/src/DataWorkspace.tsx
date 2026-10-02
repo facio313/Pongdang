@@ -37,8 +37,10 @@ export function DataWorkspace({ page }: { page: "data" | "info" }) {
       <header className="app-header">
         <span>Pongdang</span>
         <nav aria-label={t("주요 메뉴")}>
-          <a href="#data" aria-current={page === "data" ? "page" : undefined}>{t("데이터 조회")}</a>
-          <a href="#info" aria-current={page === "info" ? "page" : undefined}>{t("데이터 정보")}</a>
+          {/* 이 화면들은 `?dev=1` 로만 열립니다. 서로 오갈 때도 손잡이를
+              들고 가야 사용자용 요약으로 떨어지지 않습니다(featureRoutes). */}
+          <a href="#data?dev=1" aria-current={page === "data" ? "page" : undefined}>{t("데이터 조회")}</a>
+          <a href="#info?dev=1" aria-current={page === "info" ? "page" : undefined}>{t("데이터 정보")}</a>
           <a href="#ai">{t("AI에게 물어보기")}</a>
           {Object.entries(featurePages).map(([key, label]) => (
             <a key={key} href={"#" + key}>

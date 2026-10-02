@@ -160,11 +160,38 @@ export function forecastAwaitingData(data?: Conditions): boolean {
     data.reason_codes.includes("condition_projection_unavailable_for_target");
 }
 
-/** 숫자 바로 옆에 놓는 근거 요약. 부분 점수의 원값과 서버의 확보율을 유지합니다. */
-export function scoreCoverageText(data?: { condition_score?: ConditionScore | null }): string {
+/** 숫자 바로 옆에 놓는 한 줄. **「언제 기준인지」만 말합니다.**
+ *
+ *  예전에는 이 자리가 「부분 점수 · 근거 4/4 (100%)」였습니다. 전부 사실이지만
+ *  처음 보는 사람에게는 읽을 수 없는 말입니다 -- 「부분 점수」가 무엇의 일부인지,
+ *  「근거 4/4」의 4가 무엇인지 화면이 설명하지 않습니다. 사용자가 숫자 옆에서
+ *  궁금해하는 하나는 **이게 지금 값인가** 입니다.
+ *
+ *  **원래 정보는 사라지지 않았습니다.** 확보율과 부분 점수 여부는
+ *  `coverageDetailText` 가 그대로 들고 있고, 「근거 보기」 접힘 영역의
+ *  `conditionScoreText` 안에서 한 글자도 빠짐없이 읽힙니다. */
+export function scoreCoverageText(
+  /** 목록 요약(`ConditionSummary`)에는 평가 시각이 없습니다. 그때는 빈 문자열을
+   *  돌려줘 줄을 비웁니다 -- 모르는 시각을 다른 값으로 메우지 않습니다. */
+  data?: Conditions | ConditionSummary,
+): string {
+  const index = data?.condition_score;
+  if (!index || !("at" in data)) return "";
+  const at = timeLabel(data.projection?.computed_at ?? data.retained_at ?? data.at);
+  if (!at || at === "–") return "";
+  // 이전 값을 쓰고 있다는 사실은 「마지막 업데이트」가 이미 말합니다 -- 그
+  // 시각이 오래된 것이 곧 그 사실입니다. 갱신 중일 때만 한 마디 붙입니다.
+  const refreshing = data.projection?.status === "refreshing"
+    ? ` · ${t("갱신 중")}` : "";
+  return t("마지막 업데이트 {at}", { at }) + refreshing;
+}
+
+/** 근거 확보율. 「근거 보기」 접힘 영역 안에서만 씁니다 -- 숫자 옆에 두면
+ *  내부 집계를 사용자 화면에 그대로 내놓는 셈입니다. */
+export function coverageDetailText(data?: { condition_score?: ConditionScore | null }): string {
   const index = data?.condition_score;
   if (!index) return t("근거 정보 없음");
-  const prefix = index.status === "partial" ? t("부분 점수 · ") : "";
+  const prefix = index.status === "partial" ? t("일부 항목만 평가 · ") : "";
   const available = index.available_components;
   const total = index.total_components;
   if (!Number.isInteger(available) || available < 0 ||
@@ -176,7 +203,11 @@ export function scoreCoverageText(data?: { condition_score?: ConditionScore | nu
 }
 
 export function conditionRetentionText(data?: Conditions) {
-  return data?.retained ? t("이전 결과 · {at} 기준 · 새 자료 대기", { at: tideTimeLabel(data.projection?.computed_at ?? data.retained_at ?? data.at) }) : "";
+  // 「이전 결과 · 09:00 기준 · 새 자료 대기」는 수집 파이프라인의 상태입니다.
+  // 보는 사람에게 필요한 것은 언제 기준인지 하나입니다.
+  return data?.retained
+    ? t("마지막 업데이트 {at}", { at: tideTimeLabel(data.projection?.computed_at ?? data.retained_at ?? data.at) })
+    : "";
 }
 
 /** 점수 사유 코드의 한국어 표기. scoreMeaning.ts 도 같은 사전을 읽습니다 --
@@ -215,13 +246,15 @@ export function conditionScoreText(data?: Conditions) {
   const coverage = Number.isFinite(index.coverage) ? t(" · 근거 확보 {percent}% ({available}/{total}개)", {
     percent: Math.round(index.coverage * 100), available: index.available_components, total: index.total_components,
   }) : "";
+  // 이 문장은 「근거 보기」 안에서만 읽힙니다(EvidenceNote · ConditionScoreDetails).
+  // 그래서 확보율 · 상태 · 면책을 줄이지 않고 그대로 둡니다.
   const state = index.status === "blocked" ? t("공식 제한 또는 활동 미지원으로 계산 보류")
     : score === null ? t("계산에 필요한 근거 부족")
     : index.status === "partial" ? t("일부 근거로 계산") : t("조건 근거로 계산");
   const support = index.reason_codes.includes("activity_support_unknown") ? t(" 활동 지원 여부 미확인.") : "";
   const context = index.reason_codes.includes("nearby_station_context") ? t(" 주변 관측소 참고 · 장소 실측 아님.") : "";
   const issueUnknown = index.components.some((component) => component.reason_codes.includes("provider_issue_time_unknown")) ? t(" 예보 발표 시각 미확인.") : "";
-  return (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("{label} {score}{coverage} · {state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.{support}{context}{issueUnknown}", {
+  return (data?.retained ? t("새 자료가 아직 없어 이전 값입니다") + " · " : "") + t("{label} {score}{coverage} · {state}. 현장 검증 전 참고값이며 안전 판정이 아닙니다.{support}{context}{issueUnknown}", {
     label: t(index.label), score: score === null ? "–" : t("{score}점", { score }), coverage, state, support, context, issueUnknown,
   });
 }
@@ -235,15 +268,16 @@ export function conditionScoreText(data?: Conditions) {
 export function evidenceSummary(data?: Conditions) {
   const index = data?.condition_score;
   if (!index) return t("근거 확보 자료를 읽지 못했습니다.");
-  const score = conditionScore(data);
-  const value = index.status === "blocked" ? t("계산 보류") : score === null ? "–" : `${score}`;
-  // 확보율은 백분율보다 「4개 중 4개」가 바로 읽힙니다. 백분율 전문은 details 안에
-  // conditionScoreText 로 그대로 남습니다.
-  const coverage = t(" · 근거 확보 {available}/{total}", { available: index.available_components, total: index.total_components });
-  const at = timeLabel(data?.at);
-  const summary = (data?.retained ? t("갱신 자료 부족 · 이전 값 유지") + " · " : "") + t("참고 점수 {value}{coverage} · {mode} {at} KST", { value, coverage, mode: conditionModeLabel(data), at });
+  // 「참고 점수 62 · 근거 확보 4/4 · 관측 10:55 KST · 갱신 자료 부족 · 이전 값
+  // 유지」가 점수 바로 아래 항상 떠 있었습니다. 점수는 바로 위에 크게 적혀
+  // 있으므로 이 줄이 다시 말할 필요가 없고, 확보율과 수집 상태는 내부 집계입니다.
+  // **전문은 바로 아래 「근거 보기」 안에 그대로 있습니다**(conditionScoreText).
+  const at = timeLabel(
+    data?.projection?.computed_at ?? data?.retained_at ?? data?.at,
+  );
+  const summary = t("마지막 업데이트 {at}", { at });
   return data?.projection?.status === "refreshing"
-    ? `${summary} · ${t("새 자료 반영 중 · 이전 계산 결과")}` : summary;
+    ? `${summary} · ${t("갱신 중")}` : summary;
 }
 /** 안전 상태의 사용자 문장. 서버 enum(unknown/caution/restricted)을 그대로 쓰면
  *  뜻이 전달되지 않고, 특히 unknown 은 「이상 없음」으로 읽힙니다. 모르는 값은

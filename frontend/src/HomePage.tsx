@@ -92,7 +92,7 @@ function Hero({
   return (
     <header className="pd-hero">
       <div className="hm-hero-background" aria-hidden="true" />
-      <AppHeader title={t("홈")} time={timeLabel(new Date().toISOString())} onCobalt />
+      <AppHeader title={t("홈")} onCobalt />
       <div className="hm-hero-inner">
         <div className="hm-hero-top">
           <div className="pd-lbl hm-hero-place">

@@ -8,7 +8,7 @@ import { FirstSwimGuide } from "./FirstSwimGuide";
 import { gradeOf } from "./groupAGrade";
 import { Icon, Skeleton } from "./pongdangUi";
 import { SpotConditionsCard } from "./SpotConditionsCard";
-import { placeMatchesId, placeRegionLabel, timeLabel, type Place } from "./productData";
+import { placeMatchesId, placeRegionLabel, type Place } from "./productData";
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
 import { kindLabel } from "./placeDetails";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -115,7 +115,6 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
             <div className="sd-hero-bar">
               <AppHeader
                 title={t("명소")}
-                time={timeLabel(new Date().toISOString())}
               />
             </div>
             <div className="sd-hero-caption">

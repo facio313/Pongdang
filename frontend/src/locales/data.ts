@@ -2145,5 +2145,82 @@ export const dataMessages: Record<string, MessageTranslations> = {
     "Newly stored records",
     "新增存储数",
     "新規保存数"
-  ]
+  ],
+  // ── 사용자용 데이터 출처 화면(DataSourcesPage) ────────────
+  // 개발자 콘솔(#info?dev=1)의 테이블과 달리, 제공 기관 · 갱신 주기 · 점수
+  // 산정 방식만 담은 화면입니다.
+  "데이터 출처": ["Data sources", "数据来源", "データ出典"],
+  "어디서 받은 자료인가요": ["Where the data comes from", "数据来自哪里", "どこから得たデータか"],
+  "얼마나 자주 갱신되나요": ["How often it updates", "更新频率", "更新の頻度"],
+  "점수는 어떻게 매기나요": ["How the score is calculated", "评分如何计算", "スコアの算出方法"],
+  "퐁당은 공공기관이 공개한 자료를 그대로 받아서 보여 줍니다. 값을 보정하거나 빈 값을 채우지 않습니다.": [
+    "Pongdang shows data published by public agencies as it is received. Values are never adjusted and gaps are never filled in.",
+    "Pongdang 原样展示公共机构公开的数据，不修正数值，也不填补空缺。",
+    "Pongdang は公共機関が公開したデータをそのまま表示します。値を補正したり、欠測を埋めたりしません。",
+  ],
+  "화면은 30분마다 자료를 다시 확인합니다. 각 숫자 옆의 「마지막 업데이트」가 그 값이 언제 기준인지 말합니다 — 새 자료가 아직 없으면 이전 값을 그대로 두고, 임의로 바꾸지 않습니다.": [
+    "The screen re-checks the data every 30 minutes. The \"Updated\" line beside each number says when that value is from — if no newer reading exists, the previous value stays as it is.",
+    "页面每 30 分钟重新检查数据。每个数值旁的「更新于」说明该值的基准时间 — 若暂无更新数据，则保留先前数值。",
+    "画面は30分ごとにデータを再確認します。各数値の横の「最終更新」がその値の基準時刻です。新しい観測がなければ以前の値をそのまま残します。",
+  ],
+  "기관마다 공개 주기가 다릅니다. 수질 조사처럼 몇 달에 한 번인 자료는 오래된 날짜가 그대로 보일 수 있고, 그 날짜를 숨기지 않습니다.": [
+    "Each agency publishes on its own schedule. Data such as water-quality surveys may be months old, and that date is never hidden.",
+    "各机构的公开周期不同。如水质调查这类数据可能已过数月，我们不会隐藏其日期。",
+    "機関ごとに公開周期が異なります。水質調査のように数か月に一度のデータは古い日付のまま表示され、その日付を隠しません。",
+  ],
+  "고른 활동을 하기에 지금 조건이 얼마나 맞는지를 0~100으로 나타낸 참고 점수입니다. 활동마다 보는 조건이 다르고, 실제로 측정값이 들어온 항목만 같은 비중으로 평균냅니다 — 없는 값을 0점으로 넣지 않습니다.": [
+    "A reference score from 0 to 100 for how well current conditions suit the chosen activity. Each activity looks at different conditions, and only items with an actual measurement are averaged with equal weight — a missing value is never entered as zero.",
+    "以 0~100 表示当前条件与所选活动的契合程度的参考评分。不同活动考察不同条件，仅对实际有测值的项目等权平均 — 缺失值不会计为 0 分。",
+    "選んだ活動に今の条件がどれだけ合うかを0~100で示す参考スコアです。活動ごとに見る条件が異なり、実測値がある項目のみを同じ重みで平均します。欠測を0点として入れることはありません。",
+  ],
+  "점수는 참고용이며 안전 판정이 아닙니다. 공식 운영 여부와 현장 상황은 따로 확인해 주세요.": [
+    "Scores are for reference only and are not a safety judgement. Please check official opening status and on-site conditions separately.",
+    "评分仅供参考，并非安全判定。请另行确认官方开放状况与现场情况。",
+    "スコアは参考値であり安全判定ではありません。公式の運営状況と現地の状況は別途ご確認ください。",
+  ],
+  // 제공 기관 이름과 쓰임 · 주기. 수집기의 provider 와 1:1 입니다.
+  // 「기상청」 · 「국립해양조사원」은 위에 이미 있습니다(제공기관 표기).
+  "해양환경공단": ["Korea Marine Environment Management Corporation", "韩国海洋环境公团", "海洋環境公団"],
+  "국립환경과학원": ["National Institute of Environmental Research", "韩国国立环境科学院", "国立環境科学院"],
+  "국립수산과학원": ["National Institute of Fisheries Science", "韩国国立水产科学院", "国立水産科学院"],
+  "한국수자원조사기술원": ["Korea Institute of Hydrological Survey", "韩国水资源调查技术院", "韓国水資源調査技術院"],
+  "한국관광공사 TourAPI": ["Korea Tourism Organization (TourAPI)", "韩国旅游发展局 TourAPI", "韓国観光公社 TourAPI"],
+  "카카오 로컬": ["Kakao Local", "Kakao Local", "Kakao Local"],
+  "한국천문연구원": ["Korea Astronomy and Space Science Institute", "韩国天文研究院", "韓国天文研究院"],
+  "Windy Webcams": ["Windy Webcams", "Windy Webcams", "Windy Webcams"],
+  "기온 · 습도 · 바람 · 강수 · 단기 예보 · 특보 · 자외선": [
+    "Air temperature, humidity, wind, precipitation, short-term forecasts, warnings, UV",
+    "气温、湿度、风、降水、短期预报、预警、紫外线",
+    "気温・湿度・風・降水・短期予報・警報・紫外線",
+  ],
+  "수온 · 파고 · 파주기 · 조위 · 유속 · 만조와 간조 예측": [
+    "Water temperature, wave height and period, tide level, current speed, high and low tide predictions",
+    "水温、浪高、波周期、潮位、流速、满潮与干潮预测",
+    "水温・波高・波周期・潮位・流速・満潮と干潮の予測",
+  ],
+  "해역 수질 조사 결과와 조사 지점": ["Coastal water-quality survey results and survey points", "海域水质调查结果与调查地点", "海域の水質調査結果と調査地点"],
+  "하천 · 호소 수질 조사 결과": ["River and lake water-quality survey results", "河川与湖沼水质调查结果", "河川・湖沼の水質調査結果"],
+  "연안 실시간 수온": ["Real-time coastal water temperature", "沿岸实时水温", "沿岸のリアルタイム水温"],
+  "하천 수위": ["River water level", "河川水位", "河川水位"],
+  "장소 이름 · 주소 · 개장 기간 · 이용시간 · 편의시설 · 사진": [
+    "Place names, addresses, opening periods, hours, facilities, photos",
+    "地点名称、地址、开放期、使用时间、设施、照片",
+    "場所の名称・住所・開設期間・利用時間・設備・写真",
+  ],
+  "주변 음식점 · 카페 · 명소와 행정구역 확인": [
+    "Nearby restaurants, cafes and places, plus administrative-area checks",
+    "周边餐厅、咖啡馆、景点与行政区确认",
+    "周辺の飲食店・カフェ・名所と行政区域の確認",
+  ],
+  "일출 · 일몰 시각": ["Sunrise and sunset times", "日出与日落时刻", "日の出・日の入り時刻"],
+  "물가 라이브캠 목록과 미리보기": ["Waterside live-cam listings and previews", "水边实时摄像头列表与预览", "水辺のライブカメラ一覧とプレビュー"],
+  "관측은 수십 분, 예보는 발표 주기마다": ["Observations every few tens of minutes; forecasts on each release", "观测每数十分钟，预报按发布周期", "観測は数十分ごと、予報は発表周期ごと"],
+  "관측은 수십 분, 조석 예측은 발표 주기마다": ["Observations every few tens of minutes; tide predictions on each release", "观测每数十分钟，潮汐预测按发布周期", "観測は数十分ごと、潮汐予測は発表周期ごと"],
+  "조사 일정에 따라 (수개월 간격일 수 있습니다)": ["On the survey schedule (which may be months apart)", "依调查日程（间隔可能长达数月）", "調査日程に従って（数か月間隔の場合があります）"],
+  "조사 일정에 따라": ["On the survey schedule", "依调查日程", "調査日程に従って"],
+  "한 시간 단위": ["Hourly", "每小时", "1時間ごと"],
+  "관측 주기마다": ["On each observation cycle", "按观测周期", "観測周期ごと"],
+  "제공처가 고칠 때마다": ["Whenever the provider updates it", "提供方更新时", "提供元が更新するたび"],
+  "조회할 때마다": ["On each lookup", "每次查询时", "照会するたび"],
+  "목록 유효기간마다": ["On each listing validity window", "按列表有效期", "一覧の有効期間ごと"],
 };

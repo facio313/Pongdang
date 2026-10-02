@@ -3,7 +3,7 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
-import { GradeIcon } from "./pongdangUi";
+import { GradeIcon, ScoreExplainer } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import { LOGO_ALT, logoUrl } from "./brand";
 import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
@@ -327,10 +327,10 @@ export function SplitBody({
  *  화면이 예시 상수를 그리던 때에는 맞는 말이었지만, 이제 실제 수집값을
  *  읽으므로 그대로 두면 **반대 방향으로 거짓말**이 됩니다 -- 진짜 관측값을
  *  예시라고 말하게 됩니다. 아직 예시인 자리는 그 자리에서 칩으로 밝힙니다. */
-const DEFAULT_FOOT_NOTE =
-  "점수는 물놀이 조건 참고값이며 안전 판정이 아닙니다. " +
-  "값이 없으면 «–» 로 두며 0 점 · 정상 · 안전으로 치환하지 않습니다. " +
-  "점수 · 수온 · 안전 상태 · 신뢰도는 서로 다른 값이며 하나로 요약하지 않습니다.";
+//: 모든 화면 밑에 깔리는 한 줄. 전문은 「퐁당 점수란?」 안에 그대로 있습니다 --
+//: 세 문장을 화면마다 반복하면 11px 회색 문단이 본문만큼 길어지고, 반복되는
+//: 문장은 결국 아무도 읽지 않습니다(AppShell 의 AppFootNote 와 같은 문장).
+const DEFAULT_FOOT_NOTE = "점수는 참고용이며 안전 판정이 아닙니다.";
 
 export function FootNote({
   missing,
@@ -396,7 +396,12 @@ export function FootNote({
         {/* {missing && <div className="pd-dk-foot-missing">
           {alert && <Icon name="warning" size={14} />}{t("아직 실연동되지 않은 항목 — {items}", { items: t(missing) })}
         </div>} */}
-        {note && <p className="pd-dk-foot-note">{typeof note === "string" ? t(note) : note}</p>}
+        {note && (
+          <p className="pd-dk-foot-note">
+            {typeof note === "string" ? t(note) : note}{" "}
+            {note === DEFAULT_FOOT_NOTE && <ScoreExplainer popover />}
+          </p>
+        )}
       </div>
     </footer>
   );

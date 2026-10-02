@@ -135,7 +135,6 @@ function EntryHero({
         <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
-          time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <Mascot className="pd-hero-mascot is-sm" role="snorkel" size={46} label eager />
@@ -321,7 +320,6 @@ function TasteHero({
     <header className="pd-hero rc-hero has-mascot">
       <AppHeader
         title={t("STEP {current} / {total}", { current: stepNo, total: stepTotal })}
-        time={timeLabel(new Date().toISOString())}
         onCobalt
       />
       {/* 취향 고르기는 진입 화면과 같은 흐름이므로 같은 포즈입니다. */}
@@ -626,7 +624,6 @@ function ChatHero({
         <header className="pd-hero rc-hero">
         <AppHeader
           title={regionTitle}
-          time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <div className="rc-bot-head">
@@ -1104,7 +1101,6 @@ function CourseHero({
         <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
-          time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         <Mascot className="pd-hero-mascot is-sm" role="course" size={46} label eager />
@@ -1350,7 +1346,6 @@ function RealertHero({
         <header className="pd-hero rc-hero has-mascot">
         <AppHeader
           title={regionTitle}
-          time={timeLabel(new Date().toISOString())}
           onCobalt
         />
         {/* 재추천은 「이 코스의 새 후보」이므로 코스와 같은 포즈입니다. */}

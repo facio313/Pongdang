@@ -28,7 +28,6 @@ import {
   periodPath,
   dateLabel,
   placeRegionLabel,
-  timeLabel,
   scoreCoverageText,
   tideTimeLabel,
   evidenceText,
@@ -131,7 +130,6 @@ function Hero({
     <header className="pd-hero td-hero">
       <AppHeader
         title={placeRegionLabel(place, displayName.includes("경포") ? t("강릉") : t("선택 해수욕장"))}
-        time={timeLabel(new Date().toISOString())}
         onCobalt
       />
       <div className="td-hero-inner">
@@ -350,9 +348,10 @@ function SpotSection({
           <div className="td-spot-detail">
             <dl>
               <dt>{t("장소명")}</dt>
-              <dd>
-                {selected.name}
-                {t("(수집 DB)")}</dd>
+              {/* 「(수집 DB)」를 뗐습니다. 장소 이름 뒤에 자료의 출처 종류를
+                  붙이는 것은 개발자 콘솔의 표기입니다 -- 출처는 아래 「근거 보기」가
+                  제공기관 이름으로 말합니다. */}
+              <dd>{selected.name}</dd>
               <dt>{t("지역")}</dt>
               <dd>{placeRegionLabel(selected)}</dd>
               <dt>{t("주소")}</dt>
@@ -423,7 +422,7 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
                   {activity.score !== null ? scoreCoverageText(activity.data) : t("숫자 추천 보류")}
                 </div>
                 <div className="td-act-label">
-                  {activity.data?.support_status === "supported" ? t("활동 지원 확인") : activity.data?.support_status === "unsupported" ? t("활동 미지원") : t("지원 미확인")}
+                  {activity.data?.support_status === "supported" ? t("이 장소에서 가능") : activity.data?.support_status === "unsupported" ? t("이 장소에서 불가") : t("가능 여부 확인 필요")}
                 </div>
               </div>
             );
@@ -559,7 +558,7 @@ function TideSection({
   const schedule = placeOperatingSchedule(detail);
   return (
     <section>
-      <SectionHead label={t("물때")} suffix="A6" />
+      <SectionHead label={t("물때")} />
       <div className="pd-card">
         <div className="td-tide-now">
           <span className="td-tide-pill is-now">
@@ -629,7 +628,6 @@ function FirstSwimSection({ id }: { id?: number }) {
     <section aria-label={t("첫 입수 · 수온 알림")}>
       <SectionHead
         label={t("첫 입수 · 수온 알림")}
-        suffix="A7"
         href="#first-swim"
         linkLabel={t("내 알림 조회 →")}
       />
@@ -650,7 +648,7 @@ function QualitySection({
 }) {
   return (
     <section>
-      <SectionHead label={t("수질 등급 · 최근 검사")} suffix="A8" />
+      <SectionHead label={t("수질 등급 · 최근 검사")} />
       <div className="pd-card">
         <div className="td-conf-row"><b>{error ? t("조회 실패") : waterQualityLabel(data)}</b><span>{t(data?.label ?? "")}</span></div>
         <WaterQualityDetails data={data} error={error} className="pd-note" popover />

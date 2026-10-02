@@ -40,7 +40,7 @@ export function TodayForecast({ id, now, activity, placeSettled = false }: {
     <section aria-label={t("7일 예보")}>
       <div className="td-section-head">
         <h2 className="pd-lbl">
-          {t("7일 예보 · {activity}", { activity: t(activities[activity]) })}<span className="td-lbl-plain"> · A2</span>
+          {t("7일 예보 · {activity}", { activity: t(activities[activity]) })}
         </h2>
       </div>
       <div className="pd-card">

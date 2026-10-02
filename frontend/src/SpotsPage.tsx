@@ -12,7 +12,7 @@ import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
 import { gradeOf } from "./groupAGrade";
 import { Icon, Mascot, Skeleton, StateChip } from "./pongdangUi";
-import { conditionScore, placeRegionLabel, timeLabel, type Place } from "./productData";
+import { conditionScore, placeRegionLabel, type Place } from "./productData";
 import { useConditions } from "./useConditions";
 import { mappablePlaces } from "./useWaterPlaces";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
@@ -65,7 +65,6 @@ function ListHero({
     <header className="pd-hero">
       <AppHeader
         title={t("명소")}
-        time={timeLabel(new Date().toISOString())}
         onCobalt
       />
       <div className="sp-hero-inner">
@@ -227,7 +226,7 @@ function SpotsMap() {
       {/* 헤더는 지도 위(.sp-stage)에 얹으므로 셸이 따로 그리지 않습니다. */}
       <AppShell tab="spots" bare hero={null}>
         <div className="sp-stage">
-          <AppHeader title={t("명소 지도")} time={timeLabel(new Date().toISOString())} />
+          <AppHeader title={t("명소 지도")} />
           <div className="sp-filters" role="group" aria-label={t("분류 필터")}>
             {MAP_FILTERS.map((item) => (
               <button

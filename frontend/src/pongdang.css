@@ -129,8 +129,9 @@ main:has(.pd-app.is-fullscreen) {
 }
 
 /* ── 헤더 ──────────────────────────────────────────────────
-   목업의 가짜 상태바(9:41)를 대신하는 실제 헤더입니다. 실기기에서는 OS 의
-   진짜 상태바가 위에 있으므로, 노치 높이만큼 안전 여백을 둡니다. */
+   목업의 가짜 상태바(9:41)를 대신하는 실제 헤더입니다. 시각은 그리지 않습니다 --
+   실기기에서는 OS 의 진짜 상태바가 바로 위에 있고, 넓은 화면에서는 웹 페이지
+   안의 시계가 앱 흉내로 읽힙니다. 노치 높이만큼 안전 여백만 둡니다. */
 
 .pd-header {
   display: flex;
@@ -144,8 +145,8 @@ main:has(.pd-app.is-fullscreen) {
 .pd-header.is-on-cobalt {
   color: var(--pd-on-cobalt-2);
 }
-/* 왼쪽 묶음(사이드 메뉴 버튼 + 시계). 헤더는 space-between 3칸이므로 둘을 한
-   칸으로 묶어야 가운데 워드마크가 제자리에 남습니다. */
+/* 왼쪽 묶음. 헤더는 space-between 3칸이므로 한 칸으로 묶어야 가운데 워드마크가
+   제자리에 남습니다. 예전에는 여기에 목업용 가짜 시계가 함께 있었습니다. */
 .pd-header-left {
   display: flex;
   align-items: center;
@@ -193,18 +194,6 @@ main:has(.pd-app.is-fullscreen) {
   filter: drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
     drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff);
 }
-/* 실기기에서는 바로 위에 OS 의 진짜 시계가 있으므로 숨깁니다. 목업 폰
-   프레임을 그리는 넓은 화면에서만 보여 프레임을 완성합니다. */
-.pd-header-time {
-  visibility: hidden;
-}
-@media (min-width: 431px) {
-  .pd-header-time {
-    visibility: visible;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 /* ── 기본형 ────────────────────────────────────────────────
    이전 hm- · td- · rc- · mp- · mc- 접두사로 5벌 있던 것을 하나로 합쳤습니다. */
 

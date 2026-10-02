@@ -1,0 +1,37 @@
+/* 사용자용 「데이터 출처」. 개발자 콘솔(#info?dev=1)의 테이블과 달리, 기관
+   이름과 쓰임 · 주기만 읽히면 됩니다. */
+.ds-card + .ds-card {
+  margin-top: 12px;
+}
+.ds-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0 0;
+}
+.ds-source {
+  display: grid;
+  gap: 2px;
+}
+.ds-source dt {
+  font-weight: 700;
+  font-size: var(--pd-fs-sm);
+}
+.ds-source dd {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}
+.ds-source .ds-cadence {
+  color: var(--pd-ink-mute);
+}
+/* 넓은 화면에서는 기관 이름과 설명을 두 칸으로 나눕니다. */
+@media (min-width: 640px) {
+  .ds-source {
+    grid-template-columns: 11em 1fr;
+    align-items: baseline;
+  }
+}

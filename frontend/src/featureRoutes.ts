@@ -10,11 +10,16 @@ export function readRoute(hash: string) {
   const [rawPage, rawQuery = ""] = hash.replace(/^#/, "").split("?");
   const page = rawPage === "livecam-test" ? "livecam" : rawPage === "collector" ? "info" : rawPage === "ai" || rawPage === "info" || Object.hasOwn(featurePages, rawPage) ? rawPage : "data";
   const query = new URLSearchParams(rawQuery);
+  // 개발자 콘솔(수집 DB 테이블 열람 · 수집 구조 문서)로 들어가는 숨김 손잡이.
+  // 사이드 메뉴의 「데이터 출처」는 사용자용 요약 화면으로 가고, 원래 화면은
+  // 이 파라미터가 있을 때만 열립니다 -- 테이블 코드명과 내부 이력이 일반
+  // 화면에 서 있으면 보는 사람은 자기 화면이 아니라는 것만 알게 됩니다.
+  const dev = query.get("dev") === "1";
   const value = query.get("spot_id") ?? "";
   const spotId = /^[1-9]\d{0,14}$/.test(value) ? Number(value) : undefined;
   const rawActivity = query.get("activity") ?? "";
   const activity = Object.hasOwn(activities, rawActivity) ? rawActivity as Activity : undefined;
-  return { page, spotId, activity, from: query.get("from"), until: query.get("until") };
+  return { page, dev, spotId, activity, from: query.get("from"), until: query.get("until") };
 }
 export function contextLink(context: AiContext, period?: { from: string; until: string }) {
   const query = new URLSearchParams();

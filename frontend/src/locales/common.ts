@@ -127,4 +127,25 @@ export const commonMessages: Record<string, MessageTranslations> = {
   "자세히": ["Details", "详情", "詳しく"],
   "퐁당": ["Pongdang", "Pongdang", "Pongdang"],
   "명소 페이지로 가서 더 많은 명소를 둘러보세요.": ["Visit the places page to explore more locations.", "前往景点页面浏览更多地点。", "スポットページでさらに多くの場所をご覧ください。"],
+  // ── 자료의 기준 시각과 갱신 상태 ─────────────────────────
+  // 「부분 점수 · 근거 4/4 (100%)」 · 「갱신 자료 부족 · 이전 값 유지」 자리를
+  // 대신하는 문구들입니다(productData 주석).
+  "마지막 업데이트 {at}": ["Updated {at}", "更新于 {at}", "最終更新 {at}"],
+  "갱신 중": ["Refreshing", "正在更新", "更新中"],
+  "새 자료가 아직 없어 이전 값입니다": ["No newer reading yet; showing the previous value", "暂无更新数据，显示先前数值", "新しい観測がないため以前の値です"],
+  "새 자료가 아직 없어 이전 값을 보여 줍니다.": ["No newer reading yet; showing the previous value.", "暂无更新数据，显示先前数值。", "新しい観測がないため以前の値を表示します。"],
+  "일부 항목만 평가 · ": ["Some items only · ", "仅部分项目 · ", "一部項目のみ · "],
+  "30분마다 자동으로 확인합니다.": ["Checked automatically every 30 minutes.", "每 30 分钟自动检查一次。", "30分ごとに自動で確認します。"],
+  "자료를 확인하고 있습니다.": ["Checking the data.", "正在检查数据。", "データを確認しています。"],
+  "자료를 확인했습니다.": ["Data checked.", "数据已检查。", "データを確認しました。"],
+  "최신 자료와 점수를 확인하고 있습니다.": ["Checking the latest data and scores.", "正在检查最新数据与评分。", "最新のデータとスコアを確認しています。"],
+  "일부 자료를 갱신하지 못했습니다. 다시 시도해 주세요.": ["Some data could not be refreshed. Please try again.", "部分数据未能更新，请重试。", "一部のデータを更新できませんでした。もう一度お試しください。"],
+  "준비 중": ["Coming soon", "准备中", "準備中"],
+  "수집 자료": ["Collected data", "已采集数据", "収集データ"],
+  // 활동 지원 여부. 「지원 미확인」은 서버 enum 을 그대로 읽은 말이었습니다.
+  "이 장소에서 가능": ["Available here", "此地点可进行", "この場所で可能"],
+  "이 장소에서 불가": ["Not available here", "此地点不可进行", "この場所では不可"],
+  "가능 여부 확인 필요": ["Needs checking", "需确认是否可行", "可否の確認が必要"],
+  // 모든 화면 밑에 깔리는 한 줄. 전문은 「퐁당 점수란?」 안에 있습니다.
+  "점수는 참고용이며 안전 판정이 아닙니다.": ["Scores are for reference only and are not a safety judgement.", "评分仅供参考，并非安全判定。", "スコアは参考値であり安全判定ではありません。"],
 };

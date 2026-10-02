@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { conditionScore, conditionScoreText, scoreCoverageText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, conditionRetentionText, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces, forecastAwaitingData } from '../src/productData.ts';
+import { conditionScore, conditionScoreText, scoreCoverageText, coverageDetailText, tideTimeLabel, conditionScoreExpiry, conditionComponentsText, conditionPath, conditionTargetInRange, conditionRetentionText, metricText, evidenceText, evidenceSummary, safetyStatusText, dataStatusText, productPlaces, forecastAwaitingData } from '../src/productData.ts';
 
 const index = {
   label: '활동 조건 참고 점수', status: 'partial', score: 76.3,
@@ -58,15 +58,29 @@ test('partial score includes actual coverage, missing fields and its non-safety 
   assert.match(conditionScoreText({ condition_score: { ...index, status: 'blocked', score: null } }), /공식 제한 또는 활동 미지원으로 계산 보류/);
 });
 
-test('the score-adjacent coverage label exposes partial evidence without changing the score', () => {
-  const data = { condition_score: { ...index, available_components: 2, coverage: 0.5 } };
-  assert.equal(scoreCoverageText(data), '부분 점수 · 근거 2/4 (50%)');
+test('the score-adjacent label says when the value is from, not how it was aggregated', () => {
+  // 숫자 옆에서 궁금한 하나는 「이게 지금 값인가」입니다. 「부분 점수 · 근거
+  // 2/4 (50%)」는 사실이지만 처음 보는 사람이 읽을 수 없는 내부 집계입니다.
+  const data = { at: '2026-09-19T13:57:00Z', condition_score: { ...index, available_components: 2, coverage: 0.5 } };
+  assert.equal(scoreCoverageText(data), '마지막 업데이트 22:57');
   assert.equal(conditionScore(data), 76.3);
-  assert.equal(scoreCoverageText({ condition_score: {
+  assert.equal(scoreCoverageText({ ...data, projection: { status: 'refreshing', computed_at: '2026-09-19T14:00:00Z' } }),
+    '마지막 업데이트 23:00 · 갱신 중');
+  // 평가 시각이 없는 목록 요약은 빈 줄입니다 -- 모르는 시각을 메우지 않습니다.
+  assert.equal(scoreCoverageText({ condition_score: index }), '');
+  assert.equal(scoreCoverageText(undefined), '');
+});
+
+test('the aggregated coverage stays available for the collapsed evidence section', () => {
+  // 원래 정보는 사라지지 않았습니다. 「근거 보기」 안에서 그대로 읽힙니다.
+  assert.equal(coverageDetailText({ condition_score: { ...index, available_components: 2, coverage: 0.5 } }),
+    '일부 항목만 평가 · 근거 2/4 (50%)');
+  assert.equal(coverageDetailText({ condition_score: {
     ...index, status: 'evaluated', available_components: 4, coverage: 1,
   } }), '근거 4/4 (100%)');
-  assert.equal(scoreCoverageText(undefined), '근거 정보 없음');
-  assert.equal(scoreCoverageText({ condition_score: { ...index, available_components: undefined } }), '부분 점수 · 근거 정보 없음');
+  assert.equal(coverageDetailText(undefined), '근거 정보 없음');
+  assert.equal(coverageDetailText({ condition_score: { ...index, available_components: undefined } }),
+    '일부 항목만 평가 · 근거 정보 없음');
 });
 
 test('tide times retain their actual KST date across midnight and year boundaries', () => {
@@ -80,23 +94,31 @@ test('tide times retain their actual KST date across midnight and year boundarie
 
 test('retained snapshots disclose their original time rather than a later requested target', () => {
   const data = { retained: true, at: '2026-09-22T03:00:00Z', retained_at: '2026-09-21T00:00:00Z' };
-  assert.equal(conditionRetentionText(data), '이전 결과 · 9/21 09:00 KST 기준 · 새 자료 대기');
+  // 「이전 결과 · … · 새 자료 대기」는 수집 파이프라인의 상태입니다. 보는
+  // 사람에게 필요한 것은 언제 기준인지 하나이고, 오래된 시각이 곧 그 사실입니다.
+  assert.equal(conditionRetentionText(data), '마지막 업데이트 9/21 09:00 KST');
   assert.equal(conditionRetentionText({ ...data, projection: { computed_at: '2026-09-21T00:05:00Z' } }),
-    '이전 결과 · 9/21 09:05 KST 기준 · 새 자료 대기');
+    '마지막 업데이트 9/21 09:05 KST');
 });
 
-test('the collapsed evidence line keeps coverage and never turns a missing score into a number', () => {
+test('the always-visible evidence line says when, and the detail keeps the rest', () => {
+  // 「참고 점수 76.3 · 근거 확보 3/4 · 관측 22:57 KST」가 점수 바로 아래 항상
+  // 떠 있었습니다. 점수는 바로 위에 크게 적혀 있고, 확보율과 수집 상태는 내부
+  // 집계입니다 -- 전문은 「근거 보기」 안의 conditionScoreText 에 그대로 있습니다.
   const data = { mode: 'observation', at: '2026-09-19T13:57:00Z', condition_score: index };
-  const line = evidenceSummary(data);
-  assert.match(line, /참고 점수 76.3/);
-  // 브라우저 테스트가 .hm-why-note 안에서 이 문자열을 찾습니다.
-  assert.match(line, /근거 확보 3\/4/);
-  assert.match(line, /관측 22:57 KST/);
-  // 접힌 줄이 짧아졌다고 없는 값이 0 이나 판정으로 바뀌지 않습니다.
-  assert.match(evidenceSummary({ ...data, condition_score: { ...index, score: null } }), /참고 점수 –/);
-  assert.match(evidenceSummary({ ...data, condition_score: { ...index, status: 'blocked', score: null } }), /계산 보류/);
-  assert.match(evidenceSummary({ ...data, mode: 'forecast' }), /예보 22:57 KST/);
+  assert.equal(evidenceSummary(data), '마지막 업데이트 22:57');
+  assert.equal(evidenceSummary({ ...data, projection: { status: 'refreshing', computed_at: '2026-09-19T14:00:00Z' } }),
+    '마지막 업데이트 23:00 · 갱신 중');
   assert.equal(evidenceSummary(undefined), '근거 확보 자료를 읽지 못했습니다.');
+
+  // 접힌 안에서는 점수 · 확보율 · 면책이 한 글자도 빠지지 않습니다.
+  const detail = conditionScoreText(data);
+  assert.match(detail, /76.3/);
+  assert.match(detail, /근거 확보 75% \(3\/4개\)/);
+  assert.match(detail, /안전 판정이 아닙니다/);
+  // 짧아진 줄이 없는 값을 0 이나 판정으로 바꾸지 않습니다.
+  assert.match(conditionScoreText({ ...data, condition_score: { ...index, score: null } }), /–/);
+  assert.match(conditionScoreText({ ...data, condition_score: { ...index, status: 'blocked', score: null } }), /계산 보류/);
 });
 
 test('server status enums reach the screen as sentences, and unknown never reads as fine', () => {

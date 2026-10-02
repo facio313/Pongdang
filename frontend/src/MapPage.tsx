@@ -207,7 +207,6 @@ function Stage({
       <header className="pd-hero mp-topbar">
         <AppHeader
           title={view === "spots" ? t("지도") : t("코스 지도")}
-          time={timeLabel(new Date().toISOString())}
         />
       </header>
 
@@ -1072,11 +1071,9 @@ function MapScreen() {
                 ? t("경로 미계산: {reason}", { reason: routeReasonsText(session.route.reason_codes) })
                 : ""}
             </p>
-            <div className="pd-slot mp-todo">
-              <div>
-                <b>{t("편의시설 필터")}</b>
-                <br />{t("샤워장 · 주차 · 카페 · 반려동물 가능")}<br />{t("시설 근거별 필터 화면 미작성")}</div>
-            </div>
+            {/* 「편의시설 필터 · 시설 근거별 필터 화면 미작성」 자리를 내렸습니다.
+                아직 만들지 않은 기능을 화면에 적어 두면 보는 사람에게는 고장난
+                기능으로 읽힙니다 -- 수집된 시설 근거가 들어오면 그때 세웁니다. */}
           </fieldset>
           {/* 전역 주의 문구입니다. 풀스크린에서는 .pd-body 가 없어 AppShell 이
               그리지 않으므로 시트 끝에 직접 둡니다 -- 자리를 옮겼을 뿐

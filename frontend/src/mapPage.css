@@ -478,16 +478,6 @@
   margin-top: 0;
 }
 
-/* ── 미작성 화면 ───────────────────────────────────────── */
-
-.map-page .mp-todo {
-  min-height: 84px;
-  padding: 14px;
-}
-.map-page .mp-todo b {
-  color: var(--pd-ink-3);
-}
-
 /* ── 검색 입력 · 폼 래퍼 ───────────────────────────────── */
 
 .map-page .mp-search-input {

@@ -441,10 +441,12 @@ export type StateChipKind =
 
 const STATE_CHIP_LABEL: Record<StateChipKind, string> = {
   example: "예시 데이터",
-  uncollected: "수집 미구현",
+  // 「수집 미구현」 · 「수집 DB」는 만드는 쪽의 말입니다. 보는 사람에게는 이
+  // 화면이 무엇을 들고 있는지만 필요합니다.
+  uncollected: "준비 중",
   no_data: "자료 없음",
   partial: "일부 자료",
-  live: "수집 DB",
+  live: "수집 자료",
 };
 
 export function StateChip({ kind }: { kind: StateChipKind }) {

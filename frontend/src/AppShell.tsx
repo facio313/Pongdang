@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { LOGO_ALT, logoUrl } from "./brand";
+import { ScoreExplainer } from "./pongdangUi";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 
@@ -13,17 +14,17 @@ export function AppActions({ children }: { children: ReactNode }) {
 
 /** 화면 상단 헤더. 화면마다 복붙돼 있던 상태바 마크업을 대신합니다.
  *
- *  시계는 데스크톱의 목업 폰 프레임에서만 보입니다. 실기기(풀블리드)에서는
- *  바로 위에 OS 의 진짜 시계가 있어 두 개가 겹쳐 보이므로 pongdang.css 가
- *  숨깁니다. 노치 여백도 거기 .pd-header 가 잡습니다. */
+ *  **시계는 없습니다.** 목업 시안의 가짜 상태바를 흉내 낸 자리였습니다.
+ *  실기기에서는 바로 위에 OS 의 진짜 시계가 있어 CSS 로 숨겨야 했고, 넓은
+ *  화면에서는 웹 페이지 안에 시각이 하나 더 떠 있어 앱 흉내로 읽혔습니다.
+ *  자료의 기준 시각은 그 자료 옆에서 말합니다(「마지막 업데이트 10:55」).
+ *
+ *  노치 여백은 pongdang.css 의 .pd-header 가 잡습니다. */
 export function AppHeader({
   title,
-  time,
   onCobalt = false,
 }: {
   title: string;
-  /** 목업 프레임용 시각 문자열. 없으면 자리만 비워 둡니다. */
-  time?: string;
   onCobalt?: boolean;
 }) {
   return (
@@ -33,7 +34,6 @@ export function AppHeader({
           여기 둡니다(AppShell 밖에서 헤더만 쓰는 화면에서는 숨습니다). */}
       <span className="pd-header-left">
         <SideMenuButton />
-        <span className="pd-header-time">{time}</span>
       </span>
       <span className="pd-header-mark">
         <img src={logoUrl()} alt={t(LOGO_ALT)} />
@@ -97,7 +97,18 @@ export function AppFootNote({
 
       <div className="pd-foot-body">
         {/* 제품 이름은 아래 주의 문구가 이미 말하므로 표지는 장식입니다. */}
-        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />{showNote && t("값이 없으면 –로 두며 0점 · 정상 · 안전으로 치환하지 않습니다. 점수는 물놀이 조건 참고값이고 안전 판정이 아니며, 점수 · 수온 · 안전 상태는 서로 다른 값이라 하나로 요약하지 않습니다.")}</div>
+        <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />
+        {showNote && (
+          <>
+            {/* 전문은 「퐁당 점수란?」 안에 그대로 있습니다. 세 문장을 모든
+                화면 밑에 깔아 두면 11px 회색 문단이 화면마다 반복되고, 반복되는
+                문장은 결국 아무도 읽지 않습니다 -- 꼭 읽혀야 하는 한 줄만
+                남깁니다. */}
+            {t("점수는 참고용이며 안전 판정이 아닙니다.")}{" "}
+            <ScoreExplainer popover />
+          </>
+        )}
+      </div>
     </footer>
   );
 }
@@ -126,7 +137,8 @@ export function AppShell({
   showFooterNote = true,
   children,
 }: {
-  tab: TabKey;
+  /** 지금 화면의 탭. 탭에 속하지 않는 화면은 생략합니다(appTabBar 주석). */
+  tab?: TabKey;
   title?: string;
   hero?: ReactNode;
   bare?: boolean;
