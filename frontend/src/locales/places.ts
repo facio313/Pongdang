@@ -1173,5 +1173,11 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "Could not load some itinerary places.",
     "部分行程地点查询失败。",
     "一部のコースのスポットを読み込めませんでした。"
-  ]
+  ],
+  "조건 자료 준비 중": ["Conditions not yet available", "条件数据准备中", "条件データ準備中"],
+  "조건 자료 준비 중 {count}곳": [
+    "{count} places without condition data yet",
+    "{count} 处的条件数据尚未就绪",
+    "条件データがまだない場所 {count} 件",
+  ],
 };

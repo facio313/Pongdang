@@ -1132,3 +1132,12 @@ main:has(.pd-app.is-fullscreen) {
     scroll-behavior: auto !important;
   }
 }
+
+/* 같은 관측소를 공유해 여러 해변 점수가 똑같이 나오는 날, 그 사실을 적는 한 줄.
+   접기 밖에 둡니다 -- 접어 두면 화면이 고장난 것처럼 보이고, 펼쳐 본 사람만
+   이유를 알게 됩니다. */
+.pd-station-context {
+  margin: 0 0 4px;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+}

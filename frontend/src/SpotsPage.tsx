@@ -17,7 +17,8 @@ import { useConditions } from "./useConditions";
 import { mappablePlaces } from "./useWaterPlaces";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
-import { readSpotsRoute, sortPlaces, spotLink } from "./spotsRoute";
+import { readSpotsRoute, sortPlaces, splitByScore, spotLink } from "./spotsRoute";
+import { useConditionSummaries } from "./useConditionSummaries";
 import "./spotsPage.css";
 import "./placeDetails.css";
 
@@ -119,7 +120,21 @@ function ListSearch({
   );
 }
 
-function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
+//: 목록이 보여 주는 점수의 활동. 상세와 같은 기준이어야 두 화면이 다른 숫자를
+//: 말하지 않습니다 -- 목록에서 활동을 고르게 하지는 않습니다.
+const ACTIVITY = "swim" as const;
+
+function SpotRow({
+  place,
+  detail,
+  scores,
+}: {
+  place: Place;
+  detail?: PlaceDetails;
+  /** 묶음으로 읽은 조건 요약(useConditionSummaries). 줄마다 조회하지 않습니다. */
+  scores: ReturnType<typeof useConditionSummaries>;
+}) {
+  const summary = scores.byId.get(place.id);
   return (
     <a className="sp-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
       <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
@@ -141,7 +156,14 @@ function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         </span>
       </span>
       <span className="sp-row-score-link">
-        <SpotListScore spotId={place.id} />
+        <SpotListScore
+          spotId={place.id}
+          score={conditionScore(summary)}
+          activity={ACTIVITY}
+          retained={summary?.retained}
+          loading={scores.loading}
+          unavailable={scores.unavailable.get(place.id)}
+        />
         <span className="sp-row-link" aria-hidden="true">→</span>
       </span>
     </a>
@@ -151,7 +173,22 @@ function SpotRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
 function SpotsList() {
   const browser = useWaterPlaceBrowser(10);
   const { search, setSearch, places } = browser;
-  const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
+  // 목록 한 화면분의 조건 요약을 **한 번에** 읽습니다. 예전에는 줄마다 추천을
+  // 조회해 서로를 굶겼습니다(SpotListScore 주석).
+  const ids = useMemo(() => (places.rows ?? []).map((place) => place.id), [places.rows]);
+  const scores = useConditionSummaries(ids, ACTIVITY);
+  const scoreById = useMemo(
+    () => new Map(ids.map((id) => [id, conditionScore(scores.byId.get(id))])),
+    [ids, scores.byId],
+  );
+  // 점수 있는 곳 먼저, 없는 곳은 아래에 묶습니다(spotsRoute.splitByScore).
+  // 요약이 아직 오지 않은 동안은 예전처럼 이름순입니다 -- 도착할 때마다 줄이
+  // 튀어 오르면 누르려던 줄이 손가락 아래에서 움직입니다.
+  const { scored, pending } = useMemo(
+    () => splitByScore(places.rows ?? [], scores.settled ? scoreById : undefined),
+    [places.rows, scoreById, scores.settled],
+  );
+  const rows = useMemo(() => [...scored, ...pending], [scored, pending]);
   const details = usePlaceDetails(rows.map((place) => place.id));
   // 이 페이지에 무엇이 몇 곳 있는지. 데스크탑 목록은 왼쪽 라벨 열에 적고
   // 있었고 모바일은 총계만 있어, 분류 필터를 걸기 전에는 구성이 보이지
@@ -177,8 +214,18 @@ function SpotsList() {
         )}
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
-          {rows.map((place) => (
-            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} />
+          {scored.map((place) => (
+            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} scores={scores} />
+          ))}
+          {/* 점수 없는 곳은 아래에 묶습니다. 점수 있는 줄 사이에 섞여 있으면
+              목록이 고장난 것처럼 읽힙니다. */}
+          {pending.length > 0 && (
+            <p className="pd-note sp-pending-head">
+              {t("조건 자료 준비 중 {count}곳", { count: pending.length })}
+            </p>
+          )}
+          {pending.map((place) => (
+            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} scores={scores} />
           ))}
           {!rows.length && (
             <p className="pd-note" role={places.error ? "alert" : "status"}>

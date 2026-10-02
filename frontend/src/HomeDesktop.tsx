@@ -37,7 +37,7 @@ import {
   dateLabel,
   timeLabel,
   placeRegionLabel,
-  waterQualityLabel,
+  waterQualitySummaryLabel,
   type Conditions,
   type Place,
   type WaterQualityGrade,
@@ -381,7 +381,10 @@ export function HomeDesktop() {
         recommendation={recommendation.data}
         recommendationLoading={isInitialLoad(recommendation)}
         recommendationError={recommendation.error}
-        quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
+        // 홈 요약에서는 반년이 지난 조사 결과를 등급으로 띄우지 않습니다 --
+            // 그 숫자가 오늘의 수질로 읽힙니다. 날짜와 함께 보는 자리는 오늘 탭의
+            // 수질 섹션과 명소 상세입니다(STALE_QUALITY_DAYS).
+            quality={quality.error ? t("조회 실패") : waterQualitySummaryLabel(quality.data)}
         qualityLoading={isInitialLoad(quality)}
         loading={isInitialLoad(conditions)}
         baselineLoading={isInitialLoad(baseline)}

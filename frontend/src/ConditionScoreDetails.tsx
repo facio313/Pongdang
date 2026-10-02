@@ -1,6 +1,6 @@
 import { t } from "./i18n.ts";
 import { InfoPopover } from "./pongdangUi";
-import { conditionScoreText, conditionComponentsText, conditionCriterionText, type Conditions } from "./productData";
+import { conditionScoreText, conditionComponentsText, conditionCriterionText, stationContextText, type Conditions } from "./productData";
 
 /** Evidence and scoring criteria use the existing page typography; no display
  * value is calculated from raw measurements in the browser.
@@ -35,8 +35,13 @@ export function ConditionScoreDetails({ data, className, popover = false }: {
       </ul>
     </>
   );
+  // 같은 관측소를 공유해 여러 해변 점수가 똑같이 나오는 날이 있습니다. 그
+  // 사실은 **접기 밖**에서 읽혀야 합니다 -- 접어 두면 화면이 고장난 것처럼 보이고,
+  // 펼쳐 본 사람만 이유를 알게 됩니다.
+  const station = stationContextText(data);
   return (
     <div className={className}>
+      {station && <p className="pd-station-context">{station}</p>}
       <p>{conditionScoreText(data)}</p>
       {body && (popover ? (
         <InfoPopover label={t("분야별 점수·산정 기준·출처")}>{body}</InfoPopover>

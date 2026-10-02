@@ -707,3 +707,12 @@
   font-size: var(--pd-fs-cap);
   color: var(--pd-ink-2);
 }
+
+/* 점수 없는 곳을 묶는 머리. 점수 있는 줄 사이에 「–」 가 섞여 있으면 목록이
+   고장난 것처럼 읽히므로 아래로 모으고 왜 모았는지 적습니다. */
+.spots-page .sp-pending-head {
+  margin: 10px 0 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pd-line);
+  font-weight: 700;
+}

@@ -2113,4 +2113,11 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "未能加载附近的实时摄像头。",
     "近くのライブカメラを読み込めませんでした。",
   ],
+  "최근 검사 자료 없음": ["No recent survey", "暂无近期检测", "最近の検査結果なし"],
+  "주변 관측소 {station} 기준{distance}": [
+    "Based on the nearby {station} station{distance}",
+    "以附近 {station} 观测站为准{distance}",
+    "近くの{station}観測所を基準{distance}",
+  ],
+  " ({km}km)": [" ({km}km)", "（{km}km）", "（{km}km）"],
 };

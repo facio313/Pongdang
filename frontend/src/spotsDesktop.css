@@ -454,3 +454,11 @@
     font-size: 34px;
   }
 }
+
+/* 점수 없는 곳을 묶는 머리(모바일 .sp-pending-head 와 같은 규칙). */
+.sk-pending-head {
+  margin: 12px 0 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pd-dk-line, var(--pd-line));
+  font-weight: 700;
+}

@@ -60,7 +60,7 @@ import { TransportSelect } from "./TransportSelect";
 import { useMyPlansWithAlarm, type PlanWithAlarm } from "./useMyPlansWithAlarm";
 import { mappablePlaces } from "./useWaterPlaces";
 import { KakaoMapCanvas, type MapControlApi } from "./KakaoMapCanvas";
-import { spotLink } from "./spotsRoute";
+import { spotLink, sortPlaces } from "./spotsRoute";
 import { MapSheet } from "./MapSheet";
 import { useSheetHeight } from "./useSheetHeight";
 import "./mapPage.css";
@@ -798,6 +798,15 @@ function MapScreen() {
       [places.rows, view],
     ),
   );
+  // 목록 순서. 점수는 묶음 요약에서 오므로(summaries) 줄을 세울 수 있습니다.
+  const orderedSpotRows = useMemo(() => {
+    const rows = places.rows ?? [];
+    if (!summaries.settled) return rows;
+    return sortPlaces(
+      rows,
+      new Map(rows.map((place) => [place.id, conditionScore(summaries.byId.get(place.id))])),
+    );
+  }, [places.rows, summaries.settled, summaries.byId]);
   const spots = raw.map((item) => {
     // 고른 지점은 그 하나만 보는 상세 조회(conditions)를 씁니다. 묶음 요약보다
     // 항목이 많아, 아래 시트의 타일 · 근거가 읽을 것이 거기 있습니다.
@@ -978,8 +987,13 @@ function MapScreen() {
                   사실(점수 · 이름 · 등급 · 수온)을 시트 문법으로 그립니다.
                   예전에는 모바일에서 핀을 하나씩 눌러 보는 것 말고는 어디가
                   좋은지 견줄 방법이 없었습니다. */}
+              {/* 점수 있는 곳 먼저, 없는 곳은 아래에 묶습니다(spotsRoute.sortPlaces).
+                  예전에는 서버가 준 순서 그대로라 「–」 가 절반 넘게 섞인 목록에서
+                  조건 자료가 있는 곳을 찾으려면 끝까지 훑어야 했습니다. 요약이
+                  아직 오지 않은 동안은 원래 순서입니다 -- 도착할 때마다 줄이 튀어
+                  오르면 누르려던 줄이 손가락 아래에서 움직입니다. */}
               <ul className="mp-spotlist">
-                {(places.rows ?? []).map((place) => {
+                {orderedSpotRows.map((place) => {
                   const row = spots.find((item) => item.id === place.id);
                   const grade = gradeOf(row?.score ?? null);
                   const isSelected = place.id === selected?.id;

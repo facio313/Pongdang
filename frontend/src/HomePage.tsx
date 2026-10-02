@@ -39,7 +39,7 @@ import {
   placeRegionLabel,
   conditionModeLabel,
   timeLabel,
-  waterQualityLabel,
+  waterQualitySummaryLabel,
   type Conditions,
   type WaterQualityGrade,
 } from "./productData";
@@ -793,7 +793,10 @@ function HomeScreen() {
       >
           <GlanceCard
             placeSettled={placeSettled}
-            quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
+            // 홈 요약에서는 반년이 지난 조사 결과를 등급으로 띄우지 않습니다 --
+            // 그 숫자가 오늘의 수질로 읽힙니다. 날짜와 함께 보는 자리는 오늘 탭의
+            // 수질 섹션과 명소 상세입니다(STALE_QUALITY_DAYS).
+            quality={quality.error ? t("조회 실패") : waterQualitySummaryLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}
             spotId={place?.id}
             now={now}

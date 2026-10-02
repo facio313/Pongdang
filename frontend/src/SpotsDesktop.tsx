@@ -24,14 +24,15 @@ import {
 } from "./pongdangUi";
 import { SpotConditionsCard } from "./SpotConditionsCard";
 import { SpotListScore } from "./SpotListScore";
-import { dateLabel, placeMatchesId, placeRegionLabel, type Place } from "./productData";
+import { conditionScore, dateLabel, placeMatchesId, placeRegionLabel, type Place } from "./productData";
+import { useConditionSummaries } from "./useConditionSummaries";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacesById } from "./usePlacesById";
 import { useSpotActions } from "./useSpotActions";
 import { mappablePlaces, useWaterPlace, useWaterPlaces } from "./useWaterPlaces";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
-import { sortPlaces, spotLink } from "./spotsRoute";
+import { sortPlaces, splitByScore, spotLink } from "./spotsRoute";
 import "./spotsDesktop.css";
 
 // 데스크탑 명소(핸드오프 19a 목록 · 19b 상세)입니다. 모바일과 같은 라우트를
@@ -45,7 +46,19 @@ import "./spotsDesktop.css";
 // 없는 것은 지어내지 않고 비웁니다.
 
 
-function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
+//: 목록이 보여 주는 점수의 활동. 모바일 목록(SpotsPage)과 같은 기준입니다.
+const ACTIVITY = "swim" as const;
+
+function ListRow({
+  place,
+  detail,
+  scores,
+}: {
+  place: Place;
+  detail?: PlaceDetails;
+  scores: ReturnType<typeof useConditionSummaries>;
+}) {
+  const summary = scores.byId.get(place.id);
   return (
     <a className="sk-row" href={spotLink(place)} aria-label={t("{name} 상세", { name: place.name })} aria-describedby={`spot-list-score-${place.id}`}>
       <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
@@ -72,7 +85,14 @@ function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
         </div>
       </div>
       <span className="sk-row-score-link">
-        <SpotListScore spotId={place.id} />
+        <SpotListScore
+          spotId={place.id}
+          score={conditionScore(summary)}
+          activity={ACTIVITY}
+          retained={summary?.retained}
+          loading={scores.loading}
+          unavailable={scores.unavailable.get(place.id)}
+        />
         <span className="sk-row-link" aria-hidden="true">→</span>
       </span>
     </a>
@@ -82,7 +102,18 @@ function ListRow({ place, detail }: { place: Place; detail?: PlaceDetails }) {
 function SpotsListDesktop() {
   const browser = useWaterPlaceBrowser(10);
   const { search, setSearch, places } = browser;
-  const rows = useMemo(() => sortPlaces(places.rows ?? []), [places.rows]);
+  // 모바일 목록과 같은 규칙입니다(SpotsPage · SpotListScore 주석).
+  const ids = useMemo(() => (places.rows ?? []).map((place) => place.id), [places.rows]);
+  const scores = useConditionSummaries(ids, ACTIVITY);
+  const scoreById = useMemo(
+    () => new Map(ids.map((id) => [id, conditionScore(scores.byId.get(id))])),
+    [ids, scores.byId],
+  );
+  const { scored, pending } = useMemo(
+    () => splitByScore(places.rows ?? [], scores.settled ? scoreById : undefined),
+    [places.rows, scoreById, scores.settled],
+  );
+  const rows = useMemo(() => [...scored, ...pending], [scored, pending]);
   const details = usePlaceDetails(rows.map((place) => place.id));
   const kinds = useMemo(() => {
     const counts = new Map<string, number>();
@@ -172,11 +203,25 @@ function SpotsListDesktop() {
             onDistrict={browser.setDistrict}
             onKind={browser.setKind}
           />
-          {rows.map((place) => (
+          {scored.map((place) => (
             <ListRow
               key={place.id}
               place={place}
               detail={details.byId.get(place.id)}
+              scores={scores}
+            />
+          ))}
+          {pending.length > 0 && (
+            <p className="sk-note sk-pending-head">
+              {t("조건 자료 준비 중 {count}곳", { count: pending.length })}
+            </p>
+          )}
+          {pending.map((place) => (
+            <ListRow
+              key={place.id}
+              place={place}
+              detail={details.byId.get(place.id)}
+              scores={scores}
             />
           ))}
           {!rows.length && (

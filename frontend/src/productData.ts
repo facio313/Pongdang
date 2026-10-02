@@ -202,6 +202,34 @@ export function coverageDetailText(data?: { condition_score?: ConditionScore | n
   return `${prefix}${t("근거 {available}/{total}{percentage}", { available, total, percentage })}`;
 }
 
+/** 「주변 관측소 ○○ 기준 (△km)」.
+ *
+ *  반경 10km 안의 여러 해변이 **같은 관측소** 값을 공유합니다(백엔드
+ *  `grade_reader` 와 조건 선택 규칙). 그래서 고성 해변 여섯 곳이 모두 73 점으로
+ *  나오는 날이 있고, 그 사실을 말하지 않으면 화면이 고장난 것처럼 보입니다.
+ *
+ *  **그 장소에서 직접 잰 값일 때는 아무것도 적지 않습니다.** 모든 줄에 출처를
+ *  달면 「주변 관측소」가 기본값처럼 읽혀, 실제로 공유된 경우를 가려내지 못합니다.
+ *  거리가 없으면 거리도 적지 않습니다 -- 모르는 거리를 지어내지 않습니다. */
+export function stationContextText(data?: Conditions): string {
+  const shared = (data?.condition_score?.components ?? []).filter(
+    (item) => item.relation === "nearby_station_context" && item.station_name,
+  );
+  if (!shared.length) return "";
+  // 같은 관측소가 여러 지표를 대고 있으면 한 번만 적습니다.
+  const names = [...new Set(shared.map((item) => item.station_name as string))];
+  const distances = shared
+    .map((item) => item.distance_km)
+    .filter((value): value is number => typeof value === "number");
+  const distance = distances.length
+    ? t(" ({km}km)", { km: Math.min(...distances).toFixed(1) })
+    : "";
+  return t("주변 관측소 {station} 기준{distance}", {
+    station: names.join(" · "),
+    distance,
+  });
+}
+
 export function conditionRetentionText(data?: Conditions) {
   // 「이전 결과 · 09:00 기준 · 새 자료 대기」는 수집 파이프라인의 상태입니다.
   // 보는 사람에게 필요한 것은 언제 기준인지 하나입니다.
@@ -414,6 +442,21 @@ export interface WaterQualityGrade {
   reason_codes: string[];
   measurements: { item: string; value: number | null; unit: string | null; layer: string | null; is_missing: boolean }[];
 }
+/** 요약에서 등급을 빼는 기준(일). 반년이 지난 조사 결과를 「수질 · 최근 검사」
+ *  자리에 등급으로 띄우면, 그 숫자가 오늘의 수질로 읽힙니다.
+ *
+ *  **숨기는 것이 아닙니다.** 상세(`waterQualityDescription` · WaterQualityDetails)는
+ *  날짜 · 관측소 · 거리와 함께 그대로 보여 줍니다 -- 오래된 자료가 있다는 것도
+ *  사실이고, 그 사실은 날짜와 같이 읽혀야 뜻이 통합니다. */
+export const STALE_QUALITY_DAYS = 180;
+
+/** 요약 한 줄에 쓸 수질 표기. 오래된 조사 결과는 등급을 내리고 그 사실만 둡니다. */
+export function waterQualitySummaryLabel(data?: WaterQualityGrade) {
+  if (data && typeof data.age_days === "number" && data.age_days > STALE_QUALITY_DAYS)
+    return t("최근 검사 자료 없음");
+  return waterQualityLabel(data);
+}
+
 export function waterQualityLabel(data?: WaterQualityGrade) {
   if (data?.method_version === "inland-sampling.v1") return t(data.measurements.length ? "담수 검사값 · 등급 미산정" : "담수 검사 자료 없음");
   return data?.grade != null && Number.isInteger(data.grade) && data.grade >= 1 && data.grade <= 5 && ["available", "historical"].includes(data.status)

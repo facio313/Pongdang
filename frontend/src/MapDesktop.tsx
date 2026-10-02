@@ -65,7 +65,7 @@ import { mappablePlaces } from "./useWaterPlaces";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { usePlacesById } from "./usePlacesById";
-import { spotLink } from "./spotsRoute";
+import { spotLink, sortPlaces } from "./spotsRoute";
 import "./mapDesktop.css";
 import "./coursesDesktop.css";
 
@@ -328,6 +328,18 @@ export function MapDesktop() {
   const summaries = useConditionSummaries(
     useMemo(() => (places.rows ?? []).map((place) => place.id), [places.rows]),
     ACTIVITY,
+  );
+  // 목록 순서. 요약이 아직 오지 않은 동안은 원래 순서입니다 -- 도착할 때마다
+  // 줄이 튀어 오르면 누르려던 줄이 손가락 아래에서 움직입니다.
+  const orderedRows = useMemo(
+    () =>
+      summaries.settled
+        ? sortPlaces(
+            rows,
+            new Map(rows.map((place) => [place.id, conditionScore(summaries.byId.get(place.id))])),
+          )
+        : rows,
+    [rows, summaries.settled, summaries.byId],
   );
   // 오른쪽 패널과 아래 근거는 고른 지점 하나만 조회합니다.
   const conditions = useConditions(selected?.id, ACTIVITY, undefined, !!selected);
@@ -657,7 +669,9 @@ export function MapDesktop() {
                     : t("선택한 장소를 찾을 수 없습니다."))}
                 </p>
               )}
-              {rows.map((place) => (
+              {/* 점수 있는 곳 먼저, 없는 곳은 아래로(spotsRoute.sortPlaces).
+                  모바일 지도 목록과 같은 규칙입니다. */}
+              {orderedRows.map((place) => (
                 <SpotRow
                   key={place.id}
                   place={place}
