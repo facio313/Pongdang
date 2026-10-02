@@ -153,11 +153,15 @@ def get_plan(settings, owner, identifier):
     return TripPlan.model_validate(row[0])
 
 
-def plans(settings, owner, *, limit=100, offset=0):
+def plans(settings, owner, *, limit=100, offset=0, favorite_only=False):
+    favorite_filter = (
+        "AND payload @> '{\"is_favorite\":true}'::jsonb " if favorite_only else ""
+    )
     with connect(settings) as c:
         c.execute("SET TRANSACTION READ ONLY")
         rows = c.execute(
             "SELECT payload FROM pongdang_data.travel_plan WHERE owner_subject=%s "
+            f"{favorite_filter}"
             "ORDER BY updated_at DESC,id LIMIT %s OFFSET %s",
             [owner, limit, offset],
         ).fetchall()
@@ -169,7 +173,7 @@ def save_plan(settings, owner, plan, *, identifier=None, expected=None):
     with connect(settings) as c:
         if expected is not None:
             row = c.execute(
-                "SELECT revision FROM pongdang_data.travel_plan "
+                "SELECT revision,payload FROM pongdang_data.travel_plan "
                 "WHERE id=%s AND owner_subject=%s FOR UPDATE",
                 [identifier, owner],
             ).fetchone()
@@ -177,6 +181,11 @@ def save_plan(settings, owner, plan, *, identifier=None, expected=None):
                 raise HTTPException(404, "plan_not_found")
             if row[0] != expected:
                 raise HTTPException(409, "plan_revision_conflict")
+            # Favorites are independent of route edits. Read under the same row
+            # lock so an in-flight recalculation cannot clear a newer favorite.
+            plan = plan.model_copy(
+                update={"is_favorite": row[1].get("is_favorite", False)}
+            )
         plan = plan.model_copy(
             update={"plan_id": identifier, "revision": (expected or 0) + 1}
         )
@@ -196,6 +205,20 @@ def save_plan(settings, owner, plan, *, identifier=None, expected=None):
                 [plan.revision, Jsonb(plan.model_dump(mode="json")), identifier, owner],
             )
     return plan
+
+
+def set_plan_favorite(settings, owner, identifier, is_favorite):
+    with connect(settings) as c:
+        row = c.execute(
+            "UPDATE pongdang_data.travel_plan "
+            "SET payload=jsonb_set(payload,'{is_favorite}',%s) "
+            "WHERE id=%s AND owner_subject=%s RETURNING payload",
+            [Jsonb(is_favorite), identifier, owner],
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "plan_not_found")
+    # A star does not change the itinerary revision or reorder the saved list.
+    return TripPlan.model_validate(row[0])
 
 
 def delete_plan(settings, owner, identifier):

@@ -114,6 +114,9 @@ class RecommendationQuery(BaseModel):
 class Recommendation(Record):
     contract_version: Literal["water-recommendation.v1"] = CONTRACT
     model_id: Literal["pongdang-activity-recommendation"] = MODEL_ID
+    # 타입과 값을 한 줄에서 선언한 쪽을 씁니다(recommendation.ModelVersion).
+    # origin/main 도 같은 불일치를 고쳤지만 리터럴을 두 번 적는 형태라, 다음에
+    # 버전을 올릴 때 또 어긋날 수 있습니다.
     model_version: ModelVersion = MODEL_VERSION
     #: 이 결과가 안전 판정이 아니라는 사실은 계약에 남습니다.
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"

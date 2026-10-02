@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  recommendationPlan,
+  travelChatMessages,
   travelJson,
   TravelRequestError,
   withTransport,
@@ -13,12 +13,12 @@ import type { OriginOption, RouteRequestValue } from "./RouteRequestForm";
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useResource } from "./useResource";
 import type { DefaultPlaceSelection } from "./useProductData";
-import type { ModelTraceTurn } from "./aiApi";
+import { appendModelTraceRequest, type ModelTraceRequest } from "./aiApi";
 import { requestInLanguage, useTravelLanguage } from "./travelLanguage";
 import { t } from "./i18n.ts";
 import { placeRegionLabel } from "./productData";
 import { setTravelRegion } from "./travelRegion";
-import { candidateCourse } from "./candidateCourse";
+import { candidateCourse, initialCandidateCourse } from "./candidateCourse";
 
 export interface Bubble {
   role: "user" | "assistant";
@@ -89,7 +89,7 @@ export function useTravelConcierge({
   opener: string;
   baseRequest: () => TravelRequest;
   action: { busy: boolean; run: (job: (signal: AbortSignal) => Promise<void>) => Promise<void> };
-  /** Desktop starts new lists with the final candidate off; edits keep their selection. */
+  /** Desktop omits the last initial candidate only for ungrouped lists. */
   excludeLastCandidate?: boolean;
 }) {
   const { locale } = useTravelLanguage();
@@ -102,7 +102,7 @@ export function useTravelConcierge({
     : [{ role: "assistant", content: t(opener) }];
   const [draft, setDraft] = useState("");
   const [chatRequest, setChatRequest] = useState<TravelRequest | null>(null);
-  const [lastTrace, setLastTrace] = useState<ModelTraceTurn[] | null>(null);
+  const [traceHistory, setTraceHistory] = useState<ModelTraceRequest[]>([]);
   const asked = bubbles.filter((bubble) => bubble.role === "user").length;
 
   const publish = (result: RecommendationResult) => {
@@ -111,11 +111,7 @@ export function useTravelConcierge({
       recommendation: result,
       plan: null,
       route: null,
-      planInput: result.recommendations.length
-        ? excludeLastCandidate
-          ? candidateCourse(result, result.recommendations.slice(0, -1).map((item) => item.spot_id))
-          : recommendationPlan(result, result.request.dates[0])
-        : null,
+      planInput: initialCandidateCourse(result, excludeLastCandidate),
     });
   };
 
@@ -168,14 +164,10 @@ export function useTravelConcierge({
       const nextRequest = result.travel?.request ?? result.travel_results?.recommendations?.request ?? request;
       setChatRequest(nextRequest);
       if (nextRequest.region) setTravelRegion(nextRequest.region);
-      setLastTrace(result.model_trace ?? []);
+      setTraceHistory((current) => appendModelTraceRequest(current, result.model_trace ?? []));
       setBubbles((current) => [
         ...current,
-        ...[result.answer, result.clarification]
-          .filter(
-            (content, index, all): content is string =>
-              Boolean(content?.trim()) && all.indexOf(content) === index,
-          )
+        ...travelChatMessages(result)
           .map((content) => ({ role: "assistant" as const, content })),
       ]);
       if (result.travel_results?.recommendations)
@@ -279,7 +271,7 @@ export function useTravelConcierge({
     setBubbles([]);
     setDraft("");
     setChatRequest(null);
-    setLastTrace(null);
+    setTraceHistory([]);
   };
 
   const changeRegion = (region: string) => {
@@ -297,7 +289,7 @@ export function useTravelConcierge({
     setDraft,
     chatRequest,
     changeRegion,
-    lastTrace,
+    traceHistory,
     publish,
     send,
     requestRoute,

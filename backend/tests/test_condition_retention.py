@@ -250,6 +250,15 @@ def test_complete_failure_keeps_original_result_and_restrictions_still_win():
     assert retain_payload(previous, restricted, {}) is restricted
 
 
+def test_previous_model_cannot_supply_retained_scores_or_measurements():
+    previous = scored_payload(NOW, {"air_temperature": 25.0, "wind_speed": 2.0})
+    current = scored_payload(NOW + timedelta(hours=1), {"air_temperature": 10.0})
+    previous["condition_score"]["model_version"] = "1.0.0"
+    assert retain_payload(previous, current, {"generation_id": 1}) is current
+    missing = scored_payload(NOW + timedelta(hours=1), {})
+    assert retain_payload(previous, missing, {"generation_id": 1}) is missing
+
+
 def test_undeclared_score_formula_never_mixes_old_and_new_components():
     previous = scored_payload(NOW, {"air_temperature": 25.0, "wind_speed": 2.0})
     current = scored_payload(NOW + timedelta(hours=1), {"air_temperature": 10.0})

@@ -58,7 +58,10 @@ for (const desktop of [false, true]) {
     const scores = page.locator(desktop ? ".td-spot-score" : ".td-score-badge");
     await expect(names).toHaveText(places.slice(0, 3).map(place => place.name));
     await expect(scores).toHaveText(["61", "62", "63"]);
-    await page.getByText("장소 바꾸기", { exact: true }).click();
+    if (desktop)
+      await page.getByRole("button", { name: "기준 해변 · 장소 바꾸기", exact: true }).click();
+    else
+      await page.getByText("장소 바꾸기", { exact: true }).click();
     await page.getByLabel("홈·오늘 기준 장소", { exact: true }).selectOption("4");
     try {
       await expect(names).toHaveText([places[3].name]);

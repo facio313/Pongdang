@@ -188,6 +188,8 @@ class ScriptedProvider:
 
 
 def run(settings, script, *, request=None, account=None, factory=FixtureSession):
+    # Exercise the downstream evidence protocol independently. The mandatory
+    # public relevance boundary is covered by test_ai_intent.py.
     provider, account = ScriptedProvider(script), account or MemoryBudget()
     result = asyncio.run(
         chat.converse(
@@ -198,6 +200,7 @@ def run(settings, script, *, request=None, account=None, factory=FixtureSession)
             now=NOW,
             session_factory=factory,
             budget_api=account,
+            check_scope=False,
         )
     )
     return result, provider, account
@@ -211,7 +214,7 @@ def test_multi_turn_function_protocol_budget_and_server_composition(settings):
     assert budget.released == ["local-lease"]
     body = provider.bodies[1]
     assert body["store"] is False and "previous_response_id" not in body
-    assert body["model"] == "gpt-5.6-luna" and "temperature" not in body
+    assert body["model"] == "gpt-6-luna" and "temperature" not in body
     assert body["input"][1]["encrypted_content"] == "encrypted-test"
     assert body["input"][2]["call_id"] == body["input"][3]["call_id"] == "call-1"
     assert body["input"][3]["type"] == "function_call_output"
@@ -223,10 +226,14 @@ def test_multi_turn_function_protocol_budget_and_server_composition(settings):
     assert result.facts[1]["mandatory"]  # model omission cannot drop caution
     assert result.context.spot_ids == [45]
     assert result.model_dump()["facts"][1]["metadata"]["score"] is None
-    assert result.model_trace[0].kind == "tool"
-    assert result.model_trace[0].name == "place_conditions"
-    assert result.model_trace[1].kind == "plan"
-    assert result.model_trace[1].plan["intent"] == "explain"
+    assert [turn.kind for turn in result.model_trace] == [
+        "attempt",
+        "tool",
+        "attempt",
+        "plan",
+    ]
+    assert result.model_trace[1].name == "place_conditions"
+    assert result.model_trace[3].plan["intent"] == "explain"
     assert "encrypted_content" not in json.dumps(result.model_dump())
 
 
@@ -255,7 +262,7 @@ def test_model_trace_keeps_unverified_plan_and_strips_private_fields(settings):
     )
     assert result.fallback
     assert "ai_output_unverified" in result.reason_codes
-    tool = result.model_trace[0]
+    tool = next(turn for turn in result.model_trace if turn.kind == "tool")
     assert tool.kind == "tool" and tool.name == "place_conditions"
     assert "origin" not in (tool.arguments or {})
     assert "selection_token" not in (tool.arguments or {})
@@ -411,13 +418,14 @@ def test_data_question_without_tool_cannot_get_model_answer(settings):
 
 
 def test_greeting_does_not_require_db_or_tools(settings):
-    result, provider, _ = run(
+    result, provider, account = run(
         settings,
-        [final(intent="greeting", sections=[])],
+        [],
         request=chat.ChatRequest(message="안녕하세요"),
     )
-    assert result.provider == "openai" and not result.features
-    assert provider.bodies[0]["tool_choice"] == "auto"
+    assert result.provider == "deterministic" and not result.features
+    assert not result.fallback and not provider.bodies
+    assert not account.sizes and account.admissions == 0
 
 
 def test_budget_exhaustion_no_attempt_and_accounting_failure_closed(settings):
@@ -625,6 +633,10 @@ def test_strict_schema_every_object_required_and_no_arbitrary_prose():
 
     check(schema)
     assert set(schema["properties"]) == {"intent", "clarification", "sections"}
+    section = schema["$defs"]["SectionPlan"]
+    assert "title" in section["properties"] and "title" in section["required"]
+    assert "conditions" in section["properties"]["title"]["enum"]
+    assert "title" not in section["properties"]["title"]
 
 
 def test_smoke_default_is_unpaid_without_settings(monkeypatch, capsys):
@@ -704,6 +716,7 @@ def test_conversation_executes_real_services_then_assembles_current_evidence(
                 settings, now, reader=reader
             ),
             budget_api=account,
+            check_scope=False,
         )
     )
     assert not result.fallback, result.reason_codes
@@ -824,6 +837,7 @@ def test_authenticated_chat_route_final_response_is_nonstreaming_and_private(set
             now=NOW,
             session_factory=FixtureSession,
             budget_api=account,
+            check_scope=False,
         )
 
     router, _ = chat.create_chat_router(settings, provider=provider, handler=handler)

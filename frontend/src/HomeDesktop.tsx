@@ -33,7 +33,6 @@ import type { Recommendation } from "./recommendationApi";
 import { PlacePhoto } from "./PlacePhoto";
 import { usePlacePhotos } from "./usePlacePhotos";
 import {
-  conditionModeLabel,
   dateLabel,
   timeLabel,
   placeRegionLabel,
@@ -52,6 +51,7 @@ import type { TemperatureReading } from "./firstSwimTemperature";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
 import { GuestSaveNote } from "./GuestSaveNote";
+import { useFavoriteCourse } from "./useFavoriteCourse";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useNearbyWebcams } from "./useNearbyWebcams";
 import { WebcamThumbnail } from "./WebcamThumbnail";
@@ -121,7 +121,6 @@ function HomeHero({
             <time className="home-condition-time" dateTime={at}>
               {at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}
             </time>
-            <span>· {t("{mode} 기준", { mode: conditionModeLabel(baseline) })}</span>
           </div>}
         />
       }
@@ -340,16 +339,7 @@ export function HomeDesktop() {
   // 값이라 취향을 저장하고 홈으로 와도 바뀌지 않았고 새로고침하면 사라졌습니다.
   const taste = useTastePreference();
   const tags = taste.savedIds.map(taste.labelOf);
-  const routeCourse = session.route?.route ?? null;
-  // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
-  // 불러온 plan)는 있을 수 있습니다. route 만 보면 그 사이엔 홈이 늘 비어
-  // 보였습니다.
-  const planStops = routeCourse
-    ? []
-    : (session.plan?.days.flatMap((day) => day.items) ?? []);
-  const course = routeCourse ?? (planStops.length
-    ? { items: planStops, travel_minutes: null as number | null }
-    : null);
+  const favoriteCourse = useFavoriteCourse();
   // 고른 장소 근처를 조회합니다. 예전에는 전국 목록 1페이지라 강릉 경포를 보고
   // 있는데 청학동 웹캠이 떴습니다(useNearbyWebcams, 모바일 홈과 같은 훅).
   const webcams = useNearbyWebcams(placeSettled ? undefined : place?.id);
@@ -599,28 +589,23 @@ export function HomeDesktop() {
         </LabelRow>
       )}
 
-      {/* 예전에는 「오늘 조건으로 3곳 · 12.0km」와 경포 09:20 → 안목 12:00 →
-          사천진 14:30 이 파일 안 상수로 적혀 있었습니다. 저장된 코스가 없어도
-          코스가 있는 것처럼 보였습니다. */}
       <LabelRow
-        kick={t("물놀이 최적경로")}
+        kick={t("즐겨찾기 경로")}
         title={
-          routeCourse
-            ? t("오늘 조건으로 {count}곳", { count: routeCourse.items.length })
-            : course
-              ? t("{count}곳 담음 · 경로 미계산", { count: course.items.length })
-              : t("코스를 만들면 여기에")
+          favoriteCourse.plan
+            ? t("{date} 물 코스", { date: favoriteCourse.plan.request.dates[0] })
+            : t("최근 즐겨찾기 코스")
         }
-        chip={<StateChip kind={routeCourse ? "live" : "partial"} />}
-        desc={t("최적의 여행 코스를 만들어보세요.")}
+        chip={<StateChip kind={favoriteCourse.plan ? "live" : "no_data"} />}
+        desc={t("즐겨찾기 중 가장 최근에 저장·수정한 코스입니다.")}
       >
-        {course ? (
+        {favoriteCourse.plan ? (
           <SplitBody>
-            {course.items.map((item, index) => (
-              <div className="hd-step" key={item.spot_id}>
+            {favoriteCourse.items.map((item, index) => (
+              <div className="hd-step" key={`${item.spot_id}-${index}`}>
                 <div className="hd-step-head">
                   <span className="pd-dk-num hd-step-no">{index + 1}</span>
-                  {index < course.items.length - 1 && (
+                  {index < favoriteCourse.items.length - 1 && (
                     <span className="hd-step-line" />
                   )}
                 </div>
@@ -633,19 +618,23 @@ export function HomeDesktop() {
             ))}
           </SplitBody>
         ) : (
-          <div className="pd-dk-slot hd-course-empty">
-            {t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}</div>
+          <div className="pd-dk-slot hd-course-empty" role={favoriteCourse.error ? "alert" : "status"}>
+            {favoriteCourse.message}</div>
         )}
         <div className="hd-course-foot">
           <span className="hd-row-note">
-            {routeCourse
-              ? t("예상 이동 {minutes}분 · 이동 시간은 경로 제공자가 준 추정값입니다.", { minutes: routeCourse.travel_minutes })
-              : course
+            {favoriteCourse.route
+              ? t("저장된 경로의 예상 이동 {minutes}분", { minutes: favoriteCourse.route.travel_minutes })
+              : favoriteCourse.plan
                 ? t("지도에서 경로를 요청하면 이동 시간을 계산합니다.")
                 : ""}
           </span>
-          <a className="pd-dk-button is-pill" href="#map?view=course">
-            {t("지도에서 경로 탐색 →")}</a>
+          {/* 「로그인」 1차 버튼을 세우지 않습니다 -- 코스를 만들고 보는 일에는
+              계정이 필요하지 않고, 계정이 필요한 것은 **즐겨찾기로 저장**뿐입니다
+              (모바일 홈과 같은 규칙, HomePage 의 RouteCard 주석). */}
+          <a className="pd-dk-button is-pill" href={favoriteCourse.href}>
+            {t(favoriteCourse.plan ? "즐겨찾기 코스 열기 →" : "지도에서 코스 보기 →")}</a>
+          {favoriteCourse.loginRequired && <GuestSaveNote what="코스" />}
         </div>
       </LabelRow>
 

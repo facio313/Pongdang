@@ -111,6 +111,17 @@ class FixtureReader:
 
     async def execute(self, sql, params=None):
         self.queries.append((sql, params))
+        if (
+            sql.startswith("SELECT * FROM (SELECT s.id,s.name")
+            and "p WHERE id=%s" in sql
+        ):
+            return Cursor(
+                [
+                    {**row, "id": row["spot_id"], "place_kind": row["type"]}
+                    for row in self.places
+                    if row["spot_id"] == params[0]
+                ]
+            )
         if "WITH stations AS" in sql:
             return Cursor([])  # This fixture only has the explicitly mapped station.
         if "JOIN pongdang_data.collection_place p" in sql:

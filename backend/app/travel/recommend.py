@@ -7,13 +7,15 @@ from fastapi import HTTPException
 
 from app.regions import region_query
 from app.travel import keywords, storage, tokens
-from app.travel.catalog import Catalog
+from app.travel.catalog import Catalog, matches_visit_intent
 from app.travel.language import copy, label
 from app.travel.mobility import transport_advice
 from app.travel.models import (
     PreferenceMatch,
     Recommendation,
+    RecommendationInput,
     RecommendationResult,
+    TravelPreference,
     TravelRequest,
 )
 from app.travel.published import (
@@ -90,11 +92,32 @@ def confirmed_condition(place, condition):
 
 def rank_places(places, request, preference, signals, restrictions):
     terms, card_avoid = preference_terms(request, preference, signals)
+    if len(request.visit_intents) == 1:
+        place_tags = {
+            "beach": "해변",
+            "valley": "계곡",
+            "hot_spring": "온천",
+            "lake": "호수",
+            "river": "강",
+            "reservoir": "저수지",
+        }
+        requested_tag = place_tags.get(request.visit_intents[0].place_type)
+        # A saved beach preference is not an unmet requirement for an explicitly
+        # requested valley/cafe visit. Keep the saved profile itself unchanged.
+        terms = {
+            tag: source
+            for tag, source in terms.items()
+            if tag not in place_tags.values() or tag == requested_tag
+        }
+        if requested_tag:
+            terms[requested_tag] = "trip"
     avoid = set(preference.avoid) | set(request.avoid) | card_avoid
     ranked, excluded = [], []
     for place in places:
         sid = place["spot_id"]
-        if not keywords.matches_place(request, place):
+        if not keywords.matches_place(request, place) or not matches_visit_intent(
+            request, place
+        ):
             excluded.append(
                 {"spot_id": sid, "reason": "selected_place_type_unconfirmed"}
             )
@@ -240,7 +263,9 @@ def rank_places(places, request, preference, signals, restrictions):
     return ranked, excluded
 
 
-async def recommend(settings, owner, body, *, now=None, catalog=None, environment=None):
+async def _recommend_single(
+    settings, owner, body, *, now=None, catalog=None, environment=None
+):
     now = now or datetime.now(UTC)
     catalog = catalog or Catalog(settings, now)
     preference = body.preference
@@ -480,4 +505,194 @@ async def recommend(settings, owner, body, *, now=None, catalog=None, environmen
         else None,
         queried_at=now,
         persona=persona(preference, signals),
+    )
+
+
+async def recommend(settings, owner, body, *, now=None, catalog=None, environment=None):
+    now = now or datetime.now(UTC)
+    catalog = catalog or Catalog(settings, now)
+    if body.request.visit_intents:
+        return await recommend_visits(
+            settings,
+            owner,
+            body,
+            now=now,
+            catalog=catalog,
+            environment=environment,
+        )
+    return await _recommend_single(
+        settings,
+        owner,
+        body,
+        now=now,
+        catalog=catalog,
+        environment=environment,
+    )
+
+
+def request_for_visit(request, intent):
+    """Use one visit's place/activity without inheriting an earlier visit's filter."""
+    water_types = {"beach", "valley", "hot_spring", "lake", "river", "reservoir"}
+    data = request.model_dump(mode="json")
+    selections = [
+        item
+        for item in data["keyword_selection"]
+        if item["category"] not in {"place_type", "activity"}
+    ]
+    if intent.place_type in water_types:
+        selections.append({"category": "place_type", "values": [intent.place_type]})
+    # An earlier beach swim must not filter out a later cafe or valley visit.
+    activity = intent.activity or "relax"
+    if intent.activity in {
+        option["id"] for option in keywords.LOOKUP["activity"]["options"]
+    }:
+        selections.append({"category": "activity", "values": [activity]})
+    data.update(
+        visit_intents=[intent.model_dump(mode="json")],
+        keyword_selection=selections,
+        activity=activity,
+        place_role={"cafe": "meal", "restaurant": "meal", "lodging": "lodging"}.get(
+            intent.place_type, "visit"
+        ),
+    )
+    return TravelRequest.model_validate(data)
+
+
+async def recommend_visits(settings, owner, body, *, now, catalog, environment=None):
+    request = body.request
+    intents = request.visit_intents
+
+    async def read_visit(intent):
+        stage_request = request_for_visit(request, intent)
+        try:
+            async with asyncio.timeout(15):
+                return await _recommend_single(
+                    settings,
+                    owner,
+                    RecommendationInput(
+                        request=stage_request,
+                        preference=body.preference,
+                        limit=2,
+                    ),
+                    now=now,
+                    catalog=catalog,
+                    environment=environment,
+                )
+        except (TimeoutError, HTTPException) as exc:
+            if isinstance(exc, HTTPException) and exc.status_code != 503:
+                raise
+            return RecommendationResult(
+                request=stage_request,
+                preference=body.preference or TravelPreference(),
+                status="query_failed",
+                recommendations=[],
+                candidate_scope={
+                    "status": "query_failed",
+                    "candidate_limit": 300,
+                    "preference_status": "unknown",
+                },
+                excluded=[],
+                relaxation_proposals=[],
+                clarification=None,
+                selection_token=None,
+                queried_at=now,
+                persona={"status": "unknown"},
+            )
+
+    results = await asyncio.gather(*(read_visit(intent) for intent in intents))
+    # First take a candidate from every available visit, then add seconds.
+    # Candidate rank remains a single owner-bound order for later selection.
+    total_limit = min(10, max(body.limit, len(intents)))
+    selected = {}
+    for position in range(2):
+        for result in results:
+            if position >= len(result.recommendations):
+                continue
+            row = result.recommendations[position]
+            if row.spot_id in selected or len(selected) >= total_limit:
+                continue
+            rank = len(selected) + 1
+            selected[row.spot_id] = row.model_copy(
+                update={
+                    "rank": rank,
+                    "recommendation_id": f"recommendation:{rank}:{row.spot_id}",
+                    "actions": row.actions
+                    | {"compare_rank": rank, "select_rank": rank},
+                }
+            )
+    selection_token = (
+        tokens.encode(
+            settings,
+            owner,
+            request,
+            list(selected),
+            now,
+            preference=body.preference,
+        )
+        if selected
+        else None
+    )
+    groups = []
+    for intent, result in zip(intents, results, strict=True):
+        rows = [
+            row.model_copy(
+                update={
+                    "rank": selected[row.spot_id].rank,
+                    "recommendation_id": selected[row.spot_id].recommendation_id,
+                    "actions": selected[row.spot_id].actions,
+                }
+            )
+            for row in result.recommendations
+            if row.spot_id in selected
+        ]
+        groups.append(
+            {
+                "intent": intent.model_dump(mode="json"),
+                "result": result.model_copy(
+                    update={
+                        "recommendations": rows,
+                        "selection_token": None,
+                    }
+                ).model_dump(mode="json"),
+            }
+        )
+    status = (
+        "partial"
+        if selected
+        else "query_failed"
+        if any(result.status == "query_failed" for result in results)
+        else "no_data"
+    )
+    return RecommendationResult(
+        request=request,
+        preference=results[0].preference,
+        policy_version="published-evidence.v3",
+        status=status,
+        recommendations=list(selected.values()),
+        recommendation_groups=groups,
+        candidate_scope={
+            "coverage": "registered_catalog_per_visit",
+            "visit_count": len(intents),
+            "result_limit": total_limit,
+            "per_visit_result_limit": 2,
+            "candidate_limit_per_visit": 300,
+            "visits": [result.candidate_scope for result in results],
+            "route_calculated": False,
+        },
+        excluded=[
+            item | {"visit_index": index}
+            for index, result in enumerate(results)
+            for item in result.excluded
+        ],
+        relaxation_proposals=[
+            item | {"visit_index": index}
+            for index, result in enumerate(results)
+            for item in result.relaxation_proposals
+        ],
+        # Place suggestions do not require a departure point or travel date.
+        # The separate route/itinerary flow asks for those when it needs them.
+        clarification=None,
+        selection_token=selection_token,
+        queried_at=now,
+        persona=results[0].persona,
     )

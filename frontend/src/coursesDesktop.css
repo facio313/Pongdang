@@ -153,11 +153,12 @@
 /* ── 저장한 코스 ───────────────────────────────────────── */
 
 .pd-desktop .cd-saved {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   width: 100%;
   text-align: left;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   padding: 15px 0;
   border-bottom: 1px solid var(--dk-line);
 }
@@ -177,8 +178,9 @@
   flex: none;
 }
 .pd-desktop .cd-saved-body {
-  flex: 1;
   min-width: 0;
+  text-align: left;
+  cursor: pointer;
 }
 .pd-desktop .cd-saved-name {
   font-weight: 700;
@@ -224,4 +226,3 @@
 .pd-desktop .cd-saved-duration.is-empty {
   color: var(--dk-ink-2);
 }
-

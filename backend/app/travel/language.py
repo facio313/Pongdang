@@ -3,6 +3,9 @@
 COPY = {
     "ko": {
         "intro": "이번 여행은 이렇게 골라보시면 좋겠어요.",
+        "visit_intro": "말씀하신 시간대와 장소에 맞춰 후보를 찾았어요.",
+        "visit_limits": "시간대별 후보 중 가고 싶은 곳을 골라 주세요. "
+        "장소 사이의 이동 시간과 현장 이용 조건은 아직 확인하지 않았어요.",
         "companion_connected": "여행 중 마지막으로 확인한 안내를 정리했어요.",
         "companion_disconnected": "현재 여행 갱신이 연결되어 있지 않아요.",
         "companion_ended": "종료한 여행의 안내 기록이에요.",
@@ -29,6 +32,9 @@ COPY = {
     },
     "en": {
         "intro": "Here are a few places to consider for this trip.",
+        "visit_intro": "Here are places for each part of your requested trip.",
+        "visit_limits": "Choose a place from each part of the day. "
+        "Travel times between places and on-site conditions have not been checked.",
         "companion_connected": "Here are the latest checked updates for your trip.",
         "companion_disconnected": "Trip updates are currently disconnected.",
         "companion_ended": "These are the records of your ended trip.",
@@ -55,6 +61,9 @@ COPY = {
     },
     "ja": {
         "intro": "今回の旅には、こちらの候補を比べてみてください。",
+        "visit_intro": "ご希望の時間帯と場所に合わせて候補を探しました。",
+        "visit_limits": "時間帯ごとに行きたい場所を選んでください。"
+        "場所の間の移動時間と現地の利用条件はまだ確認していません。",
         "companion_connected": "最後に確認した旅の案内です。",
         "companion_disconnected": "旅行の更新は現在接続されていません。",
         "companion_ended": "終了した旅行の案内記録です。",
@@ -79,6 +88,9 @@ COPY = {
     },
     "zh-CN": {
         "intro": "这次旅行，可以先比较这些地点。",
+        "visit_intro": "已按您希望的时段和地点类型找到以下候选地点。",
+        "visit_limits": "请从各时段的候选地点中选择想去的地方。"
+        "尚未核实地点之间的交通时间和现场使用条件。",
         "companion_connected": "以下是最近确认的旅行提示。",
         "companion_disconnected": "旅行信息更新目前未连接。",
         "companion_ended": "这是已结束旅行的提示记录。",
@@ -99,6 +111,9 @@ COPY = {
     },
     "zh-TW": {
         "intro": "這次旅行，可以先比較這些地點。",
+        "visit_intro": "已按您希望的時段和地點類型找到以下候選地點。",
+        "visit_limits": "請從各時段的候選地點中選擇想去的地方。"
+        "尚未核實地點之間的交通時間和現場使用條件。",
         "companion_connected": "以下是最近確認的旅行提示。",
         "companion_disconnected": "旅行資訊更新目前未連線。",
         "companion_ended": "這是已結束旅行的提示記錄。",

@@ -57,6 +57,7 @@ import { suppressLoginRequired } from "./authError";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
 import { TransportSelect } from "./TransportSelect";
 import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
+import { CourseFavoriteButton } from "./CourseFavoriteButton";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
 import { GuestSaveNote } from "./GuestSaveNote";
@@ -887,15 +888,17 @@ export function MapDesktop() {
                   모바일 코스 뷰와 같은 규칙입니다(MapPage · GuestSaveNote). */}
               {loginRequired && <GuestSaveNote what="코스" className="mk-note" />}
               {myPlansWithAlarm.map(({ plan, alarm }) => (
-                <button
-                  type="button"
+                <div
                   className={"cd-saved" + (session.plan?.plan_id === plan.plan_id ? " is-selected" : "")}
-                  aria-pressed={session.plan?.plan_id === plan.plan_id}
-                  disabled={action.busy}
                   key={plan.plan_id}
-                  onClick={() => openSavedPlan(plan)}
                 >
-                  <div className="cd-saved-body">
+                  <button
+                    type="button"
+                    className="cd-saved-body"
+                    aria-pressed={session.plan?.plan_id === plan.plan_id}
+                    disabled={action.busy}
+                    onClick={() => openSavedPlan(plan)}
+                  >
                     <div className="cd-saved-name">
                       {plan.request.dates[0]
                         ? t("{date} 물 코스", { date: plan.request.dates[0] })
@@ -914,8 +917,9 @@ export function MapDesktop() {
                             ? t("동행 알림 켬")
                             : t("동행 알림 꺼짐")}
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <CourseFavoriteButton plan={plan} disabled={action.busy} />
+                </div>
               ))}
               {!loginRequired && !myPlans.data?.rows.length && (
                 <p className="mk-note" role={myPlans.error ? "alert" : "status"}>

@@ -228,8 +228,25 @@ main:has(.pd-desktop.is-fullscreen) {
   box-shadow: inset 0 -2px 0 var(--dk-sky);
 }
 .pd-dk-nav-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  min-width: 0;
   font-size: 12px;
   color: var(--dk-onc-2);
+}
+.pd-dk-nav-account { white-space: nowrap; }
+.pd-dk-nav-account-id {
+  display: block;
+  max-width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-desktop .pd-dk-nav-login,
+.pd-desktop .pd-dk-nav-account-id {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* 언어 전환. 네비 오른쪽 끝으로 밀어 두며, 컨텍스트 문구가 없는 화면에서도

@@ -27,11 +27,21 @@ export interface AiFact {
   spot_id?: number | null; data_status: string; metadata: Record<string, unknown>;
 }
 export interface ModelTraceTurn {
-  kind: "tool" | "plan";
+  kind: "tool" | "plan" | "scope" | "attempt" | "retry" | "error";
   name?: string | null;
   arguments?: Record<string, unknown> | null;
   plan?: Record<string, unknown> | null;
   error?: string | null;
+}
+export interface ModelTraceRequest {
+  sequence: number;
+  trace: ModelTraceTurn[];
+}
+
+/** Sanitized processing records stay in this screen's memory, including
+ *  requests whose server response supplied no trace. */
+export function appendModelTraceRequest(history: ModelTraceRequest[], trace: ModelTraceTurn[]): ModelTraceRequest[] {
+  return [...history.slice(-11), { sequence: (history.at(-1)?.sequence ?? 0) + 1, trace }];
 }
 export interface ChatResponse {
   request_id: string; status: string; answer: string; clarification: string | null;
@@ -87,6 +97,10 @@ export const aiReasonTexts: Record<string, string> = {
   ai_rate_limited: "AI 요청 빈도 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
   ai_rate_limit: "사용자별 AI 요청 한도에 도달했습니다.", ai_request_timeout: "AI 요청 전체 처리 시간이 초과되었습니다.", ai_connection_failed: "OpenAI에 연결하지 못했습니다.", ai_service_unavailable: "OpenAI 서비스를 일시적으로 사용할 수 없습니다.",
   ai_user_rate_limited: "사용자별 AI 요청 한도에 도달했습니다.",
+  ai_scope_unavailable: "질문의 관련성과 방문 의도를 확인하지 못했습니다. 잠시 후 다시 질문해 주세요.",
+  ai_empty_output: "루나의 판단 응답이 비어 있어 요청을 완료하지 못했습니다. 다시 질문해 주세요.",
+  ai_invalid_response: "루나 응답의 형식을 확인하지 못했습니다.",
+  ai_output_unverified: "루나의 답변 계획을 조회 근거와 맞춰 확인하지 못했습니다.",
 };
 export class AiRequestError extends Error {
   code: string;

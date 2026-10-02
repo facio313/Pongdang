@@ -9,7 +9,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
-from test_travel_integration import BASE, HEADERS
+from test_travel_integration import BASE, HEADERS, offline_chat
 from test_travel_integration import travel_db as _travel_db
 
 from app.ai.chat import ChatRequest
@@ -669,8 +669,10 @@ def test_route_items_carry_catalog_coordinates_without_exposing_origin_to_model(
 
 def test_public_two_stage_chat_route_and_unconfigured_state(travel_db, monkeypatch):
     s, client, places, _ = travel_db
+    provider = offline_chat(monkeypatch, s, action="route", tool="travel_route")
     day = (datetime.now(KST) + timedelta(days=1)).date()
     request = {
+        "region": "격리",
         "dates": [day.isoformat()],
         "origin": {"label": "home", "latitude": 37.5, "longitude": 128.5},
         "departure_time": "09:00",
@@ -694,6 +696,9 @@ def test_public_two_stage_chat_route_and_unconfigured_state(travel_db, monkeypat
         },
     )
     assert chat.status_code == 200, chat.text
+    assert chat.json()["fallback"] is False
+    assert len(provider.bodies) == 3
+    assert chat.json()["model_trace"][1]["plan"]["action"] == "route"
     result = chat.json()["travel_results"]["route_recommendation"]
     assert result["route_calculated"] is True
     assert set(result["route"]["spot_ids"]) == {

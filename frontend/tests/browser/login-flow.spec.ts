@@ -14,6 +14,107 @@ async function anonymous(page: Page) {
   await page.route("**/api/data/travel/preferences", route => route.fulfill({ status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
 }
 
+for (const route of ["home", "today", "recommend", "spots", "map"]) {
+  test(`${route} header supports login, logout cancellation and confirmed logout`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.route("https://**/*", route => route.abort());
+    await anonymous(page);
+    let signedIn = false;
+    let logoutRequests = 0;
+    await page.route("**/api/data/travel/keywords", route => route.fulfill({ json: { categories: [] } }));
+    await page.route("**/api/data/travel/preferences", route => route.fulfill(signedIn
+      ? { json: { preference: { tags: [] }, revision: 0, account_id: "verified-account" } }
+      : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
+    await page.route("**/api/auth/state", route => route.fulfill({
+      status: signedIn ? 200 : 401, json: { authenticated: signedIn },
+    }));
+    await page.route("**/api/auth/login", route => {
+      signedIn = true;
+      return route.fulfill({ json: { authenticated: true } });
+    });
+    await page.route("**/api/auth/logout", route => {
+      expect(route.request().method()).toBe("POST");
+      logoutRequests++;
+      signedIn = false;
+      return route.fulfill({ json: { authenticated: false } });
+    });
+    await page.goto(`#${route}`);
+    const header = page.getByRole("navigation", { name: "주요 탭" });
+    await expect(header).not.toContainText("취향 0개 선택");
+    await expect(header).not.toContainText("관측 기준");
+    await header.getByRole("button", { name: "로그인", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
+    await dialog.getByLabel("아이디", { exact: true }).fill("entered-alias");
+    await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-password");
+    await dialog.getByRole("button", { name: "로그인", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(header.locator(".pd-dk-nav-account")).toHaveText("verified-account");
+    await expect(header).not.toContainText("entered-alias");
+    await expect(header.getByRole("button", { name: "로그인", exact: true })).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`#${route}$`));
+    const account = header.getByRole("button", { name: "verified-account", exact: true });
+    await account.click();
+    const logout = page.getByRole("dialog", { name: "로그아웃하시겠어요?", exact: true });
+    await expect(logout).toContainText("verified-account");
+    await expect(logout.getByRole("button", { name: "취소", exact: true })).toBeFocused();
+    await logout.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(logout).toHaveCount(0);
+    await expect(account).toBeFocused();
+    await account.click();
+    await page.keyboard.press("Escape");
+    await expect(logout).toHaveCount(0);
+    expect(logoutRequests).toBe(0);
+    await account.click();
+    await logout.getByRole("button", { name: "로그아웃", exact: true }).click();
+    await expect(logout).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
+    await expect(account).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`#${route}$`));
+    expect(logoutRequests).toBe(1);
+  });
+}
+
+test("logout stays open while pending, reports failure and allows a verified retry", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.route("https://**/*", route => route.abort());
+  await anonymous(page);
+  let signedIn = true;
+  let attempts = 0;
+  let release: (() => void) | undefined;
+  await page.route("**/api/data/travel/preferences", route => route.fulfill(signedIn
+    ? { json: { preference: { tags: [] }, revision: 0, account_id: "verified-account" } }
+    : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
+  await page.route("**/api/auth/state", route => route.fulfill({
+    status: signedIn ? 200 : 401, json: { authenticated: signedIn },
+  }));
+  await page.route("**/api/auth/logout", async route => {
+    attempts++;
+    if (attempts === 1) {
+      await new Promise<void>(resolve => { release = resolve; });
+      return route.fulfill({ status: 503, json: { authenticated: false } });
+    }
+    signedIn = false;
+    return route.fulfill({ json: { authenticated: false } });
+  });
+  await page.goto("#home");
+  const header = page.getByRole("navigation", { name: "주요 탭" });
+  await header.getByRole("button", { name: "verified-account", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "로그아웃하시겠어요?", exact: true });
+  await dialog.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "로그아웃 중…", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "취소", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeVisible();
+  await expect.poll(() => attempts).toBe(1);
+  release?.();
+  await expect(dialog.getByRole("alert")).toContainText("로그아웃하지 못했습니다");
+  await expect(header.locator(".pd-dk-nav-account")).toHaveText("verified-account");
+  await dialog.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(header.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
+  expect(attempts).toBe(2);
+});
+
 for (const width of [390, 1440]) {
   test(`inline login stays on the page through failure and cancellation at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
@@ -105,7 +206,7 @@ test("an unconfigured host never receives a password and keeps the inline popup"
   await page.route("**/api/auth/state", route => route.fulfill({ contentType: "text/html", body: "<html>Fallback</html>" }));
   await page.route("**/api/auth/login", route => { passwordRequests++; return route.abort(); });
   await page.goto("#today");
-  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await page.getByRole("region", { name: "첫 입수 · 수온 알림" }).getByRole("button", { name: "로그인", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "로그인", exact: true });
   await dialog.getByLabel("아이디", { exact: true }).fill("offline-fixture");
   await dialog.getByLabel("비밀번호", { exact: true }).fill("offline-password");
@@ -182,7 +283,8 @@ for (const width of [390, 1440]) {
     await page.goto("#map?view=course");
     // 코스 뷰는 「로그인」 1차 버튼을 세우지 않습니다 -- 지금 만들고 있는 코스는
     // 그대로 있고, 계정이 필요한 것은 **저장된** 코스 목록뿐입니다(GuestSaveNote).
-    const login = page.getByRole("button", { name: "로그인하면 저장돼요", exact: true });
+    const courseList = width === 1440 ? page.getByRole("complementary", { name: "내 코스 목록" }) : page;
+    const login = courseList.getByRole("button", { name: "로그인하면 저장돼요", exact: true });
     await expect(login).toBeVisible();
     await expect(page.getByText("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.", { exact: true })).toHaveCount(0);
     await login.click();

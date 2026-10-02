@@ -32,7 +32,6 @@ import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
 import type { Recommendation } from "./recommendationApi";
 import {
-  conditionModeLabel,
   dataStatusText,
   dateLabel,
   timeLabel,
@@ -129,7 +128,6 @@ function TodayHero({
             <ProductPlacePopover placeName={placeName} />
             <span aria-hidden="true">·</span>
             <time dateTime={at}>{at ? `${dateLabel(at)} ${timeLabel(at)}` : "–"}</time>
-            <span>· {t("{mode} 기준", { mode: conditionModeLabel(baseline) })}</span>
           </div>}
         />
       }

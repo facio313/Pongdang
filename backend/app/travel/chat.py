@@ -29,7 +29,7 @@ PATCH_FIELDS = (
     "dates region place_role origin transport departure_time return_by "
     "day_trip people companion_type budget required preferred_tags avoid "
     "activity activity_intensity max_travel_minutes mood purpose "
-    "meal_preference rest_preference locale"
+    "meal_preference rest_preference locale keyword_selection visit_intents"
 ).split()
 RequestPatch = create_model(
     "TravelRequestPatch",
@@ -93,8 +93,10 @@ TRAVEL_TOOLS = {
     ),
 }
 INSTRUCTIONS = """
-First return places and activities using travel_recommend. Never calculate a route
-as part of that first list. Only call travel_route when the user separately asks
+For place recommendations, first return places and activities using travel_recommend.
+For factual water conditions or facilities, use the corresponding read tools instead.
+Honor interpreted_request.action. Never calculate a route as part of a first
+recommendation list. Only call travel_route when the user separately asks
 for a route/visiting order and a previous recommendation selection is present.
 Keyword selections are explicit form state; never invent environmental bounds.
 Travel B1/B3/B5 use travel_recommend and B2 uses travel_draft. The server ranks
@@ -156,10 +158,13 @@ def apply_patch(request, patch):
         changes["mood"]["confirmed"] = False
     if "transport" in changes:
         changes["keyword_selection"] = [
-            selection.model_copy(update={"values": [changes["transport"]]})
-            if selection.category == "transport"
+            selection | {"values": [changes["transport"]]}
+            if selection["category"] == "transport"
             else selection
-            for selection in request.keyword_selection
+            for selection in changes.get(
+                "keyword_selection",
+                [item.model_dump() for item in request.keyword_selection],
+            )
         ]
     return TravelRequest.model_validate(request.model_dump(mode="json") | changes)
 
@@ -197,17 +202,48 @@ class TravelToolSession(ToolSession):
         self.travel_question = None
         self.travel_instructions = INSTRUCTIONS
 
-    def model_context(self):
-        from app.ai.chat import private_text
+    async def prepare(self):
+        """Resolve private saved state only after the request passed the scope gate."""
+        context = self.travel_context
+        if not self.body.travel:
+            return
+        if (
+            context.selection_token
+            and not context.plan_id
+            and "request" not in self.body.travel.model_fields_set
+        ):
+            selection = tokens.decode(
+                self.settings, self.owner, context.selection_token, self.now
+            )
+            context.request = TravelRequest.model_validate(selection["request"])
+        if context.session_id:
+            await asyncio.to_thread(
+                companion.get_session,
+                self.settings,
+                self.owner,
+                context.session_id,
+                now=self.now,
+            )
+        if context.plan_id:
+            previous = await asyncio.to_thread(
+                storage.get_plan, self.settings, self.owner, context.plan_id
+            )
+            if "request" not in self.body.travel.model_fields_set:
+                context.request = previous.request
 
-        request = self.travel_context.request.model_dump(mode="json")
+    def model_context(self):
+        from app.ai.chat import compact_context
+
+        request = compact_context(
+            self.travel_context.request.model_dump(mode="json", exclude_none=True)
+        )
         if request.get("origin"):
             request["origin"] = {"label": "user_supplied_origin", "available": True}
         if request.get("mood"):
             request["mood"].pop("text", None)
         # Origin coordinates, SSO subjects, signed tokens, private signal IDs,
         # review notes and saved plan IDs never enter the provider body.
-        return json.loads(private_text(json.dumps(request, ensure_ascii=False)))
+        return request
 
     def schemas(self):
         return super().schemas() + [
@@ -244,18 +280,31 @@ class TravelToolSession(ToolSession):
             ):
                 raise ToolError("itinerary_requires_explicit_request")
             if name != "travel_companion":
-                activity = args.changes.activity
+                request = self.travel_context.request
+                activities = [(args.changes.activity, request.activity)]
+                for intent in args.changes.visit_intents or []:
+                    previous = next(
+                        (
+                            item.activity
+                            for item in request.visit_intents
+                            if item.place_type == intent.place_type
+                            and item.part_of_day == intent.part_of_day
+                        ),
+                        None,
+                    )
+                    activities.append((intent.activity, previous or request.activity))
                 explicit_activities = {
                     "swim": r"수영|swim|泳ぎ|游泳",
                     "surf": r"서핑|surf|サーフ|冲浪|衝浪",
                     "rafting": r"래프팅|rafting|ラフティング|漂流",
                 }
-                if (
+                if any(
                     activity in explicit_activities
-                    and self.travel_context.request.activity != activity
+                    and previous != activity
                     and not re.search(
                         explicit_activities[activity], self.body.message, re.I
                     )
+                    for activity, previous in activities
                 ):
                     raise ToolError("explicit_activity_intent_required")
             if name != "travel_companion":
@@ -409,6 +458,11 @@ class TravelToolSession(ToolSession):
             now=self.now,
             catalog=self.catalog,
         )
+        groups = getattr(result, "recommendation_groups", [])
+        if groups:
+            self.travel_results["recommendation_groups"] = groups
+        else:
+            self.travel_results.pop("recommendation_groups", None)
         self.travel_context.selection_token = result.selection_token
         self.travel_results["recommendations"] = result.model_dump(mode="json")
         self.travel_question = result.clarification
@@ -646,43 +700,6 @@ async def travel_converse(settings, body, subject, provider, **kwargs):
 
     if not wants_travel(body):
         return await converse(settings, body, subject, provider, **kwargs)
-    if (
-        body.travel
-        and body.travel.selection_token
-        and not body.travel.plan_id
-        and "request" not in body.travel.model_fields_set
-    ):
-        from datetime import UTC
-
-        selection = tokens.decode(
-            settings, subject, body.travel.selection_token, datetime.now(UTC)
-        )
-        body = body.model_copy(
-            update={
-                "travel": body.travel.model_copy(
-                    update={
-                        "request": TravelRequest.model_validate(selection["request"]),
-                    }
-                )
-            }
-        )
-    if body.travel and body.travel.session_id:
-        await asyncio.to_thread(
-            companion.get_session, settings, subject, body.travel.session_id
-        )
-    # Saved plans are owner-checked before context is loaded, but no write occurs.
-    if body.travel and body.travel.plan_id:
-        previous = await asyncio.to_thread(
-            storage.get_plan, settings, subject, body.travel.plan_id
-        )
-        if "request" not in body.travel.model_fields_set:
-            body = body.model_copy(
-                update={
-                    "travel": body.travel.model_copy(
-                        update={"request": previous.request}
-                    )
-                }
-            )
     return await converse(
         settings,
         body,
@@ -693,10 +710,70 @@ async def travel_converse(settings, body, subject, provider, **kwargs):
     )
 
 
+def _visit_heading(intent, locale):
+    labels = {
+        "morning": ("오전", "Morning", "午前", "上午", "上午"),
+        "afternoon": ("오후", "Afternoon", "午後", "下午", "下午"),
+        "evening": ("저녁", "Evening", "夕方", "傍晚", "傍晚"),
+        "any": ("방문", "Visit", "訪問", "游览", "遊覽"),
+        "beach": ("해변", "Beach", "海辺", "海滩", "海灘"),
+        "valley": ("계곡", "Valley", "渓谷", "溪谷", "溪谷"),
+        "cafe": ("카페", "Cafe", "カフェ", "咖啡馆", "咖啡館"),
+        "hot_spring": ("온천", "Hot springs", "温泉", "温泉", "溫泉"),
+        "lake": ("호수", "Lake", "湖", "湖泊", "湖泊"),
+        "river": ("강", "River", "川", "河流", "河流"),
+        "reservoir": ("저수지", "Reservoir", "貯水池", "水库", "水庫"),
+        "restaurant": ("음식점", "Restaurant", "飲食店", "餐厅", "餐廳"),
+        "lodging": ("숙박", "Lodging", "宿泊", "住宿", "住宿"),
+        "attraction": ("관광지", "Attraction", "観光地", "景点", "景點"),
+    }
+    index = ("ko", "en", "ja", "zh-CN", "zh-TW").index(locale)
+    return " · ".join(
+        labels[intent[key]][index] for key in ("part_of_day", "place_type")
+    )
+
+
+def _recommendation_lines(rows, locale):
+    from app.travel.language import copy, label
+
+    lines = []
+    for row in rows:
+        heading = f"{row['rank']}. {row['name']}" + (
+            f" · {row['region']}" if row["region"] else ""
+        )
+        lines.extend([heading, row["reason"]])
+        if row.get("activities"):
+            lines.append(" · ".join(a["label"] for a in row["activities"]))
+        unknown = [label(locale, value) for value in row["unknown_conditions"][:3]]
+        if unknown:
+            lines.append(copy(locale, "unchecked", conditions=", ".join(unknown)))
+        fetched = row["evidence"][0].get("fetched_at")
+        if fetched:
+            stamp = datetime.fromisoformat(fetched).astimezone(KST)
+            lines.append(
+                copy(locale, "catalog_time", time=f"{stamp:%Y-%m-%d %H:%M} KST")
+            )
+    return lines
+
+
+def _visit_place_label(row):
+    from app.regions import DISTRICTS, administrative_codes
+
+    _, district = administrative_codes(
+        row.get("confirmed", {}).get("address"), row.get("region")
+    )
+    location = dict(DISTRICTS).get(district)
+    if not location:
+        raw = row.get("region") or ""
+        # Provider identifiers such as 51:170 are not readable place labels.
+        location = raw if not re.fullmatch(r"\d+:\d+", raw) else ""
+    return row["name"] + (f" ({location})" if location else "")
+
+
 def assemble_travel(response, session):
     if not isinstance(session, TravelToolSession):
         return response
-    from app.travel.language import copy, label
+    from app.travel.language import copy
 
     response.travel = session.travel_context
     response.travel_results = session.travel_results
@@ -704,27 +781,37 @@ def assemble_travel(response, session):
         response.clarification = session.travel_question
         response.status = "clarification"
     result = session.travel_results.get("recommendations")
+    groups = session.travel_results.get("recommendation_groups")
     locale = session.travel_context.request.locale
-    if result and result["recommendations"]:
-        lines = [copy(locale, "intro")]
-        for row in result["recommendations"]:
-            heading = f"{row['rank']}. {row['name']}" + (
-                f" · {row['region']}" if row["region"] else ""
-            )
-            lines.extend([heading, row["reason"]])
-            if row.get("activities"):
-                lines.append(" · ".join(a["label"] for a in row["activities"]))
-            unknown = [label(locale, value) for value in row["unknown_conditions"][:3]]
-            if unknown:
-                lines.append(copy(locale, "unchecked", conditions=", ".join(unknown)))
-            fetched = row["evidence"][0].get("fetched_at")
-            if fetched:
-                stamp = datetime.fromisoformat(fetched).astimezone(KST)
-                lines.append(
-                    copy(locale, "catalog_time", time=f"{stamp:%Y-%m-%d %H:%M} KST")
+    if groups:
+        lines = [copy(locale, "visit_intro")]
+        for group in groups:
+            stage = group["result"]
+            if stage["recommendations"]:
+                summary = ", ".join(
+                    _visit_place_label(row) for row in stage["recommendations"]
                 )
-        lines.append(copy(locale, "limits"))
-        response.answer = "\n\n".join(lines)
+            else:
+                summary = copy(
+                    locale,
+                    "query_failed" if stage["status"] == "query_failed" else "empty",
+                )
+            lines.append(_visit_heading(group["intent"], locale) + ": " + summary)
+        # Keep every visit in the opening paragraph. Long per-place evidence is
+        # already available in the candidate details and structured response.
+        response.answer = "\n".join(lines)
+        if result and result["recommendations"]:
+            response.answer += "\n\n" + copy(locale, "visit_limits")
+        elif result:
+            response.status = result["status"]
+    elif result and result["recommendations"]:
+        response.answer = "\n\n".join(
+            [
+                copy(locale, "intro"),
+                *_recommendation_lines(result["recommendations"], locale),
+                copy(locale, "limits"),
+            ]
+        )
     elif result and result["status"] == "query_failed":
         response.answer = copy(locale, "query_failed")
         response.status = "query_failed"
@@ -738,7 +825,7 @@ def assemble_travel(response, session):
             for item in day["items"]:
                 stay = copy(locale, "stay", minutes=item["stay_minutes"])
                 lines.append(f"{day['date']} · {item['name']} · {stay}")
-        response.answer = "\n\n".join(lines)
+        response.answer = "\n\n".join([response.answer, *lines] if groups else lines)
     if "companion" in session.travel_results:
         result = session.travel_results["companion"]
         lines = [copy(locale, "companion_" + result["connection_status"])]

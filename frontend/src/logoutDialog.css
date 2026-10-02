@@ -1,0 +1,41 @@
+.pd-app.pd-logout-dialog {
+  display: none;
+  width: min(400px, calc(100% - 32px));
+  min-height: 0;
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 28px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 16px;
+  background: var(--pd-card, #fff);
+  color: var(--pd-ink, #1b2430);
+}
+.pd-app.pd-logout-dialog[open] { display: block; }
+.pd-logout-dialog::backdrop { background: rgba(15, 47, 122, 0.32); }
+.pd-logout-dialog h2 { margin: 0 0 12px; font-size: 24px; }
+.pd-logout-dialog #pd-logout-account {
+  margin: 0 0 24px;
+  color: var(--pd-ink-2, #4c657f);
+  overflow-wrap: anywhere;
+}
+.pd-logout-dialog .pd-logout-error { margin: 0 0 20px; color: var(--dk-alert, #8d1616); line-height: 1.6; }
+.pd-logout-actions { display: flex; gap: 12px; }
+.pd-logout-dialog .pd-logout-actions button {
+  flex: 1;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 1px solid var(--pd-line, #c2ccd6);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pd-logout-dialog .pd-logout-actions .pd-logout-confirm {
+  border-color: transparent;
+  background: var(--pd-brand, #0f2f7a);
+  color: #fff;
+}
+.pd-logout-dialog .pd-logout-actions button:disabled { opacity: .6; cursor: wait; }

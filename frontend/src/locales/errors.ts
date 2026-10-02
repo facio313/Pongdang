@@ -41,6 +41,21 @@ export const errorMessages: Record<string, MessageTranslations> = {
     "服务器的AI配置尚未就绪。",
     "サーバーのAI設定が準備できていません。"
   ],
+  "질문의 관련성과 방문 의도를 확인하지 못했습니다. 잠시 후 다시 질문해 주세요.": [
+    "Could not determine whether the question is relevant or what you want to visit. Please ask again shortly.",
+    "未能确认问题的相关性和您的游览意图。请稍后再次提问。",
+    "質問の関連性と訪問の意図を確認できませんでした。しばらくしてから再度質問してください。"
+  ],
+  "루나 응답의 형식을 확인하지 못했습니다.": [
+    "Could not verify the format of Luna's response.",
+    "未能确认 Luna 回复的格式。",
+    "Luna の応答形式を確認できませんでした。"
+  ],
+  "루나의 답변 계획을 조회 근거와 맞춰 확인하지 못했습니다.": [
+    "Could not verify Luna's response plan against the retrieved evidence.",
+    "未能根据查询到的依据验证 Luna 的回复计划。",
+    "照会した根拠と Luna の応答計画の整合性を確認できませんでした。"
+  ],
   "OpenAI 인증에 실패했습니다. 서버 키 설정을 확인해야 합니다.": [
     "OpenAI authentication failed. The server key configuration needs checking.",
     "OpenAI身份验证失败。需要检查服务器密钥配置。",

@@ -25,9 +25,11 @@ def test_key_only_enables_luna_with_matched_nonzero_prices(monkeypatch):
     assert configured.ai_effective_provider == "openai"
     assert configured.ai_api_key.get_secret_value() == "local-test-only-key"
     assert "local-test-only-key" not in repr(configured)
-    assert configured.ai_model == configured.ai_pricing_model == "gpt-5.6-luna"
-    assert configured.ai_input_microusd_per_million_tokens == 200000
-    assert configured.ai_output_microusd_per_million_tokens == 1200000
+    assert configured.ai_model == configured.ai_pricing_model == "gpt-6-luna"
+    assert configured.ai_input_microusd_per_million_tokens == 100000
+    assert configured.ai_output_microusd_per_million_tokens == 500000
+    assert configured.ai_max_daily_calls == 50
+    assert configured.ai_daily_budget_microusd == 1000000
 
 
 @pytest.mark.parametrize(
@@ -50,7 +52,7 @@ def test_effective_activation_respects_explicit_disable(provider, key, expected)
 def test_retired_empty_model_defaults_do_not_override_luna():
     configured = settings(ai_provider="", ai_model="", ai_pricing_model="")
     assert configured.ai_provider == "auto"
-    assert configured.ai_model == configured.ai_pricing_model == "gpt-5.6-luna"
+    assert configured.ai_model == configured.ai_pricing_model == "gpt-6-luna"
 
 
 def test_explicit_wrong_price_remains_detectable_without_breaking_app_settings():

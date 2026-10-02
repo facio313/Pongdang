@@ -76,6 +76,32 @@ def catalog_role(row):
     )
 
 
+def matches_visit_intent(request, place):
+    """Also check explicitly added places against the current visit's category."""
+    if len(request.visit_intents) != 1:
+        return True
+    place_type = request.visit_intents[0].place_type
+    category = place.get("category") or ""
+    cafe = place["evidence"].provider == "KAKAO_LOCAL" and (
+        category == "음식점 > 카페" or category.startswith("음식점 > 카페 > ")
+    )
+    if place_type == "cafe":
+        return cafe
+    if place_type == "restaurant":
+        return place.get("catalog_role") == "meal" and not cafe
+    if place_type in {"lodging", "attraction"}:
+        return place.get("catalog_role") == (
+            "lodging" if place_type == "lodging" else "visit"
+        )
+    if place_type == "hot_spring":
+        return (
+            place["kind"] in {"onsen", "hotspring"} or "온천" in place["catalog_tags"]
+        )
+    return place["kind"] == place_type or (
+        place_type == "beach" and "해변" in place["catalog_tags"]
+    )
+
+
 def target_period(request, now):
     days = request.dates or [now.astimezone(KST).date()]
     return (
@@ -209,14 +235,29 @@ class Catalog:
             "reservoir": "water.place_kind='reservoir'",
             "valley": "water.place_kind='valley'",
             "river": "s.type='river'",
+            # A food-service content type alone does not establish a cafe.
+            # Only the explicit stored provider category establishes this subtype.
+            "cafe": (
+                "(p.provider='KAKAO_LOCAL' AND (p.category='음식점 > 카페' OR "
+                "p.category LIKE '음식점 > 카페 > %%'))"
+            ),
         }
-        selected_types = choices(request, "place_type")
+        intent = request.visit_intents[0] if len(request.visit_intents) == 1 else None
+        selected_types = (
+            [intent.place_type] if intent else choices(request, "place_type")
+        )
+        selected_types = [value for value in selected_types if value in type_predicates]
         if selected_types:
             # These fragments come only from the fixed registry, never raw input.
             where += (
                 " AND ("
                 + " OR ".join(type_predicates[value] for value in selected_types)
                 + ")"
+            )
+        if intent and intent.place_type == "restaurant":
+            where += (
+                " AND NOT (p.provider='KAKAO_LOCAL' AND "
+                "(p.category='음식점 > 카페' OR p.category LIKE '음식점 > 카페 > %%'))"
             )
         if request.place_role != "any":
             codes = ROLE_CODES.get(request.locale, {}).get(request.place_role, [])
@@ -298,6 +339,7 @@ class Catalog:
             else "stable_spot_id",
             "coverage": "registered_catalog_only",
             "place_role": request.place_role,
+            "visit_place_type": intent.place_type if intent else None,
             "role_classification": "KTO_content_type_v4.4_or_explicit_place_kind",
             "area_wide_optimum": False,
             "language_crosswalk": "unconfigured",

@@ -47,6 +47,26 @@ export async function signInSso(base: string, username: string, password: string
   if (!(await readSsoLoginState(base, signal, fetcher)).authenticated) throw new SsoLoginError(UNAVAILABLE);
 }
 
+/** Expire this app's session, then verify that the browser is anonymous before
+ * discarding its in-memory personal data. An HTML fallback is never success. */
+export async function signOutSso(base: string, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<void> {
+  const options = { credentials: "same-origin", redirect: "error", cache: "no-store", signal } as const;
+  const verifyAnonymous = async (response: Response, allowed: number[]) => {
+    if (response.redirected || !allowed.includes(response.status)
+      || !response.headers.get("content-type")?.includes("application/json")) {
+      throw new SsoLoginError("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+    const result: unknown = await response.json();
+    if (typeof result !== "object" || result === null || !("authenticated" in result) || result.authenticated !== false) {
+      throw new SsoLoginError("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  };
+  await verifyAnonymous(await fetcher(`${base}api/auth/logout`, {
+    ...options, method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+  }), [200]);
+  await verifyAnonymous(await fetcher(`${base}api/auth/state`, options), [200, 401]);
+}
+
 type LoginLocation = Pick<Location, "origin" | "pathname" | "search" | "hash" | "assign" | "replace">;
 type LoginStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 

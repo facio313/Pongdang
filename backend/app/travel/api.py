@@ -17,6 +17,7 @@ from app.travel.language import copy
 from app.travel.models import (
     Locale,
     Mood,
+    PlanFavoriteUpdate,
     PlanInput,
     PlanUpdate,
     PreferenceUpdate,
@@ -224,7 +225,9 @@ def create_router(settings):
 
     @router.get("/preferences")
     def get_preferences(actor: Actor):
-        return storage.profile(settings, actor.subject)
+        # The existing trusted SSO subject is the signed-in account ID. Do not
+        # take a display identity from query parameters or stored preferences.
+        return {**storage.profile(settings, actor.subject), "account_id": actor.subject}
 
     @router.put("/preferences")
     def put_preferences(body: PreferenceUpdate, actor: Actor):
@@ -366,9 +369,16 @@ def create_router(settings):
         actor: Actor,
         limit: int = Query(100, ge=1, le=100),
         offset: int = Query(0, ge=0, le=10000),
+        favorite_only: bool = False,
     ):
         return {
-            "rows": storage.plans(settings, actor.subject, limit=limit, offset=offset),
+            "rows": storage.plans(
+                settings,
+                actor.subject,
+                limit=limit,
+                offset=offset,
+                favorite_only=favorite_only,
+            ),
             "limit": limit,
             "offset": offset,
         }
@@ -400,6 +410,12 @@ def create_router(settings):
             plan,
             identifier=plan_id.hex,
             expected=body.expected_revision,
+        )
+
+    @router.put("/plans/{plan_id}/favorite", response_model=TripPlan)
+    def favorite(plan_id: UUID, body: PlanFavoriteUpdate, actor: Actor):
+        return storage.set_plan_favorite(
+            settings, actor.subject, plan_id.hex, body.is_favorite
         )
 
     @router.delete("/plans/{plan_id}", status_code=204)

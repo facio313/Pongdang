@@ -78,6 +78,9 @@ async def run(*, local=False):
             provider,
             session_factory=SmokeSession,
             budget_api=OperatorAccounting if local else budget,
+            # Fixed operator diagnostic, not user text. Keep its explicit
+            # two-call contract; the public chat router always checks scope.
+            check_scope=False,
         )
     finally:
         await provider.aclose()

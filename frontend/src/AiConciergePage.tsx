@@ -55,6 +55,12 @@ export function AiResponseView({ response }: { response: ChatResponse }) {
   const groupedFacts = new Set(response.sections.flatMap((section) => section.fact_ids));
   const groupedCandidates = new Set(response.sections.flatMap((section) => section.candidate_ids));
   const [traceOpen, setTraceOpen] = useState(false);
+  const responseLabel = response.status === "out_of_scope"
+    ? "지원하지 않는 질문"
+    : response.status === "unavailable"
+      ? response.reason_codes.includes("ai_scope_unavailable") ? "관련성 판단 미완료" : "자료 조회 미완료"
+      : response.fallback ? "기존 자료 기반 대체 응답"
+        : response.provider === "openai" ? "Luna · 서버 근거 검증 완료" : "Pongdang 자료 안내";
   function candidateCards(ids: Set<string>) {
     return <div className="ai-candidates">{response.candidates.filter((candidate) => ids.has(candidate.candidate_id)).map((candidate) => <article className="ai-candidate" key={candidate.candidate_id}>
       <h3>{candidate.name}</h3><p>{placeRegionLabel(candidate, t("지역 기록 없음"))} {t("· 장소 ID")} {candidate.spot_id}</p>
@@ -63,7 +69,7 @@ export function AiResponseView({ response }: { response: ChatResponse }) {
     </article>)}</div>;
   }
   return <div className="ai-response">
-    <div className="ai-badges"><strong>{t(response.fallback ? "기존 자료 기반 대체 응답" : response.provider === "openai" ? "Luna · 서버 근거 검증 완료" : "Pongdang 자료 안내")}</strong><span>{t("처리 상태:")} {response.status}</span></div>
+    <div className="ai-badges"><strong>{t(responseLabel)}</strong><span>{t("처리 상태:")} {response.status}</span></div>
     <p className="ai-plain-text">{response.answer}</p>
     <ModelTraceButton trace={response.model_trace ?? []} onOpen={() => setTraceOpen(true)} />
     {traceOpen && (
@@ -150,7 +156,7 @@ export function AiConciergePage({ initialContext = {} }: { initialContext?: AiCo
     <p className="ai-privacy">{t("질문, 최근 대화와 필요한 공개 근거가 답변 처리를 위해 OpenAI에 전달됩니다. 개인정보를 입력하지 마세요. 대화는 이 화면의 메모리에만 유지되며, 새 대화나 페이지 이동 시 지워집니다. 제공자의 데이터 처리 정책은 별도로 적용됩니다.")}</p>
     <div className="ai-notice" role="status">{statusResult.error ? t(statusResult.error) : status ? aiStatusText(status) : t("AI 설정 상태 확인 중…")}</div>
     {statusResult.error && <button type="button" onClick={() => { setStatusResult({}); setStatusRevision((value) => value + 1); }}>{t("상태 다시 확인")}</button>}
-    {status && !status.enabled && <p>{t("아래 질문에는 가능한 기존 자료 조회 또는 조건 확인 안내로 응답합니다. AI가 생성한 답변으로 표시하지 않습니다.")}</p>}
+    {status && !status.enabled && <p>{t("AI 관련성 판단을 사용할 수 없어 질문을 처리할 수 없습니다. 데이터 조회 화면은 계속 이용할 수 있습니다.")}</p>}
     <p><a href="#data">{t("데이터 조회")}</a> · <a href="#info">{t("자료와 기능 정보")}</a></p>
     {turns.length === 0 && <section className="ai-examples" aria-label={t("예시 질문")}><h2>{t("이렇게 물어보세요")}</h2>{exampleQuestions.map((question) => <button key={question} type="button" onClick={() => { setDraft(t(question)); input.current?.focus(); }}>{t(question)}</button>)}</section>}
     <div className="ai-conversation" role="log" aria-label={t("대화 내용")} aria-live="polite" aria-relevant="additions text">

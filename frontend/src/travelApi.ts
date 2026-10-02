@@ -1,5 +1,5 @@
 import { forbiddenMessage } from "./authMessages.ts";
-import type { Activity } from "./aiApi";
+import { aiReasonTexts, type Activity } from "./aiApi.ts";
 import type { ModelTraceTurn } from "./aiApi";
 import type { TravelLocale } from "./travelLanguage";
 import { t } from "./i18n.ts";
@@ -135,6 +135,11 @@ export function originFromPlace(
     ...(catalogIds.has(place.id) ? { spot_id: place.id } : {}),
   };
 }
+export interface VisitIntent {
+  place_type: "beach" | "valley" | "cafe" | "hot_spring" | "lake" | "river" | "reservoir" | "restaurant" | "lodging" | "attraction";
+  part_of_day: "morning" | "afternoon" | "evening" | "any";
+  activity: Activity | null;
+}
 export interface TravelRequest {
   locale?: TravelLocale | "zh-TW";
   keyword_selection?: { category: string; values: string[] }[];
@@ -152,6 +157,7 @@ export interface TravelRequest {
   return_by?: string;
   origin?: Origin;
   must_include?: number[];
+  visit_intents?: VisitIntent[];
 }
 export interface Recommendation {
   spot_id: number;
@@ -181,6 +187,7 @@ export interface RecommendationResult {
   clarification: string | null;
   route_calculated: false;
   excluded?: { spot_id: number; reason: string }[];
+  recommendation_groups?: { intent: VisitIntent; result: RecommendationResult }[];
 }
 
 /** Why the server kept a candidate out of the list. Unknown codes stay
@@ -224,8 +231,30 @@ export interface TravelChatResponse {
   };
   travel_results?: {
     recommendations?: RecommendationResult;
+    recommendation_groups?: { intent: VisitIntent; result: RecommendationResult }[];
     route_recommendation?: RouteResult;
   };
+}
+
+/** Explain failed scope decisions once, using their known cause when available.
+ *  Other responses keep the server answer and known fallback reasons.
+ *  A deliberate scope rejection is already the complete response. */
+export function travelChatMessages(result: TravelChatResponse): string[] {
+  const messages = [result.answer, result.clarification]
+    .filter((content): content is string => Boolean(content?.trim()))
+    .filter((content, index, all) => all.indexOf(content) === index);
+  if (!result.fallback || result.status === "out_of_scope") return messages;
+  if (result.status === "unavailable" && result.reason_codes?.includes("ai_scope_unavailable")) {
+    const causes = [...new Set(result.reason_codes)]
+      .filter((code) => code !== "ai_scope_unavailable" && Object.hasOwn(aiReasonTexts, code))
+      .map((code) => t(aiReasonTexts[code]));
+    return [causes.join(" ") || t(aiReasonTexts.ai_scope_unavailable)];
+  }
+  const reasons = (result.reason_codes ?? [])
+    .filter((code) => Object.hasOwn(aiReasonTexts, code))
+    .map((code) => t(aiReasonTexts[code]))
+    .filter((reason, index, all) => all.indexOf(reason) === index && !messages.some((message) => message.includes(reason)));
+  return reasons.length ? [...messages, reasons.join(" ")] : messages;
 }
 export interface StopInput {
   item_id: string;
@@ -256,6 +285,7 @@ export interface PlanItem {
 export interface TripPlan {
   plan_id: string | null;
   revision: number;
+  is_favorite?: boolean;
   request: TravelRequest;
   input_stops: StopInput[];
   days: { date: string; items: PlanItem[] }[];
@@ -265,6 +295,7 @@ export interface TripPlan {
   route_status: string;
   route_snapshot?: RouteResult | null;
 }
+export const LATEST_FAVORITE_PLAN_PATH = "travel/plans?favorite_only=true&limit=1&offset=0";
 /** The server preserves the provider's own longitude/latitude objects. */
 export interface RoutePoint {
   longitude: number;

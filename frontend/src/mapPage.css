@@ -406,13 +406,19 @@
 /* ── 내 코스 목록 (코스 시트 초기 화면) ───────────────────── */
 
 .map-page .mp-saved-course {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   width: 100%;
   text-align: left;
   background: var(--pd-mist);
   border-radius: var(--pd-r-ctl);
   padding: 10px 11px;
   margin-top: 8px;
+}
+.map-page .mp-saved-course-open {
+  min-width: 0;
+  text-align: left;
   cursor: pointer;
 }
 .map-page .mp-saved-course-name {

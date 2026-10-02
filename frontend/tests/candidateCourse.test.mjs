@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { candidateCourse, moveCandidate } from '../src/candidateCourse.ts';
+import { candidateCourse, initialCandidateCourse, moveCandidate } from '../src/candidateCourse.ts';
 
 const result = {
   request: { dates: ['2026-10-01'], activity: 'relax', preferred_tags: [] },
@@ -46,4 +46,31 @@ test('moving to either end keeps all candidates, while invalid moves have no eff
   assert.equal(moveCandidate(result, 7, 7), result);
   assert.equal(moveCandidate(result, 999, 7), result);
   assert.equal(moveCandidate(result, 7, 999), result);
+});
+
+test('initial desktop course keeps the afternoon valley after a morning beach request', () => {
+  const pair = { ...result, recommendations: result.recommendations.slice(0, 2) };
+  const intents = [
+    { place_type: 'beach', part_of_day: 'morning', activity: 'swim' },
+    { place_type: 'valley', part_of_day: 'afternoon', activity: 'swim' },
+  ];
+  const grouped = {
+    ...pair,
+    request: { ...pair.request, visit_intents: intents },
+    recommendation_groups: intents.map((intent, index) => ({ intent,
+      result: { ...pair, recommendations: [pair.recommendations[index]], recommendation_groups: [] },
+    })),
+  };
+  const input = initialCandidateCourse(grouped, true);
+  assert.deepEqual(input.stops.map(stop => stop.spot_id), [7, 9]);
+  assert.deepEqual(input.selected_ranks, [1, 2]);
+  assert.equal(input.request.origin.spot_id, 7);
+  assert.deepEqual(input.request.visit_intents, intents);
+  assert.deepEqual(initialCandidateCourse({ ...pair, recommendation_groups: [] }, true).stops.map(stop => stop.spot_id), [7]);
+});
+
+test('initial course preserves ordinary desktop and mobile selection defaults', () => {
+  assert.deepEqual(initialCandidateCourse(result, true).stops.map(stop => stop.spot_id), [7, 9, 12, 15]);
+  assert.deepEqual(initialCandidateCourse(result).stops.map(stop => stop.spot_id), [7, 9, 12, 15, 18]);
+  assert.equal(initialCandidateCourse({ ...result, recommendations: [] }, true), null);
 });
