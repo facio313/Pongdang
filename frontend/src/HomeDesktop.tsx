@@ -58,6 +58,7 @@ import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
 import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homeDesktop.css";
+import { withJosa } from "./josa";
 
 // 데스크탑 홈(핸드오프 18a)입니다. 모바일 홈과 **같은 라우트(#home)**이며
 // HomePage.tsx 가 폭으로 갈라 이 레이아웃을 붙입니다.
@@ -509,7 +510,7 @@ export function HomeDesktop() {
                 {t("AI 제안")}</span>
               <div className="hd-ai-headline">
                 {best
-                  ? t("오늘 이 장소에서는 {activity}이(가) 가장 잘 맞습니다", { activity: t(activities[best.activity]) })
+                  ? t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
                   : missingChoiceHeadline(recommendation.error, true).join(" ")}
               </div>
               {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면

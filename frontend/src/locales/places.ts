@@ -774,7 +774,7 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "{name} · {activity}评分依据",
     "{name}・{activity}スコアの根拠"
   ],
-  "{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.": [
+  "{score} 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.": [
     "These components make up the {score}. The total is the equally weighted average of the condition scores.",
     "这些项目构成{score}，总分为各项条件评分的等权平均值。",
     "{score}を構成する項目です。各条件のスコアを同じ比重で平均した値が総合点です。"

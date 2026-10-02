@@ -10,6 +10,7 @@ import { t } from "./i18n.ts";
 // 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는
 // 번들러 없이 node 가 이 .ts 를 그대로 읽습니다(scoreMeaning.ts 와 같은 이유).
 import { activities, type Activity } from "./aiApi.ts";
+import { withJosa } from "./josa.ts";
 import { conditionScore, formatValue, type Conditions } from "./productData.ts";
 import type {
   RankedActivity,
@@ -153,11 +154,13 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
   if (preferred && preferred.rival)
     return {
       code: preferred.code,
-      // 여섯 활동 이름이 모두 받침으로 끝나므로(수영 · 서핑 · 휴식 · 갯벌 ·
-      // 온천 · 래프팅) 여기서는 «을» 하나로 맞습니다. 측정값과 달리 활동
-      // 이름은 고정된 낱말이라 조사를 붙여도 절반이 틀리지 않습니다.
-      text: t("{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity}을 먼저 권해요", {
-        rival: t(activities[preferred.rival]), activity: t(activities[choice.activity]),
+      // 조사는 낱말을 보고 고릅니다(josa.ts). 예전에는 여섯 활동 이름이 모두
+      // 받침으로 끝난다는 사실에 기대 «을» 을 서식에 박아 두었는데, 활동이
+      // 하나라도 늘면 조용히 틀립니다. 측정값과 달리 활동 이름은 받침을 판정할
+      // 수 있는 낱말이라 헬퍼가 답을 냅니다.
+      text: t("{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity} 먼저 권해요", {
+        rival: t(activities[preferred.rival]),
+        activity: withJosa(t(activities[choice.activity]), "을/를"),
       }),
     };
   return null;
@@ -195,7 +198,9 @@ export function rejectionReason(rec?: Recommendation): ReasonLine | null {
     ].join(" · ");
     return {
       code: "essential_measurement_missing",
-      text: t("{names}은 이곳의 {metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다", { names, metrics }),
+      text: t("{names} 이곳의 {metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다", {
+        names: withJosa(names, "은/는"), metrics,
+      }),
     };
   }
   if (find(rec, "no_water_activity_today"))

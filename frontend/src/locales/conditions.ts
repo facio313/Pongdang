@@ -487,7 +487,7 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "AI建议",
     "AIからの提案"
   ],
-  "오늘 이 장소에서는 {activity}이(가) 가장 잘 맞습니다": [
+  "오늘 이 장소에서는 {activity} 가장 잘 맞습니다": [
     "{activity} is the best match for this place today",
     "今日这个地点最适合{activity}",
     "今日この場所では{activity}が最も条件に合います"
@@ -1567,7 +1567,7 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "{waves} — 波浪平静，适合海泳",
     "{waves} — 波が穏やかで海での水泳に適しています"
   ],
-  "{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity}을 먼저 권해요": [
+  "{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity} 먼저 권해요": [
     "Although {rival} scores higher, today's conditions support water activities, so {activity} is recommended first",
     "虽然{rival}评分更高，但今天的条件支持下水活动，因此优先推荐{activity}",
     "{rival}のスコアが高くても、今日は水に入る活動の条件があるため、{activity}を先におすすめします"
@@ -1577,7 +1577,7 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "{measures} — 对于下海而言温度过低（水温低于{threshold}）",
     "{measures} — 海に入るには低い温度です（水温{threshold}未満）"
   ],
-  "{names}은 이곳의 {metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다": [
+  "{names} 이곳의 {metrics} 자료가 없어 판단하지 않았어요 — 조건이 나쁜 것과 다릅니다": [
     "{names} was not assessed because this place has no {metrics} data — this does not mean conditions are poor",
     "由于此地点没有{metrics}资料，未评估{names} — 这不代表条件差",
     "この場所の{metrics}の資料がないため、{names}は判断していません — 条件が悪いという意味ではありません"

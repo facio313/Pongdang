@@ -25,6 +25,7 @@ import {
 import { EvidenceNote } from "./EvidenceNote";
 import { activities, type Activity } from "./aiApi";
 import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
+import { withJosa } from "./josa";
 import {
   conditionPath,
   conditionScore,
@@ -788,7 +789,7 @@ export function MapDesktop() {
                     <StateChip kind={conditions.data ? "live" : "no_data"} />
                   </div>
                   <p className="mk-note">
-                    {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
+                    {t("{score} 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: withJosa(scoreTitle(ACTIVITY), "을/를") })}</p>
                   <ComponentBars
                     bars={componentBars(conditions.data)}
                     loading={isInitialLoad(conditions)}
@@ -841,7 +842,7 @@ export function MapDesktop() {
                     <StateChip kind="no_data" />
                   </div>
                   <p className="mk-note">
-                    {t("{score}를 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: scoreTitle(ACTIVITY) })}</p>
+                    {t("{score} 이루는 항목입니다. 각 조건의 점수를 같은 비중으로 평균낸 값이 총점입니다.", { score: withJosa(scoreTitle(ACTIVITY), "을/를") })}</p>
                   <ComponentBars bars={componentBars(undefined)} loading />
                   <ScoreReason text="" loading />
                 </>

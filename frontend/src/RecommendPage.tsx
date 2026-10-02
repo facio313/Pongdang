@@ -76,6 +76,7 @@ import { TravelRegionSelector } from "./TravelRegionSelector";
 import { travelRegionLabel, useTravelRegionSelection } from "./travelRegion";
 import { DEFAULT_PROVINCE, type RegionCatalog } from "./waterPlaceApi";
 import "./recommendPage.css";
+import { withJosa } from "./josa";
 
 /** 화면이 통째로 바뀌는 자리는 셋뿐입니다.
  *
@@ -1502,7 +1503,7 @@ function RecommendScreen() {
     selectionCount(group.id) > group.max_selections,
   );
   const selectionIssue = overLimit
-    ? t("{label}은 최대 {count}개까지 고를 수 있습니다. 선택한 항목을 눌러 줄여 주세요.", { label: t(overLimit.label), count: overLimit.max_selections })
+    ? t("{label} 최대 {count}개까지 고를 수 있습니다. 선택한 항목을 눌러 줄여 주세요.", { label: withJosa(t(overLimit.label), "은/는"), count: overLimit.max_selections })
     : "";
   const removePick = (id: string) => {
     setTags(picked.filter((value) => value !== id));
@@ -1789,7 +1790,7 @@ function RecommendScreen() {
       ? t("뭘 하고 싶으세요?")
       : revealed < groups.length
         ? (groups[revealed]
-            ? t("{label}을(를) 골라 주세요", { label: t(groups[revealed].label) })
+            ? t("{label} 골라 주세요", { label: withJosa(t(groups[revealed].label), "을/를") })
             : t("뭘 하고 싶으세요?"))
         : revealed === groups.length
           ? t("이건 어떠세요?")

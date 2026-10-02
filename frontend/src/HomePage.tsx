@@ -51,6 +51,7 @@ import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
 import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homePage.css";
+import { withJosa } from "./josa";
 
 // Keep the product layout; only server evidence supplies condition values.
 const CAM_BACKGROUNDS = [
@@ -507,7 +508,7 @@ function TasteBanner({
       <AiSuggestion
         headline={
           best
-            ? t("오늘 이 장소에서는 {activity}이(가) 가장 잘 맞습니다", { activity: t(activities[best.activity]) })
+            ? t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
             : missingChoiceHeadline(recommendation.error, true).join(" ")
         }
         // 서버가 고른 이유를 먼저 씁니다. 없으면 점수를 깎은 항목으로
