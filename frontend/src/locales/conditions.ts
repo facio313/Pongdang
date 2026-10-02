@@ -13,11 +13,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "已收集的同类地点中没有评分与水温组合不同的对比地点。已排除无评分数据的地点。",
     "収集済みの同じ種類の場所に、スコア・水温の組み合わせが異なる比較場所はありません。スコアのない場所は除外します。"
   ],
-  "부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.": [
-    "Partial scores use different available components, so scores alone cannot rank these places.",
-    "部分评分使用的已获取指标不同，不能仅凭分数判断地点优劣。",
-    "部分スコアは取得できた項目が異なるため、点数だけで場所の優劣は比較できません。"
-  ],
   "조회된 {count}곳 기준": ["Based on {count} loaded places", "基于已加载的{count}处地点", "取得した{count}か所を対象"],
   "대기": ["Pending", "等待", "待機"],
   "예보 자료 대기": ["Awaiting forecast data", "等待预报数据", "予報データ待ち"],
@@ -687,11 +682,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "地点名称",
     "場所名"
   ],
-  "(수집 DB)": [
-    "(Collected records)",
-    "（已收集记录）",
-    "（収集済み記録）"
-  ],
   "지역": [
     "Region",
     "地区",
@@ -731,11 +721,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "Activity unsupported",
     "不支持该活动",
     "アクティビティ非対応"
-  ],
-  "지원 미확인": [
-    "Support unconfirmed",
-    "支持情况未确认",
-    "対応状況未確認"
   ],
   "분야별 근거 확인": [
     "View component evidence",
@@ -942,11 +927,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "预报加载失败：{error}",
     "予報を読み込めませんでした：{error}"
   ],
-  "날짜별 12:00 KST에 유효한 수집 예보로 계산합니다. 일부 근거만 있는 날짜는 부분 점수이며, 해당 시각의 근거가 없으면 –입니다. 안전 판정은 별도입니다.": [
-    "Calculated from collected forecasts valid at 12:00 KST each day. Days with incomplete evidence have partial scores; no evidence for that time is shown as –. Safety is assessed separately.",
-    "根据每日12:00 KST有效的已收集预报计算。仅有部分依据的日期显示部分评分；该时刻无依据时显示–。安全需另行评定。",
-    "各日の12:00 KSTに有効な収集済み予報から計算します。一部の根拠しかない日は部分スコア、該当時刻の根拠がなければ–です。安全判定は別です。"
-  ],
   "점수 근거": [
     "Score evidence",
     "评分依据",
@@ -1111,11 +1091,6 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "No evidence information",
     "无依据信息",
     "根拠情報なし"
-  ],
-  "부분 점수 · ": [
-    "Partial score · ",
-    "部分评分 · ",
-    "部分スコア · "
   ],
   "근거 {available}/{total}{percentage}": [
     "Evidence {available}/{total}{percentage}",
@@ -2120,4 +2095,14 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "近くの{station}観測所を基準{distance}",
   ],
   " ({km}km)": [" ({km}km)", "（{km}km）", "（{km}km）"],
+  "장소마다 들어온 측정값이 달라, 점수만으로 어디가 더 좋은지 견주기 어렵습니다.": [
+    "Each place has a different set of measurements, so scores alone cannot rank them.",
+    "各地点采集到的测值不同，仅凭评分难以比较优劣。",
+    "場所ごとに届いた測定値が異なるため、スコアだけで優劣を比べることはできません。",
+  ],
+  "날짜별 낮 12시 예보로 계산합니다. 측정값이 일부만 들어온 날은 그만큼만 평가하고, 그 시각 자료가 없으면 –입니다. 안전 판정은 별도입니다.": [
+    "Calculated from each day's noon forecast. A day with only some measurements is scored on those alone, and a day with none shows -. Safety judgement is separate.",
+    "按各日正午预报计算。仅有部分测值的日期只据此评分，无该时刻数据则显示 –。安全判定另行确认。",
+    "各日の正午の予報で計算します。測定値が一部しか届かない日はその分だけ評価し、その時刻のデータがなければ – です。安全判定は別です。",
+  ],
 };

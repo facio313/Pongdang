@@ -699,11 +699,6 @@ export const placesMessages: Record<string, MessageTranslations> = {
     "淋浴间 · 停车 · 咖啡馆 · 可携带宠物",
     "シャワー・駐車場・カフェ・ペット可"
   ],
-  "시설 근거별 필터 화면 미작성": [
-    "Filters based on facility evidence are not implemented yet",
-    "尚未实现基于设施资料的筛选页面",
-    "施設の根拠資料に基づくフィルター画面は未実装です"
-  ],
   "강릉 · {date} · 지점 {count}곳": [
     "Gangneung · {date} · {count} places",
     "江陵 · {date} · {count} 处地点",

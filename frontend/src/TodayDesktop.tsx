@@ -315,7 +315,7 @@ function SpotComparison({
         </p>
       )}
       {resolved.some((place) => place.conditions?.condition_score?.status === "partial") &&
-        <p className="td-note">{t("부분 점수는 확보한 항목이 달라 점수만으로 장소의 우열을 비교할 수 없습니다.")}</p>}
+        <p className="td-note">{t("장소마다 들어온 측정값이 달라, 점수만으로 어디가 더 좋은지 견주기 어렵습니다.")}</p>}
     </div>
   );
 }
@@ -451,7 +451,7 @@ function WeekForecast({
       {errors.length > 0 && <p className="td-note" role="alert">{t("예보 조회 실패: {error}", { error: errors.map((error) => t(error)).join(" · ") })}</p>}
       {waitingDates.length > 0 && <p className="td-note" role="status">{waitingDates.join(" · ")} · {t("해당 날짜의 예보 자료를 아직 받지 못했습니다. 자료가 수집되면 점수를 표시합니다.")}</p>}
       <p className="td-note">
-        {t("날짜별 12:00 KST에 유효한 수집 예보로 계산합니다. 일부 근거만 있는 날짜는 부분 점수이며, 해당 시각의 근거가 없으면 –입니다. 안전 판정은 별도입니다.")}</p>
+        {t("날짜별 낮 12시 예보로 계산합니다. 측정값이 일부만 들어온 날은 그만큼만 평가하고, 그 시각 자료가 없으면 –입니다. 안전 판정은 별도입니다.")}</p>
     </section>
   );
 }
