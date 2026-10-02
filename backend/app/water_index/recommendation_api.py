@@ -36,6 +36,7 @@ from app.water_index.recommendation import (
     Alternative,
     Candidate,
     Choice,
+    ModelVersion,
     Reason,
     Rule,
     Tide,
@@ -105,7 +106,7 @@ class RecommendationQuery(BaseModel):
 class Recommendation(Record):
     contract_version: Literal["water-recommendation.v1"] = CONTRACT
     model_id: Literal["pongdang-activity-recommendation"] = MODEL_ID
-    model_version: Literal["1.0.0"] = MODEL_VERSION
+    model_version: ModelVersion = MODEL_VERSION
     #: 이 결과가 안전 판정이 아니라는 사실은 계약에 남습니다.
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     spot_id: int = Field(gt=0)
@@ -381,6 +382,11 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
 
     place = None
     tide = None
+    # 한 번만 고릅니다. 예전에는 이 블록 안과 밖에서 `decide` 를 두 번 불러,
+    # 같은 판단을 두 번 하면서 안쪽 결과는 대안 종류를 뽑는 데만 쓰고 버렸습니다.
+    # 부가 조회가 통째로 시간을 넘기면 안쪽까지 닿지 못하므로, 그때만 블록 밖에서
+    # 장소·물때 없이 고릅니다.
+    decision = None
     alternatives: list[Alternative] = []
     unavailable: list[str] = []
     # Core conditions have already been read. Bound all remaining work together
@@ -461,11 +467,12 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
                     )
             break
 
-    decision = decide(
-        envelopes,
-        place_kind=place["place_kind"] if place else None,
-        tide=tide,
-    )
+    if decision is None:
+        decision = decide(
+            envelopes,
+            place_kind=place["place_kind"] if place else None,
+            tide=tide,
+        )
     return Recommendation(
         spot_id=q.spot_id,
         place_name=first.place_name,

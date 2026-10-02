@@ -14,12 +14,14 @@ from app.water_index.conditions import ConditionsEnvelope
 from app.water_index.recommendation import (
     BEACH_AIR_C,
     IMMERSION_WATER_C,
+    MODEL_VERSION,
     RULES,
     TIDE_MARGIN_MINUTES,
     Tide,
     decide,
 )
 from app.water_index.recommendation_api import (
+    Recommendation,
     RecommendationQuery,
     tide_view,
 )
@@ -280,6 +282,37 @@ def test_the_phase_reads_the_official_events_without_inventing_a_window():
     assert "events_are_not_safe_activity_windows" in view.reason_codes
     # 극값에서 멀면 올라가는 중·내려가는 중까지만 말합니다.
     assert tide_view(events[:1] + events[2:], NOW).phase == "rising"
+
+
+def test_the_response_contract_serialises_with_the_current_model_version():
+    """응답 모델까지 조립해 봅니다.
+
+    예전에는 `MODEL_VERSION` 만 «1.1.0» 으로 올라가고 응답 모델의
+    `Literal["1.0.0"]` 이 그대로 남아, `Record` 의 `validate_default=True` 가
+    기본값을 검사하면서 **추천 응답이 통째로 500** 이었습니다. 이 파일의 다른
+    테스트는 `decide()` 만 보기 때문에 전부 통과하면서 그 결함을 놓쳤습니다.
+    """
+    envelopes = beach()
+    decision = decide(envelopes, place_kind="beach")
+    response = Recommendation(
+        spot_id=1,
+        place_name="Software fixture",
+        place_kind="beach",
+        at=NOW,
+        as_of=NOW,
+        mode="observation",
+        choice=decision.choice,
+        ranked=decision.ranked,
+        reasons=decision.reasons,
+        tide=None,
+        alternatives=(),
+        conditions=tuple(envelopes.values()),
+        reason_codes=decision.reason_codes,
+    )
+    dumped = response.model_dump()
+    assert dumped["model_version"] == MODEL_VERSION
+    assert dumped["contract_version"] == "water-recommendation.v1"
+    assert dumped["scientific_validation"] == "not_evaluated"
 
 
 def test_the_query_rejects_an_activity_because_the_answer_is_the_activity():

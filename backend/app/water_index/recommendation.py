@@ -26,7 +26,14 @@ if TYPE_CHECKING:
 
 CONTRACT = "water-recommendation.v1"
 MODEL_ID = "pongdang-activity-recommendation"
-MODEL_VERSION = "1.1.0"
+
+#: 응답 계약에 실리는 모델 버전. 타입과 값을 **붙여서** 선언합니다 -- 예전에는
+#: 이 상수만 올라가고 응답 모델의 `Literal["1.0.0"]` 이 그대로 남아,
+#: `Record` 의 `validate_default=True` 가 기본값을 검사하면서 추천 응답이 통째로
+#: 500 이었습니다. 단위 테스트는 `decide()` 만 봤기 때문에 잡지 못했습니다.
+#: 이제 버전을 올리면 한 줄만 고치면 되고, 어긋나면 타입 검사에서 멈춥니다.
+ModelVersion = Literal["1.1.0"]
+MODEL_VERSION: ModelVersion = "1.1.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
