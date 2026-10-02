@@ -3,6 +3,9 @@ import type { Activity } from "./aiApi";
 import type { ModelTraceTurn } from "./aiApi";
 import type { TravelLocale } from "./travelLanguage";
 import { t } from "./i18n.ts";
+// 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는 번들러
+// 없이 node 가 이 .ts 를 그대로 읽습니다(recommendationText.ts 와 같은 이유).
+import { isGuest } from "./guestStore.ts";
 
 const CONDITION_LABELS: Record<string, string> = {
   activity_support: "활동 지원 여부",
@@ -336,6 +339,33 @@ export class TravelRequestError extends Error {
     this.status = status;
   }
 }
+/** 로그인 없이도 쓸 수 있는 계산 전용 경로. 게스트는 같은 기능의
+ *  `travel/browse/...` 거울을 씁니다.
+ *
+ *  **운영 ingress 를 고치지 않아도 되도록 경로로 가릅니다.** 앞단의 SSO 게이트는
+ *  경로 접두사별로 걸려 있어(`ops/nginx-location.conf`) `travel/recommendations`
+ *  로 들어온 익명 호출은 로그인 화면으로 튕깁니다. `travel/browse/...` 는 어느
+ *  게이트 접두사로도 시작하지 않아 그대로 백엔드에 닿고, 백엔드가 그것을 예약
+ *  subject 로 받습니다(`app/travel/api.py` 의 BROWSE).
+ *
+ *  **로그인한 브라우저는 원래 경로를 씁니다.** 그쪽에만 ingress 가 SSO 헤더를
+ *  주입하므로 저장된 취향·활동 기록이 추천에 반영됩니다. 거울로 보내면 로그인한
+ *  사람이 빈 취향으로 추천을 받습니다. */
+const BROWSE_PATHS = new Set([
+  "travel/recommendations",
+  "travel/routes/recommend",
+  "travel/compare",
+  "travel/plans/draft",
+]);
+
+/** 게스트일 때만 거울 경로로 바꿉니다. 쿼리 문자열이 붙은 경로는 그대로 둡니다 --
+ *  위 네 경로는 모두 POST 이고 쿼리를 쓰지 않습니다. */
+export function travelPath(path: string): string {
+  return isGuest() && BROWSE_PATHS.has(path)
+    ? path.replace("travel/", "travel/browse/")
+    : path;
+}
+
 export async function travelJson<T>(
   base: string,
   path: string,
@@ -344,7 +374,7 @@ export async function travelJson<T>(
   signal?: AbortSignal,
   fetcher: typeof fetch = fetch,
 ): Promise<T> {
-  const response = await fetcher(`${base}api/data/${path}`, {
+  const response = await fetcher(`${base}api/data/${travelPath(path)}`, {
     method,
     credentials: "same-origin",
     redirect: "manual",

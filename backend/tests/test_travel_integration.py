@@ -528,8 +528,9 @@ def test_multilingual_catalog_and_mood_confirmation_are_explicit(travel_db):
     assert "조용한 휴식" in promoted.json()["preference"]["tags"]
 
 
-#: 로그인하지 않은 브라우저. nginx 가 익명 호출의 SSO 헤더를 비워 보내므로
-#: (ops/nginx-location.conf 의 @pongdang_guest) 토큰이 빈 문자열입니다.
+#: 로그인하지 않은 브라우저. 운영 ingress 는 게이트에 걸리지 않는 경로
+#: (`travel/browse/...`)로 온 호출에 SSO 헤더를 주입하지 않으므로, 백엔드에는
+#: 토큰 없이 닿습니다.
 GUEST = {
     "x-pongdang-sso-token": "",
     "x-pongdang-sso-subject": "",
@@ -545,7 +546,7 @@ def test_a_guest_can_reach_a_recommendation_and_a_draft_course(travel_db):
     """
     _, client, places, _ = travel_db
     recommended = client.post(
-        BASE + "/recommendations",
+        BASE + "/browse/recommendations",
         headers=GUEST,
         json={"request": trip_request(), "preference": {"tags": ["해변"]}},
     )
@@ -557,7 +558,7 @@ def test_a_guest_can_reach_a_recommendation_and_a_draft_course(travel_db):
 
     request = trip_request()
     draft = client.post(
-        BASE + "/plans/draft",
+        BASE + "/browse/plans/draft",
         headers=GUEST,
         json={
             "request": request,
@@ -575,7 +576,11 @@ def test_a_guest_can_reach_a_recommendation_and_a_draft_course(travel_db):
 
 
 def test_a_guest_cannot_reach_anything_stored_for_a_person(travel_db):
-    """저장 · 취향 · 알림은 계속 로그인 전용입니다. 게스트에게는 401 입니다."""
+    """저장 · 취향 · 알림은 계속 로그인 전용입니다. 게스트에게는 401 입니다.
+
+    원래 경로도 그대로 SSO 전용입니다 -- 거울(`/browse/...`)은 아무것도 저장하지
+    않는 계산 라우트만 담습니다.
+    """
     _, client, places, _ = travel_db
     request = trip_request()
     saving = {
@@ -595,6 +600,10 @@ def test_a_guest_cannot_reach_anything_stored_for_a_person(travel_db):
         ("get", "/plans", None),
         ("post", "/plans", saving),
         ("get", "/sessions", None),
+        # 거울이 아닌 원래 계산 경로도 익명에게는 열리지 않습니다. 앞단 게이트가
+        # 빠진 배포에서도 계정 경로가 조용히 열리지 않게 하려는 것입니다.
+        ("post", "/recommendations", {"request": request}),
+        ("post", "/plans/draft", saving),
     ):
         call = getattr(client, method)
         response = (
@@ -610,7 +619,7 @@ def test_a_guest_write_still_obeys_the_origin_rule(travel_db):
     _, client, _, _ = travel_db
     assert (
         client.post(
-            BASE + "/recommendations",
+            BASE + "/browse/recommendations",
             headers=GUEST | {"origin": "https://evil.test"},
             json={"request": trip_request()},
         ).status_code
@@ -618,7 +627,7 @@ def test_a_guest_write_still_obeys_the_origin_rule(travel_db):
     )
     assert (
         client.post(
-            BASE + "/recommendations",
+            BASE + "/browse/recommendations",
             headers=GUEST | {"sec-fetch-site": "cross-site"},
             json={"request": trip_request()},
         ).status_code
@@ -632,7 +641,7 @@ def test_a_broken_session_is_rejected_rather_than_quietly_downgraded(travel_db):
     _, client, _, _ = travel_db
     assert (
         client.post(
-            BASE + "/recommendations",
+            BASE + "/browse/recommendations",
             headers=GUEST | {"x-pongdang-sso-token": "wrong-but-present"},
             json={"request": trip_request()},
         ).status_code

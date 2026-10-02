@@ -106,6 +106,25 @@ def mood_proposal(text, locale="ko"):
     }
 
 
+#: 로그인 없이 쓸 수 있는 계산 전용 라우트의 하위 경로.
+#:
+#: **운영 ingress 를 고치지 않아도 되도록 경로로 가릅니다.** 앞단의 SSO 게이트는
+#: `/api/data/travel/preferences` · `/plans` · `/recommendations` 처럼 **경로
+#: 접두사별**로 걸려 있고(`ops/nginx-location.conf`), 거기 걸리지 않는 경로는 전부
+#: 맨 아래 catch-all 로 떨어져 SSO 헤더 없이 백엔드에 닿습니다. `travel/browse/...`
+#: 는 어느 게이트 접두사로도 시작하지 않으므로 익명 호출이 로그인 화면으로
+#: 튕기지 않습니다 -- 설정 파일을 손댈 권한이 없어도 게스트 모드가 삽니다.
+#:
+#: **그래서 이 아래에는 아무것도 저장하지 않는 라우트만 둡니다.** 저장 · 취향 ·
+#: 알림 · 세션은 원래 경로에 남아 계속 게이트를 지납니다. 여기에 쓰기 라우트를
+#: 하나 얹으면 그 순간 인증 없이 열립니다.
+#:
+#: 로그인한 브라우저는 **원래 경로**를 씁니다. 그쪽에만 ingress 가 SSO 헤더를
+#: 주입하므로, 저장된 취향·활동 기록이 추천에 반영됩니다. 프론트가 보호된 조회의
+#: 401 을 보고 어느 쪽으로 갈지 가릅니다(`guestStore.isGuest`).
+BROWSE = "/browse"
+
+
 def create_router(settings):
     auth = require_principal(settings, allow_local_operator=True)
     # 계산만 하고 아무것도 저장하지 않는 라우트는 로그인 없이도 열립니다 --
@@ -125,6 +144,7 @@ def create_router(settings):
                     limit = 64000
                     if self.path in {
                         "/api/data/travel/plans/draft",
+                        f"/api/data/travel{BROWSE}/plans/draft",
                         "/api/data/travel/plans",
                         "/api/data/travel/plans/{plan_id}",
                     }:
@@ -268,23 +288,35 @@ def create_router(settings):
         )
 
     @router.post("/recommendations", response_model=RecommendationResult)
-    async def recommendations(body: RecommendationInput, actor: Visitor):
+    async def recommendations(body: RecommendationInput, actor: Actor):
+        return await recommend(settings, actor.subject, body)
+
+    @router.post(BROWSE + "/recommendations", response_model=RecommendationResult)
+    async def browse_recommendations(body: RecommendationInput, actor: Visitor):
         return await recommend(settings, actor.subject, body)
 
     from app.travel.routing import RouteRecommendationInput, recommend_route
 
-    @router.post("/routes/recommend")
-    async def route_recommendations(body: RouteRecommendationInput, actor: Visitor):
+    async def route_for(owner: str, body: RouteRecommendationInput):
         try:
             async with asyncio.timeout(45):
-                return await recommend_route(settings, actor.subject, body)
+                return await recommend_route(settings, owner, body)
         except TimeoutError:
             raise HTTPException(503, "route_calculation_timeout") from None
 
-    @router.post("/compare")
-    async def compare(body: ComparisonInput, actor: Visitor):
+    @router.post("/routes/recommend")
+    async def route_recommendations(body: RouteRecommendationInput, actor: Actor):
+        return await route_for(actor.subject, body)
+
+    @router.post(BROWSE + "/routes/recommend")
+    async def browse_route_recommendations(
+        body: RouteRecommendationInput, actor: Visitor
+    ):
+        return await route_for(actor.subject, body)
+
+    async def compare_for(owner: str, body: ComparisonInput):
         now = datetime.now(UTC)
-        selection = tokens.decode(settings, actor.subject, body.selection_token, now)
+        selection = tokens.decode(settings, owner, body.selection_token, now)
         if len(set(body.ranks)) != len(body.ranks) or any(
             r < 1 or r > len(selection["spot_ids"]) for r in body.ranks
         ):
@@ -308,8 +340,20 @@ def create_router(settings):
             ],
         }
 
+    @router.post("/compare")
+    async def compare(body: ComparisonInput, actor: Actor):
+        return await compare_for(actor.subject, body)
+
+    @router.post(BROWSE + "/compare")
+    async def browse_compare(body: ComparisonInput, actor: Visitor):
+        return await compare_for(actor.subject, body)
+
     @router.post("/plans/draft", response_model=TripPlan)
-    async def draft(body: PlanInput, actor: Visitor):
+    async def draft(body: PlanInput, actor: Actor):
+        return await draft_plan(settings, actor.subject, body)
+
+    @router.post(BROWSE + "/plans/draft", response_model=TripPlan)
+    async def browse_draft(body: PlanInput, actor: Visitor):
         return await draft_plan(settings, actor.subject, body)
 
     @router.post("/plans", response_model=TripPlan, status_code=201)
