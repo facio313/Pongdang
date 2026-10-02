@@ -16,6 +16,7 @@ import {
   type IconName,
 } from "./pongdangUi";
 import { componentBars, scoreReason } from "./scoreMeaning";
+import { GuestSaveNote } from "./GuestSaveNote";
 import { AppFootNote, AppHeader, AppShell } from "./AppShell";
 import { usePlacesById } from "./usePlacesById";
 import { isInitialLoad, useResource } from "./useResource";
@@ -25,7 +26,6 @@ import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
 import { WaterPlaceFilters, WaterPlacePagination } from "./WaterPlaceControls";
 import { useAction } from "./useAction";
 import { suppressLoginRequired } from "./authError";
-import { useRequireLogin } from "./loginPopoverState";
 import { ConditionScoreDetails } from "./ConditionScoreDetails";
 import { EvidenceNote } from "./EvidenceNote";
 import {
@@ -717,7 +717,6 @@ function MapScreen() {
   // 조회합니다(useMyPlansWithAlarm, 데스크탑 MapDesktop.tsx 와 같은 훅).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planId);
   const { myPlans, sessions, plans: myPlansWithAlarm, loginRequired } = useMyPlansWithAlarm();
-  const requireLogin = useRequireLogin();
   const openSavedPlan = (plan: TripPlan) => {
     setTravelSession({
       plan,
@@ -958,10 +957,10 @@ function MapScreen() {
             </div>
           }
         >
-          {view === "course" && loginRequired && <div className="pd-card">
-            <p className="pd-note">{t("로그인하면 저장한 코스를 볼 수 있어요.")}</p>
-            <button type="button" className="pd-primary" onClick={requireLogin}>{t("로그인")}</button>
-          </div>}
+          {/* 「로그인」 1차 버튼을 세우지 않습니다 -- 지금 만들고 있는 코스는
+              아래에 그대로 있고, 계정이 필요한 것은 **저장된** 코스 목록뿐입니다.
+              버튼을 세우면 그 사실이 「코스를 못 본다」로 읽힙니다. */}
+          {view === "course" && loginRequired && <GuestSaveNote what="코스" />}
           <fieldset className="mp-fieldset" disabled={action.busy}>
             {view === "spots" && <>
               <WaterPlaceFilters

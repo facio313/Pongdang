@@ -29,7 +29,7 @@ import { HomeTides } from "./HomeTides";
 import { useIsDesktop } from "./useIsDesktop";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
-import { useRequireLogin } from "./loginPopoverState";
+import { GuestSaveNote } from "./GuestSaveNote";
 import { isInitialLoad, useResource } from "./useResource";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { HourlyConditions } from "./HourlyConditions";
@@ -44,6 +44,7 @@ import {
 } from "./productData";
 import { spotLink } from "./spotsRoute";
 import { useHomeBeaches } from "./useHomeBeaches";
+import { useExampleCourse } from "./useExampleCourse";
 import type { TemperatureReading } from "./firstSwimTemperature";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { WAVE_LOOP_PATH } from "./waveShape";
@@ -412,6 +413,67 @@ function BeachPicksCard() {
  *  홈으로 와도 아무것도 바뀌지 않았고 새로고침하면 사라졌습니다. 고른 취향은
  *  **서버에 저장돼 있으므로**(travel/preferences) 그것을 읽습니다. 아래 장소
  *  줄만 추천 결과에서 가져옵니다 -- 그건 이번 조회의 결과이지 취향이 아닙니다. */
+/** 아직 아무것도 고르지 않은 사람에게 보여 주는 **예시** 코스.
+ *
+ *  숫자(점수 · 거리 · 소요 시간)를 붙이지 않습니다 -- 예시에 숫자를 달면 그
+ *  숫자가 계산된 것으로 읽힙니다. 장소는 수집된 해수욕장이므로 눌러서 실제
+ *  상세로 갈 수 있습니다.
+ */
+function ExampleCourse({
+  empty,
+  numbered = false,
+}: {
+  /** 예시도 만들 수 없을 때의 한 줄. 없으면 아무것도 그리지 않습니다. */
+  empty?: string;
+  /** 번호 붙인 단계로 그릴지. 「물놀이 최적경로」 자리가 그 모양입니다. */
+  numbered?: boolean;
+}) {
+  const { course, loading } = useExampleCourse();
+  if (!course)
+    return loading ? (
+      <div className="pd-slot hm-route-slot">
+        <Skeleton width="12em" label={t("예시 코스 조회 중")} />
+      </div>
+    ) : empty ? (
+      <div className="pd-slot hm-route-slot">{empty}</div>
+    ) : null;
+  const title = t("{region} 반나절 물멍 코스", { region: course.region });
+  return (
+    <div className="hm-example">
+      <div className="hm-example-head">
+        <span className="pd-state-chip">{t("둘러보기 예시")}</span>
+        <span className="hm-example-title">{title}</span>
+      </div>
+      {numbered ? (
+        <ol className="hm-steps">
+          {course.places.map((place, index, all) => (
+            <li className="hm-step" key={place.id}>
+              <span className="hm-step-head">
+                <span className="pd-num hm-step-no">{index + 1}</span>
+                {index < all.length - 1 && <span className="hm-step-line" />}
+              </span>
+              <a className="hm-step-name pd-tap" href={spotLink(place)}>
+                {place.name}
+              </a>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="hm-example-places">
+          {course.places.map((place) => (
+            <a className="pd-inline pd-tap" key={place.id} href={spotLink(place)}>
+              {place.name}
+            </a>
+          ))}
+        </p>
+      )}
+      <p className="pd-note">
+        {t("수집된 해수욕장에서 고른 예시입니다. 점수·이동 시간은 계산하지 않았습니다.")}
+      </p>
+    </div>
+  );
+}
+
 function TastePicksCard() {
   const session = useTravelSession();
   const { savedIds, labelOf, profileLoading, profileError } = useTastePreference();
@@ -441,6 +503,10 @@ function TastePicksCard() {
                 ? t("저장된 취향입니다. 추천에서 후보를 조회하면 그 장소가 여기에 들어옵니다.")
                 : t("아직 고른 취향이 없습니다. 위 「취향 고르기」로 취향을 고르면 그 결과가 여기에 들어옵니다."))}
         </p>
+        {/* 빈 칸과 안내문만 두면, 홈이 첫 화면인 사람은 제품이 무엇을 만들어
+            주는지 한 번도 보지 못한 채 끝납니다. 수집된 해수욕장에서 고른
+            **예시**를 보여 주고, 예시라는 사실을 배지로 밝힙니다. */}
+        <ExampleCourse />
       </div>
     );
   return (
@@ -497,7 +563,6 @@ function TasteBanner({
   // useResource 는 같은 경로를 두 번 부르지 않으므로(no-refetch 검사) 아래
   // TastePicksCard 와 함께 불러도 요청이 늘지 않습니다.
   const { savedIds, loginRequired, profileLoading } = useTastePreference();
-  const requireLogin = useRequireLogin();
   const hasTaste = savedIds.length > 0;
   return (
     <div className="pd-card">
@@ -522,14 +587,16 @@ function TasteBanner({
         basisIsError={Boolean(recommendation.error)}
       />
       </div>
+      {/* 로그인하지 않았다고 이 자리를 「로그인」 버튼으로 바꾸지 않습니다 --
+          취향을 고르는 일에는 계정이 필요하지 않고, 바꿔 두면 추천 7단계를 한
+          번도 보지 못한 채 화면이 끝납니다. 저장만 아래 한 줄로 안내합니다. */}
       {profileLoading ? (
         <button type="button" className="pd-primary hm-cta" disabled>{t("조회 중")}</button>
-      ) : loginRequired ? (
-        <button type="button" className="pd-primary hm-cta" onClick={requireLogin}>{t("로그인")}</button>
       ) : (
         <a className="pd-primary hm-cta" href="#recommend">
           {hasTaste ? t("추천 다시 보기 →") : t("취향 고르기 →")}</a>
       )}
+      {loginRequired && !profileLoading && <GuestSaveNote what="취향" />}
     </div>
   );
 }
@@ -576,9 +643,10 @@ function RouteCard() {
           </p>
         </>
       ) : (
-        <div className="pd-slot hm-route-slot">
-          {t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
-        </div>
+        <ExampleCourse
+          empty={t("추천에서 장소를 고르고 지도에서 경로를 요청하세요")}
+          numbered
+        />
       )}
       <a className="pd-secondary hm-cta" href="#map?view=course">
         {t("경로 탐색 →")}</a>

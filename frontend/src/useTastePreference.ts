@@ -1,6 +1,7 @@
 import { forgetResource, useResource } from "./useResource";
 import { travelJson, type Preference } from "./travelApi";
 import { isLoginRequiredMessage } from "./authError";
+import { readGuestTaste, setGuestMode, writeGuestTaste } from "./guestStore";
 
 // 취향 한 벌을 읽고 쓰는 곳입니다. 예전에는 모바일 추천(RecommendPage)과
 // 데스크탑 추천(RecommendDesktop)이 **각자** 서버 카탈로그를 조회하고, 각자
@@ -73,14 +74,30 @@ export function useTastePreference(): TastePreference {
   // 띄우면 안 됩니다(둘러보기는 로그인 없이도 됩니다). 쓰기 행동에서의
   // 로그인 요구는 useAction 의 팝오버가 따로 처리합니다.
   const profileLoginRequired = isLoginRequiredMessage(profile.error);
+  // 로그인하지 않았으면 브라우저에 둔 것을 읽습니다. 저장된 취향이 없는 것과
+  // 「고른 적이 없는 것」은 다릅니다 -- 추천 7단계를 끝까지 간 사람에게 다음
+  // 방문에 처음 화면을 다시 띄우면 그 7단계가 없던 일이 됩니다.
+  // 조회가 끝난 뒤에만 알립니다. 끝나기 전의 「모름」을 게스트로 단정하면
+  // 로그인한 사람의 작업 중 코스가 브라우저 저장소에 남습니다(guestStore).
+  if (!profile.loading) setGuestMode(profileLoginRequired);
+  const tags = profileLoginRequired
+    ? readGuestTaste()
+    : (profile.data?.preference.tags ?? []);
   // 저장된 취향은 라벨로 쌓여 있습니다. 같은 이름의 서버 항목이 있으면 그 id 로
   // 되읽고, 없는 이름은 버립니다 -- 서버가 모르는 값을 다시 보내지 않습니다.
-  const savedIds = (profile.data?.preference.tags ?? []).flatMap((tag) => {
+  const savedIds = tags.flatMap((tag) => {
     const match = [...optionIndex].find(([, option]) => option.label === tag);
     return match ? [match[0]] : [];
   });
 
   const savePreference = async (labels: string[], signal: AbortSignal) => {
+    if (profileLoginRequired) {
+      // 로그인하지 않은 사람의 선택은 브라우저에 둡니다. 서버에 PUT 하면 401 이
+      // 나고 로그인 팝오버가 떠서, 둘러보기가 그 자리에서 끊깁니다.
+      writeGuestTaste(labels);
+      forgetResource("travel/preferences");
+      return;
+    }
     const current = await travelJson<{
       preference: Preference;
       revision: number;

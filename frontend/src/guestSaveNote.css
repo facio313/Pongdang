@@ -1,0 +1,15 @@
+/* 계정이 필요한 것만 알리는 한 줄. 지금 하려던 일을 막지 않아야 하므로
+   버튼처럼 보이지 않습니다 -- .pd-note 와 같은 크기·색이고, 안의 링크만
+   밑줄로 눌릴 수 있다는 것을 말합니다. */
+.guest-save-note {
+  margin: 6px 0 0;
+  font-size: var(--pd-fs-cap);
+  line-height: 1.6;
+  color: var(--pd-ink-mute);
+}
+.guest-save-note button {
+  font: inherit;
+  color: var(--pd-blue-deep);
+  text-decoration: underline;
+  cursor: pointer;
+}

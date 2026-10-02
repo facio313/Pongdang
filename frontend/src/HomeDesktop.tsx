@@ -52,7 +52,7 @@ import { useHomeBeaches } from "./useHomeBeaches";
 import type { TemperatureReading } from "./firstSwimTemperature";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
-import { useRequireLogin } from "./loginPopoverState";
+import { GuestSaveNote } from "./GuestSaveNote";
 import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
 import { useWebcamCatalog } from "./useWebcamCatalog";
@@ -338,7 +338,6 @@ export function HomeDesktop() {
   // 추천 결과의 matched_preferences 였는데, 그건 이 브라우저 메모리에만 있는
   // 값이라 취향을 저장하고 홈으로 와도 바뀌지 않았고 새로고침하면 사라졌습니다.
   const taste = useTastePreference();
-  const requireLogin = useRequireLogin();
   const tags = taste.savedIds.map(taste.labelOf);
   const routeCourse = session.route?.route ?? null;
   // 경로 계산 전에도 담아둔 코스(추천/지도에서 만든 planInput, 「내 코스」에서
@@ -481,16 +480,18 @@ export function HomeDesktop() {
               </div>
             )}
             <div className="hd-taste-actions">
+              {/* 모바일과 같은 규칙입니다(HomePage 의 TasteBanner 주석). */}
               {taste.profileLoading ? (
                 <button type="button" className="pd-dk-button" disabled>{t("조회 중")}</button>
-              ) : taste.loginRequired ? (
-                <button type="button" className="pd-dk-button" onClick={requireLogin}>{t("로그인")}</button>
               ) : (
                 <a className="pd-dk-button" href="#recommend">
                   {tags.length ? t("추천 다시 보기 →") : t("취향 고르기 →")}
                 </a>
               )}
             </div>
+            {taste.loginRequired && !taste.profileLoading && (
+              <GuestSaveNote what="취향" />
+            )}
           </div>
           <div className="hd-ai">
             <img

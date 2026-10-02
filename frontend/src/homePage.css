@@ -484,3 +484,36 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ── 둘러보기 예시 코스 ─────────────────────────────────────
+   아직 아무것도 고르지 않은 사람에게 보여 주는 자리입니다. **점선 pd-slot 을
+   쓰지 않습니다** -- 점선은 아직 설계되지 않은 자리의 표시인데, 여기에는 수집된
+   실제 장소가 들어 있습니다. 대신 「둘러보기 예시」 배지로 추천 결과와 구별합니다. */
+.hm-example {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--pd-line);
+  border-radius: var(--pd-r-ctl);
+  background: var(--pd-mist);
+}
+.hm-example-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hm-example-title {
+  font-weight: 700;
+  font-size: var(--pd-fs-sm);
+}
+.hm-example-places {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--pd-fs-sm);
+}
