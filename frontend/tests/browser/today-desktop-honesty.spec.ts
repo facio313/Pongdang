@@ -23,7 +23,9 @@ test("desktop today separates recommendation eligibility, partial scores and the
   });
   await page.goto("#today");
   await expect(page.locator(".td-hero-score-num")).toHaveText("75");
-  await expect(page.locator(".td-hero-score .td-score-coverage")).toHaveText("부분 점수 · 근거 2/4 (50%)");
+  // 숫자 옆은 「언제 기준인지」만 말합니다. 확보율은 「근거 보기」 안에 그대로
+  // 있습니다(productData 의 scoreCoverageText 주석).
+  await expect(page.locator(".td-hero-score .td-score-coverage")).toContainText("마지막 업데이트");
   const surf = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "서핑" }) });
   const onsen = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "온천" }) });
   await expect(surf.locator(".td-activity-score")).toHaveText("–");
@@ -34,7 +36,7 @@ test("desktop today separates recommendation eligibility, partial scores and the
   await expect(onsen.locator(".td-activity-grade")).not.toContainText("매우 좋음");
   const relax = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "휴식" }) });
   await expect(relax.locator(".td-activity-score")).toHaveText("75");
-  await expect(relax.locator(".td-score-coverage")).toHaveText("부분 점수 · 근거 2/4 (50%)");
+  await expect(relax.locator(".td-score-coverage")).toContainText("마지막 업데이트");
   await expect(page.locator(".td-hero-tiles")).toContainText("26.4°C");
   await expect(page.locator(".td-hero-tiles")).toContainText("0.8m");
   await expect(page.locator(".pd-desktop")).toContainText("장소 관측 · 활동 점수 입력과 별도");
@@ -78,7 +80,7 @@ test("desktop weekly forecasts preserve each stored date's missing evidence and 
   const week = page.getByRole("region", { name: "이번 주 예보" });
   await expect(week.locator(".td-day-grade").first()).toHaveText("평가값 없음");
   await expect(week.locator(".td-day-score").nth(1)).toHaveText("74");
-  await expect(week.locator(".td-day").nth(1).locator(".td-score-coverage")).toHaveText("부분 점수 · 근거 2/4 (50%)");
+  await expect(week.locator(".td-day").nth(1).locator(".td-score-coverage")).toContainText("마지막 업데이트");
   await expect(week.locator(".td-day-score").nth(2)).toHaveText("–");
   await expect(week.locator(".td-day-grade").nth(2)).toHaveText("평가값 없음");
 });

@@ -459,6 +459,10 @@ function ExampleCourse({
         <span className="pd-state-chip">{t("둘러보기 예시")}</span>
         <span className="hm-example-title">{title}</span>
       </div>
+      {/* 예시의 정차지는 **링크가 아닙니다.** 같은 장소가 바로 위 「바다가 좋은
+          오늘」 줄에 이미 링크로 있어, 한 화면에 같은 곳으로 가는 길이 두 벌
+          생깁니다 -- 그리고 예시를 눌러 무엇이 일어나는지 이 카드가 약속하지
+          않습니다. 누를 것은 아래 「경로 탐색 →」 하나입니다. */}
       {numbered ? (
         <ol className="hm-steps">
           {course.places.map((place, index, all) => (
@@ -467,19 +471,13 @@ function ExampleCourse({
                 <span className="pd-num hm-step-no">{index + 1}</span>
                 {index < all.length - 1 && <span className="hm-step-line" />}
               </span>
-              <a className="hm-step-name pd-tap" href={spotLink(place)}>
-                {place.name}
-              </a>
+              <span className="hm-step-name">{place.name}</span>
             </li>
           ))}
         </ol>
       ) : (
         <p className="hm-example-places">
-          {course.places.map((place) => (
-            <a className="pd-inline pd-tap" key={place.id} href={spotLink(place)}>
-              {place.name}
-            </a>
-          ))}
+          {course.places.map((place) => place.name).join(" · ")}
         </p>
       )}
       <p className="pd-note">
@@ -518,10 +516,10 @@ function TastePicksCard() {
                 ? t("저장된 취향입니다. 추천에서 후보를 조회하면 그 장소가 여기에 들어옵니다.")
                 : t("아직 고른 취향이 없습니다. 위 「취향 고르기」로 취향을 고르면 그 결과가 여기에 들어옵니다."))}
         </p>
-        {/* 빈 칸과 안내문만 두면, 홈이 첫 화면인 사람은 제품이 무엇을 만들어
-            주는지 한 번도 보지 못한 채 끝납니다. 수집된 해수욕장에서 고른
-            **예시**를 보여 주고, 예시라는 사실을 배지로 밝힙니다. */}
-        <ExampleCourse />
+        {/* 예시 코스는 아래 「물놀이 최적경로」 카드에서 한 번만 보여 줍니다.
+            두 카드가 붙어 있어 같은 장소 링크가 한 화면에 두 벌 생기고, 코스는
+            경로 카드에 속한 것이기 때문입니다. 여기서는 이 자리가 왜 비어 있는지만
+            말합니다. */}
       </div>
     );
   return (

@@ -138,7 +138,9 @@ export function useProductData(mode: "swim" | "best" = "swim") {
     recommendation: settled(activities.recommendation),
     displayName,
     selectionMessage: conditions.data?.projection?.status === "refreshing"
-      ? `${selectionMessage} ${t("새 자료 반영 중 · 이전 계산 결과")}` : selectionMessage,
+      // 「새 자료 반영 중 · 이전 계산 결과」는 계산 파이프라인의 상태입니다.
+      // 숫자 옆의 「마지막 업데이트 … · 갱신 중」과 같은 말을 씁니다.
+      ? `${selectionMessage} ${t("갱신 중")}` : selectionMessage,
     /** 장소가 영영 정해지지 않는 상태. 이 훅 밖에서 장소 id 로 막아 둔 조회가
      *  있으면 `settledWithoutPlace` 에 함께 넘겨야 합니다. */
     placeSettled,

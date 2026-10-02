@@ -5,18 +5,25 @@ for (const width of [390, 1440]) {
   test.describe(`home and preference entry at ${width}px`, () => {
     test.use({ viewport: { width, height: 1000 } });
 
-    test("anonymous home opens the shared login dialog without navigation", async ({ page }) => {
+    test("an anonymous home still sends you into the recommendation flow", async ({ page }) => {
+      // 저장된 취향을 읽지 못한 것(익명 방문자의 401)을 **로그인 벽**으로 바꾸지
+      // 않습니다. 예전에는 이 자리가 「로그인」 버튼이어서, 추천 7단계를 한 번도
+      // 보지 못한 채 화면이 끝났습니다 -- 고르는 일에는 계정이 필요하지 않습니다.
       await page.route("**/api/data/travel/preferences", route => route.fulfill({
         status: 401, json: { detail: "SSO_LOGIN_REQUIRED" },
       }));
       await page.goto("#home");
-      const action = page.locator(width === 1440 ? ".hd-taste-actions button" : ".hm-cta");
-      await expect(action).toHaveText("로그인");
-      await action.click();
+      const enter = page.getByRole("link", { name: "취향 고르기 →", exact: true }).first();
+      await expect(enter).toBeVisible();
+      await expect(enter).toHaveAttribute("href", "#recommend");
+
+      // 계정이 필요한 것은 **저장**뿐이고, 그 안내는 문단 안의 링크입니다.
+      const note = page.locator(".guest-save-note").first();
+      await expect(note).toContainText("로그인하면 저장돼요");
+      await note.getByRole("button", { name: "로그인하면 저장돼요" }).click();
       await expect(page.getByRole("dialog", { name: "로그인" })).toBeVisible();
       await expect(page).toHaveURL(/#home$/);
       await page.getByRole("button", { name: "닫기", exact: true }).click();
-      await expect(action).toBeFocused();
     });
 
     test("an empty preference opens the first selection step directly", async ({ page }) => {

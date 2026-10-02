@@ -46,7 +46,12 @@ test("a failed desktop draft request remains an error rather than successful nav
   });
   await page.goto(`#spots?spot_id=${place.id}`);
   await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
-  await expect(page.locator(".sk-detail-body").getByRole("alert")).toContainText("요청을 처리하지 못했습니다");
+  // 동작 오류는 버튼과 같은 묶음(.sk-detail-followup)에 섭니다. 예전에는 이
+  // 단정이 `.sk-detail-body` 를 보고도 통과했는데, 추천 조회가 늘 실패해서
+  // (모델 버전 불일치로 500) 조건 카드가 **같은 503 문장**을 알림으로 띄우고
+  // 있었기 때문입니다 -- 추천이 고쳐지면서 그 우연이 사라졌습니다.
+  await expect(page.locator(".sk-detail-followup").getByRole("alert"))
+    .toContainText("요청을 처리하지 못했습니다");
   expect(selectedIds).toEqual([[place.id]]);
   await expect(page).toHaveURL(new RegExp(`#spots\\?spot_id=${place.id}$`));
   await expect(page.getByRole("link", { name: "코스 초안 보기" })).toHaveCount(0);

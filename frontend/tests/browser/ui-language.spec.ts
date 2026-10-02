@@ -2,9 +2,9 @@ import { test, expect, type Page } from "@playwright/test";
 import { byWidth } from "./viewports";
 
 const languages = [
-  { locale: "en", label: "English", menu: "Open side menu", today: "Today", definition: "A reference score from 0 to 100", help: "Missing values appear as" },
-  { locale: "zh-CN", label: "简体中文", menu: "打开侧边菜单", today: "今天", definition: "以0至100的参考评分", help: "缺失值" },
-  { locale: "ja", label: "日本語", menu: "サイドメニューを開く", today: "今日", definition: "選んだ活動に現在の条件が", help: "値がない場合" },
+  { locale: "en", label: "English", menu: "Open side menu", today: "Today", definition: "A reference score from 0 to 100", help: "Scores are for reference only" },
+  { locale: "zh-CN", label: "简体中文", menu: "打开侧边菜单", today: "今天", definition: "以0至100的参考评分", help: "评分仅供参考" },
+  { locale: "ja", label: "日本語", menu: "サイドメニューを開く", today: "今日", definition: "選んだ活動に現在の条件が", help: "スコアは参考値" },
 ];
 
 async function changeLanguage(page: Page, label: string) {
@@ -59,16 +59,21 @@ test("utility-page language controls preserve an unsent question and localize fo
   await expect(page.locator(".ai-turn")).toHaveCount(0);
 });
 
-test("a language selected in the menu also applies to the data information page", async ({ page }) => {
+test("a language selected in the menu also applies to the data sources page", async ({ page }) => {
+  // 사이드 메뉴의 「데이터 출처」는 수집 DB 테이블과 내부 이력을 보여 주던
+  // 개발자 콘솔(#info?dev=1)이 아니라, 제공 기관 · 갱신 주기 · 점수 산정 방식만
+  // 담은 사용자용 화면으로 갑니다(DataSourcesPage).
   await page.goto("#home");
   await changeLanguage(page, "English");
   await page.locator(".pd-menu-button").click();
   await page.locator('.pd-menu a[href="#info"]').first().click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.locator(".collector-doc h1")).not.toContainText(/[가-힣]/);
-  await expect(page.locator(".collector-doc > p")).not.toContainText(/[가-힣]/);
-  await expect(page.locator(".collector-doc table").first()).not.toContainText(/[가-힣]/);
+  const sources = page.locator(".ds-sources");
+  await expect(sources).toBeVisible();
+  await expect(page.locator(".ds-card .pd-card-title").first()).not.toContainText(/[가-힣]/);
+  // 제공 기관 이름과 쓰임 · 주기까지 번역돼야 합니다.
+  await expect(sources).not.toContainText(/[가-힣]/);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.locator(".collector-doc h1")).not.toContainText(/[가-힣]/);
+  await expect(page.locator(".ds-card .pd-card-title").first()).not.toContainText(/[가-힣]/);
 });

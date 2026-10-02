@@ -3,7 +3,7 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import { NAV_ITEMS, type TabKey } from "./appNav";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { gradeOf } from "./groupAGrade";
-import { GradeIcon, ScoreExplainer } from "./pongdangUi";
+import { GradeIcon } from "./pongdangUi";
 import { MASCOT_ALT, mascotUrl, type MascotRole } from "./mascots";
 import { LOGO_ALT, logoUrl } from "./brand";
 import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
@@ -399,7 +399,12 @@ export function FootNote({
         {note && (
           <p className="pd-dk-foot-note">
             {typeof note === "string" ? t(note) : note}{" "}
-            {note === DEFAULT_FOOT_NOTE && <ScoreExplainer popover />}
+            {/* 전문으로 가는 길은 링크입니다(AppShell 의 AppFootNote 주석). */}
+            {note === DEFAULT_FOOT_NOTE && (
+              <a className="pd-inline pd-tap" href="#info">
+                {t("퐁당 점수란?")}
+              </a>
+            )}
           </p>
         )}
       </div>

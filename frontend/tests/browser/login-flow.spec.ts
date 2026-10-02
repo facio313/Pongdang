@@ -180,7 +180,9 @@ for (const width of [390, 1440]) {
       ? { json: { rows: [] } }
       : { status: 401, json: { detail: "SSO_AUTHENTICATION_REQUIRED" } }));
     await page.goto("#map?view=course");
-    const login = page.getByRole("button", { name: "로그인", exact: true });
+    // 코스 뷰는 「로그인」 1차 버튼을 세우지 않습니다 -- 지금 만들고 있는 코스는
+    // 그대로 있고, 계정이 필요한 것은 **저장된** 코스 목록뿐입니다(GuestSaveNote).
+    const login = page.getByRole("button", { name: "로그인하면 저장돼요", exact: true });
     await expect(login).toBeVisible();
     await expect(page.getByText("아직 저장한 코스가 없습니다. 추천에서 코스를 저장해 주세요.", { exact: true })).toHaveCount(0);
     await login.click();

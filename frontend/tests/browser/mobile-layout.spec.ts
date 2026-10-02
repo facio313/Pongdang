@@ -95,7 +95,28 @@ for (const width of [MOBILE_WIDTH, TABLET_WIDTH, MOBILE_MAX_WIDTH]) {
           continue;
         }
 
-        await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+        // 문서 높이가 **멈춘 뒤에** 바닥까지 내려가 잽니다. 본문은 networkidle
+        // 뒤에도 조금씩 자랍니다 -- 늦게 도착한 근거 한 줄이 붙습니다. 자라는
+        // 중에 한 번만 내리면 스크롤 위치가 그만큼 뒤처져, 탭바 슬롯이 자리를
+        // 제대로 잡고 있어도 마지막 내용이 탭 아래로 들어간 것처럼 보입니다.
+        let previousHeight = -1;
+        await expect
+          .poll(
+            async () => {
+              const height = await page.evaluate(
+                () => document.documentElement.scrollHeight,
+              );
+              const stable = height === previousHeight;
+              previousHeight = height;
+              return stable;
+            },
+            { timeout: 10000 },
+          )
+          .toBe(true);
+        await page.evaluate(() => {
+          const root = document.documentElement;
+          window.scrollTo({ top: root.scrollHeight, behavior: "instant" });
+        });
         const layout = await page.locator(".pd-tabbar-slot").evaluate(slot => {
           const bar = slot.querySelector("nav")!.getBoundingClientRect();
           const lastContent = slot.previousElementSibling!;

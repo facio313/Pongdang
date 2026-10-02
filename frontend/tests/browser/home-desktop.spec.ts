@@ -65,7 +65,9 @@ test("desktop home renders the same server-chosen activity and score as mobile",
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/home-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
-  await expect(page.locator(".td-hero-note")).toContainText("근거 확보");
+  // 항상 보이는 줄은 「마지막 업데이트」입니다. 점수 · 확보율 · 면책 전문은
+  // 바로 아래 「근거 보기」 안에 그대로 있습니다(evidenceSummary 주석).
+  await expect(page.locator(".td-hero-note")).toContainText("마지막 업데이트");
 });
 
 test("desktop home says a score is missing rather than showing zero", async ({ page }) => {

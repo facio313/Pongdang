@@ -46,13 +46,19 @@ test("셸 밖 화면에도 제품 화면으로 돌아갈 길이 있다", async (
   // 사이드 메뉴의 「지점 즐겨찾기」·「알림 설정」·「데이터 출처」는 셸(AppShell ·
   // DesktopShell) 밖 화면으로 갑니다. 탭바도 네비도 없어서, 들어가면 제품
   // 화면으로 돌아갈 길이 하나도 없었습니다.
-  for (const route of ["#favorites", "#first-swim", "#info", "#livecam", "#tide"]) {
+  for (const route of ["#favorites", "#first-swim", "#livecam", "#tide"]) {
     await page.goto(route);
     await expect(
       page.getByRole("link", { name: /퐁당 앱으로|앱 화면/ }).first(),
       `${route} 에 복귀 링크가 없습니다`,
     ).toBeVisible();
   }
+  // 「데이터 출처」는 셸 **안**으로 들어왔습니다(DataSourcesPage). 개발자 콘솔로
+  // 가 있던 자리를 사용자용 요약 화면으로 바꾸면서, 돌아갈 길은 복귀 링크가
+  // 아니라 하단 탭바입니다.
+  await page.goto("#info");
+  await expect(page.locator('.pd-tabbar a[href="#home"]')).toBeVisible();
+  await expect(page.locator(".pd-app")).toContainText("데이터 출처");
 });
 
 test("「동작 줄이기」를 켜면 홈 히어로의 물결이 멈춘다", async ({ page }) => {
@@ -103,11 +109,14 @@ test("풀스크린 지도에서도 값 표기 규칙과 안전 주의 문구를 
   // 화면의 문구**가 살아 있는지 봅니다(네 화면이 서로 다른 말을 합니다 --
   // 데스크탑 두 화면은 FootNote 에 각자 note 를 싣고, 모바일 두 화면은 공용
   // AppFootNote 를 씁니다).
+  // 전역 규칙은 **한 줄**로 줄였고 전문은 「퐁당 점수란?」 쪽으로 옮겼습니다
+  // (AppShell 의 AppFootNote 주석). 화면마다 할 말이 따로 있는 자리는 그대로
+  // 자기 문장을 싣습니다.
   const cases = [
     [1440, "#map", "NULL · unknown 은 안전한 상태를 뜻하지 않습니다"],
     [1440, "#map?view=course", "안전 판정이 아닙니다"],
-    [390, "#map", "0점 · 정상 · 안전으로 치환하지 않습니다"],
-    [390, "#map?view=course", "0점 · 정상 · 안전으로 치환하지 않습니다"],
+    [390, "#map", "점수는 참고용이며 안전 판정이 아닙니다"],
+    [390, "#map?view=course", "점수는 참고용이며 안전 판정이 아닙니다"],
   ] as const;
   for (const [width, route, phrase] of cases) {
     await page.setViewportSize({ width, height: 900 });

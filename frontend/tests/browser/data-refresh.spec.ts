@@ -312,7 +312,9 @@ for (const desktop of [false, true]) {
     await page.clock.fastForward(600001);
     await expect.poll(() => calls).toBe(2);
     await expect(swim).toHaveText("75");
-    await expect(page.getByText(/새 자료 반영 중 · 이전 계산 결과/).first()).toBeVisible();
+    // 갱신 중이라는 사실은 숫자 옆의 「마지막 업데이트 … · 갱신 중」이 말합니다
+    // (productData 의 scoreCoverageText 주석).
+    await expect(page.getByText(/갱신 중/).first()).toBeVisible();
     await page.clock.fastForward(30001);
     await expect.poll(() => calls).toBe(3);
     await expect(swim).toHaveText("75");
@@ -385,8 +387,9 @@ for (const desktop of [false, true]) {
       .toHaveText(["51", "52", "–", "54", "55", "56", "57"]);
     const today = page.locator(desktop ? ".td-day" : ".td-bar").first();
     await expect(today).toContainText("오늘");
-    if (desktop) await expect(today).toContainText("부분 점수 · 근거 1/4 (25%)");
-    else await expect(today).toHaveAttribute("aria-label", /부분 점수 · 근거 1\/4 \(25%\)/);
+    // 숫자 옆은 「마지막 업데이트」만 말합니다(scoreCoverageText 주석).
+    if (desktop) await expect(today).toContainText("마지막 업데이트");
+    else await expect(today).toHaveAttribute("aria-label", /마지막 업데이트/);
   });
 }
 
@@ -424,7 +427,7 @@ test("manual refresh waits for completion, refreshes common reads and preserves 
   await page.getByRole("button", { name: "사이드 메뉴 열기" }).click();
   await expect(panel.getByRole("button", { name: "데이터 갱신 중…" })).toBeDisabled();
   await page.clock.fastForward(3100);
-  await expect(panel.getByRole("status")).toHaveText("자료 확인 완료 · 부족한 항목은 이전 값 유지");
+  await expect(panel.getByRole("status")).toHaveText("자료를 확인했습니다.");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
   expect(submitted).toBe(1);
   expect(mocked.recommendationReads()).toBe(3);
@@ -456,7 +459,7 @@ test("partial refresh is visible as failure and a lost status read resumes the s
   await expect(panel.getByRole("button", { name: "상태 다시 확인" })).toBeEnabled();
   expect(mocked.recommendationReads()).toBe(2);
   await panel.getByRole("button", { name: "상태 다시 확인" }).click();
-  await expect(panel.getByRole("status")).toHaveText("일부 자료 또는 점수를 갱신하지 못했습니다. 다시 시도해 주세요.");
+  await expect(panel.getByRole("status")).toHaveText("일부 자료를 갱신하지 못했습니다. 다시 시도해 주세요.");
   await expect.poll(mocked.recommendationReads).toBe(4);
   expect(submitted).toBe(1);
 });

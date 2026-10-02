@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { AppTabBar, type TabKey } from "./appTabBar";
 import { SideMenuButton, SideMenuOutlet, SideMenuProvider } from "./sideMenu";
 import { LOGO_ALT, logoUrl } from "./brand";
-import { ScoreExplainer } from "./pongdangUi";
 // 물결 굴곡은 히어로와 공유합니다(waveShape.ts 주석). 푸터는 뒤집어 씁니다.
 import { WAVE_LOOP_PATH, WAVE_PATH } from "./waveShape";
 
@@ -100,12 +99,18 @@ export function AppFootNote({
         <img className="pd-foot-brand" src={logoUrl()} alt="" aria-hidden />
         {showNote && (
           <>
-            {/* 전문은 「퐁당 점수란?」 안에 그대로 있습니다. 세 문장을 모든
-                화면 밑에 깔아 두면 11px 회색 문단이 화면마다 반복되고, 반복되는
-                문장은 결국 아무도 읽지 않습니다 -- 꼭 읽혀야 하는 한 줄만
-                남깁니다. */}
+            {/* 세 문장을 모든 화면 밑에 깔아 두면 11px 회색 문단이 화면마다
+                반복되고, 반복되는 문장은 결국 아무도 읽지 않습니다 -- 꼭 읽혀야
+                하는 한 줄만 남깁니다.
+                
+                전문으로 가는 길은 **링크**입니다. 여기에 ScoreExplainer 손잡이를
+                또 두면 같은 화면에 「퐁당 점수란?」이 두 개가 됩니다(점수 옆에
+                이미 하나 있는 화면이 많습니다). 둘 중 어느 것을 눌러야 하는지
+                화면이 말하지 못합니다. */}
             {t("점수는 참고용이며 안전 판정이 아닙니다.")}{" "}
-            <ScoreExplainer popover />
+            <a className="pd-inline pd-tap" href="#info">
+              {t("퐁당 점수란?")}
+            </a>
           </>
         )}
       </div>

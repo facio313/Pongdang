@@ -108,9 +108,12 @@ test("detail uses server favorites across reentry and adds the selected place on
     }
   });
   await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
-  await expect(page.locator("p[role=status]")).toContainText("코스 초안에 추가했습니다");
+  // 화면에는 상태 문장이 여럿입니다(「예보 자료 없음」 등). 동작의 결과를 가리킵니다.
+  await expect(page.locator("p[role=status]").filter({ hasText: "코스 초안" }))
+    .toContainText("코스 초안에 추가했습니다");
   await page.getByRole("button", { name: "내 코스에 추가", exact: true }).click();
-  await expect(page.locator("p[role=status]")).toContainText("이미 코스 초안에 추가된 장소");
+  await expect(page.locator("p[role=status]").filter({ hasText: "코스 초안" }))
+    .toContainText("이미 코스 초안에 추가된 장소");
   expect(drafts).toBe(1);
   await expect(page.getByRole("link", { name: "지도에서 보기 →" })).toHaveAttribute("href", `#map?spot_id=${place.id}`);
   await page.getByRole("link", { name: "지도에서 보기 →" }).click();
@@ -149,7 +152,8 @@ test("a beach station with empty region can be saved and added without a tourism
   expect(response.status()).toBe(200);
   expect(response.request().postDataJSON().request.region).toBeUndefined();
   expect((await response.json()).input_stops.map((stop: { spot_id: number }) => stop.spot_id)).toEqual([place.id]);
-  await expect(page.locator("p[role=status]")).toContainText("코스 초안에 추가했습니다");
+  await expect(page.locator("p[role=status]").filter({ hasText: "코스 초안" }))
+    .toContainText("코스 초안에 추가했습니다");
   await page.getByRole("link", { name: "코스 초안 보기" }).click();
   await expect(page.locator(".mp-stop-name")).toHaveText(place.name);
 });

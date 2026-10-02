@@ -54,12 +54,12 @@ import {
 import { setTravelSession, useTravelSession } from "./travelSession";
 import { useAction } from "./useAction";
 import { suppressLoginRequired } from "./authError";
-import { useRequireLogin } from "./loginPopoverState";
 import { useCourseRouteOptimization } from "./useCourseRouteOptimization";
 import { TransportSelect } from "./TransportSelect";
 import { useMyPlansWithAlarm } from "./useMyPlansWithAlarm";
 import { isInitialLoad, useResource } from "./useResource";
 import { useConditions } from "./useConditions";
+import { GuestSaveNote } from "./GuestSaveNote";
 import { useConditionSummaries } from "./useConditionSummaries";
 import { mappablePlaces } from "./useWaterPlaces";
 import { useWaterPlaceBrowser } from "./useWaterPlaceBrowser";
@@ -274,7 +274,6 @@ export function MapDesktop() {
   // ── 내 코스 목록 (항상 표시하는 좌측 패널) ──────────────────
   // 저장한 코스와 동행 알림 상태를 함께 조회합니다(useMyPlansWithAlarm).
   const { myPlans, sessions, plans: myPlansWithAlarm, loginRequired } = useMyPlansWithAlarm();
-  const requireLogin = useRequireLogin();
   const openSavedPlan = (plan: TripPlan) => {
     setCourseEdit(null);
     action.cancel();
@@ -883,10 +882,10 @@ export function MapDesktop() {
                 <span className="pd-dk-kick">{t("내 코스 목록")}</span>
                 {!loginRequired && <StateChip kind={myPlans.data ? "live" : "no_data"} />}
               </div>
-              {loginRequired && <>
-                <p className="mk-note">{t("로그인하면 저장한 코스를 볼 수 있어요.")}</p>
-                <button type="button" className="pd-dk-button" onClick={requireLogin}>{t("로그인")}</button>
-              </>}
+              {/* 「로그인」 1차 버튼을 세우지 않습니다 -- 지금 만들고 있는 코스는
+                  그대로 있고, 계정이 필요한 것은 **저장된** 코스 목록뿐입니다.
+                  모바일 코스 뷰와 같은 규칙입니다(MapPage · GuestSaveNote). */}
+              {loginRequired && <GuestSaveNote what="코스" className="mk-note" />}
               {myPlansWithAlarm.map(({ plan, alarm }) => (
                 <button
                   type="button"

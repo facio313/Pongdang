@@ -67,7 +67,7 @@ test("home and today render calculated server condition scores and their evidenc
   await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
   const heroNote = page.getByRole("dialog", { name: "근거 보기" });
   await expect(heroNote).toContainText("대표 관측소");
-  await expect(heroNote).toContainText("근거 확보");
+  await expect(heroNote).toContainText("마지막 업데이트");
   await page.keyboard.press("Escape");
   await expect(heroNote).toBeHidden();
   await expect(page.locator(".td-tile-value").nth(2)).toHaveText("21.3°C");
@@ -320,8 +320,12 @@ test("a current score survives expiry and an insufficient thirty-minute refresh"
   release();
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
   await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
-  await expect(page.locator(".td-hero-note")).toContainText("이전 값 유지");
-  await expect(page.locator(".td-hero-note")).toContainText("참고 점수 75");
+  // 「갱신 자료 부족 · 이전 값 유지」는 수집 상태입니다. 보는 사람에게 필요한
+  // 것은 그 값이 언제 기준인지 하나이고, 오래된 시각이 곧 그 사실입니다.
+  await expect(page.locator(".td-hero-note")).toContainText("마지막 업데이트");
+  // 점수는 바로 위 히어로가 크게 말합니다. 이 줄이 그 숫자를 다시 적지 않습니다 --
+  // 전문(점수 · 확보율 · 면책)은 「근거 보기」 안에 그대로 있습니다.
+  await expect(page.locator(".td-hero-score-num")).toHaveText("75");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: test.info().outputPath("retained-today.png") });
 });

@@ -57,7 +57,9 @@ test("the selected forecast date requests its own bounded KST day and keeps over
   const forecast = week(page);
   await expect(forecast.locator(".td-bar")).toHaveCount(7);
   await expect(forecast.locator(".td-bar-score").first()).toHaveText("64.2");
-  await expect(forecast.locator(".td-bar-detail")).toContainText("근거 2/4");
+  // 숫자 옆은 「언제 기준인지」만 말합니다. 확보율은 「근거 보기」 안에 그대로
+  // 있습니다(productData 의 scoreCoverageText 주석).
+  await expect(forecast.locator(".td-bar-detail")).toContainText("마지막 업데이트");
   // 예보 원자료 목록(관측소 · 제공기관 · 입력값)은 화면에서 내렸으므로, 겹치는
   // 구간이 버려지지 않았는지는 **빈 목록 문구가 뜨지 않는 것**으로 봅니다 --
   // 전날 시작해 이 날에 걸친 행을 시작일로만 걸러내면 rows 가 0 이 되어

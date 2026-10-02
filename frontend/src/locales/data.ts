@@ -2219,6 +2219,7 @@ export const dataMessages: Record<string, MessageTranslations> = {
   "조사 일정에 따라 (수개월 간격일 수 있습니다)": ["On the survey schedule (which may be months apart)", "依调查日程（间隔可能长达数月）", "調査日程に従って（数か月間隔の場合があります）"],
   "조사 일정에 따라": ["On the survey schedule", "依调查日程", "調査日程に従って"],
   "한 시간 단위": ["Hourly", "每小时", "1時間ごと"],
+  "하루 단위": ["Daily", "每天", "1日ごと"],
   "관측 주기마다": ["On each observation cycle", "按观测周期", "観測周期ごと"],
   "제공처가 고칠 때마다": ["Whenever the provider updates it", "提供方更新时", "提供元が更新するたび"],
   "조회할 때마다": ["On each lookup", "每次查询时", "照会するたび"],

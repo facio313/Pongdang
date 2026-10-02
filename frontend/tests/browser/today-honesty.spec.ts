@@ -21,14 +21,18 @@ test("today separates excluded activities, partial coverage and place baseline r
   });
   await page.goto("#today");
   await expect(page.locator(".td-hero-score-num")).toHaveText("82");
-  await expect(page.locator(".td-hero-score")).toContainText("부분 점수 · 근거 2/4 (50%)");
+  // 숫자 옆은 「이게 지금 값인가」만 말합니다. 확보율과 부분 점수 여부는
+  // 「근거 보기」 안에 그대로 있습니다(productData 의 scoreCoverageText 주석).
+  await expect(page.locator(".td-hero-score")).toContainText("마지막 업데이트");
+  await expect(page.locator(".td-hero-score")).not.toContainText("부분 점수");
+  await expect(page.locator(".td-hero-score")).not.toContainText("근거 2/4");
   const activity = (name: string) => page.locator(".td-act").filter({ has: page.getByText(name, { exact: true }) });
   await expect(activity("온천").locator(".td-act-score")).toHaveText("–");
   await expect(activity("온천")).toContainText("추천 제외");
   await expect(activity("온천")).not.toContainText("매우 좋음");
   await expect(activity("래프팅").locator(".td-act-score")).toHaveText("–");
   await expect(activity("래프팅")).toContainText("활동 미지원");
-  await expect(activity("휴식")).toContainText("부분 점수 · 근거 2/4 (50%)");
+  await expect(activity("휴식")).toContainText("마지막 업데이트");
   const tile = (name: string) => page.locator(".td-hero-tiles .td-tile").filter({ has: page.getByText(name, { exact: true }) });
   await expect(tile("수온").locator(".td-tile-value")).toHaveText("21.3°C");
   await expect(tile("파고").locator(".td-tile-value")).toHaveText("0.4m");
