@@ -6,7 +6,7 @@ import { SpotDetailPage } from "./SpotDetailPage";
 import { SpotsDesktop } from "./SpotsDesktop";
 import { SpotListScore } from "./SpotListScore";
 import { PlacePhoto } from "./PlacePhoto";
-import { kindLabel, type PlaceDetails } from "./placeDetails";
+import { kindLabel } from "./placeDetails";
 import { hasPlaceCoordinates } from "./placeDistance";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { useIsDesktop } from "./useIsDesktop";
@@ -126,11 +126,9 @@ const ACTIVITY = "swim" as const;
 
 function SpotRow({
   place,
-  detail,
   scores,
 }: {
   place: Place;
-  detail?: PlaceDetails;
   /** 묶음으로 읽은 조건 요약(useConditionSummaries). 줄마다 조회하지 않습니다. */
   scores: ReturnType<typeof useConditionSummaries>;
 }) {
@@ -145,7 +143,10 @@ function SpotRow({
         </span>
         <span className="sp-row-where">{placeRegionLabel(place)}</span>
         <span className="sp-row-address">{place.address ?? t("주소 없음")}</span>
-        {detail?.opening_hours && <span className="sp-row-hours">{t("운영")} · {detail.opening_hours}</span>}
+        {/* 운영시간은 목록에 적지 않습니다. 해수욕장의 「상시 개방」은 개장 기간
+            **옆에서만** 뜻이 통합니다 -- 10월에 그 한 줄만 보이면 「지금 가도
+            된다」로 읽힙니다. 상세는 개장 기간을 먼저 적고 그 아래에 운영시간을
+            둡니다(PlaceDetailInformation). */}
         <span className="sp-row-meta">
           <span className="sp-meta-name">{t("좌표")}</span>
           <b>
@@ -215,7 +216,7 @@ function SpotsList() {
         <SourceChips live={Boolean(places.rows)} />
         <div className="pd-card sp-list">
           {scored.map((place) => (
-            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} scores={scores} />
+            <SpotRow key={place.id} place={place} scores={scores} />
           ))}
           {/* 점수 없는 곳은 아래에 묶습니다. 점수 있는 줄 사이에 섞여 있으면
               목록이 고장난 것처럼 읽힙니다. */}
@@ -225,7 +226,7 @@ function SpotsList() {
             </p>
           )}
           {pending.map((place) => (
-            <SpotRow key={place.id} place={place} detail={details.byId.get(place.id)} scores={scores} />
+            <SpotRow key={place.id} place={place} scores={scores} />
           ))}
           {!rows.length && (
             <p className="pd-note" role={places.error ? "alert" : "status"}>

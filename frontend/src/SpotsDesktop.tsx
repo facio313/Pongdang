@@ -6,7 +6,7 @@ import { PlaceDetailInformation } from "./PlaceDetailInformation";
 import { PlaceDistanceInfo } from "./PlaceDistanceInfo";
 import { FirstSwimGuide } from "./FirstSwimGuide";
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from "./placeDistance";
-import { kindLabel, type PlaceDetails } from "./placeDetails";
+import { kindLabel } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { gradeOf } from "./groupAGrade";
 import {
@@ -51,11 +51,9 @@ const ACTIVITY = "swim" as const;
 
 function ListRow({
   place,
-  detail,
   scores,
 }: {
   place: Place;
-  detail?: PlaceDetails;
   scores: ReturnType<typeof useConditionSummaries>;
 }) {
   const summary = scores.byId.get(place.id);
@@ -68,7 +66,7 @@ function ListRow({
           <span className="sk-row-category">{t(kindLabel(place))}</span>
         </div>
         <p className="sk-row-summary">{place.address ?? t("주소 없음")}</p>
-        {detail?.opening_hours && <p className="sk-row-hours">{t("운영")} · {detail.opening_hours}</p>}
+        {/* 운영시간은 목록에 적지 않습니다(모바일 목록과 같은 규칙, SpotsPage 주석). */}
         <div className="sk-row-meta">
           <span>
             <span className="sk-meta-name">{t("지역")}</span>
@@ -207,7 +205,6 @@ function SpotsListDesktop() {
             <ListRow
               key={place.id}
               place={place}
-              detail={details.byId.get(place.id)}
               scores={scores}
             />
           ))}
@@ -220,7 +217,6 @@ function SpotsListDesktop() {
             <ListRow
               key={place.id}
               place={place}
-              detail={details.byId.get(place.id)}
               scores={scores}
             />
           ))}
