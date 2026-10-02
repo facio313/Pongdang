@@ -1,7 +1,7 @@
 import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { DataOrigin } from "./DataOrigin";
 import {
   AiSuggestion,
@@ -31,6 +31,7 @@ import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
 import { GuestSaveNote } from "./GuestSaveNote";
 import { isInitialLoad, useResource } from "./useResource";
+import { invalidateResources } from "./resourceRefresh";
 import { settledWithoutPlace, useProductData } from "./useProductData";
 import { HourlyConditions } from "./HourlyConditions";
 import {
@@ -46,10 +47,9 @@ import { spotLink } from "./spotsRoute";
 import { useHomeBeaches } from "./useHomeBeaches";
 import { useExampleCourse } from "./useExampleCourse";
 import type { TemperatureReading } from "./firstSwimTemperature";
-import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { WAVE_LOOP_PATH } from "./waveShape";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
-import { useWebcamCatalog } from "./useWebcamCatalog";
+import { useNearbyWebcams } from "./useNearbyWebcams";
 import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homePage.css";
 import { withJosa } from "./josa";
@@ -265,6 +265,7 @@ function GlanceCard({
   qualityLoading = false,
   spotId,
   now,
+  placeSettled = false,
 }: {
   statusText: string;
   /** 상태 문장이 오류인지. 오류는 role="alert", 진행 중은 role="status" 입니다. */
@@ -277,6 +278,8 @@ function GlanceCard({
   qualityLoading?: boolean;
   spotId?: number;
   now: string;
+  /** 기준 장소가 영영 정해지지 않는 상태(useProductData 의 placeSettled). */
+  placeSettled?: boolean;
 }) {
   const bars = componentBars(conditions);
   return (
@@ -306,13 +309,25 @@ function GlanceCard({
       {/* 수질 상세 문단(WaterQualityDetails)은 내렸습니다 -- 등급과 검사
           시점은 바로 위 hm-glance-aside 줄이 이미 말합니다. 오류만 아래
           상태 줄로 올라옵니다. */}
-      <HourlyConditions id={spotId} now={now} activity={activity} />
+      <HourlyConditions id={spotId} now={now} activity={activity} placeSettled={placeSettled} />
       {/* 기준 · 만점 · 평균 설명 장문은 내렸습니다. 다만 조회 실패와 조회 중은
           안내가 아니라 **사실**이므로 지우지 않습니다 -- 지우면 실패한 화면이
           「값이 없는 화면」과 구별되지 않습니다. */}
       {statusText && (
         <p className="pd-note" role={statusIsError ? "alert" : "status"}>
-          <StateChip kind={conditions ? "live" : "no_data"} /> {t(statusText)}
+          <StateChip kind={conditions ? "live" : "no_data"} /> {t(statusText)}{" "}
+          {/* 실패를 말하고 끝내면 보는 사람이 할 수 있는 일이 없습니다. 기억을
+              버리고 다시 읽는 손잡이를 같은 줄에 둡니다 -- 새로고침과 달리
+              고른 장소와 화면 위치를 잃지 않습니다. */}
+          {statusIsError && (
+            <button
+              type="button"
+              className="pd-inline pd-tap"
+              onClick={() => invalidateResources()}
+            >
+              {t("다시 시도")}
+            </button>
+          )}
         </p>
       )}
     </div>
@@ -656,24 +671,53 @@ function RouteCard() {
   );
 }
 
-function LivecamModule() {
-  // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
-  // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
-  const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
-  const { result, error, loading, expired, now } = useWebcamCatalog(1, "", shuffleSeed);
-  const cameras = (result?.rows ?? []).flatMap(camera => {
+function LivecamModule({
+  spotId,
+  placeName,
+  placeSettled = false,
+}: {
+  /** 지금 보고 있는 장소. 이 장소 **근처**의 카메라만 보여 줍니다. */
+  spotId?: number;
+  placeName?: string;
+  /** 기준 장소가 영영 정해지지 않는 상태(useProductData). */
+  placeSettled?: boolean;
+}) {
+  // 장소 근처를 조회합니다. 예전에는 전국 목록 1페이지를 그대로 보여 줘서,
+  // 강릉 경포를 보고 있는데 청학동 · 소하1동 웹캠이 떴습니다 -- 그러면 이 카드가
+  // 이 장소에 대해 말하는 것이 하나도 없습니다(useNearbyWebcams).
+  const nearby = useNearbyWebcams(placeSettled ? undefined : spotId);
+  const { result, error, expired, now } = nearby;
+  const loading = nearby.loading;
+  const cameras = nearby.rows.flatMap(camera => {
     const player = previewPlayerUrl(camera, result!.valid_until, now);
     const href = player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
     return href ? [{ camera, href, label: player ? t(player === camera.live_player ? "실시간 안내 · 미검증" : "타임랩스") : t("원본 보기") }] : [];
   }).slice(0, 3);
+  // 반경 안에 없으면 전국 목록으로 물러서지 않습니다 -- 물러서면 「근처」라고
+  // 말할 수 없는 것을 근처 자리에 놓게 됩니다. 어디 기준 몇 km 인지 함께 적어
+  // 두면 「없음」이 왜 없음인지가 읽힙니다.
+  const emptyNote = placeSettled
+    ? t("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.")
+    : nearby.radiusKm && placeName
+      ? t("{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.", {
+          place: placeName, radius: Math.round(nearby.radiusKm),
+        })
+      : t("근처에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.");
   return (
     <div className="pd-card">
       <div className="hm-card-top">
         <div className="hm-card-top hm-card-top-tight">
           <Mascot role="livecam" size={28} />
-          <div className="pd-card-title">{t("라이브캠 물멍")}</div>
+          <div className="pd-card-title">
+            {placeName && !placeSettled
+              ? t("{place} 근처 라이브캠", { place: placeName })
+              : t("라이브캠 물멍")}
+          </div>
         </div>
-        <button className="pd-state-chip pd-tap" disabled={loading} onClick={() => setShuffleSeed(shuffleWebcams())}>{t("다른 풍경 보기")}</button>
+        {/* 「다른 풍경 보기」는 전국 목록을 다시 섞는 손잡이였습니다. 근처
+            카메라는 섞을 것이 없으므로(반경 안의 전부입니다) 전체 목록으로
+            가는 길만 둡니다. */}
+        <a className="pd-state-chip pd-tap" href="#livecam">{t("전체 라이브캠")}</a>
       </div>
       <div className="hm-cam-row">
         {cameras.map(({ camera: cam, href, label }, index) => (
@@ -694,28 +738,18 @@ function LivecamModule() {
             <div className="hm-cam-thumb hm-cam-empty">
               <Mascot role="empty" size={40} />
               <span className="hm-cam-empty-title">
-                {loading ? t("조회 중") : t("송출 없음")}
+                {loading ? t("조회 중") : t("근처 라이브캠 없음")}
               </span>
             </div>
-            <span className="hm-cam-label">
-              {error ??
-                (loading
-                  ? t("물 풍경을 고르는 중입니다.")
-                  : t("현재 목록에 열 수 있는 물 풍경 카메라가 없습니다."))}
-            </span>
+            <span className="hm-cam-label">{error ?? emptyNote}</span>
           </div>
         )}
       </div>
       <p className="pd-note" role={error ? "alert" : "status"}>
         {/* 카메라가 있는 경우의 안내 문장은 내렸습니다. 조회 중 · 송출 없음은
             사실이므로 남깁니다. */}
-        {error ||
-          (loading
-            ? t("물 풍경을 고르는 중입니다.")
-            : cameras.length
-              ? ""
-              : t("현재 목록에 열 수 있는 물 풍경 카메라가 없습니다."))}{" "}
-        {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. ")}
+        {error || (loading ? t("물 풍경을 고르는 중입니다.") : cameras.length ? "" : emptyNote)}{" "}
+        {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. ")}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
             듣지 않으므로, 줄 높이를 깨지 않고 히트박스만 넓히는 .pd-tap 을
             함께 붙입니다(pongdang.css 터치 타깃 주석). */}
@@ -758,6 +792,7 @@ function HomeScreen() {
         }
       >
           <GlanceCard
+            placeSettled={placeSettled}
             quality={quality.error ? t("조회 실패") : waterQualityLabel(quality.data)}
             qualityLoading={isInitialLoad(quality)}
             spotId={place?.id}
@@ -777,7 +812,7 @@ function HomeScreen() {
           <TasteBanner best={best} recommendation={recommendation} />
           <TastePicksCard />
           <RouteCard />
-        <LivecamModule />
+        <LivecamModule spotId={place?.id} placeName={place?.name} placeSettled={placeSettled} />
       </AppShell>
     </article>
   );

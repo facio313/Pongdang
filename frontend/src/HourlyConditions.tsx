@@ -17,13 +17,32 @@ export function HourlyConditions({
   id,
   now,
   activity,
+  placeSettled = false,
 }: {
   id?: number;
   now: string;
   /** 고른 활동. 없으면 조회하지 않습니다(useHourlyScores 주석). */
   activity?: Activity;
+  /** 기준 장소가 영영 정해지지 않는 상태(useHourlyScores 주석). */
+  placeSettled?: boolean;
 }) {
-  const hours = useHourlyScores(id, now, activity);
+  const hours = useHourlyScores(id, now, activity, placeSettled);
+  // 조회가 끝났는데 한 시각도 못 읽었으면 **끝난 것**입니다. 칸마다 「–」를
+  // 늘어놓는 대신 그 사실을 한 번 말하고 표를 접습니다 -- 빈 표는 「아직
+  // 오는 중」으로 읽힙니다.
+  const settled = hours.every((hour) => !hour.loading);
+  const anyValue = hours.some(
+    (hour) => hour.score !== null || hour.data !== undefined,
+  );
+  const failure = hours.find((hour) => hour.error)?.error;
+  if (settled && !anyValue)
+    return (
+      <div className="pd-slot">
+        <p className="pd-note" role={failure ? "alert" : "status"} title={failure}>
+          {t("오늘 시간대별 예보 (09–18시)")} · {t("예보 자료 없음")}
+        </p>
+      </div>
+    );
   // 막대 높이는 **그날 안에서의 상대 위치**입니다. 점수 기여도가 아닙니다
   // (데스크탑 HourBars 와 같은 규칙).
   const max = Math.max(

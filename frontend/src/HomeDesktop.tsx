@@ -2,7 +2,6 @@ import { ProductPlacePopover } from "./ProductPlaceSelector";
 import { HomeTides } from "./HomeTides";
 import { FirstSwimPreview } from "./FirstSwimGuide";
 import { t } from "./i18n.ts";
-import { useState } from "react";
 import { MASCOT_ALT, mascotUrl } from "./mascots";
 import {
   DesktopHero,
@@ -53,9 +52,8 @@ import type { TemperatureReading } from "./firstSwimTemperature";
 import { useTravelSession } from "./travelSession";
 import { useTastePreference } from "./useTastePreference";
 import { GuestSaveNote } from "./GuestSaveNote";
-import { sessionWebcamShuffleSeed, shuffleWebcams } from "./livecamPreviewApi";
 import { previewPlayerUrl, safeWebcamUrl } from "./livecamApi";
-import { useWebcamCatalog } from "./useWebcamCatalog";
+import { useNearbyWebcams } from "./useNearbyWebcams";
 import { WebcamThumbnail } from "./WebcamThumbnail";
 import "./homeDesktop.css";
 import { withJosa } from "./josa";
@@ -225,6 +223,7 @@ function HourBars({
   activity,
   conditions,
   loading = false,
+  placeSettled = false,
 }: {
   id?: number;
   now: string;
@@ -233,11 +232,13 @@ function HourBars({
   activity?: Activity;
   conditions?: Conditions;
   loading?: boolean;
+  /** 기준 장소가 영영 정해지지 않는 상태(useHourlyScores 주석). */
+  placeSettled?: boolean;
 }) {
   // 활동이 없으면 조회하지 않습니다. 예전에는 수영으로 물러섰는데, 추천이
   // 실패했거나 고를 것이 없는 날에도 수영 점수가 남아 「오늘 한눈에」가
   // 무엇의 몇 점인지 말하지 않은 채 숫자를 보여 줬습니다.
-  const hours = useHourlyScores(id, now, activity);
+  const hours = useHourlyScores(id, now, activity, placeSettled);
   const scored = hours.filter((hour) => hour.score !== null);
   // 막대 높이는 그날 안에서의 상대 위치입니다. 점수 기여도가 아닙니다.
   const max = Math.max(...scored.map((hour) => hour.score as number), 1);
@@ -349,11 +350,10 @@ export function HomeDesktop() {
   const course = routeCourse ?? (planStops.length
     ? { items: planStops, travel_minutes: null as number | null }
     : null);
-  // 시드는 페이지가 기억합니다. 마운트마다 새로 뽑으면 창 폭을 바꿨다는
-  // 이유로 목록을 다시 받고 풍경까지 바뀝니다(sessionWebcamShuffleSeed 주석).
-  const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
-  const webcams = useWebcamCatalog(1, "", shuffleSeed);
-  const cameras = (webcams.result?.rows ?? [])
+  // 고른 장소 근처를 조회합니다. 예전에는 전국 목록 1페이지라 강릉 경포를 보고
+  // 있는데 청학동 웹캠이 떴습니다(useNearbyWebcams, 모바일 홈과 같은 훅).
+  const webcams = useNearbyWebcams(placeSettled ? undefined : place?.id);
+  const cameras = webcams.rows
     .flatMap((camera) => {
       const player = previewPlayerUrl(camera, webcams.result!.valid_until, webcams.now);
       const href =
@@ -363,6 +363,14 @@ export function HomeDesktop() {
         : [];
     })
     .slice(0, 3);
+  // 반경 안에 없으면 전국 목록으로 물러서지 않습니다(모바일 홈과 같은 규칙).
+  const camsEmptyNote = placeSettled
+    ? t("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.")
+    : webcams.radiusKm && place?.name
+      ? t("{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.", {
+          place: place.name, radius: Math.round(webcams.radiusKm),
+        })
+      : t("근처에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.");
   return (
     <DesktopShell>
       <HomeHero
@@ -399,6 +407,7 @@ export function HomeDesktop() {
           activity={best?.activity}
           conditions={conditions.data}
           loading={isInitialLoad(conditions)}
+          placeSettled={placeSettled}
         />
         {/* 장소 목록 조회 실패도 싣습니다. 선정 문구(selectionMessage)는 어느
             장소를 골랐는지를 말할 뿐이라, 목록을 못 읽은 사실을 덮습니다. */}
@@ -642,19 +651,15 @@ export function HomeDesktop() {
           있었습니다 -- 데스크탑만 지어내고 있었습니다. */}
       <LabelRow
         kick={t("라이브캠")}
-        title={t("지금 바다 보기")}
+        title={
+          place?.name && !placeSettled
+            ? t("{place} 근처 라이브캠", { place: place.name })
+            : t("지금 바다 보기")
+        }
         chip={<StateChip kind={webcams.result ? "live" : "no_data"} />}
         desc={t("지금 이 순간의 바다, 그 풍경을 직접 느껴보세요")}
         link={{ href: "#livecam", label: t("전체 화면으로") }}
       >
-        {/* 저장된 목록 안에서 다른 카메라를 고릅니다. */}
-        <button
-          type="button"
-          className="pd-dk-button is-pill hd-cams-reshuffle"
-          disabled={webcams.loading}
-          onClick={() => setShuffleSeed(shuffleWebcams())}
-        >
-          {t("다른 풍경 보기")}</button>
         <div className="hd-cams">
           {cameras.map(({ camera, href, label }) => (
             <a
@@ -685,13 +690,11 @@ export function HomeDesktop() {
               <div className="hd-cam-frame is-empty">
                 <img src={mascotUrl("empty")} alt="" width={46} height={46} />
                 <div className="hd-cam-empty-title">
-                  {webcams.loading ? t("조회 중") : t("송출 없음")}
+                  {webcams.loading ? t("조회 중") : t("근처 라이브캠 없음")}
                 </div>
                 <div className="hd-cam-empty-note">
                   {webcams.error ??
-                    (webcams.loading
-                      ? t("물 풍경을 고르는 중입니다")
-                      : t("열 수 있는 물 풍경 카메라가 없습니다"))}
+                    (webcams.loading ? t("물 풍경을 고르는 중입니다") : camsEmptyNote)}
                 </div>
               </div>
             </div>
@@ -699,11 +702,10 @@ export function HomeDesktop() {
         </div>
         <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
           {webcams.error ??
-            t("장소와 관계없이 무작위로 선택된 물 풍경입니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")}{" "}
+            t("고른 장소 근처의 물 풍경입니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")}{" "}
           {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
               적는데 이 화면은 말없이 링크만 바꿨습니다. */}
-          {webcams.expired &&
-            t("원본 페이지로 연결합니다. 다른 풍경 보기로 새로 불러오세요. ")}
+          {webcams.expired && t("원본 페이지로 연결합니다. ")}
           Webcams provided by windy.com
         </p>
       </LabelRow>

@@ -7,6 +7,7 @@ import {
   type ConditionSeries,
 } from "./productData";
 import { useResource } from "./useResource";
+import { settledWithoutPlace } from "./useProductData";
 
 /** 조회할 시각.
  *
@@ -34,10 +35,23 @@ export function useHourlyScores(
    *  것과 달라서 「조회 중」이 아니라 「해당 없음」입니다
    *  (useResource 의 ResourcePath 주석 참고). */
   activity?: Activity,
+  /** 기준 장소가 **영영** 정해지지 않는 상태. `useProductData` 가 돌려주는 값을
+   *  그대로 넘기세요.
+   *
+   *  넘기지 않으면 홈의 시간대별 표가 영영 「조회 중」에 머뭅니다:
+   *  `conditionSeriesPath` 는 장소 id 가 없으면 `undefined` 를 돌려주고,
+   *  `useResource` 는 `undefined` 를 「대상 미정 → 곧 경로가 정해짐」으로 읽어
+   *  `loading: true` 를 영구히 유지합니다(useResource 의 ResourcePath 주석).
+   *  기본 해수욕장 조회가 실패했거나 수집된 장소가 없으면 그 약속은 지켜지지
+   *  않으므로, 「조회 중」이 거짓말이 됩니다. */
+  placeSettled = false,
 ): HourlyScore[] {
   const day = kstDate(now);
   const targets = HOURS.map((hour) => `${day}T${hour}:00:00+09:00`);
-  const result = useResource<ConditionSeries>(activity ? conditionSeriesPath(id, activity, targets) : null);
+  const result = settledWithoutPlace(
+    useResource<ConditionSeries>(activity ? conditionSeriesPath(id, activity, targets) : null),
+    placeSettled,
+  );
   const rows = new Map(result.data?.rows.map((row) => [Date.parse(row.at), row]));
   const values = targets.map((target) => rows.get(Date.parse(target)));
   // The server evaluates evidence at each forecast target. Passing that time

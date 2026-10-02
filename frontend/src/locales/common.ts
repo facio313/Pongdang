@@ -148,4 +148,11 @@ export const commonMessages: Record<string, MessageTranslations> = {
   "가능 여부 확인 필요": ["Needs checking", "需确认是否可行", "可否の確認が必要"],
   // 모든 화면 밑에 깔리는 한 줄. 전문은 「퐁당 점수란?」 안에 있습니다.
   "점수는 참고용이며 안전 판정이 아닙니다.": ["Scores are for reference only and are not a safety judgement.", "评分仅供参考，并非安全判定。", "スコアは参考値であり安全判定ではありません。"],
+  "다시 시도": ["Try again", "重试", "再試行"],
+  "자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.": [
+    "We could not load the data. Please try again in a moment.",
+    "未能加载数据，请稍后重试。",
+    "データを読み込めませんでした。しばらくしてからもう一度お試しください。",
+  ],
+  "예보 자료 없음": ["No forecast data", "暂无预报数据", "予報データなし"],
 };

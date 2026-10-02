@@ -1,7 +1,8 @@
 import { t } from "./i18n.ts";
 import { useMemo } from "react";
 import { useProductPlaceSelection } from "./productPlaceSelection";
-import { useResource } from "./useResource";
+import { isInitialLoad, useResource } from "./useResource";
+import { useLoadDeadline } from "./useLoadDeadline";
 import { useConditions } from "./useConditions";
 import { useBestActivity } from "./useBestActivity";
 import { usePlacePhotos } from "./usePlacePhotos";
@@ -44,6 +45,11 @@ export function settledWithoutPlace<T extends { loading: boolean; error?: string
     ? { ...state, loading: false, error: state.error ?? error }
     : state;
 }
+
+/** 기다림을 멈출 때 화면이 할 말. 조회가 아직 끝나지 않았다는 사실을 숨기지
+ *  않고, 다시 시도할 수 있다는 것만 함께 알립니다. */
+export const STALLED_MESSAGE =
+  "자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
 
 export function useProductData(mode: "swim" | "best" = "swim") {
   // 마운트마다 새로 잡지 않습니다. 이 값이 조회 경로에 들어가므로, 폭이 바뀌어
@@ -101,12 +107,25 @@ export function useProductData(mode: "swim" | "best" = "swim") {
   // 내려보내지 않으면 화면이 오지 않을 값을 기다리며 스켈레톤에 머뭅니다.
   // 「조회 중」은 곧 온다는 약속이라 그것도 거짓말입니다.
   //
+  // 첫 조회가 5초를 넘기면 기다리기를 멈춥니다. 20초 타임아웃이 끝날 때까지
+  // 홈 전체가 스켈레톤이면 보는 사람에게는 고장난 화면과 구별되지 않습니다
+  // (useLoadDeadline). 요청은 그대로 진행되고, 값이 도착하면 되돌아옵니다.
+  const stalled = useLoadDeadline(
+    source.loading ||
+      isInitialLoad(conditions) ||
+      isInitialLoad(baseline) ||
+      (mode === "best" && isInitialLoad(activities.recommendation)),
+  );
   // 둘은 여기서 하나로 합쳐지지 않습니다. 실패면 실패 문구를 함께 내려보내
   // 히어로가 「불러오지 못했다」로 읽히고, 장소가 없는 것이면 error 없이
   // 끝나 「고를 활동이 없다」로 읽힙니다.
   const placeSettled = !source.loading && !place;
   const settled = <T extends { loading: boolean; error?: string }>(state: T) =>
-    settledWithoutPlace(state, placeSettled, source.error);
+    // 기다림을 멈출 때도 **실패를 실패로** 둡니다. 0 점이나 「안전」으로 메우는
+    // 것과 다르며, 값이 늦게 도착하면 그 값이 그대로 들어옵니다.
+    stalled && state.loading
+      ? { ...state, loading: false, error: state.error ?? STALLED_MESSAGE }
+      : settledWithoutPlace(state, placeSettled, source.error);
   return {
     now,
     places,

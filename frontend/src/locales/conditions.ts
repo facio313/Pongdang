@@ -2074,5 +2074,43 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "{timing} — Nearby places are recommended instead of the sea. {disclaimer}",
     "现在{timing} — 建议前往附近地点，暂不下海。{disclaimer}",
     "現在は{timing}です — 海の代わりに近くの場所をおすすめします。{disclaimer}"
-  ]
+  ],
+  "근처 라이브캠 없음": ["No live cam nearby", "附近没有实时摄像头", "近くにライブカメラなし"],
+  "전체 라이브캠": ["All live cams", "全部实时摄像头", "すべてのライブカメラ"],
+  "{place} 근처 라이브캠": ["Live cams near {place}", "{place} 附近的实时摄像头", "{place} 近くのライブカメラ"],
+  "{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.": [
+    "No live cam is available within {radius}km of {place}. Try another beach.",
+    "{place} 周边 {radius}km 内没有可打开的实时摄像头。请尝试其他海滩。",
+    "{place} から {radius}km 以内に開けるライブカメラがありません。別のビーチをお試しください。",
+  ],
+  "근처에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.": [
+    "No live cam is available nearby. Try another beach.",
+    "附近没有可打开的实时摄像头。请尝试其他海滩。",
+    "近くに開けるライブカメラがありません。別のビーチをお試しください。",
+  ],
+  "기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.": [
+    "No reference place was resolved, so nearby live cams could not be found.",
+    "未能确定基准地点，因此无法查找附近的实时摄像头。",
+    "基準となる場所が決まらず、近くのライブカメラを探せませんでした。",
+  ],
+  "고른 장소 근처의 물 풍경입니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.": [
+    "Water views near the selected place. Thumbnails are stored photos, not live video.",
+    "所选地点附近的水景。缩略图为已保存照片，并非实时影像。",
+    "選んだ場所の近くの水辺の風景です。サムネイルは保存された写真で、ライブ映像ではありません。",
+  ],
+  "목록 유효기간이 지나 원본 페이지로 연결합니다. ": [
+    "The listing has expired, so links go to the provider page. ",
+    "列表有效期已过，将跳转至原始页面。 ",
+    "一覧の有効期間が過ぎたため、提供元ページへ移動します。 ",
+  ],
+  "원본 페이지로 연결합니다. ": [
+    "Links go to the provider page. ",
+    "将跳转至原始页面。 ",
+    "提供元ページへ移動します。 ",
+  ],
+  "근처 라이브캠을 불러오지 못했습니다.": [
+    "We could not load nearby live cams.",
+    "未能加载附近的实时摄像头。",
+    "近くのライブカメラを読み込めませんでした。",
+  ],
 };
