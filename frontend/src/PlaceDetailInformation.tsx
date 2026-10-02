@@ -34,10 +34,13 @@ export function PlaceDetailInformation({
     <section className="place-details" aria-label={t("명소 상세정보")} aria-busy={loading}>
       <h2 className="place-details-title">{t("이용 정보")}</h2>
       <dl className={`place-details-grid ${desktop ? "sk-detail-table" : "sd-info"}`}>
-        {row(t("운영"), detail?.opening_hours)}
-        {row(t("휴무일"), detail?.rest_days)}
+        {/* 개장 기간이 운영시간보다 먼저 옵니다. 「이용시간 상시 개방」이 혼자
+            앞에 서면, 10월 해수욕장에서 그 한 줄이 「지금 가도 된다」로 읽힙니다 --
+            상시 개방은 해수욕장 개장과 다른 사실입니다. */}
         {row(t("개장 기간"), detail?.opening_period)}
         {row(t("개장일"), detail?.opening_date)}
+        {row(t("운영"), detail?.opening_hours)}
+        {row(t("휴무일"), detail?.rest_days)}
         {row(t("주차"), detail?.parking)}
         {row(t("편의시설"), detail?.facilities)}
         {row(t("문의"), detail?.contact)}

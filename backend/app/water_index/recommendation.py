@@ -165,6 +165,36 @@ RULES: tuple[Rule, ...] = (
         ),
         basis="data_contract",
     ),
+    Rule(
+        code="beach_closed_season_product_rule",
+        text=(
+            "해수욕장 개장 기간 밖에는 수영을 1순위로 올리지 않습니다. 서핑은 "
+            "개장과 무관하므로 그대로 두고, 물에 들어가지 않는 하루의 답(휴식·"
+            "해변 산책)을 앞세웁니다. 후보에서 지우지는 않아 수온·파고 점수와 "
+            "그 근거는 계속 보입니다. **관광정보의 개장 기간 서술을 읽은 것이며 "
+            "공식 개장 공고·안전 판정이 아닙니다.**"
+        ),
+        basis="pongdang_product_rule",
+    ),
+    Rule(
+        code="beach_season_unconfirmed",
+        text=(
+            "개장 기간 서술이 없거나 구간으로 읽히지 않으면 순위를 바꾸지 "
+            "않습니다. 미확인은 폐장의 증거가 아니며, 없는 값을 「닫혔다」로 "
+            "바꾸지 않습니다. 계곡·호수 수영이 미확인이면 후보에서 빠지는 것과 "
+            "다릅니다 -- 그쪽은 입수 허가 여부이고 이쪽은 운영 기간입니다."
+        ),
+        basis="data_contract",
+    ),
+    Rule(
+        code="beach_season_window_from_past_year",
+        text=(
+            "개장 기간에 지난 연도가 적혀 있으면 그 월·일 구간만 씁니다. "
+            "해수욕장 개장 서술은 해마다 갱신되지만 열고 닫는 월·일은 거의 "
+            "같기 때문입니다. 몇 해 전 자료인지는 함께 내립니다."
+        ),
+        basis="data_contract",
+    ),
 )
 
 LIMITATIONS: tuple[str, ...] = (
@@ -172,6 +202,7 @@ LIMITATIONS: tuple[str, ...] = (
     "공식 제한·운영시간·현장 판단을 대체하지 않습니다.",
     "물때 규칙은 퐁당 자체 기준이며 검증된 활동 가능 시간이 아닙니다.",
     "대안 장소는 등록된 카탈로그 행이며 영업·개방 여부를 확인한 것이 아닙니다.",
+    "해수욕장 개장 기간은 관광정보 서술을 읽은 값이며 공식 개장 공고가 아닙니다.",
 )
 
 
@@ -202,7 +233,8 @@ class Candidate(Record):
     total_components: int
     #: 후보에서 빠졌는지. 점수가 낮은 것과 다른 사실입니다.
     dropped: bool
-    #: 후보로 남았지만 뒤로 미뤄졌는지(물때). 점수는 그대로입니다.
+    #: 후보로 남았지만 뒤로 미뤄졌는지(물때 구간, 해수욕장 개장 기간 밖).
+    #: 점수는 그대로입니다 -- 어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다.
     demoted: bool
     rules_applied: tuple[str, ...]
 
@@ -246,6 +278,38 @@ class Tide(Record):
         if ahead is not None and ahead <= TIDE_MARGIN_MINUTES:
             return ahead
         return -behind if behind is not None else None
+
+
+class SeasonWindow(Record):
+    """개장 구간 하나. 연도가 없으면 매년 반복되는 월·일 창입니다."""
+
+    start_month: int = Field(ge=1, le=12)
+    start_day: int = Field(ge=1, le=31)
+    end_month: int = Field(ge=1, le=12)
+    end_day: int = Field(ge=1, le=31)
+    #: 서술에서 읽어 낸 정밀도. 「7월 중순」은 날짜가 아니라 어림입니다.
+    precision: Literal["day", "part_month", "month", "year_round"]
+    year: int | None = None
+
+
+class Season(Record):
+    """해수욕장 개장 기간 판정. **공식 개장 공고가 아닙니다.**
+
+    `place_details.season` 이 관광정보의 자유 서술을 읽은 결과입니다. 읽지
+    못하면 `status="unconfirmed"` 이고 `windows` 가 빕니다 -- 그때 순위를 바꾸지
+    않는 이유는 `beach_season_unconfirmed` 규칙에 적혀 있습니다.
+    """
+
+    status: Literal["in_season", "out_of_season", "unconfirmed"]
+    windows: tuple[SeasonWindow, ...] = ()
+    source_field: Literal["opening_period", "opening_date"] | None = None
+    #: 읽은 원문. 읽지 못한 서술을 화면이 그대로 보여 줄 수 있어야 합니다.
+    raw: str | None = Field(default=None, max_length=200)
+    #: 판정 기준일(KST). 어느 날짜로 판정했는지가 결과의 일부입니다.
+    evaluated_on: str
+    year_basis: Literal["annual", "explicit_year", "past_year"] | None = None
+    stale_years: int | None = None
+    reason_codes: tuple[str, ...] = ()
 
 
 class Alternative(Record):
@@ -324,16 +388,21 @@ def decide(
     *,
     place_kind: str | None = None,
     tide: Tide | None = None,
+    season: Season | None = None,
     order: tuple[Activity, ...] = RECOMMENDED_ACTIVITIES,
 ) -> Decision:
     """활동별 조건 응답을 비교해 하나를 고릅니다.
 
     `order` 는 동점일 때의 우선순위입니다. 점수가 같으면 앞선 활동이 이깁니다.
+
+    `season` 은 해수욕장 개장 기간 판정입니다. 없으면(내륙, 조회 실패) 계절
+    규칙을 아예 적용하지 않습니다 -- 「모름」을 「폐장」으로 바꾸지 않습니다.
     """
     candidates: list[Candidate] = []
     reasons: list[Reason] = []
     sea_blocked_by_cold = False
     sea_blocked_by_tide = False
+    season_closed = False
 
     for activity in order:
         evidence = envelopes.get(activity)
@@ -428,6 +497,38 @@ def decide(
                     )
                 )
 
+        # 개장 기간은 **수영에만** 적용합니다. 서핑은 해수욕장 개장과 무관하게
+        # 하는 활동이고, 개장 기간 밖이라고 서핑을 미루면 그 또한 틀린 말입니다.
+        #
+        # 위 if-elif 체인과 별개의 `if` 입니다 -- 물때 구간과 개장 기간 밖은
+        # 동시에 성립할 수 있고, 둘 다 적용된 사실이 `rules_applied` 에 남아야
+        # 화면이 「왜 수영이 아닌가」를 온전히 말할 수 있습니다.
+        if (
+            not dropped
+            and activity == "swim"
+            and not inland
+            and season is not None
+            and season.status == "out_of_season"
+        ):
+            demoted = True
+            season_closed = True
+            applied.append("beach_closed_season_product_rule")
+            reasons.append(
+                Reason(code="beach_closed_season_product_rule", activity=activity)
+            )
+        elif (
+            not dropped
+            and activity == "swim"
+            and not inland
+            and season is not None
+            and season.status == "unconfirmed"
+        ):
+            # 순위를 바꾸지 않습니다. 미확인은 폐장의 증거가 아닙니다
+            # (beach_season_unconfirmed 규칙). 사실만 남겨 화면이 「개장 정보
+            # 확인 필요」를 띄울 수 있게 합니다.
+            applied.append("beach_season_unconfirmed")
+            reasons.append(Reason(code="beach_season_unconfirmed", activity=activity))
+
         candidates.append(
             Candidate(
                 activity=activity,
@@ -477,7 +578,15 @@ def decide(
         and place_kind not in INLAND_PLACE_KINDS
     ):
         rival: Activity = "surf" if best.activity == "swim" else "swim"
-        rival_live = any(c.activity == rival and not c.dropped for c in candidates)
+        # 개장 기간 밖이라 미뤄진 수영은 「파도가 서핑을 골랐다」의 상대가 아닙니다.
+        # 그 말을 그대로 두면 화면이 틀린 이유를 댑니다 -- 파도는 아무것도 고르지
+        # 않았고 달력이 골랐습니다.
+        rival_live = any(
+            c.activity == rival
+            and not c.dropped
+            and "beach_closed_season_product_rule" not in c.rules_applied
+            for c in candidates
+        )
         reasons.extend(_wave_reasons(envelopes, best.activity, rival, rival_live))
     if best is None:
         reasons.append(Reason(code="no_water_activity_today"))
@@ -489,6 +598,11 @@ def decide(
         kinds.insert(0, "valley")
     if best is None and not kinds:
         kinds.extend(("onsen", "meal", "visit"))
+    if season_closed:
+        # 개장 기간 밖의 해변은 물에 들어가지 않는 하루입니다. 계곡은 넣지
+        # 않습니다 -- 물때처럼 「지금 몇 시간만 피하면 되는 일」이 아니라 계절
+        # 전체가 닫힌 것이고, 계곡도 같은 계절을 지납니다.
+        kinds.extend(("meal", "visit"))
     if best is not None and best.activity == "relax" and "meal" not in kinds:
         # 「휴식」은 물에 들어가지 않는 하루입니다. 물가에 앉아 있으라는 말이
         # 되지 않도록 갈 곳을 함께 제시합니다.
@@ -498,6 +612,8 @@ def decide(
     codes.extend(dict.fromkeys(reason.code for reason in reasons))
     if tide is not None:
         codes.extend(tide.reason_codes)
+    if season is not None:
+        codes.extend(season.reason_codes)
     if place_kind is None:
         codes.append("place_kind_unknown")
 

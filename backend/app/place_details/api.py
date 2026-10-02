@@ -62,6 +62,39 @@ async def read_place_details(connection, spot_ids):
     return [detail_view(row) for row in rows]
 
 
+async def read_opening_season(connection, spot_id):
+    """한 장소의 개장 기간 서술. 없으면 `None`.
+
+    `read_place_details` 와 **같은 선택 규칙**입니다: 확정 링크
+    (`place_detail_link`)가 먼저고, 없으면 spot 직결로 물러섭니다. `state='active'`
+    에는 `place_detail_active_place` 부분 유니크 인덱스가 place_id 당 한 행을
+    보장하므로 정렬이 필요 없습니다(`LIMIT 1` 은 방어용).
+
+    provider 는 **한국어 행으로 고정**합니다. 개장 기간 파서는 한국어 서술을
+    읽으므로(`season.py`), 외국어 행의 영어 산문을 먹이면 읽지 못한 것을 읽은
+    것처럼 되거나 그 반대가 됩니다.
+    """
+    return await (
+        await connection.execute(
+            """
+            SELECT d.opening_period,d.opening_date,d.fetched_at,d.source_modified_at
+            FROM pongdang_data.spots_waterspot s
+            LEFT JOIN pongdang_data.place_detail_link l ON l.spot_id=s.id
+            LEFT JOIN LATERAL (
+              SELECT p.* FROM pongdang_data.collection_place p
+              WHERE p.id=l.place_id OR (l.place_id IS NULL AND p.spot_id=s.id
+                AND p.provider='TOURAPI_KOREAN')
+              ORDER BY p.fetched_at DESC NULLS LAST,p.id LIMIT 1
+            ) p ON true
+            JOIN pongdang_data.place_detail d
+              ON d.place_id=p.id AND d.state='active' AND d.availability='available'
+            WHERE s.id=%s LIMIT 1
+            """,
+            [spot_id],
+        )
+    ).fetchone()
+
+
 def detail_view(row):
     supported = row["current_content_type"] in (
         KOREAN_TYPES if row["provider"] == "TOURAPI_KOREAN" else FOREIGN_TYPES

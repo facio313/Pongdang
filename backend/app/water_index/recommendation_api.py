@@ -9,6 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from psycopg import Error as DatabaseError
@@ -17,6 +18,8 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validato
 from app.data_reader import DataReader
 from app.forecast.storage import select_forecasts
 from app.livecams.places import PLACE_SELECT
+from app.place_details.api import read_opening_season
+from app.place_details.season import parse_opening_season, season_status
 from app.place_kinds import WaterPlaceKind
 from app.tides.context import mark_context, nearby_tide_station
 from app.tides.service import tide_event
@@ -39,6 +42,8 @@ from app.water_index.recommendation import (
     ModelVersion,
     Reason,
     Rule,
+    Season,
+    SeasonWindow,
     Tide,
     decide,
 )
@@ -54,6 +59,9 @@ TIDE_LOOKAHEAD = timedelta(hours=24)
 TIDE_LOOKUP_TIMEOUT = 2.0
 OPTIONAL_LOOKUP_TIMEOUT = 2.0
 RECOMMENDATION_CONTEXT_TIMEOUT = 5.0
+#: 개장 기간은 날짜 단위 사실입니다. UTC 로 재면 자정 전후 아홉 시간이
+#: 어제·내일로 넘어갑니다.
+KST = ZoneInfo("Asia/Seoul")
 logger = logging.getLogger(__name__)
 
 #: 카카오 카테고리와 TourAPI 콘텐츠 유형. `app/travel/catalog.py` 의 분류와
@@ -119,6 +127,9 @@ class Recommendation(Record):
     ranked: tuple[Candidate, ...]
     reasons: tuple[Reason, ...]
     tide: Tide | None
+    #: 해수욕장 개장 기간 판정. 해변이 아니거나 조회에 실패하면 `None` 입니다 --
+    #: 계곡에 「개장 기간」을 지어내지 않습니다.
+    beach_season: Season | None = None
     alternatives: tuple[Alternative, ...]
     #: 판단에 쓴 활동별 조건 응답 전부. 화면이 같은 자료를 다시 조회하지
     #: 않도록 함께 싣습니다 -- 따로 조회하면 두 응답의 시각이 어긋나 히어로
@@ -173,6 +184,46 @@ def tide_view(events, at) -> Tide | None:
         spatial_relation=nearest["spatial_relation"],
         distance_km=nearest.get("distance_km"),
         reason_codes=("events_are_not_safe_activity_windows",),
+    )
+
+
+def season_view(row, at) -> Season:
+    """개장 기간 서술을 판정으로 옮깁니다. `tide_view` 와 같은 자리입니다.
+
+    **조회 결과가 없어도 `None` 을 돌려주지 않습니다** -- 「수집된 개장 기간이
+    없다」는 사실 자체를 화면이 「개장 정보 확인 필요」로 말해야 하기 때문입니다.
+    계절 규칙을 아예 적용하지 않는 경우(내륙, 조회 실패)만 `None` 입니다.
+
+    판정은 **KST 날짜**로 합니다. 개장 기간은 날짜 단위 사실이므로 UTC 로 재면
+    자정 전후 아홉 시간이 어제·내일로 넘어갑니다.
+    """
+    today = at.astimezone(KST).date()
+    parsed = parse_opening_season(
+        row["opening_period"] if row else None,
+        row["opening_date"] if row else None,
+        today,
+    )
+    return Season(
+        status=season_status(parsed, today),
+        windows=tuple(
+            SeasonWindow(
+                start_month=window.start_month,
+                start_day=window.start_day,
+                end_month=window.end_month,
+                end_day=window.end_day,
+                precision=window.precision,
+                year=window.year,
+            )
+            for window in parsed.windows
+        ),
+        source_field=parsed.source_field,
+        raw=parsed.raw,
+        evaluated_on=today.isoformat(),
+        year_basis=parsed.year_basis,
+        stale_years=parsed.stale_years,
+        reason_codes=parsed.reason_codes
+        if row
+        else parsed.reason_codes + ("place_detail_missing",),
     )
 
 
@@ -382,6 +433,7 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
 
     place = None
     tide = None
+    season = None
     # 한 번만 고릅니다. 예전에는 이 블록 안과 밖에서 `decide` 를 두 번 불러,
     # 같은 판단을 두 번 하면서 안쪽 결과는 대안 종류를 뽑는 데만 쓰고 버렸습니다.
     # 부가 조회가 통째로 시간을 넘기면 안쪽까지 닿지 못하므로, 그때만 블록 밖에서
@@ -417,11 +469,21 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
                     timeout=TIDE_LOOKUP_TIMEOUT,
                 ):
                     tide = await read_tide(c, q.spot_id, at, as_of)
+                # 개장 기간은 해수욕장에만 묻습니다. 계곡·호수에 「개장 기간」을
+                # 지어내지 않습니다.
+                async with optional_lookup(
+                    unavailable,
+                    "place_season_lookup_unavailable",
+                    q.spot_id,
+                    connection=c,
+                ):
+                    season = season_view(await read_opening_season(c, q.spot_id), at)
 
             decision = decide(
                 envelopes,
                 place_kind=place["place_kind"] if place else None,
                 tide=tide,
+                season=season,
             )
 
             if place and place["lat"] is not None and place["lng"] is not None:
@@ -472,6 +534,7 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
             envelopes,
             place_kind=place["place_kind"] if place else None,
             tide=tide,
+            season=season,
         )
     return Recommendation(
         spot_id=q.spot_id,
@@ -484,6 +547,7 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
         ranked=decision.ranked,
         reasons=decision.reasons + tuple(Reason(code=code) for code in unavailable),
         tide=tide,
+        beach_season=season,
         alternatives=tuple(alternatives),
         conditions=tuple(envelopes[a] for a in RECOMMENDED_ACTIVITIES),
         reason_codes=decision.reason_codes + tuple(unavailable),

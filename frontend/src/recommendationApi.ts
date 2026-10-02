@@ -21,6 +21,9 @@ export interface Recommendation {
   ranked: RankedActivity[];
   reasons: RecommendationReasonData[];
   tide: RecommendationTide | null;
+  /** 해수욕장 개장 기간 판정. 해변이 아니거나 조회에 실패하면 null 입니다 --
+   *  계곡에 「개장 기간」을 지어내지 않습니다. */
+  beach_season: RecommendationSeason | null;
   alternatives: RecommendationAlternative[];
   /** 판단에 쓴 활동별 조건 응답 전부. 화면은 이것을 그대로 쓰고 같은 자료를
    *  다시 조회하지 않습니다 -- 따로 조회하면 두 응답의 시각이 어긋나 히어로
@@ -44,7 +47,8 @@ export interface RankedActivity {
   total_components: number;
   /** 후보에서 빠짐. 점수가 낮은 것과 다른 사실입니다. */
   dropped: boolean;
-  /** 물때로 뒤로 미뤄짐. 점수는 그대로입니다. */
+  /** 뒤로 미뤄짐(물때 구간, 해수욕장 개장 기간 밖). 점수는 그대로이고,
+   *  어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다. */
   demoted: boolean;
   rules_applied: string[];
 }
@@ -63,6 +67,29 @@ export interface RecommendationReasonData {
   distance_km: number | null;
   /** 물때 극값까지의 분. 양수면 앞으로, 음수면 이미 지났다는 뜻입니다. */
   minutes: number | null;
+}
+export interface RecommendationSeasonWindow {
+  start_month: number;
+  start_day: number;
+  end_month: number;
+  end_day: number;
+  /** 서술에서 읽어 낸 정밀도. 「7월 중순」은 날짜가 아니라 어림입니다. */
+  precision: "day" | "part_month" | "month" | "year_round";
+  year: number | null;
+}
+/** 개장 기간 판정. **공식 개장 공고가 아닙니다** -- 관광정보의 자유 서술을
+ *  읽은 결과입니다. 읽지 못했으면 `unconfirmed` 이고 `windows` 가 빕니다. */
+export interface RecommendationSeason {
+  status: "in_season" | "out_of_season" | "unconfirmed";
+  windows: RecommendationSeasonWindow[];
+  source_field: "opening_period" | "opening_date" | null;
+  /** 읽은 원문. 읽지 못한 서술도 화면이 그대로 보여 줄 수 있어야 합니다. */
+  raw: string | null;
+  /** 판정 기준일(KST). 어느 날짜로 판정했는지가 결과의 일부입니다. */
+  evaluated_on: string;
+  year_basis: "annual" | "explicit_year" | "past_year" | null;
+  stale_years: number | null;
+  reason_codes: string[];
 }
 export interface RecommendationTide {
   status: string;

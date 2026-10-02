@@ -17,6 +17,8 @@ from app.water_index.recommendation import (
     MODEL_VERSION,
     RULES,
     TIDE_MARGIN_MINUTES,
+    Season,
+    SeasonWindow,
     Tide,
     decide,
 )
@@ -282,6 +284,166 @@ def test_the_phase_reads_the_official_events_without_inventing_a_window():
     assert "events_are_not_safe_activity_windows" in view.reason_codes
     # 극값에서 멀면 올라가는 중·내려가는 중까지만 말합니다.
     assert tide_view(events[:1] + events[2:], NOW).phase == "rising"
+
+
+def season(status, **overrides):
+    """개장 기간 판정. 구간은 2024년 7~8월(지난 연도 표기)을 기본으로 둡니다."""
+    return Season(
+        status=status,
+        windows=()
+        if status == "unconfirmed"
+        else (
+            SeasonWindow(
+                start_month=7,
+                start_day=12,
+                end_month=8,
+                end_day=18,
+                precision="day",
+                year=2024,
+            ),
+        ),
+        source_field=None if status == "unconfirmed" else "opening_period",
+        raw=None if status == "unconfirmed" else "2024.07.12~2024.08.18",
+        evaluated_on="2026-10-02",
+        year_basis=None if status == "unconfirmed" else "past_year",
+        stale_years=None if status == "unconfirmed" else 2,
+        reason_codes=("opening_period_unparsed",)
+        if status == "unconfirmed"
+        else (
+            "opening_period_is_not_an_official_schedule",
+            "opening_period_from_past_year",
+        ),
+        **overrides,
+    )
+
+
+def test_a_beach_outside_its_opening_period_does_not_lead_with_swimming():
+    closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
+    assert closed.choice is not None
+    # 서핑은 개장과 무관합니다. 수영만 미뤄졌으므로 서핑이 1순위입니다.
+    assert closed.choice.activity == "surf"
+    swim = candidate(closed, "swim")
+    assert swim.demoted is True
+    # **후보에서 지우지 않습니다** -- 수온·파고 점수와 그 근거는 계속 보입니다.
+    assert swim.dropped is False
+    assert swim.score is not None
+    assert "beach_closed_season_product_rule" in swim.rules_applied
+    assert "beach_closed_season_product_rule" in closed.reason_codes
+    assert candidate(closed, "surf").demoted is False
+    # 지난 연도 표기였다는 사실이 사유 코드로 함께 옵니다.
+    assert "opening_period_from_past_year" in closed.reason_codes
+    # 미뤄진 수영은 가장 뒤로 갑니다.
+    order = [c.activity for c in closed.ranked]
+    assert order  # ranked 는 조회 순서를 그대로 둡니다
+    assert closed.choice.activity != "swim"
+
+
+def test_a_closed_beach_without_surfing_rests_and_offers_somewhere_to_go():
+    # 파고 자료가 없으면 서핑은 필수 지표 부족으로 빠집니다.
+    no_waves = beach(
+        surf=scored("surf", water_temperature=WARM, air_temperature=27.0),
+    )
+    closed = decide(no_waves, place_kind="beach", season=season("out_of_season"))
+    assert closed.choice is not None
+    assert closed.choice.activity == "relax"
+    assert candidate(closed, "swim").demoted is True
+    assert set(closed.alternative_kinds) >= {"meal", "visit"}
+    # 계절이 닫힌 날에 계곡을 권하지 않습니다 -- 계곡도 같은 계절을 지납니다.
+    assert "valley" not in closed.alternative_kinds
+
+
+def test_being_inside_the_opening_period_changes_nothing():
+    inside = decide(beach(), place_kind="beach", season=season("in_season"))
+    plain = decide(beach(), place_kind="beach")
+    assert inside.choice == plain.choice
+    assert [c.model_dump() for c in inside.ranked] == [
+        c.model_dump() for c in plain.ranked
+    ]
+    assert "beach_closed_season_product_rule" not in inside.reason_codes
+
+
+def test_an_unconfirmed_opening_period_never_changes_the_order():
+    """미확인은 폐장의 증거가 아닙니다. 없는 값을 「닫혔다」로 바꾸지 않습니다."""
+    unknown = decide(beach(), place_kind="beach", season=season("unconfirmed"))
+    plain = decide(beach(), place_kind="beach")
+    assert unknown.choice == plain.choice
+    swim = candidate(unknown, "swim")
+    assert swim.demoted is False
+    # 화면이 「개장 정보 확인 필요」를 띄울 수 있게 사실만 남깁니다.
+    assert "beach_season_unconfirmed" in swim.rules_applied
+    assert "beach_season_unconfirmed" in unknown.reason_codes
+
+
+def test_no_season_evidence_applies_no_season_rule():
+    plain = decide(beach(), place_kind="beach", season=None)
+    assert candidate(plain, "swim").demoted is False
+    assert not [c for c in codes(plain) if c.startswith("beach_")]
+
+
+def test_cold_water_drops_swimming_rather_than_merely_deferring_it():
+    cold = beach(
+        swim=scored(
+            "swim",
+            water_temperature=COLD,
+            air_temperature=15.0,
+            wave_height=0.2,
+            wind_speed=3.0,
+        ),
+    )
+    closed = decide(cold, place_kind="beach", season=season("out_of_season"))
+    swim = candidate(closed, "swim")
+    # 수온으로 이미 빠진 활동에 계절 규칙을 덧붙이지 않습니다. 빠진 것과
+    # 미뤄진 것은 다른 사실이고, 두 사유가 겹쳐 보이면 어느 쪽인지 흐려집니다.
+    assert swim.dropped is True
+    assert "water_too_cold_for_immersion" in swim.rules_applied
+    assert "beach_closed_season_product_rule" not in swim.rules_applied
+
+
+def test_a_tide_window_and_a_closed_season_both_stay_on_the_record():
+    closed = decide(
+        beach(),
+        place_kind="beach",
+        tide=tide("near_high", 10),
+        season=season("out_of_season"),
+    )
+    swim = candidate(closed, "swim")
+    assert swim.demoted is True
+    assert "tide_phase_product_rule" in swim.rules_applied
+    assert "beach_closed_season_product_rule" in swim.rules_applied
+    # 물때 대안(계곡)은 물때 규칙이 넣은 것이므로 그대로 남습니다.
+    assert "valley" in closed.alternative_kinds
+
+
+def test_surfing_is_untouched_by_the_beach_opening_period():
+    closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
+    surf = candidate(closed, "surf")
+    assert surf.demoted is False
+    assert not [rule for rule in surf.rules_applied if rule.startswith("beach_")]
+
+
+def test_a_season_deferred_swim_is_not_what_the_waves_chose():
+    """파도는 아무것도 고르지 않았고 달력이 골랐습니다."""
+    closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
+    assert closed.choice is not None and closed.choice.activity == "surf"
+    assert "wave_favours_surf" not in codes(closed)
+
+
+def test_an_inland_place_ignores_a_beach_opening_period():
+    inland = {
+        "swim": scored(
+            "swim",
+            water_temperature=WARM,
+            air_temperature=27.0,
+            wave_height=0.2,
+            wind_speed=3.0,
+        ).model_copy(update={"place_kind": "valley", "support_status": "supported"}),
+        "relax": scored(
+            "relax", air_temperature=27.0, relative_humidity=50.0, wind_speed=3.0
+        ),
+    }
+    decision = decide(inland, place_kind="valley", season=season("out_of_season"))
+    assert candidate(decision, "swim").demoted is False
+    assert "beach_closed_season_product_rule" not in decision.reason_codes
 
 
 def test_the_response_contract_serialises_with_the_current_model_version():

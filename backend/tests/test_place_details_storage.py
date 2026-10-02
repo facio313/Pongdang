@@ -346,3 +346,83 @@ def test_normalized_details_and_attempts_are_browsable_with_bounded_rows(databas
                 ).status_code
                 == 422
             )
+
+
+def read_season(settings, spot_id):
+    from app.data_reader import DataReader
+    from app.place_details.api import read_opening_season
+
+    async def run():
+        async with DataReader(settings).connection() as connection:
+            return await read_opening_season(connection, spot_id)
+
+    return asyncio.run(run())
+
+
+def test_the_opening_season_read_follows_the_confirmed_link_and_active_row(database):
+    """추천이 쓰는 개장 기간 조회. `read_place_details` 와 같은 선택 규칙입니다."""
+    place_id, source_spot = add_place(database)
+    _, linked_spot = add_place(database, "104", provider="KAKAO_LOCAL")
+    save(database, detail(opening_period="2024.07.12~2024.08.18"))
+
+    # spot 직결 fallback.
+    assert read_season(database, source_spot)["opening_period"] == (
+        "2024.07.12~2024.08.18"
+    )
+    # 링크가 없는 장소는 남의 개장 기간을 빌리지 않습니다.
+    assert read_season(database, linked_spot) is None
+
+    with connect(database) as c:
+        c.execute(
+            "INSERT INTO pongdang_data.place_detail_link "
+            "(spot_id,place_id,match_method,linked_at) "
+            "VALUES (%s,%s,'name_and_coordinates',%s)",
+            [linked_spot, place_id, NOW],
+        )
+    assert read_season(database, linked_spot)["opening_period"] == (
+        "2024.07.12~2024.08.18"
+    )
+
+    # 갱신하면 옛 행은 superseded 가 되고, 조회는 활성 행만 봅니다.
+    save(database, detail(opening_period="7월 중순~8월 중순"), now=NOW + timedelta(1))
+    states = rows(
+        database,
+        "SELECT state,opening_period FROM pongdang_data.place_detail ORDER BY id",
+    )
+    assert [row[0] for row in states] == ["superseded", "active"]
+    assert read_season(database, source_spot)["opening_period"] == "7월 중순~8월 중순"
+
+    # 수집된 상세가 없는 장소는 None 입니다 -- 호출부가 「개장 정보 확인 필요」로
+    # 읽습니다(season_view).
+    _, bare_spot = add_place(database, "105", provider="KAKAO_LOCAL")
+    assert read_season(database, bare_spot) is None
+
+
+def test_the_opening_season_read_keeps_a_blank_description_blank(database):
+    """서술이 없는 것과 조회 실패는 다릅니다. 둘 다 「확인 필요」로 가지만,
+    없는 서술을 다른 필드에서 지어내지는 않습니다."""
+    _, spot_id = add_place(database)
+    save(database, detail(opening_period=None, opening_date=None))
+    row = read_season(database, spot_id)
+    assert row is not None
+    assert row["opening_period"] is None and row["opening_date"] is None
+    # 이용시간은 그대로 수집돼 있지만 개장 기간으로 읽지 않습니다.
+    assert rows(database, "SELECT opening_hours FROM pongdang_data.place_detail") == [
+        ("09:00~18:00",)
+    ]
+
+
+def test_the_opening_season_read_ignores_foreign_language_rows(database):
+    """한국어 파서에 영어 산문을 먹이면 읽지 못한 것을 읽은 것처럼 만듭니다."""
+    add_place(database, "200", provider="tourapi_english", category="75")
+    save(
+        database,
+        detail(source_id="200", content_type="75", opening_period="Open July~August"),
+        provider="tourapi_english",
+    )
+    english_spot = rows(
+        database,
+        "SELECT spot_id FROM pongdang_data.collection_place WHERE provider=%s",
+        ["tourapi_english"],
+    )[0][0]
+    assert read_season(database, english_spot) is None

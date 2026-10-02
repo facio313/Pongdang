@@ -38,9 +38,11 @@ test('published hours retain seasonal, holiday and older stored guidance during 
     opening_hours: '09:00–18:00\n매표 마감 17:00',
     opening_period: '7월–8월', rest_days: '매주 월요일', details: [],
   };
+  // 개장 기간이 먼저입니다. 「이용시간 상시 개방」이 혼자 앞에 서면 개장
+  // 기간 밖의 해수욕장에서 그 한 줄이 「지금 가도 된다」로 읽힙니다.
   assert.deepEqual(placeOperatingSchedule(detail), [
-    { label: '이용시간', value: '09:00–18:00\n매표 마감 17:00' },
     { label: '개장 기간', value: '7월–8월' },
+    { label: '이용시간', value: '09:00–18:00\n매표 마감 17:00' },
     { label: '휴무일', value: '매주 월요일' },
   ]);
 });

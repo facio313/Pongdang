@@ -159,7 +159,7 @@ function Hero({
             ) : placeRequired ? t("기준 장소를 선택해 주세요.") : best ? (
               <>
                 {t("오늘 가장 좋은 활동")}<br />
-                <b>{activityHeadline(best.activity)}</b>
+                <b>{activityHeadline(best.activity, recommendation)}</b>
               </>
             ) : (
               // 조회 실패를 「할 게 없다」로 바꾸지 않습니다.

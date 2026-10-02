@@ -72,10 +72,20 @@ def lookup(monkeypatch):
         valleys=AsyncMock(return_value=[alternative_row("valley", 2)]),
         catalog=AsyncMock(return_value=[alternative_row("meal", 3)]),
         nested=AsyncMock(return_value=decide(envelopes).choice),
+        # 개장 기간은 여름 구간으로 둡니다. 이 파일이 보는 것은 「부가 조회가
+        # 실패해도 조건 점수가 남는가」이고, 계절 판정 자체는
+        # test_season · test_recommendation 이 봅니다.
+        season=AsyncMock(
+            return_value={
+                "opening_period": "7.1~8.31",
+                "opening_date": None,
+            }
+        ),
     )
     monkeypatch.setattr(api, "DataReader", lambda _settings: reader)
     monkeypatch.setattr(api, "read_activities", state.activities)
     monkeypatch.setattr(api, "read_tide", state.tide)
+    monkeypatch.setattr(api, "read_opening_season", state.season)
     monkeypatch.setattr(api, "read_valleys", state.valleys)
     monkeypatch.setattr(api, "read_catalog_places", state.catalog)
     monkeypatch.setattr(api, "read_recommendation_choice", state.nested)
@@ -108,6 +118,7 @@ def assert_preserved(response, lookup, unavailable):
         ("connection", HTTPException(503), "recommendation_context_unavailable"),
         ("place", QueryCanceled(), "place_lookup_unavailable"),
         ("tide", OperationalError(), "tide_lookup_unavailable"),
+        ("season", QueryCanceled(), "place_season_lookup_unavailable"),
         ("valleys", QueryCanceled(), "alternatives_lookup_unavailable"),
         ("catalog", OperationalError(), "alternatives_lookup_unavailable"),
         ("nested", HTTPException(503), "alternative_conditions_unavailable"),
@@ -132,8 +143,17 @@ def test_optional_failure_keeps_conditions_scores_and_other_context(
         assert view["place_name"] == "Software fixture"
         assert view["place_kind"] is None
         assert view["tide"] is None
-    if stage in {"place", "tide", "valleys", "catalog"}:
+    if stage in {"place", "tide", "season", "valleys", "catalog"}:
         assert type(failure) in lookup.reader.rollbacks
+    if stage == "season":
+        # 개장 기간을 읽지 못했으면 계절 규칙을 아예 적용하지 않습니다 --
+        # 조회 실패를 「폐장」으로 바꾸지 않습니다.
+        assert view["beach_season"] is None
+        swim = next(row for row in view["ranked"] if row["activity"] == "swim")
+        # 이 픽스처의 물때(near_low)가 이미 수영을 미뤘으므로 demoted 자체는
+        # True 입니다. 계절 규칙이 적용되지 않았다는 것을 사유로 확인합니다.
+        assert "beach_closed_season_product_rule" not in swim["rules_applied"]
+        assert "beach_season_unconfirmed" not in swim["rules_applied"]
     if stage == "valleys":
         assert [row["kind"] for row in view["alternatives"]] == ["meal"]
     if stage in {"catalog", "nested"}:

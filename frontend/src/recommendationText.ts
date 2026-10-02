@@ -17,6 +17,7 @@ import type {
   Recommendation,
   RecommendationAlternative,
   RecommendationReasonData,
+  RecommendationSeasonWindow,
 } from "./recommendationApi.ts";
 
 /** 원점수는 보존하되, 서버가 제외한 활동을 숫자 추천으로 다시 보이지 않게 합니다.
@@ -84,9 +85,16 @@ export const ALTERNATIVE_LABEL: Record<
 };
 
 /** 히어로에 올릴 활동 이름. `relax` 는 서버 enum 이라 그대로 두고, 추천
- *  문맥에서만 갈 곳이 있는 하루로 바꿔 부릅니다. */
-export function activityHeadline(activity: Activity) {
-  return activity === "relax" ? t("물에 들어가지 않는 하루") : t(activities[activity]);
+ *  문맥에서만 갈 곳이 있는 하루로 바꿔 부릅니다.
+ *
+ *  개장 기간이 지난 해변에서는 「해변 산책」입니다. 새 활동을 만들지 않고
+ *  **이름만** 바꿔 부릅니다 -- `Activity` 를 늘리면 점수 곡선과 필수 지표표가
+ *  따라와야 하고, 근거 없는 새 곡선을 만들게 됩니다. */
+export function activityHeadline(activity: Activity, rec?: Recommendation) {
+  if (activity !== "relax") return t(activities[activity]);
+  return rec?.beach_season?.status === "out_of_season"
+    ? t("해변 산책")
+    : t("물에 들어가지 않는 하루");
 }
 
 export interface ReasonLine {
@@ -266,6 +274,47 @@ export function tideLine(rec?: Recommendation): ReasonLine | null {
       text: t(tide.phase === "rising" ? "물이 드는 중이에요. {disclaimer}" : "물이 빠지는 중이에요. {disclaimer}", { disclaimer: t(TIDE_DISCLAIMER) }),
     };
   return null;
+}
+
+/** 개장 구간 하나를 「7.12~8.18」로 적습니다.
+ *
+ *  **원문을 파싱하지 않습니다** -- 서버가 읽어 낸 월·일 숫자로 조립합니다. 「7월
+ *  중순」처럼 어림인 구간은 그 사실을 함께 적습니다. 날짜로 적어 놓고 어림이라고
+ *  말하지 않으면 없는 정확도를 주장하는 셈입니다. */
+export function seasonWindowText(window: RecommendationSeasonWindow) {
+  const span = t("{startMonth}.{startDay}~{endMonth}.{endDay}", {
+    startMonth: window.start_month,
+    startDay: window.start_day,
+    endMonth: window.end_month,
+    endDay: window.end_day,
+  });
+  return window.precision === "day" ? span : `${span} ${t("무렵")}`;
+}
+
+/** 해수욕장 개장 기간 한 줄. 공식 개장 공고가 아니라는 사실이 문장에 남습니다.
+ *
+ *  `in_season` 이면 null 입니다 -- 개장 중인 해변에 「개장 중」이라고 적는 것은
+ *  화면을 늘리기만 합니다. 말해야 하는 것은 **기간 밖**과 **확인 불가**입니다. */
+export function beachSeasonLine(rec?: Recommendation): ReasonLine | null {
+  const season = rec?.beach_season;
+  if (!season || season.status === "in_season") return null;
+  if (season.status === "unconfirmed")
+    return {
+      code: "beach_season_unconfirmed",
+      // 추측하지 않습니다. 서술을 읽지 못한 것과 폐장은 다른 사실입니다.
+      text: t("해수욕장 개장 기간 정보를 확인하지 못했어요 — 방문 전 현지 공고를 확인해 주세요"),
+    };
+  const windows = season.windows.map(seasonWindowText).join(", ");
+  const stale =
+    season.year_basis === "past_year" && season.stale_years
+      ? t(" · {years}년 전 안내 기준", { years: season.stale_years })
+      : "";
+  return {
+    code: "beach_closed_season_product_rule",
+    text: windows
+      ? t("해수욕장 개장 기간이 아니에요 (개장 {windows}){stale}", { windows, stale })
+      : t("해수욕장 개장 기간이 아니에요"),
+  };
 }
 
 export interface AlternativeGroup {

@@ -1527,6 +1527,41 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "不下水的一天",
     "水に入らない一日"
   ],
+  "해변 산책": [
+    "A walk on the beach",
+    "海边漫步",
+    "ビーチ散歩"
+  ],
+  "해수욕장 개장 기간이 아니에요 (개장 {windows}){stale}": [
+    "The beach is outside its swimming season (open {windows}){stale}",
+    "海水浴场不在开放期内（开放 {windows}）{stale}",
+    "海水浴場の開設期間外です（開設 {windows}）{stale}"
+  ],
+  "해수욕장 개장 기간이 아니에요": [
+    "The beach is outside its swimming season",
+    "海水浴场不在开放期内",
+    "海水浴場の開設期間外です"
+  ],
+  "해수욕장 개장 기간 정보를 확인하지 못했어요 — 방문 전 현지 공고를 확인해 주세요": [
+    "We could not confirm this beach's swimming season — check the local notice before you go",
+    "未能确认该海水浴场的开放期 — 出行前请查看当地公告",
+    "この海水浴場の開設期間を確認できませんでした — 訪問前に現地の案内をご確認ください"
+  ],
+  "{startMonth}.{startDay}~{endMonth}.{endDay}": [
+    "{startMonth}/{startDay}\u2013{endMonth}/{endDay}",
+    "{startMonth}.{startDay}~{endMonth}.{endDay}",
+    "{startMonth}.{startDay}~{endMonth}.{endDay}"
+  ],
+  "무렵": [
+    "approx.",
+    "前后",
+    "ごろ"
+  ],
+  " · {years}년 전 안내 기준": [
+    " \u00b7 based on a notice {years} year(s) old",
+    " \u00b7 依据 {years} 年前的公告",
+    " \u00b7 {years}年前の案内による"
+  ],
   "오늘의 활동을": [
     "Today's activities",
     "今日活动",

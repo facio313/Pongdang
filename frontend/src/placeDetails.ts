@@ -73,8 +73,9 @@ export function placeOperatingSchedule(detail?: PlaceDetails): { label: string; 
   if (!detail) return [];
   const rows: { label: string; value: string }[] = [];
   for (const [label, value] of [
-    ["이용시간", detail.opening_hours],
+    // 개장 기간이 먼저입니다. PlaceDetailInformation 과 같은 순서를 씁니다.
     ["개장 기간", detail.opening_period],
+    ["이용시간", detail.opening_hours],
     ["휴무일", detail.rest_days],
   ] as const) {
     if (value?.trim()) rows.push({ label, value });

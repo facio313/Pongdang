@@ -928,6 +928,19 @@ main:has(.pd-app.is-fullscreen) {
   font-weight: 700;
   color: var(--pd-ink);
 }
+/* 개장 기간 밖이라는 사실은 작게 적을 수 없습니다. 10월 해수욕장에서 이 줄을
+   놓치면 화면이 여전히 물놀이를 권하는 것으로 읽힙니다. 물때처럼 한 단 내리지
+   않고, 눈에 걸리도록 왼쪽에 선을 둡니다. */
+.pd-why-line.is-season {
+  padding-left: 8px;
+  border-left: 2px solid var(--pd-alert-ink);
+  font-weight: 600;
+  color: var(--pd-ink);
+}
+.pd-why.is-glass .pd-why-line.is-season {
+  border-left-color: color-mix(in srgb, currentcolor 70%, transparent);
+  color: inherit;
+}
 /* 물때 줄은 면책이 함께 붙어 길어집니다. 작은 글씨로 한 단 내립니다. */
 .pd-why-line.is-tide {
   font-size: var(--pd-fs-cap);

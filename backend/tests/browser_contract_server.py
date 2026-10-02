@@ -14,6 +14,7 @@ from app.config import Settings
 from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
+from app.place_details.models import PlaceDetail
 from app.schema import connect, initialize
 from app.travel import routing
 from app.water_index.condition_producer import produce_conditions
@@ -60,6 +61,27 @@ def test_app():
                         ("강릉 OFFLINE TEST 온천", "onsen"),
                         ("강릉 OFFLINE TEST 계곡", "valley"),
                     ]
+                )
+            ],
+        ),
+    )
+    # 개장 기간 서술. 실제 TourAPI openperiod 가 그렇듯 **지난 연도**가 적힌
+    # 여름 구간이라, 브라우저 테스트는 「10월에는 개장 기간 밖」을 그대로 지납니다.
+    store_batch(
+        settings,
+        SourceBatch(
+            provider="TOURAPI_KOREAN",
+            fetched_at=now,
+            place_details=[
+                PlaceDetail(
+                    source_id="0",
+                    content_type="12",
+                    name="강릉 경포 OFFLINE TEST 해변",
+                    source_modified_at=now,
+                    catalog_modified_at=now,
+                    opening_hours="상시 개방",
+                    opening_period="2024.07.12~2024.08.18",
+                    details=[],
                 )
             ],
         ),
