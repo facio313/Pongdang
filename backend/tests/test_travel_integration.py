@@ -528,6 +528,118 @@ def test_multilingual_catalog_and_mood_confirmation_are_explicit(travel_db):
     assert "조용한 휴식" in promoted.json()["preference"]["tags"]
 
 
+#: 로그인하지 않은 브라우저. nginx 가 익명 호출의 SSO 헤더를 비워 보내므로
+#: (ops/nginx-location.conf 의 @pongdang_guest) 토큰이 빈 문자열입니다.
+GUEST = {
+    "x-pongdang-sso-token": "",
+    "x-pongdang-sso-subject": "",
+    "x-pongdang-sso-grants": "",
+    "origin": "https://travel.test",
+}
+
+
+def test_a_guest_can_reach_a_recommendation_and_a_draft_course(travel_db):
+    """로그인 없이 추천 7단계 → 코스 생성까지 끝까지 됩니다.
+
+    계산만 하고 아무것도 저장하지 않는 라우트에만 열린 문입니다.
+    """
+    _, client, places, _ = travel_db
+    recommended = client.post(
+        BASE + "/recommendations",
+        headers=GUEST,
+        json={"request": trip_request(), "preference": {"tags": ["해변"]}},
+    )
+    assert recommended.status_code == 200, recommended.text
+    assert (
+        recommended.json()["recommendations"][0]["spot_id"]
+        == (places["isolated-beach"])
+    )
+
+    request = trip_request()
+    draft = client.post(
+        BASE + "/plans/draft",
+        headers=GUEST,
+        json={
+            "request": request,
+            "stops": [
+                {
+                    "item_id": "guest-stop",
+                    "spot_id": places["isolated-beach"],
+                    "day": request["dates"][0],
+                }
+            ],
+        },
+    )
+    assert draft.status_code == 200, draft.text
+    assert draft.json()["days"][0]["items"][0]["spot_id"] == places["isolated-beach"]
+
+
+def test_a_guest_cannot_reach_anything_stored_for_a_person(travel_db):
+    """저장 · 취향 · 알림은 계속 로그인 전용입니다. 게스트에게는 401 입니다."""
+    _, client, places, _ = travel_db
+    request = trip_request()
+    saving = {
+        "request": request,
+        "stops": [
+            {
+                "item_id": "guest-stop",
+                "spot_id": places["isolated-beach"],
+                "day": request["dates"][0],
+            }
+        ],
+    }
+    for method, path, body in (
+        ("get", "/preferences", None),
+        ("put", "/preferences", {"expected_revision": 0, "preference": {"tags": []}}),
+        ("get", "/signals", None),
+        ("get", "/plans", None),
+        ("post", "/plans", saving),
+        ("get", "/sessions", None),
+    ):
+        call = getattr(client, method)
+        response = (
+            call(BASE + path, headers=GUEST)
+            if body is None
+            else call(BASE + path, headers=GUEST, json=body)
+        )
+        assert response.status_code == 401, (method, path, response.text)
+
+
+def test_a_guest_write_still_obeys_the_origin_rule(travel_db):
+    """계정이 없다는 것이 교차 출처 쓰기를 허용한다는 뜻은 아닙니다."""
+    _, client, _, _ = travel_db
+    assert (
+        client.post(
+            BASE + "/recommendations",
+            headers=GUEST | {"origin": "https://evil.test"},
+            json={"request": trip_request()},
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            BASE + "/recommendations",
+            headers=GUEST | {"sec-fetch-site": "cross-site"},
+            json={"request": trip_request()},
+        ).status_code
+        == 403
+    )
+
+
+def test_a_broken_session_is_rejected_rather_than_quietly_downgraded(travel_db):
+    """틀린 토큰은 게스트가 아닙니다 -- 끊긴 세션을 조용히 익명으로 내리면
+    저장한 것이 사라진 채로 화면이 멀쩡해 보입니다."""
+    _, client, _, _ = travel_db
+    assert (
+        client.post(
+            BASE + "/recommendations",
+            headers=GUEST | {"x-pongdang-sso-token": "wrong-but-present"},
+            json={"request": trip_request()},
+        ).status_code
+        == 401
+    )
+
+
 def test_auth_and_private_catalog_boundary(travel_db):
     _, client, _, _ = travel_db
     assert (

@@ -108,6 +108,13 @@ def mood_proposal(text, locale="ko"):
 
 def create_router(settings):
     auth = require_principal(settings, allow_local_operator=True)
+    # 계산만 하고 아무것도 저장하지 않는 라우트는 로그인 없이도 열립니다 --
+    # 추천 7단계와 코스 생성을 끝까지 써 보지 못하면 심사위원은 제품을 본 적이
+    # 없는 셈입니다. 저장 · 취향 · 알림 · 세션은 계속 SSO 전용입니다.
+    #
+    # `recommend()` 와 `draft_plan()` 은 `storage.profile` · `storage.signals` 를
+    # **읽기만** 하므로 게스트는 빈 취향으로 추천을 받습니다. 쓰기는 없습니다.
+    browse = require_principal(settings, allow_local_operator=True, allow_guest=True)
 
     class PrivateRoute(APIRoute):
         def get_route_handler(self):
@@ -142,6 +149,8 @@ def create_router(settings):
         prefix="/api/data/travel", tags=["travel"], route_class=PrivateRoute
     )
     Actor = Annotated[Principal, Depends(auth)]
+    #: 로그인하지 않아도 되는 계산 전용 라우트의 주체. 게스트일 수 있습니다.
+    Visitor = Annotated[Principal, Depends(browse)]
 
     @router.get("/capabilities")
     async def capabilities():
@@ -259,13 +268,13 @@ def create_router(settings):
         )
 
     @router.post("/recommendations", response_model=RecommendationResult)
-    async def recommendations(body: RecommendationInput, actor: Actor):
+    async def recommendations(body: RecommendationInput, actor: Visitor):
         return await recommend(settings, actor.subject, body)
 
     from app.travel.routing import RouteRecommendationInput, recommend_route
 
     @router.post("/routes/recommend")
-    async def route_recommendations(body: RouteRecommendationInput, actor: Actor):
+    async def route_recommendations(body: RouteRecommendationInput, actor: Visitor):
         try:
             async with asyncio.timeout(45):
                 return await recommend_route(settings, actor.subject, body)
@@ -273,7 +282,7 @@ def create_router(settings):
             raise HTTPException(503, "route_calculation_timeout") from None
 
     @router.post("/compare")
-    async def compare(body: ComparisonInput, actor: Actor):
+    async def compare(body: ComparisonInput, actor: Visitor):
         now = datetime.now(UTC)
         selection = tokens.decode(settings, actor.subject, body.selection_token, now)
         if len(set(body.ranks)) != len(body.ranks) or any(
@@ -300,7 +309,7 @@ def create_router(settings):
         }
 
     @router.post("/plans/draft", response_model=TripPlan)
-    async def draft(body: PlanInput, actor: Actor):
+    async def draft(body: PlanInput, actor: Visitor):
         return await draft_plan(settings, actor.subject, body)
 
     @router.post("/plans", response_model=TripPlan, status_code=201)
