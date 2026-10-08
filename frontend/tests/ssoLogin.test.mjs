@@ -64,7 +64,7 @@ test('HTML fallback cannot receive credentials', async () => {
 test('the login state identifies a local test provider without treating a 401 body as authentication', async () => {
   const state = await readSsoLoginState('/pongdang/', new AbortController().signal, async () =>
     json({ authenticated: true, environment: 'local_test' }, 401));
-  assert.deepEqual(state, { authenticated: false, localTest: true });
+  assert.deepEqual(state, { authenticated: false, localTest: true, registrationAvailable: false });
 });
 
 test('invalid local credentials report the test account instead of the production SSO account', async () => {

@@ -98,7 +98,7 @@ test('real HTTP handler uses JSON 401 for anonymous state and returns only verif
   const state = await fetch(`${url}/inline/state`, { headers });
   assert.equal(state.status, 401);
   assert.equal(state.headers.get('location'), null);
-  assert.deepEqual(await state.json(), { authenticated: false, detail: 'SSO_AUTHENTICATION_REQUIRED' });
+  assert.deepEqual(await state.json(), { authenticated: false, detail: 'SSO_AUTHENTICATION_REQUIRED', registration_available: false });
   const response = await fetch(`${url}/inline/login`, { method: 'POST', headers, body: JSON.stringify({ username: 'fixture', password: 'offline-password' }) });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { authenticated: true });

@@ -1,10 +1,11 @@
-// Installed only in pongdang-domain-auth. Central accounts and SSO policies are
-// unchanged. Never log credentials, cookie values, OAuth URLs or response bodies.
+// Installed only in pongdang-domain-auth. Registration uses the existing central
+// account writer. Never log credentials, cookies, OAuth URLs or response bodies.
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import { pathToFileURL } from 'node:url';
+import { registerPongdangAccount, registrationInput, RegistrationError } from './pongdang-registration.mjs';
 
 const ORIGIN = 'https://pongdang.site';
 const SSO = 'https://bonifacio.work/sso';
@@ -164,7 +165,7 @@ export async function completeInlineLogin(credentials, { fetchUpstream = fetch, 
   }
 }
 
-async function credentialsFrom(request) {
+async function credentialsFrom(request, registration = false) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
@@ -175,6 +176,7 @@ async function credentialsFrom(request) {
   let data;
   try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new LoginError(400, 'INVALID_LOGIN_REQUEST'); }
+  if (registration) return registrationInput(data);
   if (!data || typeof data !== 'object' || Array.isArray(data)
     || Object.keys(data).some(key => !['username', 'password'].includes(key))
     || typeof data.username !== 'string' || !data.username.trim() || data.username.length > 255
@@ -190,11 +192,18 @@ export function createDomainServer(dependencies) {
   const { store, edgeSecret, refreshApplications, audit = () => {} } = dependencies;
   const attempts = new Map();
   let active = 0;
-  const send = (response, status, detail, cookies = [], authenticated = status === 200) => response.writeHead(status, {
+  let activeRegistrations = 0;
+  let registrationWindow = { until: 0, count: 0 };
+  const registrationAvailable = dependencies.registrationEnabled === true
+    && typeof dependencies.hashPassword === 'function'
+    && typeof dependencies.serializeUserDatabase === 'function'
+    && typeof dependencies.groupsForAssignment === 'function'
+    && typeof store.readVersioned === 'function' && typeof store.mutate === 'function';
+  const send = (response, status, detail, cookies = [], authenticated = status === 200, extra = {}) => response.writeHead(status, {
     'Content-Type': 'application/json', 'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff', ...(cookies.length ? { 'Set-Cookie': cookies } : {}),
     ...(status === 429 ? { 'Retry-After': '60' } : {}),
-  }).end(JSON.stringify({ authenticated, ...(detail ? { detail } : {}) }));
+  }).end(JSON.stringify({ authenticated, ...(detail ? { detail } : {}), ...extra }));
   const authorizedStatus = async (request, cookie) => {
     let status = 503;
     await authorizePongdang({ headers: { ...request.headers, cookie } }, {
@@ -204,6 +213,7 @@ export function createDomainServer(dependencies) {
   };
   const server = createServer(async (request, response) => {
     let admitted = false;
+    let registrationAdmitted = false;
     const controller = new AbortController();
     response.on('close', () => { if (!response.writableEnded) controller.abort(); });
     try {
@@ -214,14 +224,14 @@ export function createDomainServer(dependencies) {
         return;
       }
       if (request.url === '/authz') { await authorizePongdang(request, response, dependencies); return; }
-      if (!['/inline/state', '/inline/login', '/inline/logout'].includes(request.url)) { send(response, 404, 'NOT_FOUND'); return; }
+      if (!['/inline/state', '/inline/login', '/inline/logout', '/inline/register'].includes(request.url)) { send(response, 404, 'NOT_FOUND'); return; }
       if (!trusted(request, edgeSecret)) { send(response, 401, 'SSO_AUTHENTICATION_REQUIRED'); return; }
       if (request.url === '/inline/state' && request.method === 'GET') {
         const status = await authorizedStatus(request, request.headers.cookie ?? '');
-        send(response, status, status === 401 ? 'SSO_AUTHENTICATION_REQUIRED' : status === 403 ? 'SSO_GRANT_REQUIRED' : undefined);
+        send(response, status, status === 401 ? 'SSO_AUTHENTICATION_REQUIRED' : status === 403 ? 'SSO_GRANT_REQUIRED' : undefined, [], status === 200, { registration_available: registrationAvailable });
         return;
       }
-      if (!['/inline/login', '/inline/logout'].includes(request.url) || request.method !== 'POST') { send(response, 405, 'METHOD_NOT_ALLOWED'); return; }
+      if (!['/inline/login', '/inline/logout', '/inline/register'].includes(request.url) || request.method !== 'POST') { send(response, 405, 'METHOD_NOT_ALLOWED'); return; }
       if (request.headers.origin !== ORIGIN || request.headers['sec-fetch-site'] === 'cross-site') {
         send(response, 403, 'ORIGIN_NOT_ALLOWED'); return;
       }
@@ -242,6 +252,12 @@ export function createDomainServer(dependencies) {
         return;
       }
       const now = Date.now();
+      const registering = request.url === '/inline/register';
+      if (registering && !registrationAvailable) { send(response, 503, 'SSO_REGISTRATION_UNAVAILABLE'); return; }
+      if (registrationWindow.until <= now) registrationWindow = { until: now + 3600000, count: 0 };
+      if (registering && (activeRegistrations >= 2 || registrationWindow.count >= 30)) {
+        send(response, 429, 'SSO_REGISTRATION_RATE_LIMITED'); return;
+      }
       for (const [key, entry] of attempts) if (entry.until <= now) attempts.delete(key);
       const previous = attempts.get(ip);
       if (active >= 8 || (previous?.count ?? 0) >= 5 || (!previous && attempts.size >= 4096)) {
@@ -249,6 +265,17 @@ export function createDomainServer(dependencies) {
       }
       attempts.set(ip, { count: (previous?.count ?? 0) + 1, until: previous?.until ?? now + 60000 });
       active++; admitted = true;
+      if (registering) {
+        activeRegistrations++; registrationAdmitted = true;
+        registrationWindow.count++;
+        const input = await credentialsFrom(request, true);
+        await registerPongdangAccount(input, {
+          ...dependencies, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(25000)]),
+        });
+        send(response, 201, undefined, [], false, { registered: true });
+        audit('inline-registration-completed');
+        return;
+      }
       const credentials = await credentialsFrom(request);
       const cookies = await completeInlineLogin(credentials, {
         fetchUpstream: dependencies.fetchUpstream,
@@ -258,13 +285,15 @@ export function createDomainServer(dependencies) {
       send(response, 200, undefined, cookies);
       audit('inline-login-completed');
     } catch (error) {
-      const status = error instanceof LoginError ? error.status : 503;
-      const code = error instanceof LoginError ? error.message : 'SSO_LOGIN_UNAVAILABLE';
+      const expected = error instanceof LoginError || error instanceof RegistrationError;
+      const status = expected ? error.status : 503;
+      const code = expected ? error.message : request.url === '/inline/register' ? 'SSO_REGISTRATION_UNAVAILABLE' : 'SSO_LOGIN_UNAVAILABLE';
       if (!response.headersSent && !response.destroyed) send(response, status, code);
       audit(code);
     } finally {
       controller.abort();
       if (admitted) active--;
+      if (registrationAdmitted) activeRegistrations--;
     }
   });
   server.requestTimeout = 10000;
@@ -275,10 +304,11 @@ export function createDomainServer(dependencies) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   // Existing central-store reader from the installed Bonifacio image, not a new
   // user database. Import only at runtime so the protocol can be tested offline.
-  const { UserStore, normalizeUsername, refreshApplications } = await import('./admin/lib.mjs');
+  const { UserStore, normalizeUsername, refreshApplications, hashPassword, serializeUserDatabase, groupsForAssignment } = await import('./admin/lib.mjs');
   const store = new UserStore(process.env.USERS_DATABASE_PATH);
   const edgeSecret = readFileSync(process.env.ADMIN_EDGE_SECRET_FILE, 'utf8').trim();
   createDomainServer({ store, edgeSecret, normalizeUsername, refreshApplications,
+    hashPassword, serializeUserDatabase, groupsForAssignment, registrationEnabled: process.env.PONGDANG_REGISTRATION_ENABLED === 'true',
     audit: reason => console.warn(`Pongdang authorization: ${reason}`),
   }).listen(4189, '0.0.0.0');
 }

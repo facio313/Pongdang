@@ -6,6 +6,7 @@ export class SsoLoginError extends Error {}
 export interface SsoLoginState {
   authenticated: boolean;
   localTest: boolean;
+  registrationAvailable: boolean;
 }
 
 async function sessionResponse(response: Response, allowAnonymous = false, localTest = false): Promise<SsoLoginState> {
@@ -24,6 +25,7 @@ async function sessionResponse(response: Response, allowAnonymous = false, local
   return {
     authenticated: response.ok && typeof result === "object" && result !== null && "authenticated" in result && result.authenticated === true,
     localTest: typeof result === "object" && result !== null && "environment" in result && result.environment === "local_test",
+    registrationAvailable: typeof result === "object" && result !== null && "registration_available" in result && result.registration_available === true,
   };
 }
 
