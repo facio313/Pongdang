@@ -24,7 +24,7 @@ import {
 import { EvidenceNote } from "./EvidenceNote";
 import { WaterQualityDetails } from "./WaterQualityDetails";
 import { NotificationSummary } from "./NotificationSummary";
-import { activities, displayTime, type Activity } from "./aiApi";
+import { activities, displayTime, listedActivities, type Activity } from "./aiApi";
 import { placeDetailsMissingText, placeOperatingSchedule } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { componentBars, scoreReason, verdictOf } from "./scoreMeaning";
@@ -66,16 +66,10 @@ import "./todayDesktop.css";
 //  - 값이 없는 날은 «–» 이고 0 점이 아닙니다(주간 예보).
 //  - 막대는 점수의 상대 위치이지 기여도가 아닙니다.
 
-/** 활동별 점수 칸. 모바일 오늘 탭과 같은 다섯 활동입니다. */
-/** 포즈는 여기서 들고 있지 않습니다 -- activityMascot(mascots.ts)이 단일
- *  출처이고, 모바일 「오늘」도 같은 표를 씁니다. */
-const ACTIVITY_ROWS = [
-  { id: "swim" },
-  { id: "surf" },
-  { id: "relax" },
-  { id: "rafting" },
-  { id: "onsen" },
-] as const;
+/** 활동별 점수 칸. 모바일 오늘 탭과 **같은 활동, 같은 순서**입니다 --
+ *  aiApi.listedActivities 한 곳이 정합니다. 포즈도 여기서 들고 있지 않습니다:
+ *  activityMascot(mascots.ts)이 단일 출처입니다. */
+const ACTIVITY_ROWS = listedActivities.map((id) => ({ id }));
 
 /** 별도의 공식 운영 시간대가 있는 활동. */
 const TIDE_ACTIVITIES = [

@@ -11,6 +11,7 @@ from test_condition_score import NOW, envelope, metric
 
 from app.water_index.activity_score import calculate_activity_score
 from app.water_index.conditions import ConditionsEnvelope
+from app.water_index.models import RECOMMENDED_ACTIVITIES
 from app.water_index.recommendation import (
     BEACH_AIR_C,
     IMMERSION_WATER_C,
@@ -45,7 +46,13 @@ def scored(activity, **values) -> ConditionsEnvelope:
 
 
 def beach(**overrides):
-    """여름 해변의 다섯 활동. 필요한 활동만 덮어씁니다."""
+    """여름 해변의 추천 후보 전부. 필요한 활동만 덮어씁니다.
+
+    래프팅은 없습니다 -- 하천 수위·유량 자료가 없어 어떤 날도 점수가 나오지
+    않으므로 후보 집합(models.RECOMMENDED_ACTIVITIES)에서 빠졌습니다. 필수 지표
+    표(ESSENTIAL_METRICS)는 그대로 남아 있어, 호출자가 래프팅을 직접 넣어도
+    기상만으로는 권하지 않습니다.
+    """
     data = {
         "swim": scored(
             "swim",
@@ -65,9 +72,8 @@ def beach(**overrides):
         "relax": scored(
             "relax", air_temperature=27.0, relative_humidity=50.0, wind_speed=3.0
         ),
-        # 해변에는 시설 욕조 수온도, 하천 관측소도 없습니다. 그것이 현실입니다.
+        # 해변에는 시설 욕조 수온이 없습니다. 그것이 현실입니다.
         "onsen": scored("onsen", air_temperature=27.0),
-        "rafting": scored("rafting", air_temperature=27.0, wind_speed=3.0),
     }
     return data | overrides
 
@@ -112,14 +118,34 @@ def test_every_rule_declares_where_its_threshold_came_from():
 
 
 def test_a_beach_never_recommends_rafting_or_onsen_on_weather_alone():
+    """두 겹으로 막습니다 -- 후보 집합과 필수 지표 표.
+
+    래프팅은 후보 집합에서 빠져 애초에 줄이 서지 않습니다. 그래도 호출자가
+    직접 넣으면(API 가 activity 를 직접 물을 수 있습니다) 필수 지표 표가 기상
+    만으로 올라오는 것을 막습니다. 온천은 후보로 남아 「추천 제외 · 필수 근거
+    부족」을 그대로 보여 줍니다 -- 자료가 없다는 사실과 조건이 나쁜 것은 다른
+    사실입니다.
+    """
     decision = decide(beach())
     assert decision.choice.activity in {"swim", "surf"}
-    for activity in ("rafting", "onsen"):
-        entry = candidate(decision, activity)
-        assert entry.dropped
-        assert "essential_measurement_missing" in entry.rules_applied
-    missing = [r.metric for r in decision.reasons if r.activity == "rafting"]
-    assert "river_level" in missing
+    assert "rafting" not in [c.activity for c in decision.ranked]
+
+    onsen = candidate(decision, "onsen")
+    assert onsen.dropped
+    assert "essential_measurement_missing" in onsen.rules_applied
+    assert "bath_water_temperature" in [
+        r.metric for r in decision.reasons if r.activity == "onsen"
+    ]
+
+    # 필수 지표 표는 살아 있습니다. 래프팅을 들고 와도 하천 수위를 요구합니다.
+    forced = decide(
+        beach() | {"rafting": scored("rafting", air_temperature=27.0, wind_speed=3.0)},
+        order=RECOMMENDED_ACTIVITIES + ("rafting",),
+    )
+    entry = candidate(forced, "rafting")
+    assert entry.dropped
+    assert "essential_measurement_missing" in entry.rules_applied
+    assert "river_level" in [r.metric for r in forced.reasons if r.activity == "rafting"]
 
 
 def test_cold_water_drops_sea_activities_and_asks_for_onsen_and_tourism():
@@ -206,6 +232,14 @@ def test_a_higher_scoring_rest_does_not_outrank_a_swimmable_sea():
 
 @pytest.mark.parametrize("phase,minutes", [("near_high", 40), ("near_low", -20)])
 def test_the_tide_rule_defers_sea_activities_and_offers_a_valley(phase, minutes):
+    """**휴식을 후보 집합에서 지우지 마세요.**
+
+    휴식은 화면의 「활동별 점수」 목록에서 빠졌습니다
+    (frontend aiApi.listedActivities) -- 점수 항목이 적어 거의 항상 1위인데
+    위에서는 수영을 권해 모순으로 읽혔기 때문입니다. 그래도 고르기 경쟁에는
+    남아 있어야 합니다. 여기서 휴식이 없으면 미뤄진 수영이 그대로 1위가 되고,
+    히어로가 물때 구간 한가운데에서 「오늘 가장 좋은 활동 = 수영」을 말합니다.
+    """
     decision = decide(beach(), place_kind="beach", tide=tide(phase, minutes))
     assert candidate(decision, "swim").demoted
     assert candidate(decision, "surf").demoted

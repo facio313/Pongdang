@@ -45,6 +45,13 @@ SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
 #: 습도 · 바람 · 강수뿐이라 날씨만 좋으면 만점에 가깝고, 수영은 수온 · 파고까지
 #: 보기 때문에 같은 날 늘 몇 점 낮습니다. 점수가 높은 쪽이 아니라 **물에
 #: 들어갈 수 있으면 물**입니다.
+#:
+#: 화면의 「활동별 점수」 목록은 이제 휴식을 보여 주지 않습니다
+#: (frontend aiApi.listedActivities) -- 점수는 휴식이 1위인데 위에서는 수영을
+#: 권하는 모순이 그대로 읽혔기 때문입니다. 그래도 이 규칙은 그대로 필요합니다.
+#: 휴식은 **고르기 경쟁에는 남아** 있고, 물때 구간 · 개장 기간 밖처럼 물 활동이
+#: 전부 미뤄진 날의 답이 됩니다. 후보에서 지우면 그런 날 미뤄진 수영이 히어로로
+#: 올라와 10월 폐장 해변에 「오늘 가장 좋은 활동 = 수영」이 섭니다.
 WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
 
 #: 활동마다 «이것이 없으면 그 활동을 말할 수 없는» 지표. 각 묶음에서 하나
@@ -54,6 +61,11 @@ WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
 #: 유량 곡선이 미설정이라 기상 항목만으로 부분 점수가 나오기 때문입니다
 #: (activity_score.DEFAULT_CURVES). 기상만 좋으면 바다에서 래프팅을 권하는
 #: 셈이므로, 활동을 정의하는 지표를 명시적으로 요구합니다.
+#:
+#: 래프팅은 이제 후보 집합(models.RECOMMENDED_ACTIVITIES)에서도 빠졌습니다.
+#: **두 겹을 모두 둡니다** -- 이 표는 `decide` 에 들어온 활동이 무엇이든 지키는
+#: 계약이고(API 가 activity 를 직접 물을 수 있습니다), 후보 집합은 「오늘 뭘
+#: 할까」에 무엇을 올리는지입니다. 하천 관측이 붙으면 후보 집합만 되돌립니다.
 ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "swim": (("water_temperature",), ("wave_height",)),
     "surf": (("water_temperature",), ("wave_height",)),

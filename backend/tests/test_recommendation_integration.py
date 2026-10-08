@@ -22,6 +22,7 @@ from app.main import create_app
 from app.schema import connect, initialize
 from app.water_index import recommendation_api
 from app.water_index.condition_producer import produce_conditions
+from app.water_index.models import RECOMMENDED_ACTIVITIES
 from app.water_index.recommendation import IMMERSION_WATER_C, TIDE_MARGIN_MINUTES
 from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
 
@@ -251,23 +252,19 @@ def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
     assert view["place_kind"] == "beach"
     assert view["choice"]["activity"] in {"swim", "surf"}
     # 판단에 쓴 조건 응답이 함께 옵니다. 화면이 같은 자료를 다시 묻지 않습니다.
-    assert len(view["conditions"]) == 5
+    # 개수는 후보 집합을 보고 셉니다 -- 숫자를 적어 두면 후보가 하나 드나들
+    # 때마다 이 줄이 조용히 틀립니다(래프팅이 빠질 때 실제로 그랬습니다).
+    assert len(view["conditions"]) == len(RECOMMENDED_ACTIVITIES)
     chosen = next(
         item
         for item in view["conditions"]
         if item["activity"] == view["choice"]["activity"]
     )
     assert chosen["condition_score"]["score"] == view["choice"]["score"]
-    assert [row["activity"] for row in view["ranked"]] == [
-        "swim",
-        "surf",
-        "relax",
-        "onsen",
-        "rafting",
-    ]
-    # 해변에는 욕조 · 하천 관측소가 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
+    assert [row["activity"] for row in view["ranked"]] == list(RECOMMENDED_ACTIVITIES)
+    # 해변에는 온천 시설이 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
     dropped = {row["activity"] for row in view["ranked"] if row["dropped"]}
-    assert {"onsen", "rafting"} <= dropped
+    assert "onsen" in dropped
 
 
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):

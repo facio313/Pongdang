@@ -17,7 +17,7 @@ import { WaterQualityDetails } from "./WaterQualityDetails";
 import { NotificationSummary } from "./NotificationSummary";
 import type { ActivityCondition } from "./useBestActivity";
 import type { Recommendation } from "./recommendationApi";
-import { activities, displayTime, type Activity } from "./aiApi";
+import { activities, displayTime, listedActivities, type Activity } from "./aiApi";
 import { placeDetailsMissingText, placeOperatingSchedule } from "./placeDetails";
 import { usePlaceDetails } from "./usePlaceDetails";
 import { activityHeadline, missingChoiceHeadline } from "./recommendationText";
@@ -80,13 +80,10 @@ function SectionHead({
   );
 }
 
-const ACTIVITY_ROWS = [
-  { name: "수영", id: "swim" },
-  { name: "서핑", id: "surf" },
-  { name: "휴식", id: "relax" },
-  { name: "래프팅", id: "rafting" },
-  { name: "온천", id: "onsen" },
-] as const;
+/** 활동별 점수 타일. 어느 활동을 보여 주는지는 aiApi.listedActivities 한 곳이
+ *  정합니다 -- 이름은 같은 파일의 라벨 사전에서 끌어옵니다. 모바일과 데스크탑이
+ *  각자 배열을 들고 있다가 어긋난 적이 있어, 둘 다 그 상수를 읽습니다. */
+const ACTIVITY_ROWS = listedActivities.map((id) => ({ id, name: activities[id] }));
 const TIDE_ACTIVITIES = [
   { name: "래프팅", icon: "rafting", mascot: "rafting" },
   { name: "튜브 물놀이", icon: "tube", mascot: "tube" },
@@ -400,7 +397,12 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
     <section>
       <SectionHead label={t("활동별 점수 · 선택 장소 조건")} />
       <div className="pd-card">
-        {[activities.slice(0, 3), activities.slice(3)].map((group, index) => (
+        {/* 한 줄에 셋씩. 개수에서 줄 수를 세므로 활동이 늘거나 줄어도 빈 줄이
+            남지 않습니다 -- 예전에는 `slice(3)` 를 고정으로 적어 두어, 활동이
+            셋이 되면 빈 `td-acts` 한 줄이 그대로 그려졌습니다. */}
+        {Array.from({ length: Math.ceil(activities.length / 3) }, (_, row) =>
+          activities.slice(row * 3, row * 3 + 3),
+        ).map((group, index) => (
         <div className="td-acts" key={index}>
           {group.map((activity) => {
             const grade = gradeOf(activity.score);

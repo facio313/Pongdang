@@ -20,7 +20,7 @@ import {
   Skeleton,
   StateChip,
 } from "./pongdangUi";
-import { activities, recommendedActivities, type Activity } from "./aiApi";
+import { activities, listedActivities, type Activity } from "./aiApi";
 import { gradeOf } from "./groupAGrade";
 import {
   componentBars,
@@ -171,7 +171,7 @@ function HomeHero({
           />
           <div className="hd-hero-buttons">
             <a className="pd-dk-button is-on-cobalt" href="#today">
-              {t("오늘 후보 활동 {count}가지 보기 →", { count: recommendedActivities.length })}</a>
+              {t("오늘 후보 활동 {count}가지 보기 →", { count: listedActivities.length })}</a>
             <a className="pd-dk-button is-glass" href="#recommend">
               {t("코스 만들기")}</a>
           </div>

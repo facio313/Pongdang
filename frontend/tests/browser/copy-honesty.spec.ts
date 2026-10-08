@@ -3,17 +3,26 @@ import { routePreference } from "./recommendation";
 import { byWidth } from "./viewports";
 
 for (const width of [390, 1440]) {
-  test(`the ${width}px home activity link describes the five actual today tiles`, async ({ page }) => {
+  test(`the ${width}px home activity link describes the actual today tiles`, async ({ page }) => {
+    // 링크의 숫자와 타일 개수는 한 상수에서 옵니다(aiApi.listedActivities).
+    // 따로 적어 두면 활동을 뺄 때 한쪽만 고쳐져, 「5가지 보기」를 눌렀더니
+    // 셋이 나오는 화면이 됩니다.
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("#home");
-    const link = page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true });
+    const link = page.getByRole("link", { name: "오늘 후보 활동 3가지 보기 →", exact: true });
     await expect(link).toBeVisible();
     await expect(page.locator("body")).not.toContainText("활동 여섯 가지 모두 보기");
     await link.click();
     await expect(page).toHaveURL(/#today$/);
     const tiles = page.locator(byWidth(width, ".td-act", ".td-activity"));
-    await expect(tiles).toHaveCount(5);
-    await expect(tiles).toContainText(["수영", "서핑", "휴식", "래프팅", "온천"]);
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles).toContainText(["수영", "서핑", "온천"]);
+    // 휴식은 날씨만 좋으면 거의 항상 1위라 추천과 어긋난 채 보였고, 래프팅은
+    // 하천 자료가 없어 늘 「추천 제외」 한 줄뿐이었습니다.
+    // 여러 타일에 걸친 부정 단언은 filter + toHaveCount(0) 으로 적습니다 --
+    // not.toContainText 는 요소가 둘 이상이면 strict mode 위반입니다.
+    await expect(tiles.filter({ hasText: "휴식" })).toHaveCount(0);
+    await expect(tiles.filter({ hasText: "래프팅" })).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText("갯벌 지원 중단");
   });
 }

@@ -1,21 +1,14 @@
-import { recommendedActivities, type Activity } from "./aiApi";
+import { listedActivities, type Activity } from "./aiApi";
 import type { Conditions } from "./productData";
 import { activityRecommendationDisplay } from "./recommendationText";
 import { useRecommendation } from "./useRecommendation";
 
 /** 화면이 활동을 늘어놓는 순서입니다. 동점 우선순위는 서버 규칙
  *  (recommendation.RECOMMENDED_ACTIVITIES)이 정하므로 여기서는 표시 순서만
- *  맞춥니다 -- 두 곳이 어긋나면 타입 단계에서 멈춥니다. */
-const ACTIVITY_ORDER = [
-  "swim",
-  "surf",
-  "relax",
-  "onsen",
-  "rafting",
-] as const satisfies readonly Activity[];
-const _sameAsRecommended: typeof ACTIVITY_ORDER.length =
-  recommendedActivities.length;
-void _sameAsRecommended;
+ *  맞춥니다. 어느 활동을 **보여 주는지**는 한 곳(aiApi.listedActivities)이
+ *  정합니다 -- 모바일 「오늘」과 데스크탑이 각자 배열을 들고 있다가 어긋난
+ *  적이 있습니다. */
+const ACTIVITY_ORDER: readonly Activity[] = listedActivities;
 
 export interface ActivityCondition {
   activity: Activity;
@@ -42,7 +35,12 @@ export interface ActivityCondition {
  *
  *  고를 것이 없으면 `best` 는 null 입니다. 이때 화면은 «–» 로 두어야 하며,
  *  0 점이나 「안전함」으로 바꾸지 않습니다 -- 근거가 없는 것과 조건이 나쁜 것은
- *  다른 사실입니다. */
+ *  다른 사실입니다.
+ *
+ *  **`best` 는 `all` 에 없는 활동일 수 있습니다.** 휴식은 활동별 점수 목록에서
+ *  빠졌지만(aiApi.listedActivities) 고르기 경쟁에는 남아, 물 활동이 전부
+ *  미뤄진 날 서버가 그것을 고릅니다. 그때 `entry` 가 undefined 이므로 점수는
+ *  서버가 보낸 `choice.score` 를 그대로 씁니다. */
 export function useBestActivity(id?: number, enabled = true) {
   const recommendation = useRecommendation(id, undefined, enabled);
   const { data, loading, error, previousData } = recommendation;
@@ -66,9 +64,25 @@ export function useBestActivity(id?: number, enabled = true) {
   const entry = all.find((item) => item.activity === chosen?.activity);
   // 고른 활동은 추천이 정하고, 옆에 뜨는 숫자는 그 활동의 조건 응답에서
   // 옵니다. 한 응답 안의 두 값이므로 서로 어긋나지 않습니다.
+  //
+  // 고른 활동이 점수 목록에 없으면(휴식) `all` 에 줄이 없습니다. 그래도 조건
+  // 응답은 같은 조회에 함께 와 있으므로 **직접 찾아 붙입니다** -- 이것이
+  // 없으면 히어로가 「마지막 업데이트」와 근거 확보율을 말하지 못하고, 점수만
+  // 출처 없이 떠 있게 됩니다.
+  const fallback = chosen && !entry ? find(data, chosen.activity) : undefined;
   const best = chosen
     ? {
-        ...(entry ?? { activity: chosen.activity, loading, error }),
+        ...(entry ?? {
+          activity: chosen.activity,
+          data: fallback,
+          ...activityRecommendationDisplay(
+            fallback,
+            data?.ranked.find((item) => item.activity === chosen.activity),
+          ),
+          previousData: find(previousData, chosen.activity),
+          loading,
+          error,
+        }),
         activity: chosen.activity,
         score: entry ? entry.score : chosen.score,
       }

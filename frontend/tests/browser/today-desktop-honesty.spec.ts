@@ -34,9 +34,16 @@ test("desktop today separates recommendation eligibility, partial scores and the
   await expect(onsen.locator(".td-activity-grade")).toHaveText("활동 미지원");
   await expect(surf.locator(".td-activity-grade")).not.toContainText("매우 좋음");
   await expect(onsen.locator(".td-activity-grade")).not.toContainText("매우 좋음");
+  // 휴식은 점수 목록에 줄이 없습니다(aiApi.listedActivities) -- 날씨만 좋으면
+  // 거의 항상 1위라, 목록에 두면 그 숫자와 위에서 고른 활동이 어긋난 채
+  // 보였습니다. 히어로로는 여전히 설 수 있고 그 점수의 출처를 말합니다(위
+  // td-hero-score 단언). 수영만 숫자가 남는지 함께 못박습니다.
+  await expect(page.locator(".td-activity")).toHaveCount(3);
   const relax = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "휴식" }) });
-  await expect(relax.locator(".td-activity-score")).toHaveText("75");
-  await expect(relax.locator(".td-score-coverage")).toContainText("마지막 업데이트");
+  await expect(relax).toHaveCount(0);
+  const swimCell = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "수영" }) });
+  await expect(swimCell.locator(".td-activity-score")).toHaveText("79");
+  await expect(swimCell.locator(".td-score-coverage")).toContainText("마지막 업데이트");
   await expect(page.locator(".td-hero-tiles")).toContainText("26.4°C");
   await expect(page.locator(".td-hero-tiles")).toContainText("0.8m");
   await expect(page.locator(".pd-desktop")).toContainText("장소 관측 · 활동 점수 입력과 별도");

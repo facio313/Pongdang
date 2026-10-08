@@ -65,7 +65,7 @@ test("활동 타일은 추천이 이미 실어 온 조건을 쓰고 따로 묻�
 }) => {
   const asked = await recordConditionQueries(page);
   await page.goto("#today");
-  await expect(page.locator(".td-act")).toHaveCount(5);
+  await expect(page.locator(".td-act")).toHaveCount(3);
   await expect(page.locator(".td-act-score").first()).not.toBeEmpty();
   // 지점 비교 줄의 조회는 타일보다 늦게 나갑니다. 다 나간 뒤에 세지 않으면
   // 이 검사는 아무것도 보지 않은 채 통과합니다.
@@ -90,7 +90,8 @@ test("활동 타일은 추천이 이미 실어 온 조건을 쓰고 따로 묻�
 test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({ page }) => {
   // 갯벌이 후보에서 빠졌을 때 표시 줄은 다섯으로 줄었는데 조회 배열은 여섯
   // 그대로여서, 인덱스로 짝짓던 이 자리가 「래프팅」 타일에 갯벌 점수를,
-  // 「온천」 타일에 래프팅 점수를 넣고 있었습니다.
+  // 「온천」 타일에 래프팅 점수를 넣고 있었습니다. 이제 표시 줄은 셋이고
+  // 응답은 넷이라 어긋남의 폭이 더 큽니다 -- id 로 짝짓는 것이 요지입니다.
   const scores: Record<string, number | null> = {};
   await page.route("**/api/data/water-index/recommendation?**", async (route) => {
     const response = await route.fetch();
@@ -103,7 +104,7 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
     return route.fulfill({ response, json: body });
   });
   await page.goto("#today");
-  await expect(page.locator(".td-act")).toHaveCount(5);
+  await expect(page.locator(".td-act")).toHaveCount(3);
 
   const pairs = await page.locator(".td-act").evaluateAll((nodes) =>
     nodes.map((node) => ({
@@ -111,11 +112,11 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
       score: node.querySelector(".td-act-score")?.textContent?.trim() ?? "",
     })),
   );
+  // 점수 목록에 줄이 있는 활동만 적습니다(aiApi.listedActivities). 휴식과
+  // 래프팅은 빠졌으므로 이름이 나오면 알 수 없는 타일로 걸립니다.
   const byName: Record<string, string> = {
     수영: "swim",
     서핑: "surf",
-    휴식: "relax",
-    래프팅: "rafting",
     온천: "onsen",
   };
   for (const pair of pairs) {

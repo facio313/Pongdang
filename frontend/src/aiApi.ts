@@ -2,11 +2,27 @@ import { t, dateLocale } from "./i18n.ts";
 import { forbiddenMessage } from "./authMessages.ts";
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅" } as const;
 export type Activity = keyof typeof activities;
-/** 추천 후보로 제시하는 활동. 강릉을 포함한 동해안은 서해안·남해안 같은 갯벌
- *  지형이 발달하지 않아 mudflat 을 먼저 제안하지 않습니다. 지원을 끊는 것이
- *  아니라 「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도
- *  아닙니다. activities 는 라벨 사전이므로 여섯을 그대로 둡니다. */
-export const recommendedActivities = ["swim", "surf", "relax", "onsen", "rafting"] as const satisfies readonly Activity[];
+/** 추천 후보로 제시하는 활동. 서버 `models.RECOMMENDED_ACTIVITIES` 의 거울이며,
+ *  응답의 `conditions` · `ranked` 에 실려 오는 집합입니다.
+ *
+ *  mudflat 은 동해안에 갯벌 지형이 없어서, rafting 은 하천 수위·유량 자료가
+ *  없어 어떤 날도 점수가 나오지 않아서 빠졌습니다. 지원을 끊는 것이 아니라
+ *  「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도 아닙니다.
+ *  activities 는 라벨 사전이므로 여섯을 그대로 둡니다. */
+export const recommendedActivities = ["swim", "surf", "relax", "onsen"] as const satisfies readonly Activity[];
+/** 「활동별 점수」에 줄을 가지는 활동. 후보 집합의 **부분집합**입니다.
+ *
+ *  휴식이 빠진 이유: 휴식의 점수 항목은 기온·습도·바람·강수뿐이라 날씨만 좋으면
+ *  거의 항상 최고점이고, 서버는 「물에 들어갈 수 있으면 물」로 수영을 고릅니다
+ *  (recommendation.WATER_ACTIVITIES). 둘 다 화면에 두면 **1위 점수와 추천이
+ *  어긋난 채** 보입니다. 휴식은 고르기 경쟁에는 남아 있어, 물 활동이 전부
+ *  미뤄진 날 히어로가 「해변 산책」·「물에 들어가지 않는 하루」로 섭니다
+ *  (recommendationText.activityHeadline). 즉 **히어로는 이 목록에 없는 활동일
+ *  수 있습니다.**
+ *
+ *  온천은 남깁니다. 시설 욕조 수온 자료가 없어 늘 「추천 제외 · 필수 근거
+ *  부족」이지만, 그것이 정직한 표시입니다 -- 조건이 나쁜 것과 다릅니다. */
+export const listedActivities = ["swim", "surf", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
 export interface AiContext {
   spot_id?: number;
   spot_ids?: number[];
