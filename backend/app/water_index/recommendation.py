@@ -79,6 +79,16 @@ ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
 #: 입수 가능 수온의 하한. WATER 곡선의 18°C 절점(40점)을 그대로 씁니다 --
 #: 추천을 위해 새 숫자를 만들지 않기 위해서입니다.
 IMMERSION_WATER_C = 18.0
+#: 물놀이 우선 가산을 받기 위한 최소 점수. **같은 절점의 반대쪽 좌표**입니다 --
+#: `IMMERSION_WATER_C` 가 WATER 곡선 18°C 절점의 x 라면 이쪽은 그 y(40점)입니다.
+#: 여기서도 새 숫자를 만들지 않습니다.
+#:
+#: 수온 하나로 거르는 `IMMERSION_WATER_C` 와 역할이 다릅니다. 그쪽은 「바다에
+#: 들어갈 수 있는가」를 수온만으로 묻고 아니면 후보에서 뺍니다. 이쪽은 파고 ·
+#: 바람 · 강수까지 합쳐진 **총점**을 묻고, 모자라면 빼는 대신 「물이면 물」
+#: 가산만 거둡니다. 수온 20°C 라도 파고 2m 에 비가 오면 총점이 이 선 아래로
+#: 내려가고, 그런 날 수영을 온천 앞에 세울 근거는 없습니다.
+WATER_PREFERENCE_MIN_SCORE = 40.0
 #: 해변 방문 선호 기온의 하한. BEACH_AIR 곡선의 21°C 절점(0점)입니다. 이
 #: 값만으로 활동을 빼지는 않고(아침 20°C 에 수온 24°C 인 날이 있습니다)
 #: 문장에 함께 싣습니다.
@@ -164,11 +174,23 @@ RULES: tuple[Rule, ...] = (
     Rule(
         code="water_activity_preferred",
         text=(
-            "물에 들어갈 수 있으면 물 활동을 먼저 권합니다. 휴식·온천은 점수가 "
-            "높아서가 아니라 물에 들어가기 어려울 때의 답입니다. 항목 수가 적은 "
-            "활동이 자동으로 높은 점수를 받는 것을 그대로 순위로 쓰지 않습니다."
+            f"물 활동 점수가 {WATER_PREFERENCE_MIN_SCORE:g}점 이상이면 점수가 더 "
+            "높은 휴식·온천보다 먼저 권합니다. 항목 수가 적은 활동이 자동으로 "
+            "높은 점수를 받는 것을 그대로 순위로 쓰지 않기 위해서입니다. "
+            "기준 점수는 수온 점수 곡선의 절점을 그대로 쓴 값입니다."
         ),
         basis="pongdang_product_rule",
+    ),
+    Rule(
+        code="water_preference_not_applied",
+        text=(
+            f"물 활동 점수가 {WATER_PREFERENCE_MIN_SCORE:g}점에 못 미치면 위 "
+            "우선을 적용하지 않고 점수순으로 줄을 세웁니다. 물놀이 앱이라는 "
+            "사실은 물에 들어갈 만한 날에 물을 먼저 권하라는 뜻이며, 조건이 "
+            "나쁜 날까지 물을 앞세우라는 뜻이 아닙니다. 후보에서 빼지는 않으므로 "
+            "점수로 1위가 되면 그대로 1위입니다."
+        ),
+        basis="score_curve_knot",
     ),
     Rule(
         code="no_water_activity_today",
@@ -192,10 +214,15 @@ RULES: tuple[Rule, ...] = (
     Rule(
         code="beach_season_unconfirmed",
         text=(
-            "개장 기간 서술이 없거나 구간으로 읽히지 않으면 순위를 바꾸지 "
-            "않습니다. 미확인은 폐장의 증거가 아니며, 없는 값을 「닫혔다」로 "
-            "바꾸지 않습니다. 계곡·호수 수영이 미확인이면 후보에서 빠지는 것과 "
-            "다릅니다 -- 그쪽은 입수 허가 여부이고 이쪽은 운영 기간입니다."
+            "개장 기간 서술이 없거나 구간으로 읽히지 않으면 수영을 후보에서 "
+            "빼지 않되 물놀이 우선은 적용하지 않습니다. 미확인은 폐장의 증거가 "
+            "아니므로 「닫혔다」로 바꾸지 않고, 할 수 있는 날인지 모르는 활동을 "
+            "다른 활동 앞에 세우지도 않습니다. 수온·파고 점수와 그 근거는 계속 "
+            "보이며, 점수로 1위가 되면 그대로 1위입니다. 해수욕장 안내의 "
+            "「연중·상시 개방」은 개장 기간이 아니라 출입 가능을 뜻하므로 "
+            "개장 확인으로 쓰지 않고 미확인으로 둡니다. 계곡·호수 수영이 "
+            "미확인이면 후보에서 빠지는 것과 다릅니다 -- 그쪽은 입수 허가 "
+            "여부이고 이쪽은 운영 기간입니다."
         ),
         basis="data_contract",
     ),
@@ -407,6 +434,28 @@ def _essentials_present(evidence: ConditionsEnvelope, place_kind=None) -> bool:
     )
 
 
+def _water_preferred(candidate: Candidate) -> bool:
+    """「물이면 물」 가산을 받을 자격.
+
+    세 가지를 모두 만족해야 합니다 -- 물에 들어가는 활동이고, 할 수 있는 날인지
+    확인됐고, 총점이 `WATER_PREFERENCE_MIN_SCORE` 이상일 것.
+
+    예전에는 첫 조건 하나로 충분했습니다. 그래서 수온 12°C · 파고 1.8m 로
+    수영이 20점인 날에도 70점 온천 앞에 수영이 섰고, 개장 기간을 읽지 못한
+    10월 해변에서도 그랬습니다. 물놀이 앱이라는 사실은 **물에 들어갈 만한
+    날에** 물을 먼저 권하라는 뜻이지, 아무 날에나 물을 앞세우라는 뜻이 아닙니다.
+
+    자격을 잃어도 후보에서 빠지지 않습니다. 점수로 1위가 되면 그대로 1위이며,
+    그때는 점수로 이긴 것입니다.
+    """
+    return (
+        candidate.activity in WATER_ACTIVITIES
+        and not candidate.needs_confirmation
+        and candidate.score is not None
+        and candidate.score >= WATER_PREFERENCE_MIN_SCORE
+    )
+
+
 def decide(
     envelopes: dict[Activity, ConditionsEnvelope],
     *,
@@ -575,22 +624,41 @@ def decide(
     position = {activity: index for index, activity in enumerate(order)}
     live = [c for c in candidates if not c.dropped and c.score is not None]
     # 물때로 미뤄진 것이 가장 먼저, 그다음이 「물이면 물」, 그 안에서 점수,
-    # 동점이면 `order` 순입니다. 점수만으로 줄을 세우지 않는 이유는
-    # WATER_ACTIVITIES 주석에 있습니다.
+    # 동점이면 `order` 순입니다. 점수만으로 줄을 세우지 않는 이유와, 그 우선이
+    # 왜 조건부인지는 WATER_ACTIVITIES 주석에 있습니다.
     live.sort(
         key=lambda c: (
             c.demoted,
-            c.activity not in WATER_ACTIVITIES,
+            not _water_preferred(c),
             -c.score,
             position[c.activity],
         )
     )
     best = live[0] if live else None
-    if best is not None and best.activity in WATER_ACTIVITIES:
+    # 가산을 받지 못한 물 활동이 있으면 그 사실을 남깁니다. 「왜 오늘은 물이
+    # 먼저가 아닌가」를 화면이 말할 수 있어야 합니다. 1위가 되었는지와 무관하게
+    # 적습니다 -- 조건이 모자란 채로 점수만으로 이긴 날도 사용자는 알아야 합니다.
+    for candidate in live:
+        if (
+            candidate.activity in WATER_ACTIVITIES
+            and not candidate.needs_confirmation
+            and candidate.score < WATER_PREFERENCE_MIN_SCORE
+        ):
+            reasons.append(
+                Reason(
+                    code="water_preference_not_applied",
+                    activity=candidate.activity,
+                    value=candidate.score,
+                    threshold=WATER_PREFERENCE_MIN_SCORE,
+                )
+            )
+    if best is not None and _water_preferred(best):
         land = [c for c in live if c.activity not in WATER_ACTIVITIES]
         if land and land[0].score > best.score:
-            # 뭍 활동이 점수로는 앞서지만 물에 들어갈 수 있어 물을 골랐다는
-            # 사실을 남깁니다. 화면이 「왜 저쪽이 아닌가」를 말할 수 있어야 합니다.
+            # 뭍 활동이 점수로는 앞서지만 물에 들어갈 만한 날이어서 물을
+            # 골랐다는 사실을 남깁니다. 화면이 「왜 저쪽이 아닌가」를 말할 수
+            # 있어야 합니다. 가산을 **실제로 받았을 때만** 나갑니다 -- 점수로
+            # 이긴 날 이 문장을 적으면 틀린 이유를 대는 셈입니다.
             reasons.append(
                 Reason(
                     code="water_activity_preferred",

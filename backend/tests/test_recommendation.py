@@ -18,6 +18,7 @@ from app.water_index.recommendation import (
     MODEL_VERSION,
     RULES,
     TIDE_MARGIN_MINUTES,
+    WATER_PREFERENCE_MIN_SCORE,
     Season,
     SeasonWindow,
     Tide,
@@ -223,6 +224,8 @@ def test_a_higher_scoring_rest_does_not_outrank_a_swimmable_sea():
     swim = candidate(decision, "swim")
     # 휴식은 보는 항목이 적어 점수가 더 높게 나옵니다. 그래도 1위가 아닙니다.
     assert rest.score > swim.score
+    # 가산은 조건부입니다. 이 날 수영이 이기는 것은 기준선 위이기 때문입니다.
+    assert swim.score >= WATER_PREFERENCE_MIN_SCORE
     assert decision.choice.activity == "swim"
     preferred = next(
         r for r in decision.reasons if r.code == "water_activity_preferred"
@@ -397,16 +400,76 @@ def test_being_inside_the_opening_period_changes_nothing():
     assert "beach_closed_season_product_rule" not in inside.reason_codes
 
 
-def test_an_unconfirmed_opening_period_never_changes_the_order():
-    """미확인은 폐장의 증거가 아닙니다. 없는 값을 「닫혔다」로 바꾸지 않습니다."""
+def test_an_unconfirmed_opening_period_neither_drops_nor_defers_swimming():
+    """미확인은 폐장의 증거가 아닙니다. 없는 값을 「닫혔다」로 바꾸지 않습니다.
+
+    후보에서 빼지도(`dropped`) 뒤로 미루지도(`demoted`) 않고 점수도 그대로
+    둡니다. 바뀌는 것은 「물이면 물」 가산뿐입니다 -- 그 셋째 단계가
+    `needs_confirmation` 입니다.
+    """
     unknown = decide(beach(), place_kind="beach", season=season("unconfirmed"))
-    plain = decide(beach(), place_kind="beach")
-    assert unknown.choice == plain.choice
     swim = candidate(unknown, "swim")
+    assert swim.dropped is False
     assert swim.demoted is False
-    # 화면이 「개장 정보 확인 필요」를 띄울 수 있게 사실만 남깁니다.
+    assert swim.needs_confirmation is True
+    # 점수는 개장 판정과 무관하게 같습니다. 모르는 것은 개장이지 조건이 아닙니다.
+    assert swim.score == candidate(decide(beach(), place_kind="beach"), "swim").score
+    # 화면이 「개장 확인 필요」를 띄울 수 있게 사실을 남깁니다.
     assert "beach_season_unconfirmed" in swim.rules_applied
     assert "beach_season_unconfirmed" in unknown.reason_codes
+
+
+def test_an_unconfirmed_opening_period_withdraws_the_water_preference_from_swimming():
+    """여름 해변이라도 개장을 모르면 수영이 가산으로 1위를 차지하지 않습니다.
+
+    개장 규칙은 **수영에만** 걸립니다. 그래서 서핑은 가산을 그대로 들고 있고,
+    가산을 잃은 수영은 점수가 더 높은데도(93.8 > 68.3) 서핑에 밀립니다 --
+    가산이 실제로 거둬졌다는 사실이 순위에서 그대로 읽힙니다.
+    """
+    confirmed = decide(beach(), place_kind="beach", season=season("in_season"))
+    assert confirmed.choice.activity == "swim"
+
+    unknown = decide(beach(), place_kind="beach", season=season("unconfirmed"))
+    assert unknown.choice.activity == "surf"
+    assert candidate(unknown, "swim").score > candidate(unknown, "surf").score
+
+
+def test_a_low_scoring_water_activity_no_longer_outranks_a_better_land_activity():
+    """거친 바다에서는 점수가 이깁니다. 「물이면 물」은 물에 들어갈 만한 날의
+    말이고, 수온 19°C · 파고 1.7m · 바람 12m/s 는 그런 날이 아닙니다.
+
+    예전에는 이 날에도 수영이 1위였습니다 -- 물 활동이라는 사실 하나가 점수보다
+    앞에 있었기 때문입니다.
+    """
+    rough = beach(
+        swim=scored(
+            "swim",
+            water_temperature=19.0,
+            air_temperature=18.0,
+            wave_height=1.7,
+            wind_speed=12.0,
+        ),
+        surf=scored(
+            "surf",
+            water_temperature=19.0,
+            air_temperature=18.0,
+            wave_height=1.7,
+            wave_period=4.0,
+            wind_speed=12.0,
+        ),
+        relax=scored(
+            "relax", air_temperature=24.0, relative_humidity=50.0, wind_speed=3.0
+        ),
+    )
+    decision = decide(rough, place_kind="beach", season=season("in_season"))
+    assert candidate(decision, "swim").score < WATER_PREFERENCE_MIN_SCORE
+    assert candidate(decision, "surf").score < WATER_PREFERENCE_MIN_SCORE
+    assert decision.choice.activity == "relax"
+    # 후보에서 빠진 것이 아닙니다 -- 점수로 진 것입니다.
+    assert candidate(decision, "swim").dropped is False
+    assert "water_preference_not_applied" in codes(decision)
+    # 가산을 받지 않았으므로 「물에 들어갈 수 있어서 골랐다」를 적지 않습니다.
+    assert "water_activity_preferred" not in codes(decision)
 
 
 def test_no_season_evidence_applies_no_season_rule():
