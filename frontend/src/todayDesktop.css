@@ -238,7 +238,9 @@
 .pd-desktop .td-spot-score {
   font-size: 36px;
   line-height: 1;
-  min-width: 62px;
+  flex: 0 0 4ch;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   color: var(--g-ink);
 }
 .pd-desktop .td-spot-grade {
