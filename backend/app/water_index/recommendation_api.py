@@ -7,6 +7,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
@@ -190,7 +191,7 @@ def tide_view(events, at) -> Tide | None:
     )
 
 
-def season_view(row, at) -> Season:
+def season_view(row, at, *, place_kind: WaterPlaceKind | None = None) -> Season:
     """개장 기간 서술을 판정으로 옮깁니다. `tide_view` 와 같은 자리입니다.
 
     **조회 결과가 없어도 `None` 을 돌려주지 않습니다** -- 「수집된 개장 기간이
@@ -199,6 +200,11 @@ def season_view(row, at) -> Season:
 
     판정은 **KST 날짜**로 합니다. 개장 기간은 날짜 단위 사실이므로 UTC 로 재면
     자정 전후 아홉 시간이 어제·내일로 넘어갑니다.
+
+    **해수욕장의 「연중·상시」는 개장 확인으로 쓰지 않습니다**(1-1). 파서는
+    서술을 읽은 사실 그대로 `precision="year_round"` 창을 내놓고, 그것을 개장
+    판정으로 쓸지는 제품 규칙이므로 이쪽에서 정합니다 -- `place_details.season`
+    은 DB·시계·장소 유형을 모르는 순수 모듈로 남겨 둡니다.
     """
     today = at.astimezone(KST).date()
     parsed = parse_opening_season(
@@ -206,8 +212,25 @@ def season_view(row, at) -> Season:
         row["opening_date"] if row else None,
         today,
     )
+    status = season_status(parsed, today)
+    extra_codes: tuple[str, ...] = ()
+    if (
+        place_kind == "beach"
+        and parsed.windows
+        and all(window.precision == "year_round" for window in parsed.windows)
+    ):
+        # 해수욕장에 연중 개장은 거의 없습니다. 관광정보가 「상시 개방」이라고
+        # 적을 때 그것은 「출입 가능」의 뜻이고 개장 기간이 아닙니다. 이 창을
+        # 그대로 쓰면 10월 해변이 `in_season` 이 되어 수영이 1위로 섭니다.
+        #
+        # 읽지 못한 것으로 **낮춥니다** -- 폐장으로 바꾸지 않습니다. 월·일 창은
+        # 판정에 쓰지 않았으므로 함께 지웁니다. 남겨 두면 화면이 「개장
+        # 1.1~12.31」로 읽어, 쓰지 않은 숫자를 근거처럼 보이게 합니다.
+        status = "unconfirmed"
+        parsed = replace(parsed, windows=())
+        extra_codes = ("beach_year_round_wording_is_not_an_opening_season",)
     return Season(
-        status=season_status(parsed, today),
+        status=status,
         windows=tuple(
             SeasonWindow(
                 start_month=window.start_month,
@@ -225,8 +248,8 @@ def season_view(row, at) -> Season:
         year_basis=parsed.year_basis,
         stale_years=parsed.stale_years,
         reason_codes=parsed.reason_codes
-        if row
-        else parsed.reason_codes + ("place_detail_missing",),
+        + extra_codes
+        + (() if row else ("place_detail_missing",)),
     )
 
 
@@ -480,7 +503,11 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
                     q.spot_id,
                     connection=c,
                 ):
-                    season = season_view(await read_opening_season(c, q.spot_id), at)
+                    season = season_view(
+                        await read_opening_season(c, q.spot_id),
+                        at,
+                        place_kind=place["place_kind"],
+                    )
 
             decision = decide(
                 envelopes,

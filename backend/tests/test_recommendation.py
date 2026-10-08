@@ -145,7 +145,8 @@ def test_a_beach_never_recommends_rafting_or_onsen_on_weather_alone():
     entry = candidate(forced, "rafting")
     assert entry.dropped
     assert "essential_measurement_missing" in entry.rules_applied
-    assert "river_level" in [r.metric for r in forced.reasons if r.activity == "rafting"]
+    missing = [r.metric for r in forced.reasons if r.activity == "rafting"]
+    assert "river_level" in missing
 
 
 def test_cold_water_drops_sea_activities_and_asks_for_onsen_and_tourism():

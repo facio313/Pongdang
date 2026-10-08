@@ -38,18 +38,19 @@ MODEL_VERSION: ModelVersion = "1.1.0"
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
 
-#: 물에 들어가는 활동. 이쪽이 가능하면 이쪽을 먼저 권합니다 -- 퐁당은 물놀이
-#: 앱이고, 휴식·온천은 물에 못 들어갈 때의 답이기 때문입니다.
+#: 물에 들어가는 활동. 퐁당은 물놀이 앱이므로 **물에 들어갈 만한 날이면** 이쪽을
+#: 먼저 권합니다. 휴식·온천은 물에 못 들어갈 때의 답입니다.
 #:
 #: 이 구분이 없으면 휴식이 거의 항상 1위가 됩니다. 휴식의 점수 항목은 기온 ·
 #: 습도 · 바람 · 강수뿐이라 날씨만 좋으면 만점에 가깝고, 수영은 수온 · 파고까지
-#: 보기 때문에 같은 날 늘 몇 점 낮습니다. 점수가 높은 쪽이 아니라 **물에
-#: 들어갈 수 있으면 물**입니다.
+#: 보기 때문에 같은 날 늘 몇 점 낮습니다.
 #:
-#: 화면의 「활동별 점수」 목록은 이제 휴식을 보여 주지 않습니다
-#: (frontend aiApi.listedActivities) -- 점수는 휴식이 1위인데 위에서는 수영을
-#: 권하는 모순이 그대로 읽혔기 때문입니다. 그래도 이 규칙은 그대로 필요합니다.
-#: 휴식은 **고르기 경쟁에는 남아** 있고, 물때 구간 · 개장 기간 밖처럼 물 활동이
+#: **다만 절대 우선은 아닙니다.** 예전에는 이 구분이 점수보다 앞에 있어, 수온
+#: 12°C · 파고 1.8m 로 수영이 20점인 날에도 70점 온천 앞에 수영이 섰습니다.
+#: 「물이면 물」은 물에 들어갈 만한 날에만 맞는 말이고, 그렇지 않은 날 이 규칙은
+#: 추천이 아니라 고집입니다. 자격은 `WATER_PREFERENCE_MIN_SCORE` 가 정합니다.
+#:
+#: 휴식은 **고르기 경쟁에 남아** 있고, 물때 구간 · 개장 기간 밖처럼 물 활동이
 #: 전부 미뤄진 날의 답이 됩니다. 후보에서 지우면 그런 날 미뤄진 수영이 히어로로
 #: 올라와 10월 폐장 해변에 「오늘 가장 좋은 활동 = 수영」이 섭니다.
 WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
@@ -248,6 +249,17 @@ class Candidate(Record):
     #: 후보로 남았지만 뒤로 미뤄졌는지(물때 구간, 해수욕장 개장 기간 밖).
     #: 점수는 그대로입니다 -- 어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다.
     demoted: bool
+    #: 조건은 알지만 **할 수 있는 날인지를 모르는지**. 개장 기간을 확인하지
+    #: 못한 해수욕장 수영이 여기입니다.
+    #:
+    #: `dropped`(판단하지 않음) · `demoted`(뒤로 미룸) 의 **셋째 단계**입니다.
+    #: 미확인을 `demoted` 로 뭉치면 「미확인 ≠ 폐장」을 깨고(place_details.season
+    #: 의 세 가지 답), 아무 표시도 하지 않으면 10월 해변에 수영이 1위로 섭니다.
+    #:
+    #: 점수는 그대로 남습니다 -- 조건은 실제로 좋을 수 있고, 모르는 것은
+    #: 개장입니다. 바뀌는 것은 **물놀이 우선 가산을 받지 못한다**는 사실뿐이라,
+    #: 점수가 더 높은 휴식·온천이 그날의 답이 될 수 있습니다.
+    needs_confirmation: bool = False
     rules_applied: tuple[str, ...]
 
 
@@ -425,6 +437,7 @@ def decide(
         applied: list[str] = []
         dropped = False
         demoted = False
+        needs_confirmation = False
 
         if (
             (inland and activity in {"surf", "mudflat"})
@@ -535,9 +548,12 @@ def decide(
             and season is not None
             and season.status == "unconfirmed"
         ):
-            # 순위를 바꾸지 않습니다. 미확인은 폐장의 증거가 아닙니다
-            # (beach_season_unconfirmed 규칙). 사실만 남겨 화면이 「개장 정보
-            # 확인 필요」를 띄울 수 있게 합니다.
+            # 후보에서 빼지도, 뒤로 미루지도 않습니다 -- 미확인은 폐장의 증거가
+            # 아닙니다. 다만 **물놀이 우선 가산을 거둡니다**: 할 수 있는 날인지
+            # 모르는 활동을 「물이면 물」로 다른 활동 앞에 세울 근거는 없습니다.
+            # 점수가 더 높은 휴식·온천이 그날의 답이 될 수 있고, 수영이 그래도
+            # 1위라면 그것은 점수로 이긴 것입니다(beach_season_unconfirmed 규칙).
+            needs_confirmation = True
             applied.append("beach_season_unconfirmed")
             reasons.append(Reason(code="beach_season_unconfirmed", activity=activity))
 
@@ -551,6 +567,7 @@ def decide(
                 total_components=score.total_components if score else 0,
                 dropped=dropped,
                 demoted=demoted,
+                needs_confirmation=needs_confirmation,
                 rules_applied=tuple(applied),
             )
         )
