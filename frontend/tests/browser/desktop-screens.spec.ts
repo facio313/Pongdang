@@ -46,9 +46,11 @@ test("desktop today reads the same server values as mobile", { tag: "@smoke" }, 
   await expect(page.locator(".td-hero-tiles")).toContainText("수질 · 점수 미반영");
   // 주간 예보는 일곱 칸이며 값이 없는 날은 –입니다.
   await expect(page.locator(".td-day")).toHaveCount(7);
-  // 추천 후보 다섯 가지입니다. 갯벌은 동해안에 없어 후보에서 빠졌습니다
-  // (models.RECOMMENDED_ACTIVITIES).
-  await expect(page.locator(".td-activity")).toHaveCount(5);
+  // 점수 목록은 세 활동입니다(aiApi.listedActivities). 갯벌은 동해안에 지형이
+  // 없어, 래프팅은 하천 수위·유량 자료가 없어 후보에서 빠졌고
+  // (models.RECOMMENDED_ACTIVITIES), 휴식은 후보로 남지만 목록에서 뺐습니다
+  // -- 날씨만 좋으면 거의 항상 1위라 추천과 어긋난 채 보였습니다.
+  await expect(page.locator(".td-activity")).toHaveCount(4);
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);

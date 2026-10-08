@@ -12,6 +12,8 @@
 
 - 휴식이 거의 항상 1위였다. 휴식의 점수 항목은 기온·습도·바람·강수뿐이라 날씨만
   좋으면 만점에 가깝고, 수영은 수온·파고까지 보므로 같은 날 늘 몇 점 낮다.
+  이전의 물 활동 우선 규칙은 참고 점수와 추천을 다르게 보이게 했다. 현재는
+  물 활동 고정 우선순위를 제거하고 실제 걷기 활동을 별도로 평가한다.
 - 해변에서 래프팅이 1위로 올라올 수 있었다. 래프팅은 하천 수위·유량 곡선이
   미설정(`local_operating_range_required`)이라 기상 항목만으로 부분 점수가 난다.
 - 조석은 오늘 탭에만 표시될 뿐 추천과 이어지지 않았다.
@@ -29,17 +31,49 @@
 | code | 동작 | 임계값 | basis |
 |---|---|---|---|
 | `activity_blocked` | `condition_score.status` 가 `blocked`·`unavailable` 이면 후보에서 제외 | — | data_contract |
-| `essential_measurement_missing` | 활동을 정의하는 지표가 없으면 제외. swim/surf=수온+파고, onsen=시설 욕조 수온, rafting=하천 수위 또는 유량, relax/mudflat=기온 | — | data_contract |
+| `essential_measurement_missing` | 활동을 정의하는 지표가 없으면 제외. swim/surf=수온+파고, onsen=시설 욕조 수온, rafting=하천 수위 또는 유량, relax/mudflat=기온, walk=기온+풍속+강수. 담수 수영은 수온+강수 | — | data_contract |
 | `water_too_cold_for_immersion` | 수온이 기준 아래면 swim·surf 제외 | 18°C (`WATER` 곡선의 40점 절점) | score_curve_knot |
 | `air_below_beach_preference` | 기온이 해변 선호 구간 밖이라는 사실을 문장에 덧붙임. **이 값만으로 활동을 빼지 않는다** | 21°C (`BEACH_AIR` 곡선의 0점 절점) | score_curve_knot |
 | `tide_phase_product_rule` | 만조·간조 전후 구간이면 swim·surf 를 뒤로 미루고 계곡 대안을 함께 제시 | ±60분 | **pongdang_product_rule** |
-| `water_activity_preferred` | 물 활동(swim·surf·rafting·mudflat)이 가능하면 점수가 더 높은 뭍 활동(relax·onsen)보다 먼저 권함 | — | pongdang_product_rule |
+| `condition_score_preferred` | 필수 근거를 확보한 후보의 참고 점수를 비교. 물 활동 고정 우선순위 없음 | — | pongdang_product_rule |
+| `walking_weather_only` | 걷기는 기온·습도·풍속·강수로 평가. 산책로 개방·통행 안전은 별도 확인 | — | pongdang_product_rule |
+| `beach_season_unconfirmed` | 개장 미확인 수영은 `needs_confirmation`으로 표시하고 확인 필요 표시가 없는 후보 뒤에서 비교. 폐장 판정과 원점수 변경 없음 | — | data_contract |
 | `wave_favours_surf` / `wave_favours_swim` | swim·surf 가 **둘 다** 가능할 때 파고 항목 점수로 가르고, 파주기를 함께 싣는다 | `SWIM_WAVE` / `SURF_WAVE` / `SURF_PERIOD` | score_curve_knot |
 | `no_water_activity_today` | 물 활동이 하나도 남지 않으면 `choice: null` 과 대안 | — | data_contract |
 
-정렬 키는 `(물때로 미뤄짐, 뭍 활동인가, -점수, 추천 순서)` 이다. 물때로 미뤄진
-활동이 가장 뒤로 가고, 그다음이 「물이면 물」, 그 안에서 점수, 동점이면
-`RECOMMENDED_ACTIVITIES` 순서다.
+정렬 키는 `(demoted 또는 needs_confirmation, -점수, 추천 순서)`이다.
+개장 미확인은 폐장·물때와 다른 상태로 보존하지만, 확인이 필요하지 않은 후보를
+먼저 비교한다. 물 활동의 고정 우선순위는 없고 동점이면 `RECOMMENDED_ACTIVITIES` 순서다.
+
+## 세 집합
+
+활동을 세 자리에서 각각 다르게 센다. 하나로 뭉치면 「지원하지 않는다」·「권하지
+않는다」·「점수를 보여 주지 않는다」가 섞인다.
+
+| 집합 | 어디 | 값 | 뜻 |
+|---|---|---|---|
+| 지원 | `conditions.ACTIVITIES` | swim · surf · relax · mudflat · onsen · rafting · walk | API 로 직접 물으면 평가한다 |
+| 추천 후보 | `models.RECOMMENDED_ACTIVITIES` | swim · surf · relax · onsen · walk | `decide()` 가 비교해 하나를 고른다 |
+| 점수 목록 | `frontend aiApi.listedActivities` | swim · surf · walk · onsen | 화면의 「활동별 점수」에 줄이 선다 |
+
+- **mudflat** 은 후보에서 빠진다 — 동해안에 갯벌 **지형**이 없다.
+- **rafting** 은 후보에서 빠진다 — 어댑터가 하천 수위·유량을 공급하지 않고 그
+  점수 곡선도 미설정이라 필수 지표가 어떤 날도 `evaluated` 가 되지 않는다. 후보로
+  두면 화면에 늘 「추천 제외 · 필수 근거 부족」 한 줄만 섰다. **자료** 문제이며,
+  하천 관측이 붙으면 후보 집합 한 줄을 되돌리면 된다. `ESSENTIAL_METRICS` 의
+  rafting 행은 그대로 남겨 둔다 — 호출자가 직접 넣어도 기상만으로는 권하지 않는다.
+- **relax** 는 후보로 남지만 점수 목록에서 빠진다. 점수는 휴식이 1위인데 위에서는
+  수영을 권하는 과거 화면의 혼동을 줄이기 위한 표시 결정이다. **후보
+  에서는 지우지 않는다** — 물때 구간·개장 기간 밖처럼 물 활동이 전부 미뤄진 날의
+  답이 휴식이고, 그 자리를 비우면 미뤄진 수영이 히어로로 올라와 10월 폐장 해변에
+  「오늘 가장 좋은 활동 = 수영」이 선다. 히어로에서는 `activityHeadline` 이 그것을
+  「해변 산책」·「물에 들어가지 않는 하루」로 바꿔 부른다. 즉 **히어로는 점수
+  목록에 없는 활동일 수 있다.**
+- **onsen** 은 목록에 남는다. 시설 욕조 수온 자료가 없어 늘 「추천 제외 · 필수 근거
+  부족」이지만 그것이 정직한 표시다 — 근거가 없는 것과 조건이 나쁜 것은 다르다.
+
+`walk`는 새 관심사 선택지와 점수 목록 모두에 포함된다. 이전 응답의
+`water_activity_preferred` 문구는 호환용으로만 읽으며 새 판단에서는 만들지 않는다.
 
 ### 조석 규칙은 설계 문서와 의도적으로 어긋난다
 

@@ -2,6 +2,7 @@
    씁니다. 토큰은 셸 루트(.pd-app, pongdang.css)에서 상속받습니다. */
 
 .pd-sheet {
+  padding: 10px 10px 0 10px;
   position: absolute;
   inset: auto 0 0 0;
   /* 층위: 지도 핀 3 · 지도 상태 4 · 시트 4 · 탭바 5 · 백드롭 6 · 메뉴 7.

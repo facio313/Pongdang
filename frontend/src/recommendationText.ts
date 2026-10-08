@@ -9,7 +9,7 @@ import { t } from "./i18n.ts";
 //
 // 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는
 // 번들러 없이 node 가 이 .ts 를 그대로 읽습니다(scoreMeaning.ts 와 같은 이유).
-import { activities, type Activity } from "./aiApi.ts";
+import { activities, listedActivities, type Activity } from "./aiApi.ts";
 import { withJosa } from "./josa.ts";
 import { conditionScore, formatValue, type Conditions } from "./productData.ts";
 import type {
@@ -44,7 +44,7 @@ export function activityRecommendationDisplay(
     return { score: null, eligibility };
   }
   const score = conditionScore(conditions);
-  if (ranked?.demoted && ranked.rules_applied.includes("beach_season_unconfirmed"))
+  if ((ranked?.needs_confirmation || ranked?.demoted) && ranked.rules_applied.includes("beach_season_unconfirmed"))
     return { score, eligibility: t("수영 운영 확인 필요") };
   if (ranked?.demoted && ranked.rules_applied.includes("beach_closed_season_product_rule"))
     return { score, eligibility: t("수영 운영 기간 밖") };
@@ -90,6 +90,10 @@ export const ALTERNATIVE_LABEL: Record<
 
 /** 히어로에 올릴 활동 이름. `relax` 는 서버 enum 이라 그대로 두고, 추천
  *  문맥에서만 갈 곳이 있는 하루로 바꿔 부릅니다.
+ *
+ *  휴식은 활동별 점수 목록에서 빠졌으므로(aiApi.listedActivities) 이 분기는
+ *  이제 **히어로 전용 이름**입니다. 물때 구간·개장 기간 밖처럼 물 활동이 전부
+ *  미뤄진 날 서버가 휴식을 고르고, 그 한 줄이 이 이름을 만듭니다.
  *
  *  개장 기간이 지난 해변에서는 「해변 산책」입니다. 새 활동을 만들지 않고
  *  **이름만** 바꿔 부릅니다 -- `Activity` 를 늘리면 점수 곡선과 필수 지표표가
@@ -172,7 +176,15 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
     text: t("필수 자료가 있는 활동의 참고 점수를 비교해 골랐어요."),
   };
   const preferred = find(rec, "water_activity_preferred");
-  if (preferred && preferred.rival)
+  // 상대의 점수가 **화면에 있을 때만** 이 문장을 씁니다. 휴식은 활동별 점수
+  // 목록에서 빠졌으므로(aiApi.listedActivities) 「휴식 점수가 더 높지만」이라고
+  // 적으면 사용자가 그 숫자를 어디서도 찾을 수 없습니다. 온천처럼 목록에 줄이
+  // 있는 상대라면 그대로 말합니다.
+  if (
+    preferred &&
+    preferred.rival &&
+    (listedActivities as readonly Activity[]).includes(preferred.rival)
+  )
     return {
       code: preferred.code,
       // 조사는 낱말을 보고 고릅니다(josa.ts). 예전에는 여섯 활동 이름이 모두

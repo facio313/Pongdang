@@ -24,7 +24,7 @@ test('walking names the place context and states the limits of its weather score
 
 test('a deferred swimming score keeps its numeric evidence with an operating qualifier', () => {
   const conditions = { condition_score: { score: 75.6, status: 'evaluated' } };
-  assert.deepEqual(activityRecommendationDisplay(conditions, { demoted: true, rules_applied: ['beach_season_unconfirmed'] }),
+  assert.deepEqual(activityRecommendationDisplay(conditions, { demoted: false, needs_confirmation: true, rules_applied: ['beach_season_unconfirmed'] }),
     { score: 75.6, eligibility: '수영 운영 확인 필요' });
 });
 
@@ -164,11 +164,20 @@ test('the waves say which of swimming and surfing today is', () => {
   assert.match(swim.text, /^파고 0\.2m — 파도가 잔잔해서 바다 수영에 맞아요$/);
 });
 
-test('a higher scoring rest is named as the runner-up, not hidden', () => {
-  const line = choiceReason(recommendation({
+test('the runner-up is named only when its score is on screen', () => {
+  // 휴식은 활동별 점수 목록에서 빠졌습니다(aiApi.listedActivities). 서버는
+  // 여전히 「휴식이 점수로는 앞선다」를 사유로 보내지만, 화면에 그 숫자가 없는
+  // 채로 그 문장을 적으면 사용자가 찾을 수 없는 점수를 가리키게 됩니다.
+  assert.equal(choiceReason(recommendation({
     reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'relax', value: 82, threshold: 96.7 })],
+  })), null);
+
+  // 목록에 줄이 있는 상대(온천)라면 그대로 말합니다 -- 숨기는 것이 목적이
+  // 아니라, 가리킬 숫자가 화면에 있을 때만 가리키는 것입니다.
+  const line = choiceReason(recommendation({
+    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'onsen', value: 82, threshold: 96.7 })],
   }));
-  assert.match(line.text, /휴식 점수가 더 높지만/);
+  assert.match(line.text, /온천 점수가 더 높지만/);
   assert.match(line.text, /수영을 먼저 권해요$/);
 });
 

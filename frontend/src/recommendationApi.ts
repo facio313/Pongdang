@@ -50,6 +50,8 @@ export interface RankedActivity {
   /** 뒤로 미뤄짐(물때 구간, 해수욕장 개장 기간 밖). 점수는 그대로이고,
    *  어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다. */
   demoted: boolean;
+  /** 운영 미확인. 폐장이나 물때로 미뤄진 상태와 구분합니다. */
+  needs_confirmation?: boolean;
   rules_applied: string[];
 }
 export interface RecommendationReasonData {

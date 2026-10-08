@@ -22,6 +22,7 @@ from app.main import create_app
 from app.schema import connect, initialize
 from app.water_index import recommendation_api
 from app.water_index.condition_producer import produce_conditions
+from app.water_index.models import RECOMMENDED_ACTIVITIES
 from app.water_index.recommendation import IMMERSION_WATER_C, TIDE_MARGIN_MINUTES
 from app.water_index.sources import EvidenceBundle, StationMapping, register_evidence
 
@@ -240,7 +241,7 @@ def codes(view):
     return [reason["code"] for reason in view["reasons"]]
 
 
-def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
+def test_a_warm_sea_keeps_its_evidence_but_requires_opening_confirmation(db):
     spots = places(db)
     map_station(db, spots["0"], readings(db, water=24.0, air=27.0))
     # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
@@ -249,25 +250,24 @@ def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
         view = recommendation(client, spots["0"])
     assert view["contract_version"] == "water-recommendation.v1"
     assert view["place_kind"] == "beach"
-    assert view["choice"]["activity"] in {"swim", "surf"}
+    assert view["choice"]["activity"] == "relax"
+    swim = next(row for row in view["ranked"] if row["activity"] == "swim")
+    assert swim["needs_confirmation"] is True and swim["demoted"] is False
+    assert swim["score"] is not None
     # 판단에 쓴 조건 응답이 함께 옵니다. 화면이 같은 자료를 다시 묻지 않습니다.
-    assert len(view["conditions"]) == 5
+    # 개수는 후보 집합을 보고 셉니다 -- 숫자를 적어 두면 후보가 하나 드나들
+    # 때마다 이 줄이 조용히 틀립니다(래프팅이 빠질 때 실제로 그랬습니다).
+    assert len(view["conditions"]) == len(RECOMMENDED_ACTIVITIES)
     chosen = next(
         item
         for item in view["conditions"]
         if item["activity"] == view["choice"]["activity"]
     )
     assert chosen["condition_score"]["score"] == view["choice"]["score"]
-    assert [row["activity"] for row in view["ranked"]] == [
-        "swim",
-        "surf",
-        "relax",
-        "onsen",
-        "rafting",
-    ]
-    # 해변에는 욕조 · 하천 관측소가 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
+    assert [row["activity"] for row in view["ranked"]] == list(RECOMMENDED_ACTIVITIES)
+    # 해변에는 온천 시설이 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
     dropped = {row["activity"] for row in view["ranked"] if row["dropped"]}
-    assert {"onsen", "rafting"} <= dropped
+    assert "onsen" in dropped
 
 
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):
@@ -322,7 +322,9 @@ def test_a_tide_far_from_its_extremes_only_says_which_way_the_water_goes(db):
         view = recommendation(client, spots["0"])
     assert view["tide"]["phase"] == "falling"
     assert "tide_phase_product_rule" not in codes(view)
-    assert kinds(view) == []
+    # 휴식의 장소 대안은 남지만 물때 때문에 계곡을 권하지는 않습니다.
+    assert view["choice"]["activity"] == "relax"
+    assert kinds(view) == ["meal", "visit"]
 
 
 def test_an_inland_place_reads_no_tide_and_never_invents_one(db):

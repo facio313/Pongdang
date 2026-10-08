@@ -1,9 +1,7 @@
-"""추천 후보 집합이 지원 집합과 따로 유지되는지 지킵니다.
+"""평가 지원·추천 후보·관심사 선택지는 별도 집합이며 기록 호환을 보존합니다.
 
-강릉을 포함한 동해안은 서해안·남해안 같은 갯벌 지형이 발달하지 않아 mudflat 을
-먼저 제안하지 않습니다. 그렇다고 지원을 끊은 것은 아니어서, 카탈로그와 API 는
-여섯 활동을 그대로 평가합니다 -- 「권하지 않는다」와 「지원하지 않는다」는 다른
-사실이고, 이 파일은 그 둘이 다시 뒤섞이지 않게 합니다.
+새 선택지에서는 래프팅 대신 물길 걷기를 제공하지만, 저장된 래프팅 코스와
+직접 평가 API는 계속 읽을 수 있습니다.
 """
 
 from types import SimpleNamespace
@@ -17,7 +15,7 @@ from app.water_index.models import RECOMMENDED_ACTIVITIES
 LOCALES = ("en", "ja", "zh-CN", "zh-TW")
 
 
-def test_recommended_is_a_subset_of_supported_and_excludes_mudflat():
+def test_recommended_is_a_subset_of_supported_and_excludes_mudflat_and_rafting():
     assert set(RECOMMENDED_ACTIVITIES) <= set(ACTIVITIES)
     assert "mudflat" not in RECOMMENDED_ACTIVITIES
     # 지원 범위는 줄지 않습니다. 카탈로그는 여전히 갯벌을 평가할 수 있습니다.
@@ -27,10 +25,23 @@ def test_recommended_is_a_subset_of_supported_and_excludes_mudflat():
     assert "walk" in RECOMMENDED_ACTIVITIES
 
 
-def test_keyword_activity_options_match_the_recommended_set():
+def test_keyword_activity_options_are_supported_but_need_not_be_recommended():
+    """키워드 facet 과 추천 후보는 다른 집합입니다.
+
+    키워드는 사용자가 고르는 **관심사**입니다 -- 「래프팅 가는 코스를 짜 줘」는
+    점수가 나오든 말든 뜻이 통합니다. 추천 후보는 「오늘 이 장소에서 점수를 낼
+    수 있는 활동」입니다. 예전에는 두 집합이 같다고 단언해 두었는데, 그러면
+    자료가 없는 활동을 추천에서 뺄 때 여행 키워드까지 함께 사라집니다.
+
+    지켜야 하는 것은 **지원 범위 안이고 중복이 없다**는 것뿐입니다.
+    """
     ids = [option["id"] for option in LOOKUP["activity"]["options"]]
-    assert set(ids) == set(RECOMMENDED_ACTIVITIES)
+    assert set(ids) <= set(ACTIVITIES)
+    assert "mudflat" not in ids
     assert len(ids) == len(set(ids))
+    # 추천 후보는 전부 고를 수 있어야 합니다. 권하는 활동을 관심사로 못 고르면
+    # 사용자가 그 코스를 요청할 길이 없습니다.
+    assert set(RECOMMENDED_ACTIVITIES) <= set(ids)
 
 
 @pytest.mark.parametrize("locale", LOCALES)

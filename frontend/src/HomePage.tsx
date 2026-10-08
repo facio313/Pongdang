@@ -14,7 +14,7 @@ import {
   Skeleton,
   StateChip,
 } from "./pongdangUi";
-import { activities, recommendedActivities, type Activity } from "./aiApi";
+import { activities, listedActivities, type Activity } from "./aiApi";
 import { componentBars, scoreReason } from "./scoreMeaning";
 import { RecommendationReason } from "./RecommendationReason";
 import { activityHeadline, choiceReason, missingChoiceHeadline } from "./recommendationText";
@@ -227,7 +227,7 @@ function Hero({
 
         <div className="hm-hero-actions">
           <a className="pd-inline pd-tap" href="#today">
-            {t("오늘 후보 활동 {count}가지 보기 →", { count: recommendedActivities.length })}</a>
+            {t("오늘 후보 활동 {count}가지 보기 →", { count: listedActivities.length })}</a>
           {/* 데스크탑 히어로는 「오늘 보기」 옆에 코스 만들기를 함께 두고
               있었습니다. 모바일은 취향 카드까지 내려가야 추천으로 갈 수 있어,
               가장 자주 쓰는 진입이 화면 밖에 있었습니다. */}

@@ -45,6 +45,11 @@ SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
 #: 유량 곡선이 미설정이라 기상 항목만으로 부분 점수가 나오기 때문입니다
 #: (activity_score.DEFAULT_CURVES). 기상만 좋으면 바다에서 래프팅을 권하는
 #: 셈이므로, 활동을 정의하는 지표를 명시적으로 요구합니다.
+#:
+#: 래프팅은 이제 후보 집합(models.RECOMMENDED_ACTIVITIES)에서도 빠졌습니다.
+#: **두 겹을 모두 둡니다** -- 이 표는 `decide` 에 들어온 활동이 무엇이든 지키는
+#: 계약이고(API 가 activity 를 직접 물을 수 있습니다), 후보 집합은 「오늘 뭘
+#: 할까」에 무엇을 올리는지입니다. 하천 관측이 붙으면 후보 집합만 되돌립니다.
 ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "swim": (("water_temperature",), ("wave_height",)),
     "surf": (("water_temperature",), ("wave_height",)),
@@ -236,6 +241,9 @@ class Candidate(Record):
     #: 후보로 남았지만 뒤로 미뤄졌는지(물때 구간, 해수욕장 개장 기간 밖).
     #: 점수는 그대로입니다 -- 어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다.
     demoted: bool
+    #: 운영 미확인은 폐장/물때로 미뤄진 상태와 별도로 보존합니다.
+    #: 원점수는 유지하되 운영을 확인한 활동 뒤에서 비교합니다.
+    needs_confirmation: bool = False
     rules_applied: tuple[str, ...]
 
 
@@ -413,6 +421,7 @@ def decide(
         applied: list[str] = []
         dropped = False
         demoted = False
+        needs_confirmation = False
 
         if (
             (inland and activity in {"surf", "mudflat"})
@@ -523,8 +532,8 @@ def decide(
             and season is not None
             and season.status == "unconfirmed"
         ):
-            # 미확인을 폐장으로 바꾸지 않고, 운영 확인 전 수영 추천만 미룹니다.
-            demoted = True
+            # 폐장으로 판정하지 않고, 운영 확인이 필요하다는 상태를 구분합니다.
+            needs_confirmation = True
             applied.append("beach_season_unconfirmed")
             reasons.append(Reason(code="beach_season_unconfirmed", activity=activity))
 
@@ -538,6 +547,7 @@ def decide(
                 total_components=score.total_components if score else 0,
                 dropped=dropped,
                 demoted=demoted,
+                needs_confirmation=needs_confirmation,
                 rules_applied=tuple(applied),
             )
         )
@@ -548,7 +558,7 @@ def decide(
     # 우선순위로 비교하되, 각 활동의 필수 근거 검사는 위에서 먼저 통과합니다.
     live.sort(
         key=lambda c: (
-            c.demoted,
+            c.demoted or c.needs_confirmation,
             -c.score,
             position[c.activity],
         )
@@ -569,7 +579,11 @@ def decide(
         # 그 말을 그대로 두면 화면이 틀린 이유를 댑니다 -- 파도는 아무것도 고르지
         # 않았고 달력이 골랐습니다.
         rival_live = any(
-            c.activity == rival and not c.dropped and not c.demoted for c in candidates
+            c.activity == rival
+            and not c.dropped
+            and not c.demoted
+            and not c.needs_confirmation
+            for c in candidates
         )
         reasons.extend(_wave_reasons(envelopes, best.activity, rival, rival_live))
     if best is None:
