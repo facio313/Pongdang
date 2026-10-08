@@ -163,17 +163,52 @@ def test_every_rule_declares_where_its_threshold_came_from():
     assert "안전 판정이 아닙니다" in tide_rule.text
 
 
-def test_a_beach_never_recommends_onsen_or_legacy_rafting_on_weather_alone():
+def test_onsen_alternative_uses_weather_while_legacy_rafting_still_needs_a_river():
     decision = decide(beach())
     assert "rafting" not in {c.activity for c in decision.ranked}
-    decision = decide(beach(), order=("onsen", "rafting"))
-    assert decision.choice is None
-    for activity in ("rafting", "onsen"):
-        entry = candidate(decision, activity)
-        assert entry.dropped
-        assert "essential_measurement_missing" in entry.rules_applied
-    missing = [r.metric for r in decision.reasons if r.activity == "rafting"]
+    assert not candidate(decision, "onsen").dropped
+    legacy = decide(beach(), order=("rafting",))
+    assert legacy.choice is None
+    assert candidate(legacy, "rafting").dropped
+    missing = [r.metric for r in legacy.reasons if r.activity == "rafting"]
     assert "river_level" in missing
+
+
+def test_cold_rough_weather_recommends_an_onsen_outing_without_a_bath_measurement():
+    data = {
+        "swim": scored(
+            "swim",
+            air_temperature=8.0,
+            water_temperature=12.0,
+            wave_height=1.8,
+            wind_speed=3.0,
+        ),
+        "surf": scored(
+            "surf",
+            air_temperature=8.0,
+            water_temperature=12.0,
+            wave_height=1.8,
+            wind_speed=3.0,
+        ),
+        "relax": scored(
+            "relax", air_temperature=8.0, wind_speed=3.0, precipitation=0.0
+        ),
+        "walk": scored("walk", air_temperature=8.0, wind_speed=3.0, precipitation=0.0),
+        "onsen": scored(
+            "onsen", air_temperature=8.0, water_temperature=12.0, wave_height=1.8
+        ),
+    }
+    decision = decide(data, place_kind="beach")
+    assert decision.choice.activity == "onsen" and decision.choice.score == 93.7
+    assert "onsen_weather_alternative" in codes(decision)
+    assert decision.alternative_kinds[0] == "onsen"
+    assert {
+        r.metric for r in decision.reasons if r.code == "onsen_alternative_factor"
+    } == {"air_temperature", "water_temperature", "wave_height"}
+    blocked = with_score(
+        data["onsen"].model_copy(update={"safety_status": "restricted"})
+    )
+    assert decide({"onsen": blocked}).choice is None
 
 
 def test_cold_water_drops_sea_activities_and_asks_for_onsen_and_tourism():

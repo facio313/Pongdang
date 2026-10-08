@@ -1,6 +1,18 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const conditionsMessages: Record<string, MessageTranslations> = {
+  "온천 대안 점수": ["Hot-spring alternative score", "温泉备选评分", "温泉への切り替え参考点"],
+  "온천 대안 추천 점수": ["Hot-spring alternative recommendation score", "温泉备选推荐评分", "温泉への切り替え推奨参考点"],
+  "날씨 기반 대안": ["Weather-based alternative", "基于天气的备选", "天候に基づく代替案"],
+  "야외 수온": ["Outdoor water temperature", "室外水温", "屋外の水温"],
+  "해양 파고": ["Sea wave height", "海浪高度", "海の波高"],
+  "온천으로 몸 녹이기": ["Warm up at a hot spring", "去温泉暖身", "温泉で温まる"],
+  "온천으로 이동할 매력을 비교한 점수예요": ["This compares the appeal of visiting a hot spring", "此分数比较前往温泉的吸引力", "温泉へ出かける魅力を比較した点数です"],
+  "온천으로 이동할 매력을 비교한 점수예요. 시설 영업과 욕조 상태는 별도로 확인해 주세요.": ["This compares the appeal of visiting a hot spring. Check the facility's opening and bath conditions separately.", "此分数比较前往温泉的吸引力。请另行确认设施营业和浴池状况。", "温泉へ出かける魅力を比較した点数です。施設の営業と浴槽の状態は別途ご確認ください。"],
+  "온천 대안을 비교할 기상·수온·파고 자료가 없습니다.": ["No weather, outdoor water-temperature or wave data is available to compare this alternative.", "暂无用于比较温泉备选的天气、室外水温或波高数据。", "温泉への切り替えを比較する気象・屋外水温・波高の資料がありません。"],
+  "{label} {value} — 온천으로 이동할 매력에 반영했어요": ["{label} {value} — used to compare the appeal of a hot-spring visit", "{label} {value} — 已用于比较前往温泉的吸引力", "{label} {value} — 温泉へ出かける魅力に反映しました"],
+  "이 장소의 야외 조건으로 비교한 대안": ["Alternative based on this place's outdoor conditions", "根据此地室外条件比较的备选", "この場所の屋外条件で比較した代替案"],
+  "오늘의 야외 조건에서는 온천으로 이동하는 대안을 권합니다": ["Today's outdoor conditions favor a trip to a hot spring", "今天的室外条件下，建议考虑前往温泉", "今日の屋外条件では温泉へ出かける代替案をおすすめします"],
   "물길 따라 걷기": ["Walk by the water", "水边散步", "水辺を歩く"],
   "해변 걷기": ["Beach walk", "海边散步", "浜辺を歩く"],
   "수영 운영 확인 필요": ["Swimming operation needs confirmation", "需确认游泳开放情况", "遊泳の営業状況を要確認"],

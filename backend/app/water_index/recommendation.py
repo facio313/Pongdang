@@ -32,8 +32,8 @@ MODEL_ID = "pongdang-activity-recommendation"
 #: `Record` 의 `validate_default=True` 가 기본값을 검사하면서 추천 응답이 통째로
 #: 500 이었습니다. 단위 테스트는 `decide()` 만 봤기 때문에 잡지 못했습니다.
 #: 이제 버전을 올리면 한 줄만 고치면 되고, 어긋나면 타입 검사에서 멈춥니다.
-ModelVersion = Literal["1.2.0"]
-MODEL_VERSION: ModelVersion = "1.2.0"
+ModelVersion = Literal["1.3.0"]
+MODEL_VERSION: ModelVersion = "1.3.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
@@ -55,7 +55,7 @@ ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "surf": (("water_temperature",), ("wave_height",)),
     "relax": (("air_temperature",),),
     "mudflat": (("air_temperature",),),
-    "onsen": (("bath_water_temperature",),),
+    "onsen": (("air_temperature", "water_temperature", "wave_height"),),
     "rafting": (("river_level", "river_flow"),),
     "walk": (("air_temperature",), ("wind_speed",), ("precipitation",)),
 }
@@ -104,7 +104,8 @@ RULES: tuple[Rule, ...] = (
         code="essential_measurement_missing",
         text=(
             "활동을 정의하는 지표가 없으면 후보에서 뺍니다. 바다 수영·서핑은 "
-            "수온과 파고, 담수 수영은 수온과 강수, 온천은 시설 욕조 수온, "
+            "수온과 파고, 담수 수영은 수온과 강수, 온천 대안은 기온·야외 수온·"
+            "파고 중 하나 이상의 자료, "
             "걷기는 기온·바람·강수, 기존 래프팅 평가는 하천 수위 또는 유량이 "
             "있어야 합니다. 입수 활동은 기상 자료만으로 권하지 않습니다."
         ),
@@ -159,6 +160,15 @@ RULES: tuple[Rule, ...] = (
         text=(
             "물길 따라 걷기는 기온·습도·바람·강수로 평가하며 수온·파고는 "
             "점수에 넣지 않습니다. 산책로 존재·개방·노면·통행 안전은 별도 확인합니다."
+        ),
+        basis="pongdang_product_rule",
+    ),
+    Rule(
+        code="onsen_weather_alternative",
+        text=(
+            "추운 기온·낮은 야외 수온·높은 파고를 바탕으로 온천으로 이동할 "
+            "대안 매력을 비교합니다. 욕조 수온 미수집만으로 이 대안을 제외하지 "
+            "않으며 시설 영업·욕조 상태·안전은 확인한 것으로 표시하지 않습니다."
         ),
         basis="pongdang_product_rule",
     ),
@@ -568,6 +578,14 @@ def decide(
         reasons.append(Reason(code="condition_score_preferred", activity=best.activity))
         if best.activity == "walk":
             reasons.append(Reason(code="walking_weather_only", activity="walk"))
+        if best.activity == "onsen":
+            reasons.append(Reason(code="onsen_weather_alternative", activity="onsen"))
+            score = envelopes["onsen"].condition_score
+            for component in score.components:
+                if component.status == "evaluated" and component.score is not None:
+                    reasons.append(
+                        _reason_from("onsen_alternative_factor", "onsen", component)
+                    )
 
     if (
         best is not None
@@ -590,6 +608,8 @@ def decide(
         reasons.append(Reason(code="no_water_activity_today"))
 
     kinds: list[AlternativeKind] = []
+    if best is not None and best.activity == "onsen":
+        kinds.append("onsen")
     if sea_blocked_by_cold:
         kinds.extend(("onsen", "meal", "visit"))
     if sea_blocked_by_tide:

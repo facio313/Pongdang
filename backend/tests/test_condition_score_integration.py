@@ -494,7 +494,16 @@ def test_sea_temperature_is_neither_bath_nor_river_temperature(database):
     with TestClient(create_app(database)) as client:
         bath = conditions(client, spot, "onsen")
         assert "bath_water_temperature" in bath["missing_metrics"]
-        assert all(item["name"] != "water_temperature" for item in bath["metrics"])
+        assert metric(bath, "water_temperature")["value"] == 24
+        assert bath["condition_score"]["score_basis"] == "onsen_alternative"
+        assert (
+            next(
+                c
+                for c in bath["condition_score"]["components"]
+                if c["metric"] == "water_temperature"
+            )["label"]
+            == "야외 수온"
+        )
         result = score(
             client,
             spot,

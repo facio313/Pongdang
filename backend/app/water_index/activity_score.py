@@ -103,8 +103,11 @@ class ScoreComponent(Record):
 
 class ActivityScore(Record):
     model_id: Literal["pongdang-activity-conditions"] = "pongdang-activity-conditions"
-    model_version: Literal["1.1.0", "1.2.0"] = "1.2.0"
-    label: Literal["활동 조건 참고 점수"] = "활동 조건 참고 점수"
+    model_version: Literal["1.1.0", "1.2.0", "1.3.0"] = "1.3.0"
+    label: Literal["활동 조건 참고 점수", "온천 대안 추천 점수"] = "활동 조건 참고 점수"
+    score_basis: Literal["activity_conditions", "onsen_alternative"] = (
+        "activity_conditions"
+    )
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     status: Literal["evaluated", "partial", "unavailable", "blocked"]
     score: Points | None
@@ -217,6 +220,40 @@ BATH = Curve(
     ("bathing-thermal-2019",),
     "시설 실측 욕조 선호 가정; 의학적 안전선 아님",
 )
+ONSEN_AIR = Curve(
+    ((5, 100), (15, 80), (21, 40), (25, 0)),
+    (),
+    "외부 기온이 낮을수록 따뜻한 온천으로 이동할 매력이 커진다는 제품 가정",
+)
+ONSEN_WATER = Curve(
+    ((10, 100), (18, 80), (24, 20), (27, 0)),
+    (),
+    "야외 수온이 낮을수록 온천 대안 선호 증가; 욕조 수온이나 입수 안전 기준 아님",
+)
+ONSEN_WAVE = Curve(
+    ((0, 0), (0.3, 0), (0.8, 30), (1.5, 80), (2, 100)),
+    (),
+    "해양 파고가 높을수록 온천 대안 선호 증가; 온천 시설 상태와 별개",
+)
+ONSEN_METHODOLOGY = (
+    "온천 대안 추천 점수는 외부 기온·야외 수온이 낮고 해양 파고가 높을수록 "
+    "온천으로 이동할 매력이 커진다는 Pongdang 제품 가정입니다. 각 곡선의 "
+    "절점 사이를 선형 보간하고 확보한 항목 점수를 같은 비중으로 평균냅니다. "
+    "없는 값은 채우지 않고 확보율을 표시합니다. 욕조 수온·시설 영업·위생·"
+    "안전을 확인한 점수가 아니며, 현 장소에서 온천을 할 수 있다는 뜻도 아닙니다."
+)
+
+
+def activity_score_metadata(activity):
+    if activity == "onsen":
+        return {
+            "score_basis": "onsen_alternative",
+            "label": "온천 대안 추천 점수",
+            "methodology": ONSEN_METHODOLOGY,
+        }
+    return {}
+
+
 DEFAULT_CURVES = {
     "swim": {
         "water_temperature": WATER,
@@ -242,7 +279,11 @@ DEFAULT_CURVES = {
         "wind_speed": WIND,
         "precipitation": RAIN,
     },
-    "onsen": {"bath_water_temperature": BATH, "air_temperature": OUTDOOR_AIR},
+    "onsen": {
+        "air_temperature": ONSEN_AIR,
+        "water_temperature": ONSEN_WATER,
+        "wave_height": ONSEN_WAVE,
+    },
     "walk": {
         "air_temperature": OUTDOOR_AIR,
         "relative_humidity": HUMIDITY,
@@ -394,13 +435,13 @@ def select_metric(metrics: list[ConditionMetric], evidence: ConditionsEnvelope):
 
 
 def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
-    from app.water_index.conditions import ConditionsEnvelope, activity_metrics
+    from app.water_index.conditions import ConditionsEnvelope, activity_score_metrics
 
     # Retain the strict time/unit/source validation for all invocation paths.
     evidence = ConditionsEnvelope.model_validate(evidence.model_dump())
     components = []
     inland = evidence.place_kind in INLAND_PLACE_KINDS
-    for definition in activity_metrics(evidence.activity, evidence.place_kind):
+    for definition in activity_score_metrics(evidence.activity, evidence.place_kind):
         name = definition.name
         curve = DEFAULT_CURVES[evidence.activity].get(name)
         if inland and evidence.activity == "swim":
@@ -421,7 +462,12 @@ def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
         components.append(
             ScoreComponent(
                 metric=name,
-                label=definition.label,
+                label={
+                    "water_temperature": "야외 수온",
+                    "wave_height": "해양 파고",
+                }.get(name, definition.label)
+                if evidence.activity == "onsen"
+                else definition.label,
                 value=value,
                 unit=definition.unit,
                 score=score,
@@ -480,6 +526,7 @@ def aggregate_activity_score(components, *, activity, support_status, safety_sta
     if activity in {"onsen", "mudflat", "rafting"}:
         reasons.append("operating_conditions_require_separate_confirmation")
     return ActivityScore(
+        **activity_score_metadata(activity),
         status="blocked"
         if blocked
         else "unavailable"

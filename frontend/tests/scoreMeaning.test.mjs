@@ -17,6 +17,15 @@ const conditions = (components) => ({
   },
 });
 
+test('onsen alternative titles and reasons describe the trip rather than bath safety', () => {
+  assert.equal(scoreTitle('onsen', 'onsen_alternative'), '온천 대안 점수');
+  assert.equal(verdictOf('onsen', 'excellent', 'onsen_alternative'), '온천으로 이동할 매력을 비교한 점수예요');
+  const data = conditions([component('water_temperature', '야외 수온', 12, '°C', 95)]);
+  data.condition_score.score_basis = 'onsen_alternative';
+  assert.match(scoreReason(data).text, /야외 수온 12°C/);
+  assert.match(scoreReason(data).text, /온천으로 이동할 매력/);
+});
+
 test('the score title always names the activity it belongs to', () => {
   assert.equal(scoreTitle('swim'), '수영 적합도');
   assert.equal(scoreTitle('mudflat'), '갯벌 적합도');

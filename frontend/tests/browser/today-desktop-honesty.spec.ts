@@ -38,9 +38,9 @@ test("desktop today separates recommendation eligibility, partial scores and the
   // 거의 항상 1위라, 목록에 두면 그 숫자와 위에서 고른 활동이 어긋난 채
   // 보였습니다. 히어로로는 여전히 설 수 있고 그 점수의 출처를 말합니다(위
   // td-hero-score 단언). 수영만 숫자가 남는지 함께 못박습니다.
-  await expect(page.locator(".td-activity")).toHaveCount(4);
+  await expect(page.locator(".td-activity")).toHaveCount(5);
   const relax = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "휴식" }) });
-  await expect(relax).toHaveCount(0);
+  await expect(relax.locator(".td-activity-score")).toHaveText("75");
   const swimCell = page.locator(".td-activity").filter({ has: page.locator(".td-activity-name", { hasText: "수영" }) });
   await expect(swimCell.locator(".td-activity-score")).toHaveText("79");
   await expect(swimCell.locator(".td-score-coverage")).toContainText("마지막 업데이트");

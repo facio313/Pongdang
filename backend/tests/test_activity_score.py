@@ -88,7 +88,8 @@ def test_published_air_range_and_wind_intervals_with_declared_adaptation():
 def test_six_activities_compute_without_manual_criteria_and_preserve_unknown(activity):
     evidence = envelope(activity, metrics=(metric(value=25.0),))
     result = calculate_activity_score(evidence)
-    assert result.status == "partial" and result.score == 100
+    assert result.status == "partial"
+    assert result.score == (0 if activity == "onsen" else 100)
     assert result.available_components == 1
     assert result.coverage == 1 / result.total_components
     assert result.scientific_validation == "not_evaluated"
@@ -289,15 +290,62 @@ def test_nearby_context_is_separate_from_strict_metrics_and_preserves_station_sc
     assert "nearby_station_context" in result.reason_codes
 
 
-def test_onsen_never_uses_sea_temperature_and_rafting_needs_local_flow_bounds():
+def test_onsen_outdoor_water_is_never_relabelled_as_bath_temperature():
     sea = envelope("onsen", metrics=(metric("water_temperature", 38.0),))
-    assert calculate_activity_score(sea).score is None
+    result = calculate_activity_score(sea)
+    assert result.score == 0
+    assert result.score_basis == "onsen_alternative"
+    assert component(result, "water_temperature").label == "야외 수온"
+    assert not any(c.metric == "bath_water_temperature" for c in result.components)
+    bath = calculate_activity_score(
+        envelope("onsen", metrics=(metric("bath_water_temperature", 38.0),))
+    )
+    assert bath.score is None
+
+
+def test_rafting_still_needs_local_flow_bounds():
     river = calculate_activity_score(
         envelope("rafting", metrics=(metric("river_flow", 200.0),))
     )
     assert (
         river.score is None and component(river, "river_flow").status == "unconfigured"
     )
+
+
+def test_onsen_alternative_gets_stronger_as_air_water_cool_and_waves_rise():
+    def score(air, water, wave):
+        return calculate_activity_score(
+            envelope(
+                "onsen",
+                metrics=(
+                    metric("air_temperature", air),
+                    metric("water_temperature", water),
+                    metric("wave_height", wave),
+                ),
+            )
+        )
+
+    warm = score(25.0, 27.0, 0.3)
+    cold = score(8.0, 12.0, 1.8)
+    assert warm.score == 0 and cold.score == 93.7
+    assert score(15.0, 27.0, 0.3).score > warm.score
+    assert score(25.0, 12.0, 0.3).score > warm.score
+    assert score(25.0, 27.0, 1.8).score > warm.score
+    assert cold.status == "evaluated" and cold.available_components == 3
+    assert cold.scientific_validation == "not_evaluated"
+
+
+def test_onsen_missing_inputs_remain_partial_and_expired_inputs_are_not_scored():
+    partial = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", 15.0),))
+    )
+    assert partial.score == 80 and partial.coverage == 1 / 3
+    assert partial.status == "partial"
+    assert component(partial, "water_temperature").score is None
+    expired = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", None, status="stale"),))
+    )
+    assert expired.score is None
 
 
 def test_invalid_units_and_forged_available_value_are_revalidated():

@@ -152,6 +152,65 @@ def test_walk_weather_is_published_read_and_recommended_without_water_readings(
     assert "rafting" not in {row.activity for row in recommendation.ranked}
 
 
+def test_onsen_alternative_survives_publication_without_claiming_a_local_bath(database):
+    from app.water_index.recommendation_api import (
+        RecommendationQuery,
+        read_recommendation,
+    )
+
+    now = datetime.now(UTC)
+    put(
+        database,
+        observed=now - timedelta(minutes=5),
+        fetched=now - timedelta(minutes=1),
+        values=[
+            Value(name="air_temperature", numeric_value=8, unit="degC"),
+            Value(name="relative_humidity", numeric_value=55, unit="%"),
+            Value(name="wind_speed", numeric_value=3, unit="m/s"),
+            Value(name="precipitation", numeric_value=0, unit="mm/1h"),
+        ],
+    )
+    put(
+        database,
+        provider="khoa_buoy_recent",
+        station="fixture-cold-sea",
+        kind="marine_buoy",
+        observed=now - timedelta(minutes=5),
+        fetched=now - timedelta(minutes=1),
+        values=[
+            Value(name="water_temperature", numeric_value=12, unit="degC"),
+            Value(name="wave_height", numeric_value=1.8, unit="m"),
+        ],
+    )
+    with connect(database) as c:
+        (spot,) = c.execute(
+            "INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng) "
+            "VALUES ('Disposable cold beach','beach',37.5,129) RETURNING id"
+        ).fetchone()
+    loaded, _, _ = inputs(database, now)
+    query = ConditionQuery(spot_id=spot, activity="onsen", mode="observation")
+    calculated = assert_parity(database, loaded, query, now, now)
+    assert calculated.condition_score.score == 93.7
+    assert produce_conditions(database, now=now) > 0
+    published = asyncio.run(read_condition_set(DataReader(database), [query], now=now))[
+        0
+    ]
+    assert published.condition_score.score_basis == "onsen_alternative"
+    assert published.condition_score.score == 93.7
+    assert published.safety_status == published.support_status == "unknown"
+    assert not any(
+        m.name == "bath_water_temperature" and m.value is not None
+        for m in published.metrics
+    )
+    result = asyncio.run(
+        read_recommendation(
+            DataReader(database), RecommendationQuery(spot_id=spot), now=now
+        )
+    )
+    assert result.choice.activity == "onsen" and result.choice.score == 93.7
+    assert result.alternatives == ()  # No registered facility is invented.
+
+
 def test_nifs_surface_storage_nearby_projection_and_missing_revision(database):
     from test_nifs import NOW, Client, observation, settings
 

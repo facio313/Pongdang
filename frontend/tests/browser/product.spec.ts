@@ -74,7 +74,7 @@ test("home and today render calculated server condition scores and their evidenc
   await expect(page.locator(".td-tile-value").nth(3)).toHaveText("2등급 · 과거");
   await expect(page.getByRole("heading", { name: "수질 등급 · 최근 검사 · A8" })).toBeVisible();
   await expect(page.locator(".today-page")).toContainText("300일 전 과거 자료");
-  await expect(page.locator(".td-act")).toHaveCount(4);
+  await expect(page.locator(".td-act")).toHaveCount(5);
   // 근거는 활동 6개의 <details> 6줄이 아니라 하나로 합치고 활동을 셀렉트로
   // 고릅니다. 기본값이 수영이므로 그대로 펴서 확인합니다.
   await page.getByRole("button", { name: "분야별 근거 확인" }).click();
@@ -164,7 +164,7 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   );
   await page.goto("");
   await expect(page.locator(".hm-hero-score-num")).toHaveText("81");
-  await page.getByRole("link", { name: "오늘 후보 활동 4가지 보기 →", exact: true }).click();
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
   // 접힌 근거는 말풍선입니다(InfoPopover). 열기 전에는 DOM 에 없으므로 -- 화면에
   // 보이지 않는 문장을 「있다」고 검사하지 않기 위해 -- 실제로 열고 읽습니다.
   await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
@@ -181,7 +181,7 @@ test("missing observations use an explicitly labelled forecast and never bypass 
   await expect(page.locator(".hm-hero-score-num")).toHaveText("–");
   // 홈은 제한 상태를 예보로 우회하지 않습니다. 오늘의 별도 주간 예보 조회 전 확인합니다.
   expect(forecasts).toBe(0);
-  await page.getByRole("link", { name: "오늘 후보 활동 4가지 보기 →", exact: true }).click();
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
   await page.locator(".td-hero-note").getByRole("button", { name: "근거 보기" }).click();
   await expect(page.getByRole("dialog", { name: "근거 보기" })).toContainText("공식 제한 또는 활동 미지원으로 계산 보류");
 });
@@ -319,7 +319,7 @@ test("a current score survives expiry and an insufficient thirty-minute refresh"
   await expect.poll(() => requests).toBeGreaterThan(1);
   release();
   await expect(page.locator(".hm-hero-score-num")).toHaveText("75");
-  await page.getByRole("link", { name: "오늘 후보 활동 4가지 보기 →", exact: true }).click();
+  await page.getByRole("link", { name: "오늘 후보 활동 5가지 보기 →", exact: true }).click();
   // 「갱신 자료 부족 · 이전 값 유지」는 수집 상태입니다. 보는 사람에게 필요한
   // 것은 그 값이 언제 기준인지 하나이고, 오래된 시각이 곧 그 사실입니다.
   await expect(page.locator(".td-hero-note")).toContainText("마지막 업데이트");

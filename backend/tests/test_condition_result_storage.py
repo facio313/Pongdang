@@ -160,7 +160,8 @@ def test_identical_republication_reuses_detail_json(database):
         }
         assert "detail" in columns
         assert set(DETAIL_FIELDS).isdisjoint(columns)
-        assert set(previous[0]["detail"]) == set(DETAIL_FIELDS)
+        assert set(previous[0]["detail"]) == set(DETAIL_FIELDS) | {"place_kind"}
+        assert previous[0]["detail"]["place_kind"] is None
         revision = projection_revision(connection)
         # This ordinary input revision does not revoke the earlier publication.
         connection.execute(

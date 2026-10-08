@@ -4,9 +4,8 @@ export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mud
 export type Activity = keyof typeof activities;
 /** 서버 RECOMMENDED_ACTIVITIES와 같은 추천 후보. 기존 활동 라벨은 기록 호환용으로 유지합니다. */
 export const recommendedActivities = ["swim", "surf", "relax", "onsen", "walk"] as const satisfies readonly Activity[];
-/** 활동별 점수 목록. 수영·서핑·걷기·온천을 표시하며 휴식은 대안 후보로 유지합니다.
- * 휴식은 후보에 남으므로 히어로가 이 목록에 없는 활동을 고를 수도 있습니다. */
-export const listedActivities = ["swim", "surf", "walk", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
+/** 추천하는 다섯 활동을 모두 표시하고, 각 활동의 점수 의미를 함께 안내합니다. */
+export const listedActivities = ["swim", "surf", "relax", "walk", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
 export interface AiContext {
   spot_id?: number;
   spot_ids?: number[];

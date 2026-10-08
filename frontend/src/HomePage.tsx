@@ -587,7 +587,9 @@ function TasteBanner({
       <AiSuggestion
         headline={
           best
-            ? t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
+            ? best.data?.condition_score?.score_basis === "onsen_alternative"
+              ? t("오늘의 야외 조건에서는 온천으로 이동하는 대안을 권합니다")
+              : t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
             : missingChoiceHeadline(recommendation.error, true).join(" ")
         }
         // 서버가 고른 이유를 먼저 씁니다. 없으면 점수를 깎은 항목으로

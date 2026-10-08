@@ -103,7 +103,7 @@ function TodayHero({
   const score = best?.score ?? null;
   const grade = gradeOf(score);
   const verdict =
-    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key) : null;
+    best && !loading ? verdictOf(best.activity, gradeOf(best.score).key, best.data?.condition_score?.score_basis) : null;
   const displayedConditions = best?.data ?? baseline;
   const at = displayedConditions?.projection?.computed_at ?? displayedConditions?.retained_at ?? displayedConditions?.at;
   return (

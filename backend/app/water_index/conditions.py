@@ -176,8 +176,13 @@ _ACTIVITIES = (
     (
         "onsen",
         "온천",
-        "설정한 시설 욕조·외부 기온 조건의 일치 정도",
-        ("bath_water_temperature", "air_temperature"),
+        "기온·야외 수온·파고를 바탕으로 온천으로 이동할 대안 매력을 비교",
+        (
+            "bath_water_temperature",
+            "air_temperature",
+            "water_temperature",
+            "wave_height",
+        ),
         (
             "시설 유형·실내외 구분",
             "시설 실측 욕조 수온·위생·이용 제한",
@@ -240,6 +245,17 @@ def activity_metrics(activity, place_kind=None):
             )
         )
     return ACTIVITIES[activity].metrics
+
+
+def activity_score_metrics(activity, place_kind=None):
+    # Keep bath measurements available to explicit range queries and evidence.
+    # The product recommendation evaluates the outing alternative, not the bath.
+    if activity == "onsen":
+        return tuple(
+            METRICS[name]
+            for name in ("air_temperature", "water_temperature", "wave_height")
+        )
+    return activity_metrics(activity, place_kind)
 
 
 class ActivityCatalog(Record):

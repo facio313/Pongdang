@@ -14,6 +14,19 @@ import {
   tideLine,
 } from '../src/recommendationText.ts';
 
+test('onsen alternative displays its computed score without implying an on-site bath', () => {
+  const conditions = { activity: 'onsen', support_status: 'unknown', condition_score: { score: 93.7, status: 'evaluated', score_basis: 'onsen_alternative' } };
+  assert.deepEqual(activityRecommendationDisplay(conditions, { dropped: false }), { score: 93.7, eligibility: '날씨 기반 대안' });
+  const rec = { choice: { activity: 'onsen' }, reasons: [
+    { code: 'onsen_weather_alternative', activity: 'onsen' },
+    { code: 'onsen_alternative_factor', label: '야외 수온', value: 12, unit: '°C' },
+  ] };
+  assert.equal(activityHeadline('onsen', rec), '온천으로 몸 녹이기');
+  assert.match(choiceReason(rec).text, /야외 수온 12°C/);
+  assert.match(choiceReason(rec).text, /시설 영업과 욕조 상태/);
+  assert.equal(activityRecommendationDisplay({ ...conditions, support_status: 'unsupported' }).score, null);
+});
+
 test('walking names the place context and states the limits of its weather score', () => {
   const rec = { place_kind: 'beach', choice: { activity: 'walk' }, reasons: [{ code: 'walking_weather_only', activity: 'walk' }] };
   assert.equal(activityHeadline('walk', rec), '해변 걷기');
@@ -165,11 +178,12 @@ test('the waves say which of swimming and surfing today is', () => {
 });
 
 test('the runner-up is named only when its score is on screen', () => {
-  // 휴식은 활동별 점수 목록에서 빠졌습니다(aiApi.listedActivities). 서버는
-  // 여전히 「휴식이 점수로는 앞선다」를 사유로 보내지만, 화면에 그 숫자가 없는
-  // 채로 그 문장을 적으면 사용자가 찾을 수 없는 점수를 가리키게 됩니다.
-  assert.equal(choiceReason(recommendation({
+  // 휴식은 다시 표시하므로 이전 응답의 휴식 비교도 읽을 수 있습니다.
+  assert.match(choiceReason(recommendation({
     reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'relax', value: 82, threshold: 96.7 })],
+  })).text, /휴식 점수가 더 높지만/);
+  assert.equal(choiceReason(recommendation({
+    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'rafting', value: 82, threshold: 96.7 })],
   })), null);
 
   // 목록에 줄이 있는 상대(온천)라면 그대로 말합니다 -- 숨기는 것이 목적이
@@ -258,8 +272,9 @@ test('alternatives are grouped as places to go, never as a mood', () => {
   assert.deepEqual(alternativeGroups(undefined), []);
 });
 
-test('resting is named as a day out of the water, not as sitting by it', () => {
-  assert.equal(activityHeadline('relax'), '물에 들어가지 않는 하루');
+test('resting remains distinct from the separate walking activity', () => {
+  assert.equal(activityHeadline('relax'), '휴식');
+  assert.equal(activityHeadline('relax', { beach_season: { status: 'out_of_season' } }), '휴식');
   assert.equal(activityHeadline('swim'), '수영');
   assert.equal(activityHeadline('surf'), '서핑');
 });

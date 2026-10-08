@@ -265,9 +265,9 @@ def test_a_warm_sea_keeps_its_evidence_but_requires_opening_confirmation(db):
     )
     assert chosen["condition_score"]["score"] == view["choice"]["score"]
     assert [row["activity"] for row in view["ranked"]] == list(RECOMMENDED_ACTIVITIES)
-    # 해변에는 온천 시설이 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
+    # 욕조 실측 없이도 야외 조건으로 온천 이동 대안을 비교합니다.
     dropped = {row["activity"] for row in view["ranked"] if row["dropped"]}
-    assert "onsen" in dropped
+    assert "onsen" not in dropped
 
 
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):

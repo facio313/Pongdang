@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from psycopg import errors, sql
 from psycopg.types.json import Jsonb
 
-from app.water_index.activity_score import ActivityScore
+from app.water_index.activity_score import ActivityScore, activity_score_metadata
 from app.water_index.condition_result import (
     RESULT_COLUMNS,
     content_digest,
@@ -26,10 +26,11 @@ from app.water_index.conditions import (
     ConditionProjection,
     ConditionsEnvelope,
     ConditionSummary,
+    activity_score_metrics,
     summarize_conditions,
 )
 
-MODEL_VERSION = "1.2.0"
+MODEL_VERSION = "1.3.0"
 REFRESH_SECONDS = 600
 KST = ZoneInfo("Asia/Seoul")
 RESULT_LOCK = "pongdang-condition-results"
@@ -829,11 +830,12 @@ def _unavailable(q, at, as_of, row):
         required_evidence=definition.required_evidence,
         reason_codes=(reason,),
         condition_score=ActivityScore(
+            **activity_score_metadata(q.activity),
             status="unavailable",
             score=None,
             coverage=0.0,
             available_components=0,
-            total_components=len(definition.metrics),
+            total_components=len(activity_score_metrics(q.activity)),
             components=(),
             reason_codes=(reason, "not_a_safety_score"),
             sources=(),

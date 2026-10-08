@@ -182,7 +182,7 @@ def test_missing_station_ambiguous_metric_unselected_missing_and_duplicates():
     with pytest.raises(ValueError):
         calculate_conditions(envelope(), (criterion(), criterion()))
     with pytest.raises(ValueError):
-        calculate_conditions(envelope("onsen"), (criterion("water_temperature"),))
+        calculate_conditions(envelope("onsen"), (criterion("river_flow"),))
 
 
 def test_reproducibility_and_criteria_or_revision_identity():

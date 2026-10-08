@@ -31,7 +31,7 @@
 | code | 동작 | 임계값 | basis |
 |---|---|---|---|
 | `activity_blocked` | `condition_score.status` 가 `blocked`·`unavailable` 이면 후보에서 제외 | — | data_contract |
-| `essential_measurement_missing` | 활동을 정의하는 지표가 없으면 제외. swim/surf=수온+파고, onsen=시설 욕조 수온, rafting=하천 수위 또는 유량, relax/mudflat=기온, walk=기온+풍속+강수. 담수 수영은 수온+강수 | — | data_contract |
+| `essential_measurement_missing` | 활동을 정의하는 지표가 없으면 제외. swim/surf=수온+파고, onsen=기온·야외 수온·파고 중 하나 이상, rafting=하천 수위 또는 유량, relax/mudflat=기온, walk=기온+풍속+강수. 담수 수영은 수온+강수 | — | data_contract |
 | `water_too_cold_for_immersion` | 수온이 기준 아래면 swim·surf 제외 | 18°C (`WATER` 곡선의 40점 절점) | score_curve_knot |
 | `air_below_beach_preference` | 기온이 해변 선호 구간 밖이라는 사실을 문장에 덧붙임. **이 값만으로 활동을 빼지 않는다** | 21°C (`BEACH_AIR` 곡선의 0점 절점) | score_curve_knot |
 | `tide_phase_product_rule` | 만조·간조 전후 구간이면 swim·surf 를 뒤로 미루고 계곡 대안을 함께 제시 | ±60분 | **pongdang_product_rule** |
@@ -54,7 +54,7 @@
 |---|---|---|---|
 | 지원 | `conditions.ACTIVITIES` | swim · surf · relax · mudflat · onsen · rafting · walk | API 로 직접 물으면 평가한다 |
 | 추천 후보 | `models.RECOMMENDED_ACTIVITIES` | swim · surf · relax · onsen · walk | `decide()` 가 비교해 하나를 고른다 |
-| 점수 목록 | `frontend aiApi.listedActivities` | swim · surf · walk · onsen | 화면의 「활동별 점수」에 줄이 선다 |
+| 점수 목록 | `frontend aiApi.listedActivities` | swim · surf · relax · walk · onsen | 화면의 「활동별 점수」에 줄이 선다 |
 
 - **mudflat** 은 후보에서 빠진다 — 동해안에 갯벌 **지형**이 없다.
 - **rafting** 은 후보에서 빠진다 — 어댑터가 하천 수위·유량을 공급하지 않고 그
@@ -62,15 +62,10 @@
   두면 화면에 늘 「추천 제외 · 필수 근거 부족」 한 줄만 섰다. **자료** 문제이며,
   하천 관측이 붙으면 후보 집합 한 줄을 되돌리면 된다. `ESSENTIAL_METRICS` 의
   rafting 행은 그대로 남겨 둔다 — 호출자가 직접 넣어도 기상만으로는 권하지 않는다.
-- **relax** 는 후보로 남지만 점수 목록에서 빠진다. 점수는 휴식이 1위인데 위에서는
-  수영을 권하는 과거 화면의 혼동을 줄이기 위한 표시 결정이다. **후보
-  에서는 지우지 않는다** — 물때 구간·개장 기간 밖처럼 물 활동이 전부 미뤄진 날의
-  답이 휴식이고, 그 자리를 비우면 미뤄진 수영이 히어로로 올라와 10월 폐장 해변에
-  「오늘 가장 좋은 활동 = 수영」이 선다. 히어로에서는 `activityHeadline` 이 그것을
-  「해변 산책」·「물에 들어가지 않는 하루」로 바꿔 부른다. 즉 **히어로는 점수
-  목록에 없는 활동일 수 있다.**
-- **onsen** 은 목록에 남는다. 시설 욕조 수온 자료가 없어 늘 「추천 제외 · 필수 근거
-  부족」이지만 그것이 정직한 표시다 — 근거가 없는 것과 조건이 나쁜 것은 다르다.
+- **relax** 는 추천 후보와 점수 목록 모두에 남기며 걷기와 별도 활동으로 표시한다.
+- **onsen** 은 기온·야외 수온이 낮고 파고가 높을수록 점수가 높아지는 온천 이동 대안이다.
+  욕조 실측값이 없어도 대안을 비교하되, 없는 기상·해양 자료나 시설 영업 상태를 추정하지 않는다.
+  자세한 곡선과 의미는 [활동 조건 문서](../../implementation/backend/activity_conditions.md)를 따른다.
 
 `walk`는 새 관심사 선택지와 점수 목록 모두에 포함된다. 이전 응답의
 `water_activity_preferred` 문구는 호환용으로만 읽으며 새 판단에서는 만들지 않는다.
@@ -116,10 +111,8 @@
 
 ## 「휴식」의 표기
 
-백엔드 enum `relax` 는 계약·DB·테스트가 물려 있으므로 그대로 둔다. 바뀐 것은 표현
-계층뿐이다 — 추천 문맥에서 `relax` 는 «물에 들어가지 않는 하루»로 부르고, 카페·맛집·
-명소 대안을 함께 싣는다(`recommendationText.activityHeadline`). 「물가에 앉아 있기」가
-답이 되지 않도록 **갈 곳**을 함께 말한다.
+`relax`는 화면에서도 「휴식」으로 표시하며 `walk`의 「해변 걷기」와 구분한다.
+추천된 활동의 점수와 근거를 그대로 보여 주며, 필요하면 등록된 카페·맛집·명소 대안을 함께 제시한다.
 
 ## 한 번의 조회로 끝난다
 

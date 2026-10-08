@@ -171,7 +171,7 @@ function Hero({
             {heroScore !== null && <div className="td-score-coverage">{scoreCoverageText(best?.data)}</div>}
             <GradeChip
               score={heroScore}
-              prefix={best ? scoreTitle(best.activity) : undefined}
+              prefix={best ? scoreTitle(best.activity, best.data?.condition_score?.score_basis) : undefined}
               loading={loading}
               glass
               bare
