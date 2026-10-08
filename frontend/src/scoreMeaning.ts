@@ -40,6 +40,7 @@ const ACTIVITY_VERB: Record<Activity, string> = {
   mudflat: "갯벌에 나가기",
   onsen: "온천하기",
   rafting: "래프팅하기",
+  walk: "물길 따라 걷기",
 };
 // 동사가 모두 「-기」로 끝나므로 꼬리를 공백 없이 바로 이어 붙입니다.
 // 「수영하기에 좋은」 · 「갯벌에 나가기에는 권하지 않는」처럼 어느 활동에

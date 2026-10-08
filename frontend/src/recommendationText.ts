@@ -44,6 +44,10 @@ export function activityRecommendationDisplay(
     return { score: null, eligibility };
   }
   const score = conditionScore(conditions);
+  if (ranked?.demoted && ranked.rules_applied.includes("beach_season_unconfirmed"))
+    return { score, eligibility: t("수영 운영 확인 필요") };
+  if (ranked?.demoted && ranked.rules_applied.includes("beach_closed_season_product_rule"))
+    return { score, eligibility: t("수영 운영 기간 밖") };
   if (score === null && conditions)
     return {
       score,
@@ -91,6 +95,7 @@ export const ALTERNATIVE_LABEL: Record<
  *  **이름만** 바꿔 부릅니다 -- `Activity` 를 늘리면 점수 곡선과 필수 지표표가
  *  따라와야 하고, 근거 없는 새 곡선을 만들게 됩니다. */
 export function activityHeadline(activity: Activity, rec?: Recommendation) {
+  if (activity === "walk") return t(rec?.place_kind === "beach" ? "해변 걷기" : "물길 따라 걷기");
   if (activity !== "relax") return t(activities[activity]);
   return rec?.beach_season?.status === "out_of_season"
     ? t("해변 산책")
@@ -141,6 +146,10 @@ function measured(reason: RecommendationReasonData) {
 export function choiceReason(rec?: Recommendation): ReasonLine | null {
   const choice = rec?.choice;
   if (!choice) return null;
+  if (choice.activity === "walk" && find(rec, "walking_weather_only")) return {
+    code: "walking_weather_only",
+    text: t("기온·바람·강수 등 걷기 조건을 비교해 골랐어요. 산책로 개방과 통행 상태는 별도로 확인해 주세요."),
+  };
   const surf = find(rec, "wave_favours_surf");
   if (surf) {
     const period = find(rec, "wave_period_context");
@@ -158,6 +167,10 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
       code: swim.code,
       text: t("{waves} — 파도가 잔잔해서 바다 수영에 맞아요", { waves: measured(swim) }),
     };
+  if (find(rec, "condition_score_preferred")) return {
+    code: "condition_score_preferred",
+    text: t("필수 자료가 있는 활동의 참고 점수를 비교해 골랐어요."),
+  };
   const preferred = find(rec, "water_activity_preferred");
   if (preferred && preferred.rival)
     return {
@@ -229,6 +242,7 @@ const METRIC_NAMES: Record<string, string> = {
   river_level: "하천 수위",
   river_flow: "하천 유량",
   wind_speed: "풍속",
+  precipitation: "1시간 강수량",
 };
 
 /** 바다에 들어가는 활동. 물때 문장이 「바다 대신」이라고 말해도 되는지를

@@ -21,3 +21,10 @@ test("갯벌은 추천 후보에서 빠지되 라벨은 남는다", () => {
 test("추천 후보에 중복이 없다", () => {
   assert.equal(new Set(recommendedActivities).size, recommendedActivities.length);
 });
+
+test("새 추천은 물길 걷기를 제시하고 기존 래프팅 응답 라벨을 보존한다", () => {
+  assert.ok(recommendedActivities.includes("walk"));
+  assert.ok(!recommendedActivities.includes("rafting"));
+  assert.equal(activities.walk, "물길 따라 걷기");
+  assert.equal(activities.rafting, "래프팅");
+});

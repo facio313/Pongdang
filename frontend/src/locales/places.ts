@@ -1,6 +1,9 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const placesMessages: Record<string, MessageTranslations> = {
+  "해변 방문": ["Beach access", "海滩游览", "浜辺への訪問"],
+  "해변 상시 개방 · 수영 운영과 별도": ["Beach open year-round · Swimming operates separately", "海滩全年开放 · 游泳另行开放", "浜辺は常時開放・遊泳営業とは別"],
+  "해변을 방문할 수 있다는 안내이며, 수영 운영 기간·시간이나 입수 가능 여부를 뜻하지 않습니다.": ["This describes beach access, not swimming dates, hours or permission to enter the water.", "此信息仅说明可游览海滩，不代表游泳开放日期、时段或允许下水。", "浜辺への訪問案内です。遊泳の営業期間・時間や入水の可否を意味するものではありません。"],
   "즐겨찾기 경로": ["Favorite route", "收藏路线", "お気に入りのルート"],
   "최근 즐겨찾기 코스": ["Latest favorite course", "最新收藏行程", "最新のお気に入りコース"],
   "즐겨찾기 중 가장 최근에 저장·수정한 코스입니다.": ["Your most recently saved or updated favorite course.", "您收藏的行程中最近保存或修改的一项。", "お気に入りの中で最後に保存・更新したコースです。"],

@@ -36,14 +36,13 @@ import {
   dateLabel,
   timeLabel,
   metricText,
-  periodPath,
   placeRegionLabel,
   scoreCoverageText,
   tideTimeLabel,
   waterQualityLabel,
   type Conditions,
 } from "./productData";
-import { isInitialLoad, useResource } from "./useResource";
+import { isInitialLoad } from "./useResource";
 import { useProductData, useTodayData } from "./useProductData";
 import { useComparisonPlaces } from "./useComparisonPlaces";
 import type { ComparisonPlace } from "./comparisonPlaces";
@@ -73,14 +72,8 @@ const ACTIVITY_ROWS = [
   { id: "swim" },
   { id: "surf" },
   { id: "relax" },
-  { id: "rafting" },
+  { id: "walk" },
   { id: "onsen" },
-] as const;
-
-/** 별도의 공식 운영 시간대가 있는 활동. */
-const TIDE_ACTIVITIES = [
-  { name: "래프팅", icon: "rafting" },
-  { name: "튜브 물놀이", icon: "tube" },
 ] as const;
 
 function TodayHero({
@@ -454,44 +447,6 @@ function WeekForecast({
   );
 }
 
-/** Confirmed activity windows remain separate from published place hours. */
-function OperatingRow({
-  activity,
-  id,
-  now,
-}: {
-  activity: (typeof TIDE_ACTIVITIES)[number];
-  id?: number;
-  now: string;
-}) {
-  const windows = useResource<{
-    rows: { state: string; start_at: string; end_at: string; scope: string }[];
-  }>(
-    activity.icon === "tube"
-      ? null
-      : periodPath("tides/windows", id, now, 1, activity.icon),
-  );
-  const restricted = windows.data?.rows.find(row => row.state === "restricted");
-  const active = restricted ?? windows.data?.rows.find(
-    (row) => row.state === "official_operating_window",
-  );
-  if (!active && !windows.error) return null;
-  return (
-    <div className={"td-tide-row" + (active && !restricted ? "" : " is-unfit")}>
-      <Icon name={activity.icon} size={22} />
-      <b className="td-tide-name">{t(activity.name)}</b>
-      <span className="td-tide-reason" title={active?.scope}>
-        {windows.error
-          ? t("조회 실패")
-          : active
-            ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
-            : t("운영정보 없음")}
-      </span>
-      <span className="td-tide-fit">{restricted ? t("운영 제한") : active ? t("공식 운영") : t("확인 필요")}</span>
-    </div>
-  );
-}
-
 export function TodayDesktop() {
   const {
     now, place, conditions, baseline, activities: activityStates, best,
@@ -500,7 +455,7 @@ export function TodayDesktop() {
   const { tides, quality } = useTodayData(place?.id, now, placeSettled);
   const placeDetails = usePlaceDetails(place ? [place.id] : []);
   const detail = place ? placeDetails.byId.get(place.id) : undefined;
-  const schedule = placeOperatingSchedule(detail);
+  const schedule = placeOperatingSchedule(detail, place?.type);
   // 지점 비교 · 주간 예보는 홈에서 고른 활동을 따라갑니다. 위에 크게 뜬 점수와
   // 다른 기준의 막대를 그리지 않기 위해서입니다.
   const activity: Activity = best?.activity ?? "swim";
@@ -590,20 +545,13 @@ export function TodayDesktop() {
             <div className="td-tide-head">
               <b>{t("운영시간 안내")}</b>
             </div>
-            {TIDE_ACTIVITIES.map((item) => (
-              <OperatingRow
-                key={item.name}
-                activity={item}
-                id={place?.id}
-                now={now}
-              />
-            ))}
+
             <div className={"td-tide-row td-place-hours" + (schedule.length ? "" : " is-unfit")}>
               <Icon name="pin" size={22} />
               <b className="td-tide-name">{place?.name ?? t("기본 안내")}</b>
               <div className="td-tide-reason" role={placeDetails.error ? "alert" : undefined}>
                 {schedule.length ? schedule.map((row, index) => <div key={`${row.label}-${index}`}>
-                  <span className="td-hours-label">{t(row.label)}</span>{row.value}
+                  <span className="td-hours-label">{t(row.label)}</span>{t(row.value)}
                 </div>) : placeDetails.loading ? t("조회 중") : placeDetails.error ? t("조회 실패") : t(placeDetailsMissingText(detail?.status))}
               </div>
               <span className="td-tide-fit" title={[

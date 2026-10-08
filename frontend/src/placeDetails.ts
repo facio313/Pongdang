@@ -1,3 +1,5 @@
+import { t } from "./i18n.ts";
+
 export interface PlaceDetailEntry {
   section: string;
   key: string;
@@ -69,7 +71,16 @@ export function placeExtraDetails(detail?: PlaceDetails): PlaceDetailEntry[] {
 /** Keep published opening guidance, including older stored notices, as text.
  * It describes this place; it is not an activity-specific permission or a window
  * calculated from tides. Extra schedule fields retain the provider's own label. */
-export function placeOperatingSchedule(detail?: PlaceDetails): { label: string; value: string }[] {
+export function placeOpeningHours(value: string | null | undefined, placeKind?: string | null) {
+  const beachAccess = placeKind === "beach" && /상시\s*개방/.test(value ?? "");
+  return {
+    label: beachAccess ? "해변 방문" : "운영",
+    value: beachAccess ? value?.replace(/상시\s*개방/g, t("해변 상시 개방 · 수영 운영과 별도")) : value,
+    beachAccess,
+  };
+}
+
+export function placeOperatingSchedule(detail?: PlaceDetails, placeKind?: string | null): { label: string; value: string }[] {
   if (!detail) return [];
   const rows: { label: string; value: string }[] = [];
   for (const [label, value] of [
@@ -78,12 +89,17 @@ export function placeOperatingSchedule(detail?: PlaceDetails): { label: string; 
     ["이용시간", detail.opening_hours],
     ["휴무일", detail.rest_days],
   ] as const) {
-    if (value?.trim()) rows.push({ label, value });
+    if (value?.trim()) {
+      const hours = label === "이용시간" ? placeOpeningHours(value, placeKind) : null;
+      rows.push({ label: hours?.beachAccess ? hours.label : label, value: hours?.value ?? value });
+    }
   }
   for (const entry of detail.details) {
     if (entry.section === "info" && /(?:이용|운영|입장|체험).*시간|휴무|개장.*기간/.test(entry.label)
-      && entry.value.trim() && !rows.some(row => row.value === entry.value)) {
-      rows.push({ label: entry.label, value: entry.value });
+      && entry.value.trim() && !rows.some(row => row.value === entry.value)
+      && entry.value !== detail.opening_hours) {
+      const hours = placeOpeningHours(entry.value, placeKind);
+      rows.push({ label: hours.beachAccess ? hours.label : entry.label, value: hours.value ?? entry.value });
     }
   }
   return rows;

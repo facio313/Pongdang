@@ -11,7 +11,7 @@ const ACTIVITY_ORDER = [
   "surf",
   "relax",
   "onsen",
-  "rafting",
+  "walk",
 ] as const satisfies readonly Activity[];
 const _sameAsRecommended: typeof ACTIVITY_ORDER.length =
   recommendedActivities.length;

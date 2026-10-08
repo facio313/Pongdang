@@ -15,6 +15,48 @@ def component(result, name):
     return next(c for c in result.components if c.metric == name)
 
 
+def test_walking_uses_weather_without_water_temperature_or_waves():
+    weather = (
+        metric("air_temperature", 22.9),
+        metric("relative_humidity", 55.0),
+        metric("wind_speed", 2.8),
+        metric("precipitation", 0.0),
+    )
+    dry = calculate_activity_score(envelope("walk", metrics=weather))
+    with_water = calculate_activity_score(
+        envelope(
+            "walk",
+            metrics=(
+                *weather,
+                metric("water_temperature", 5.0),
+                metric("wave_height", 3.0),
+            ),
+        )
+    )
+    assert dry.score == 97.5
+    assert with_water.score == dry.score
+    assert {c.metric for c in dry.components} == {
+        "air_temperature",
+        "relative_humidity",
+        "wind_speed",
+        "precipitation",
+    }
+    assert dry.scientific_validation == "not_evaluated"
+
+
+def test_rain_and_strong_wind_reduce_walking_score_and_missing_rain_stays_missing():
+    def score(**values):
+        return calculate_activity_score(
+            envelope("walk", metrics=tuple(metric(k, v) for k, v in values.items()))
+        )
+
+    clear = score(air_temperature=20.0, wind_speed=2.0, precipitation=0.0)
+    wet = score(air_temperature=20.0, wind_speed=15.0, precipitation=10.0)
+    incomplete = score(air_temperature=20.0, wind_speed=2.0)
+    assert wet.score < clear.score
+    assert component(incomplete, "precipitation").score is None
+
+
 def test_published_air_range_and_wind_intervals_with_declared_adaptation():
     assert [BEACH_AIR.score(x) for x in (21, 23, 25, 30, 31.5, 33)] == [
         0,

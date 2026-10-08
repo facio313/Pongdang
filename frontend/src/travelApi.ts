@@ -64,7 +64,7 @@ export function routeReasonsText(reasons: string[]): string {
 export function travelActivityLabel(activity: Activity, fallback: string): string {
   const labels: Partial<Record<Activity, string>> = {
     relax: "물 보며 쉬기", onsen: "온천", surf: "서핑", swim: "수영",
-    rafting: "래프팅", mudflat: "갯벌",
+    rafting: "래프팅", mudflat: "갯벌", walk: "물길 따라 걷기",
   };
   return t(labels[activity] ?? fallback);
 }

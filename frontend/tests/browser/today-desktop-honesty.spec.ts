@@ -85,14 +85,20 @@ test("desktop weekly forecasts preserve each stored date's missing evidence and 
   await expect(week.locator(".td-day-grade").nth(2)).toHaveText("평가값 없음");
 });
 
-test("desktop tides and official windows retain both dates across midnight", async ({ page }) => {
+test("desktop tides retain dates without requesting retired rafting windows", async ({ page }) => {
   const low = { event_id: "low", kind: "low", event_at: "2026-09-20T23:20:00+09:00", height: 0.2, unit: "m", station_name: "시험 조위관측소", state: "predicted", provider: "KHOA" };
   const high = { ...low, event_id: "high", kind: "high", event_at: "2026-09-21T01:30:00+09:00", height: 0.8 };
   await page.route("**/api/data/tides/events?**", route =>
     route.fulfill({ json: { rows: [low, high], next_low: low, next_high: high, status: "available" } }));
-  await page.route("**/api/data/tides/windows?**", route => route.fulfill({ json: { rows: [{ state: "official_operating_window", start_at: "2026-09-20T23:50:00+09:00", end_at: "2026-09-21T00:40:00+09:00", scope: "fixture" }] } }));
+  const windows: string[] = [];
+  await page.route("**/api/data/tides/windows?**", route => {
+    windows.push(route.request().url());
+    return route.fulfill({ json: { rows: [] } });
+  });
   await page.goto("#today");
   await expect(page.locator(".td-tide-state")).toContainText("간조 9/20 23:20 KST");
   await expect(page.locator(".td-tide-state")).toContainText("만조 9/21 01:30 KST");
-  await expect(page.locator(".td-tide-reason").first()).toHaveText("9/20 23:50 KST–9/21 00:40 KST");
+  await expect(page.locator(".td-place-hours")).toContainText("해변 상시 개방 · 수영 운영과 별도");
+  await expect(page.locator(".td-activity-name", { hasText: "물길 따라 걷기" })).toHaveCount(1);
+  expect(windows).toEqual([]);
 });

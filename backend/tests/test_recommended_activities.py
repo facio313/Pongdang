@@ -22,6 +22,9 @@ def test_recommended_is_a_subset_of_supported_and_excludes_mudflat():
     assert "mudflat" not in RECOMMENDED_ACTIVITIES
     # 지원 범위는 줄지 않습니다. 카탈로그는 여전히 갯벌을 평가할 수 있습니다.
     assert "mudflat" in ACTIVITIES
+    assert "rafting" not in RECOMMENDED_ACTIVITIES
+    assert "rafting" in ACTIVITIES
+    assert "walk" in RECOMMENDED_ACTIVITIES
 
 
 def test_keyword_activity_options_match_the_recommended_set():
@@ -57,3 +60,23 @@ def test_an_unrecommended_activity_is_dropped_rather_than_raising():
         ],
     )
     assert [row["activity"] for row in activity_options(request, place)] == ["swim"]
+
+
+@pytest.mark.parametrize("kind", ["beach", "valley", "lake", "river", "reservoir"])
+def test_walking_candidates_cover_water_places_without_asserting_access(kind):
+    request = SimpleNamespace(locale="ko", activity="walk", keyword_selection=[])
+    options = activity_options(request, {"catalog_tags": [], "kind": kind})
+    assert [row["activity"] for row in options] == ["walk"]
+    assert options[0]["status"] == "unverified"
+
+
+def test_retired_rafting_keywords_still_load_saved_trips_without_becoming_walks():
+    from app.travel.keywords import normalize
+    from app.travel.models import TravelRequest
+
+    request = TravelRequest(
+        activity="rafting",
+        keyword_selection=[{"category": "activity", "values": ["rafting"]}],
+    )
+    assert normalize(request).activity == "rafting"
+    assert activity_options(request, {"catalog_tags": [], "kind": "river"}) == []

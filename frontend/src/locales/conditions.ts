@@ -1,6 +1,12 @@
 import type { MessageTranslations } from "../i18n.ts";
 
 export const conditionsMessages: Record<string, MessageTranslations> = {
+  "물길 따라 걷기": ["Walk by the water", "水边散步", "水辺を歩く"],
+  "해변 걷기": ["Beach walk", "海边散步", "浜辺を歩く"],
+  "수영 운영 확인 필요": ["Swimming operation needs confirmation", "需确认游泳开放情况", "遊泳の営業状況を要確認"],
+  "수영 운영 기간 밖": ["Outside the swimming season", "不在游泳开放期", "遊泳営業期間外"],
+  "기온·바람·강수 등 걷기 조건을 비교해 골랐어요. 산책로 개방과 통행 상태는 별도로 확인해 주세요.": ["Selected by comparing walking weather, including air temperature, wind and rain. Check trail access and walking conditions separately.", "根据气温、风和降雨等散步条件进行选择。请另行确认步道开放和通行情况。", "気温・風・雨など歩行時の条件を比較して選びました。遊歩道の開放・通行状況は別途ご確認ください。"],
+  "필수 자료가 있는 활동의 참고 점수를 비교해 골랐어요.": ["Selected by comparing reference scores for activities with the required data.", "比较具备必要数据的活动参考分数后进行选择。", "必要な資料がある活動の参考スコアを比較して選びました。"],
   "다른 지역 비교 · {activity} 점수": ["Compare regions · {activity} score", "跨地区比较 · {activity}评分", "他地域との比較 · {activity}スコア"],
   "다른 지역 비교 장소 조회 중": ["Loading places in other regions", "正在加载其他地区的地点", "他地域の比較場所を読み込み中"],
   "다른 시·군 우선 · 근거가 많은 곳부터 최대 2곳 · 같은 점수·수온 조합 제외": [

@@ -680,7 +680,7 @@ def test_empty_required_list_is_not_sufficient_quality():
 
 
 def test_bundled_provenance_is_complete_and_source_hashes_match():
-    assert len(PARAMETER_IDS) == 166
+    assert len(PARAMETER_IDS) == 171
     assert len(EVIDENCE_IDS) == 47
     assert get_parameter("PAR_HCI_COMPONENT_TABLE_TRANSCRIPTION")["value"] is None
     assert (

@@ -24,7 +24,7 @@ test('the score title always names the activity it belongs to', () => {
 });
 
 test('every activity and grade pair produces a verdict, and an unscored one produces none', () => {
-  const activities = ['swim', 'surf', 'relax', 'mudflat', 'onsen', 'rafting'];
+  const activities = ['swim', 'surf', 'relax', 'mudflat', 'onsen', 'rafting', 'walk'];
   const gradeKeys = ['excellent', 'good', 'fair', 'caution', 'poor'];
   for (const activity of activities)
     for (const gradeKey of gradeKeys) {

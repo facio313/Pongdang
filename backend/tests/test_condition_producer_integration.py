@@ -107,6 +107,51 @@ def assert_parity(settings, loaded, q, at, cutoff):
     return projected
 
 
+def test_walk_weather_is_published_read_and_recommended_without_water_readings(
+    database,
+):
+    from app.water_index.recommendation_api import (
+        RecommendationQuery,
+        read_recommendation,
+    )
+
+    now = datetime.now(UTC)
+    put(
+        database,
+        observed=now - timedelta(minutes=5),
+        fetched=now - timedelta(minutes=1),
+        values=[
+            Value(name=name, numeric_value=value, unit=unit)
+            for name, value, unit in (
+                ("air_temperature", 22.9, "degC"),
+                ("relative_humidity", 55.0, "%"),
+                ("wind_speed", 2.8, "m/s"),
+                ("precipitation", 0.0, "mm/1h"),
+            )
+        ],
+    )
+    with connect(database) as c:
+        (spot,) = c.execute(
+            "INSERT INTO pongdang_data.spots_waterspot(name,type,lat,lng) "
+            "VALUES ('Disposable walking beach','beach',37.5,129) RETURNING id"
+        ).fetchone()
+    loaded, _, _ = inputs(database, now)
+    query = ConditionQuery(spot_id=spot, activity="walk", mode="observation")
+    calculated = assert_parity(database, loaded, query, now, now)
+    assert calculated.condition_score.score == 97.5
+    assert produce_conditions(database, now=now) > 0
+    result = asyncio.run(read_condition_set(DataReader(database), [query], now=now))[0]
+    assert result.condition_score.score == 97.5
+    assert result.activity == "walk" and result.safety_status == "unknown"
+    recommendation = asyncio.run(
+        read_recommendation(
+            DataReader(database), RecommendationQuery(spot_id=spot), now=now
+        )
+    )
+    assert recommendation.choice.activity == "walk"
+    assert "rafting" not in {row.activity for row in recommendation.ranked}
+
+
 def test_nifs_surface_storage_nearby_projection_and_missing_revision(database):
     from test_nifs import NOW, Client, observation, settings
 

@@ -151,7 +151,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
         {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} />}
 
         <div className="pd-card place-details-card">
-          <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} />
+          <PlaceDetailInformation detail={details.byId.get(spotId)} placeKind={classified?.type} loading={details.loading} error={details.error} />
         </div>
 
         <div className="pd-card">

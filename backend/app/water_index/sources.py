@@ -6,7 +6,7 @@ using ``python -m app.water_index.producer --evidence FILE`` after schema migrat
 
 import hashlib
 import json
-from typing import Literal
+from typing import Literal, get_args
 from urllib.parse import urlsplit
 
 from psycopg.types.json import Jsonb
@@ -27,7 +27,9 @@ class StationMapping(Record):
     source_url: str = Field(min_length=1, max_length=1000)
     authority: str = Field(min_length=1, max_length=200)
     reviewed_by: str = Field(min_length=1, max_length=200)
-    activities: tuple[Activity, ...] = Field(min_length=1, max_length=6)
+    activities: tuple[Activity, ...] = Field(
+        min_length=1, max_length=len(get_args(Activity))
+    )
     valid_from: AwareDatetime
     valid_until: AwareDatetime
     supersedes_id: str | None = Field(default=None, max_length=200)

@@ -531,6 +531,8 @@ async def deterministic_reads(session, request):
         ("갯벌", "mudflat"),
         ("온천", "onsen"),
         ("래프팅", "rafting"),
+        ("걷기", "walk"),
+        ("산책", "walk"),
         ("휴식", "relax"),
     ):
         if word in text:

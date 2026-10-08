@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeExtraDetails, placeHomepageUrl, placeOperatingSchedule } from '../src/placeDetails.ts';
+import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeExtraDetails, placeHomepageUrl, placeOperatingSchedule, placeOpeningHours } from '../src/placeDetails.ts';
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from '../src/placeDistance.ts';
 
 test('stored detail reads batch stable unique positive IDs and enforce the page bound', () => {
@@ -70,6 +70,17 @@ test('additional activity schedules preserve provider labels without duplicating
 test('missing schedules remain empty instead of acquiring generic opening times', () => {
   assert.deepEqual(placeOperatingSchedule(), []);
   assert.deepEqual(placeOperatingSchedule({ opening_hours: null, opening_period: '', rest_days: ' ', details: [] }), []);
+});
+
+test('beach opening text describes access separately from swimming and preserves provider qualifications', () => {
+  const detail = { opening_hours: '상시개방 (기상 상황에 따라 통제)', opening_period: null, rest_days: null, details: [] };
+  assert.deepEqual(placeOperatingSchedule(detail, 'beach'), [
+    { label: '해변 방문', value: '해변 상시 개방 · 수영 운영과 별도 (기상 상황에 따라 통제)' },
+  ]);
+  assert.equal(placeOpeningHours(detail.opening_hours, 'valley').value, detail.opening_hours);
+  assert.equal(placeOpeningHours('09:00–18:00', 'beach').value, '09:00–18:00');
+  assert.equal(placeOpeningHours(null, 'beach').value, null);
+  assert.equal(detail.opening_hours, '상시개방 (기상 상황에 따라 통제)');
 });
 
 test('extra details omit visitor information duplicates while preserving unique and conflicting provider guidance', () => {

@@ -14,6 +14,20 @@ import {
   tideLine,
 } from '../src/recommendationText.ts';
 
+test('walking names the place context and states the limits of its weather score', () => {
+  const rec = { place_kind: 'beach', choice: { activity: 'walk' }, reasons: [{ code: 'walking_weather_only', activity: 'walk' }] };
+  assert.equal(activityHeadline('walk', rec), '해변 걷기');
+  assert.equal(activityHeadline('walk', { place_kind: 'valley' }), '물길 따라 걷기');
+  assert.match(choiceReason(rec).text, /기온·바람·강수/);
+  assert.match(choiceReason(rec).text, /산책로 개방과 통행 상태/);
+});
+
+test('a deferred swimming score keeps its numeric evidence with an operating qualifier', () => {
+  const conditions = { condition_score: { score: 75.6, status: 'evaluated' } };
+  assert.deepEqual(activityRecommendationDisplay(conditions, { demoted: true, rules_applied: ['beach_season_unconfirmed'] }),
+    { score: 75.6, eligibility: '수영 운영 확인 필요' });
+});
+
 test('place details retain received evidence when missing waves prevent a recommendation', () => {
   const conditions = { activity: 'swim', condition_score: { score: 76.8, status: 'partial' } };
   const data = { choice: null, conditions: [conditions], ranked: [{ activity: 'swim', dropped: true, rules_applied: ['essential_measurement_missing'] }] };

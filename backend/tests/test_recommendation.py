@@ -68,12 +68,55 @@ def beach(**overrides):
         # 해변에는 시설 욕조 수온도, 하천 관측소도 없습니다. 그것이 현실입니다.
         "onsen": scored("onsen", air_temperature=27.0),
         "rafting": scored("rafting", air_temperature=27.0, wind_speed=3.0),
+        "walk": scored("walk", air_temperature=27.0),
     }
     return data | overrides
 
 
 def codes(decision):
     return [reason.code for reason in decision.reasons]
+
+
+def test_autumn_weather_can_choose_a_beach_walk_instead_of_swimming():
+    data = beach(
+        swim=scored(
+            "swim",
+            water_temperature=21.3,
+            air_temperature=22.9,
+            wind_speed=2.8,
+            wave_height=0.3,
+        ),
+        walk=scored(
+            "walk",
+            air_temperature=22.9,
+            relative_humidity=55.0,
+            wind_speed=2.8,
+            precipitation=0.0,
+        ),
+    )
+    decision = decide(data, place_kind="beach", season=season("unconfirmed"))
+    assert decision.choice.activity == "walk"
+    assert decision.choice.score == 97.5
+    assert candidate(decision, "swim").score == 75.6
+    assert candidate(decision, "swim").demoted
+    assert "walking_weather_only" in codes(decision)
+
+
+@pytest.mark.parametrize("missing", ["air_temperature", "wind_speed", "precipitation"])
+def test_walking_never_treats_missing_weather_as_favourable(missing):
+    values = {"air_temperature": 20.0, "wind_speed": 2.0, "precipitation": 0.0}
+    del values[missing]
+    decision = decide({"walk": scored("walk", **values)}, place_kind="valley")
+    assert decision.choice is None
+    assert candidate(decision, "walk").dropped
+    assert any(r.metric == missing for r in decision.reasons)
+
+
+def test_walks_do_not_inherit_swimming_permission_or_override_a_walking_closure():
+    walking = scored("walk", air_temperature=20.0, wind_speed=2.0, precipitation=0.0)
+    assert decide({"walk": walking}, place_kind="valley").choice.activity == "walk"
+    blocked = with_score(walking.model_copy(update={"safety_status": "restricted"}))
+    assert decide({"walk": blocked}, place_kind="valley").choice is None
 
 
 def candidate(decision, activity):
@@ -111,9 +154,11 @@ def test_every_rule_declares_where_its_threshold_came_from():
     assert "안전 판정이 아닙니다" in tide_rule.text
 
 
-def test_a_beach_never_recommends_rafting_or_onsen_on_weather_alone():
+def test_a_beach_never_recommends_onsen_or_legacy_rafting_on_weather_alone():
     decision = decide(beach())
-    assert decision.choice.activity in {"swim", "surf"}
+    assert "rafting" not in {c.activity for c in decision.ranked}
+    decision = decide(beach(), order=("onsen", "rafting"))
+    assert decision.choice is None
     for activity in ("rafting", "onsen"):
         entry = candidate(decision, activity)
         assert entry.dropped
@@ -175,7 +220,7 @@ def test_waves_choose_surfing_over_swimming_and_say_so():
             wind_speed=3.0,
         ),
     )
-    decision = decide(surfable)
+    decision = decide(surfable, order=("swim", "surf"))
     assert decision.choice.activity == "surf"
     wave = next(r for r in decision.reasons if r.code == "wave_favours_surf")
     assert wave.value == 1.1 and wave.unit == "m"
@@ -184,24 +229,21 @@ def test_waves_choose_surfing_over_swimming_and_say_so():
 
 
 def test_calm_water_keeps_swimming_and_does_not_blame_the_waves():
-    decision = decide(beach())
+    decision = decide(beach(), order=("swim", "surf"))
     assert decision.choice.activity == "swim"
     assert "wave_favours_swim" in codes(decision)
     assert "wave_favours_surf" not in codes(decision)
 
 
-def test_a_higher_scoring_rest_does_not_outrank_a_swimmable_sea():
+def test_a_higher_scoring_rest_can_outrank_a_swimmable_sea():
     decision = decide(beach())
     rest = candidate(decision, "relax")
     swim = candidate(decision, "swim")
-    # 휴식은 보는 항목이 적어 점수가 더 높게 나옵니다. 그래도 1위가 아닙니다.
+    # 물 활동을 고정 우선하지 않고, 필수 근거가 있는 활동을 비교합니다.
     assert rest.score > swim.score
-    assert decision.choice.activity == "swim"
-    preferred = next(
-        r for r in decision.reasons if r.code == "water_activity_preferred"
-    )
-    assert preferred.activity == "swim" and preferred.rival == "relax"
-    assert preferred.value == swim.score and preferred.threshold == rest.score
+    assert decision.choice.activity == "relax"
+    assert "condition_score_preferred" in codes(decision)
+    assert "water_activity_preferred" not in codes(decision)
 
 
 @pytest.mark.parametrize("phase,minutes", [("near_high", 40), ("near_low", -20)])
@@ -222,7 +264,7 @@ def test_the_tide_rule_defers_sea_activities_and_offers_a_valley(phase, minutes)
 
 def test_a_tide_outside_the_margin_changes_nothing():
     decision = decide(beach(), place_kind="beach", tide=tide("rising", 200))
-    assert decision.choice.activity == "swim"
+    assert decision.choice == decide(beach(), place_kind="beach").choice
     assert not candidate(decision, "swim").demoted
     assert "tide_phase_product_rule" not in codes(decision)
 
@@ -320,8 +362,8 @@ def season(status, **overrides):
 def test_a_beach_outside_its_opening_period_does_not_lead_with_swimming():
     closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
     assert closed.choice is not None
-    # 서핑은 개장과 무관합니다. 수영만 미뤄졌으므로 서핑이 1순위입니다.
-    assert closed.choice.activity == "surf"
+    # 수영만 미루며, 남은 활동은 물 활동 우선 없이 점수로 비교합니다.
+    assert closed.choice.activity == "relax"
     swim = candidate(closed, "swim")
     assert swim.demoted is True
     # **후보에서 지우지 않습니다** -- 수온·파고 점수와 그 근거는 계속 보입니다.
@@ -362,14 +404,15 @@ def test_being_inside_the_opening_period_changes_nothing():
     assert "beach_closed_season_product_rule" not in inside.reason_codes
 
 
-def test_an_unconfirmed_opening_period_never_changes_the_order():
-    """미확인은 폐장의 증거가 아닙니다. 없는 값을 「닫혔다」로 바꾸지 않습니다."""
+def test_an_unconfirmed_opening_period_defers_swimming_but_keeps_its_score():
+    """미확인은 폐장 판정이 아니지만 수영을 1순위로 권할 근거도 아닙니다."""
     unknown = decide(beach(), place_kind="beach", season=season("unconfirmed"))
     plain = decide(beach(), place_kind="beach")
     assert unknown.choice == plain.choice
     swim = candidate(unknown, "swim")
-    assert swim.demoted is False
-    # 화면이 「개장 정보 확인 필요」를 띄울 수 있게 사실만 남깁니다.
+    assert swim.demoted is True
+    assert swim.score == candidate(plain, "swim").score
+    assert not swim.dropped
     assert "beach_season_unconfirmed" in swim.rules_applied
     assert "beach_season_unconfirmed" in unknown.reason_codes
 
@@ -423,7 +466,12 @@ def test_surfing_is_untouched_by_the_beach_opening_period():
 
 def test_a_season_deferred_swim_is_not_what_the_waves_chose():
     """파도는 아무것도 고르지 않았고 달력이 골랐습니다."""
-    closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
+    closed = decide(
+        beach(),
+        place_kind="beach",
+        season=season("out_of_season"),
+        order=("swim", "surf"),
+    )
     assert closed.choice is not None and closed.choice.activity == "surf"
     assert "wave_favours_surf" not in codes(closed)
 

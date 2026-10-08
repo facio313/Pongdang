@@ -21,7 +21,7 @@ Identifier = Annotated[
 PositiveId = Annotated[int, Field(strict=True, gt=0)]
 Count = Annotated[int, Field(strict=True, ge=0)]
 Number = Annotated[StrictFloat, Field(allow_inf_nan=False)]
-Activity = Literal["swim", "surf", "relax", "mudflat", "onsen", "rafting"]
+Activity = Literal["swim", "surf", "relax", "mudflat", "onsen", "rafting", "walk"]
 # 지원하는 활동과 「추천 후보로 제시하는 활동」은 다릅니다. 강릉을 포함한
 # 동해안은 서해안·남해안 같은 갯벌 지형이 발달하지 않아 mudflat 을 먼저
 # 제안하지 않습니다. API 로 activity=mudflat 을 직접 물으면 여전히 평가합니다
@@ -31,7 +31,7 @@ RECOMMENDED_ACTIVITIES: tuple[Activity, ...] = (
     "surf",
     "relax",
     "onsen",
-    "rafting",
+    "walk",
 )
 Mode = Literal["observation", "forecast", "mixed", "none"]
 InputMode = Literal["observation", "forecast"]

@@ -479,7 +479,7 @@ def test_past_recommendation_forecast_fallback_uses_requested_cutoff(monkeypatch
 
 def test_http_catalog_calculation_no_store_and_openapi(client):
     catalog = client.get(BASE + "/activities")
-    assert catalog.status_code == 200 and len(catalog.json()["rows"]) == 6
+    assert catalog.status_code == 200 and len(catalog.json()["rows"]) == len(ACTIVITIES)
     response = client.post(BASE + "/condition-score", json=body())
     assert response.status_code == 200 and response.json()["score"] == 100
     assert response.headers["cache-control"] == "no-store"

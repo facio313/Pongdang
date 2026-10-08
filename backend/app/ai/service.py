@@ -34,7 +34,7 @@ class ExplainRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     spot_id: int = Field(gt=0)
     activity: str = Field(
-        default="swim", pattern="^(swim|surf|relax|mudflat|onsen|rafting)$"
+        default="swim", pattern="^(swim|surf|relax|mudflat|onsen|rafting|walk)$"
     )
     use_model: bool = False
     at: AwareDatetime | None = None

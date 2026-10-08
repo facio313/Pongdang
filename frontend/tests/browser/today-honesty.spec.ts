@@ -11,12 +11,12 @@ test("today separates excluded activities, partial coverage and place baseline r
   const swim = { ...conditionsFixture({ activity: "swim", score: 69 }), metrics: [reading("water_temperature", 21.3, "°C"), reading("wave_height", 0.4, "m")] };
   const relax = conditionsFixture({ activity: "relax", score: 82 });
   const onsen = conditionsFixture({ activity: "onsen", score: 100 });
-  const rafting = { ...conditionsFixture({ activity: "rafting", score: 95 }), support_status: "unsupported" };
+  const walk = { ...conditionsFixture({ activity: "walk", score: 95 }), support_status: "unsupported" };
   await routeRecommendation(page, { activity: "relax", score: 82 }, {
-    conditions: [swim, relax, onsen, rafting],
+    conditions: [swim, relax, onsen, walk],
     ranked: [
       { activity: "onsen", score: 100, dropped: true, demoted: false, rules_applied: ["essential_measurement_missing"] },
-      { activity: "rafting", score: 95, dropped: true, demoted: false, rules_applied: ["activity_blocked"] },
+      { activity: "walk", score: 95, dropped: true, demoted: false, rules_applied: ["activity_blocked"] },
     ],
   });
   await page.goto("#today");
@@ -30,8 +30,9 @@ test("today separates excluded activities, partial coverage and place baseline r
   await expect(activity("온천").locator(".td-act-score")).toHaveText("–");
   await expect(activity("온천")).toContainText("추천 제외");
   await expect(activity("온천")).not.toContainText("매우 좋음");
-  await expect(activity("래프팅").locator(".td-act-score")).toHaveText("–");
-  await expect(activity("래프팅")).toContainText("활동 미지원");
+  await expect(activity("물길 따라 걷기").locator(".td-act-score")).toHaveText("–");
+  await expect(activity("물길 따라 걷기")).toContainText("활동 미지원");
+  await expect(activity("래프팅")).toHaveCount(0);
   await expect(activity("휴식")).toContainText("마지막 업데이트");
   const tile = (name: string) => page.locator(".td-hero-tiles .td-tile").filter({ has: page.getByText(name, { exact: true }) });
   await expect(tile("수온").locator(".td-tile-value")).toHaveText("21.3°C");

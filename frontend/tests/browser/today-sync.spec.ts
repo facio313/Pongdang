@@ -115,7 +115,7 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
     수영: "swim",
     서핑: "surf",
     휴식: "relax",
-    래프팅: "rafting",
+    "물길 따라 걷기": "walk",
     온천: "onsen",
   };
   for (const pair of pairs) {

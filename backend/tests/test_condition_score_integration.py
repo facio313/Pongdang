@@ -1,6 +1,7 @@
 """Condition matching on disposable fixtures, not empirical activity validation."""
 
 from datetime import UTC, datetime, timedelta
+from typing import get_args
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +12,7 @@ from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
 from app.water_index.condition_producer import produce_conditions
-from app.water_index.models import SafetyEvidence, SupportEvidence
+from app.water_index.models import Activity, SafetyEvidence, SupportEvidence
 from app.water_index.sources import (
     AuthorityRecord,
     EvidenceBundle,
@@ -20,7 +21,7 @@ from app.water_index.sources import (
 )
 
 BASE = "/api/data/water-index"
-ACTIVITIES = ("swim", "surf", "relax", "mudflat", "onsen", "rafting")
+ACTIVITIES = get_args(Activity)
 
 
 @pytest.fixture

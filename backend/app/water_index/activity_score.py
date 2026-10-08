@@ -103,7 +103,7 @@ class ScoreComponent(Record):
 
 class ActivityScore(Record):
     model_id: Literal["pongdang-activity-conditions"] = "pongdang-activity-conditions"
-    model_version: Literal["1.1.0"] = "1.1.0"
+    model_version: Literal["1.1.0", "1.2.0"] = "1.2.0"
     label: Literal["활동 조건 참고 점수"] = "활동 조건 참고 점수"
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     status: Literal["evaluated", "partial", "unavailable", "blocked"]
@@ -243,6 +243,12 @@ DEFAULT_CURVES = {
         "precipitation": RAIN,
     },
     "onsen": {"bath_water_temperature": BATH, "air_temperature": OUTDOOR_AIR},
+    "walk": {
+        "air_temperature": OUTDOOR_AIR,
+        "relative_humidity": HUMIDITY,
+        "wind_speed": WIND,
+        "precipitation": RAIN,
+    },
     "rafting": {
         "river_level": None,
         "river_flow": None,
