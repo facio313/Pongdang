@@ -145,3 +145,30 @@ const KIND_LABEL: Record<string, string> = {
 export function kindLabel(place?: { type?: string | null }): string {
   return (place?.type && KIND_LABEL[place.type]) || "분류 미확인";
 }
+
+/** 연중 개방을 뜻하는 낱말. 서버 `place_details.season.YEAR_ROUND_WORDS` 의
+ *  거울입니다. 이 목록에 없는 말은 **추측하지 않습니다**. */
+const YEAR_ROUND_WORDS = ["연중", "상시", "사계절", "연중무휴", "항시"];
+
+/** 운영시간이 「상시 개방」류인데 개장 기간은 그렇게 적혀 있지 않은지.
+ *
+ *  이용 정보에 「운영시간 상시 개방」만 서 있으면 10월 해수욕장에서 그 한 줄이
+ *  「지금 가도 된다」로 읽힙니다. 두 필드는 다른 것을 말합니다 -- 운영시간은
+ *  출입 가능한 시각이고, 개장 기간은 해수욕장이 열고 닫는 기간입니다.
+ *
+ *  **개장 여부를 판정하지 않습니다.** 오늘이 개장 기간인지는 서버가 정하고
+ *  (`recommendation.beach_season`) 그 결과는 추천 사유 줄에 섭니다. 여기서
+ *  보는 것은 적혀 있는 두 필드의 뜻이 다르다는 사실뿐이라, 서버 판정과
+ *  어긋날 수 없습니다. 추천 사유가 없는 상세 화면에서도 성립합니다. */
+export function operatingHoursNeedsSeasonCaveat(detail?: PlaceDetails): boolean {
+  const yearRound = (value?: string) =>
+    !!value && YEAR_ROUND_WORDS.some(word => value.includes(word));
+  const hours = detail?.opening_hours?.trim();
+  if (!yearRound(hours)) return false;
+  const period = detail?.opening_period?.trim();
+  // 바로 위 「개장 기간」 행이 구체적 기간을 보여 주면 덧붙이지 않습니다 --
+  // 「개장 7.12~8.18」 옆에서는 「상시 개방」의 뜻이 저절로 통합니다. 두 행을
+  // 붙여 둔 이유가 그것입니다. 기간이 비었거나 그쪽도 「연중」이면 화면에
+  // 남는 말이 「언제나 열려 있다」뿐이므로 그때만 말합니다.
+  return !period || yearRound(period);
+}

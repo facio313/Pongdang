@@ -10,19 +10,20 @@ export type Activity = keyof typeof activities;
  *  「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도 아닙니다.
  *  activities 는 라벨 사전이므로 여섯을 그대로 둡니다. */
 export const recommendedActivities = ["swim", "surf", "relax", "onsen"] as const satisfies readonly Activity[];
-/** 「활동별 점수」에 줄을 가지는 활동. 후보 집합의 **부분집합**입니다.
+/** 「활동별 점수」에 줄을 가지는 활동. 지금은 후보 집합과 같습니다.
  *
- *  휴식이 빠진 이유: 휴식의 점수 항목은 기온·습도·바람·강수뿐이라 날씨만 좋으면
- *  거의 항상 최고점이고, 서버는 「물에 들어갈 수 있으면 물」로 수영을 고릅니다
- *  (recommendation.WATER_ACTIVITIES). 둘 다 화면에 두면 **1위 점수와 추천이
- *  어긋난 채** 보입니다. 휴식은 고르기 경쟁에는 남아 있어, 물 활동이 전부
- *  미뤄진 날 히어로가 「해변 산책」·「물에 들어가지 않는 하루」로 섭니다
- *  (recommendationText.activityHeadline). 즉 **히어로는 이 목록에 없는 활동일
- *  수 있습니다.**
+ *  한동안 휴식을 숨겼습니다. 서버가 점수와 무관하게 「물에 들어갈 수 있으면
+ *  물」로 수영을 골랐기 때문에, 휴식 점수가 1위인 채 수영을 권하는 모순이 그대로
+ *  읽혔습니다. 이제 그 우선은 조건부이고(recommendation.WATER_PREFERENCE_MIN_SCORE)
+ *  물 활동이 기준선 아래면 점수가 이깁니다. **그래서 숨길 이유가 사라졌습니다** --
+ *  오히려 휴식이 1위인데 수영을 권한 날 사용자가 그 숫자를 볼 수 있어야
+ *  「휴식 점수가 더 높지만 오늘은 물에 들어갈 수 있어서」라는 설명이 검증됩니다.
+ *  숫자를 지우고 설명만 남기면 확인할 길이 없습니다.
  *
- *  온천은 남깁니다. 시설 욕조 수온 자료가 없어 늘 「추천 제외 · 필수 근거
- *  부족」이지만, 그것이 정직한 표시입니다 -- 조건이 나쁜 것과 다릅니다. */
-export const listedActivities = ["swim", "surf", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
+ *  두 상수는 그대로 둡니다. 「무엇을 고를 수 있는가」와 「무엇을 보여 주는가」는
+ *  다른 질문이고, 전에 한 번 갈렸던 것처럼 또 갈릴 수 있습니다. 그때
+ *  useBestActivity 는 히어로가 이 목록에 없을 수 있다는 계약을 이미 지킵니다. */
+export const listedActivities = ["swim", "surf", "relax", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
 export interface AiContext {
   spot_id?: number;
   spot_ids?: number[];

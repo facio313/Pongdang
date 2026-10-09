@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeExtraDetails, placeHomepageUrl, placeOperatingSchedule } from '../src/placeDetails.ts';
+import { placeDetailsPath, placeDetailsStatusText, placeDetailsMissingText, placeExtraDetails, placeHomepageUrl, placeOperatingSchedule, operatingHoursNeedsSeasonCaveat } from '../src/placeDetails.ts';
 import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from '../src/placeDistance.ts';
 
 test('stored detail reads batch stable unique positive IDs and enforce the page bound', () => {
@@ -118,4 +118,20 @@ test('straight-line distances use coordinates including zero and never manufactu
   assert.equal(distanceLabel(0), '0 m');
   assert.equal(distanceLabel(0.54), '540 m');
   assert.equal(distanceLabel(oneDegree), '111.2 km');
+});
+
+test('"상시 개방" operating hours are flagged as different from an opening season', () => {
+  // 이용 정보에 「운영시간 상시 개방」만 서 있으면 10월 해수욕장에서 그 한 줄이
+  // 「지금 가도 된다」로 읽힙니다. 두 필드는 다른 것을 말합니다.
+  assert.ok(operatingHoursNeedsSeasonCaveat({ opening_hours: '상시 개방', opening_period: null }));
+  assert.ok(operatingHoursNeedsSeasonCaveat({ opening_hours: '연중무휴', opening_period: '' }));
+  // 개장 기간이 적혀 있으면 그 행 옆에서 뜻이 저절로 통합니다. 덧붙이지 않습니다.
+  assert.ok(!operatingHoursNeedsSeasonCaveat({ opening_hours: '상시 개방', opening_period: '7.12~8.18' }));
+  // 개장 기간도 「연중」이면 화면에 남는 말이 「언제나 열려 있다」뿐입니다.
+  assert.ok(operatingHoursNeedsSeasonCaveat({ opening_hours: '상시 개방', opening_period: '연중' }));
+  // 시각이 적힌 보통의 운영시간에는 아무 말도 붙이지 않습니다.
+  assert.ok(!operatingHoursNeedsSeasonCaveat({ opening_hours: '09:00~18:00', opening_period: null }));
+  assert.ok(!operatingHoursNeedsSeasonCaveat(undefined));
+  // 목록에 없는 말은 추측하지 않습니다 -- 「하절기」가 상시라고 읽지 않습니다.
+  assert.ok(!operatingHoursNeedsSeasonCaveat({ opening_hours: '하절기 개방', opening_period: null }));
 });

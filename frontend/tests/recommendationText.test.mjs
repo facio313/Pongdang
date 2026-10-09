@@ -46,8 +46,32 @@ test('excluded activities never reappear as numeric recommendations while their 
     ...ranked, rules_applied: ['water_too_cold_for_immersion'],
   }), { score: null, eligibility: '추천 제외 · 수온 기준 미충족' });
   assert.deepEqual(activityRecommendationDisplay(conditions, {
+    ...ranked, rules_applied: ['activity_not_offered_at_place'],
+  }), { score: null, eligibility: '이 장소에서 하지 않는 활동' });
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
     ...ranked, rules_applied: ['new_server_rule'],
   }), { score: null, eligibility: '추천 제외' });
+});
+
+test('an unconfirmed opening season keeps the score and says what is unknown', () => {
+  // 점수를 지우면 「자료가 없다」로 읽혀 다른 사실이 됩니다. 조건은 실제로
+  // 좋을 수 있고, 모르는 것은 개장입니다.
+  const conditions = {
+    support_status: 'supported',
+    condition_score: { status: 'evaluated', score: 93.8 },
+  };
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
+    dropped: false,
+    needs_confirmation: true,
+    rules_applied: ['beach_season_unconfirmed'],
+  }), { score: 93.8, eligibility: '개장 확인 필요' });
+
+  // 후보에서 빠진 쪽이 먼저입니다 -- 둘이 겹치면 빠진 사실이 더 센 말입니다.
+  assert.deepEqual(activityRecommendationDisplay(conditions, {
+    dropped: true,
+    needs_confirmation: true,
+    rules_applied: ['water_too_cold_for_immersion', 'beach_season_unconfirmed'],
+  }), { score: null, eligibility: '추천 제외 · 수온 기준 미충족' });
 });
 
 test('unsupported and unavailable activities show their evidence state without inventing safety judgments', () => {
@@ -151,20 +175,44 @@ test('the waves say which of swimming and surfing today is', () => {
 });
 
 test('the runner-up is named only when its score is on screen', () => {
-  // 휴식은 활동별 점수 목록에서 빠졌습니다(aiApi.listedActivities). 서버는
-  // 여전히 「휴식이 점수로는 앞선다」를 사유로 보내지만, 화면에 그 숫자가 없는
-  // 채로 그 문장을 적으면 사용자가 찾을 수 없는 점수를 가리키게 됩니다.
-  assert.equal(choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'relax', value: 82, threshold: 96.7 })],
-  })), null);
+  // 가리킬 숫자가 화면에 있을 때만 가리킵니다. 휴식이 활동별 점수 목록에
+  // 돌아왔으므로(aiApi.listedActivities) 이제 휴식도 말할 수 있습니다 --
+  // 오히려 그 숫자를 볼 수 있어야 이 문장이 검증됩니다.
+  for (const rival of ['relax', 'onsen']) {
+    const line = choiceReason(recommendation({
+      reasons: [reason('water_activity_preferred', { activity: 'swim', rival, value: 82, threshold: 96.7 })],
+    }));
+    assert.match(line.text, /점수가 더 높지만/);
+    assert.match(line.text, /수영을 먼저 권해요$/);
+  }
 
-  // 목록에 줄이 있는 상대(온천)라면 그대로 말합니다 -- 숨기는 것이 목적이
-  // 아니라, 가리킬 숫자가 화면에 있을 때만 가리키는 것입니다.
-  const line = choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'onsen', value: 82, threshold: 96.7 })],
+  // 목록에 없는 활동이 상대이면 여전히 말하지 않습니다. 계약은 그대로입니다 --
+  // 두 상수가 또 갈릴 수 있고(recommendedActivities vs listedActivities),
+  // 그때 사용자가 찾을 수 없는 점수를 가리키게 됩니다.
+  assert.equal(choiceReason(recommendation({
+    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'mudflat', value: 82, threshold: 96.7 })],
+  })), null);
+});
+
+test('a water activity below the bar explains itself with the numbers it used', () => {
+  // 「물이면 물」을 기대한 사용자에게 왜 오늘은 아닌지를 수치로 말합니다.
+  const line = rejectionReason(recommendation({
+    reasons: [
+      reason('water_preference_not_applied', { activity: 'swim', value: 22.4, threshold: 40 }),
+      reason('water_preference_not_applied', { activity: 'surf', value: 31.3, threshold: 40 }),
+    ],
   }));
-  assert.match(line.text, /온천 점수가 더 높지만/);
-  assert.match(line.text, /수영을 먼저 권해요$/);
+  // 가장 높은 쪽 하나를 대표로 씁니다 -- 가장 아까운 활동이 그것입니다.
+  assert.match(line.text, /^서핑 조건이 31.3점으로 40점에 못 미쳐/);
+
+  // 가산을 실제로 받은 날에는 이 문장을 쓰지 않습니다. 두 말이 서로를
+  // 부정합니다 -- 「기준에 못 미쳐 점수순으로 갔다」와 「물이라서 먼저 권한다」.
+  assert.equal(rejectionReason(recommendation({
+    reasons: [
+      reason('water_preference_not_applied', { activity: 'surf', value: 31.3, threshold: 40 }),
+      reason('water_activity_preferred', { activity: 'swim', rival: 'relax', value: 82, threshold: 96.7 }),
+    ],
+  })), null);
 });
 
 test('cold water is the reason the sea is out, with the threshold it used', () => {

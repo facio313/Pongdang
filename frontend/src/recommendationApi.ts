@@ -50,6 +50,13 @@ export interface RankedActivity {
   /** 뒤로 미뤄짐(물때 구간, 해수욕장 개장 기간 밖). 점수는 그대로이고,
    *  어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다. */
   demoted: boolean;
+  /** 조건은 알지만 **할 수 있는 날인지를 모름**. 개장 기간을 확인하지 못한
+   *  해수욕장 수영이 여기입니다. `dropped`·`demoted` 의 셋째 단계입니다.
+   *
+   *  점수는 그대로 옵니다 -- 조건은 실제로 좋을 수 있고, 모르는 것은 개장
+   *  입니다. 서버에서 바뀌는 것은 「물이면 물」 가산을 받지 못한다는 사실
+   *  뿐이라, 점수가 더 높은 휴식·온천이 그날의 답이 될 수 있습니다. */
+  needs_confirmation: boolean;
   rules_applied: string[];
 }
 export interface RecommendationReasonData {

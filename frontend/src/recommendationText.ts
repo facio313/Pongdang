@@ -21,7 +21,11 @@ import type {
 } from "./recommendationApi.ts";
 
 /** 원점수는 보존하되, 서버가 제외한 활동을 숫자 추천으로 다시 보이지 않게 합니다.
- * 물때로 순위만 미룬 활동(demoted)은 제외가 아니므로 그 점수를 유지합니다. */
+ * 물때로 순위만 미룬 활동(demoted)은 제외가 아니므로 그 점수를 유지합니다.
+ *
+ * 개장을 확인하지 못한 활동(needs_confirmation)도 **점수를 그대로 둡니다** --
+ * 조건은 실제로 좋을 수 있고, 모르는 것은 개장입니다. 숫자를 지우면 「자료가
+ * 없다」로 읽혀 다른 사실이 됩니다. 대신 그 한마디를 점수 옆에 함께 세웁니다. */
 export function activityRecommendationDisplay(
   conditions?: Conditions,
   ranked?: RankedActivity,
@@ -30,7 +34,9 @@ export function activityRecommendationDisplay(
     return { score: null, eligibility: t("활동 미지원") };
   if (ranked?.dropped) {
     const rules = ranked.rules_applied;
-    const eligibility = rules.includes("inland_swimming_authorization_unconfirmed")
+    const eligibility = rules.includes("activity_not_offered_at_place")
+      ? t("이 장소에서 하지 않는 활동")
+      : rules.includes("inland_swimming_authorization_unconfirmed")
       ? t("추천 제외 · 수영 운영 구역 미확인")
       : rules.includes("essential_measurement_missing")
       ? t("추천 제외 · 필수 근거 부족")
@@ -43,6 +49,8 @@ export function activityRecommendationDisplay(
             : t("추천 제외");
     return { score: null, eligibility };
   }
+  if (ranked?.needs_confirmation)
+    return { score: conditionScore(conditions), eligibility: t("개장 확인 필요") };
   const score = conditionScore(conditions);
   if (score === null && conditions)
     return {
@@ -206,10 +214,26 @@ export function rejectionReason(rec?: Recommendation): ReasonLine | null {
     code: "inland_swimming_authorization_unconfirmed",
     text: t("이 계곡·호수·저수지의 수영 운영 구역을 확인하지 못해 수영 추천을 보류했습니다. 방문 기상 점수와 입수 허가는 다릅니다."),
   };
+  // 물 활동이 기준선 아래여서 점수순으로 갔을 때. 「물이면 물」을 기대한
+  // 사용자에게 **왜 오늘은 아닌지**를 수치로 말합니다. 여러 물 활동이 함께
+  // 모자란 날이 있으므로 가장 높은 쪽 하나를 대표로 씁니다 -- 가장 아까운
+  // 활동이 그것이고, 둘을 나란히 적으면 문장이 길어질 뿐입니다.
+  const belowBar = all(rec, "water_preference_not_applied");
+  if (belowBar.length && !find(rec, "water_activity_preferred")) {
+    const best = belowBar.reduce((a, b) => ((b.value ?? 0) > (a.value ?? 0) ? b : a));
+    return {
+      code: best.code,
+      text: t("{activity} 조건이 {value}점으로 {threshold}점에 못 미쳐, 오늘은 점수가 높은 활동을 먼저 권해요", {
+        activity: t(activities[best.activity!]),
+        value: formatValue(best.value, ""),
+        threshold: formatValue(best.threshold, ""),
+      }),
+    };
+  }
   const missing = all(rec, "essential_measurement_missing");
   if (missing.length) {
-    // 빠진 지표가 아니라 **빠진 활동**을 말합니다. 「시설 욕조 수온 자료가
-    // 없어요」는 사실이지만, 사용자가 궁금한 것은 «왜 온천이 아닌가» 입니다.
+    // 빠진 지표가 아니라 **빠진 활동**을 말합니다. 사용자가 궁금한 것은 어느
+    // 지표가 비었는지가 아니라 «왜 그 활동이 아닌가» 입니다.
     const names = [
       ...new Set(missing.map((reason) => t(activities[reason.activity!]))),
     ].join(" · ");
@@ -310,12 +334,22 @@ export function seasonWindowText(window: RecommendationSeasonWindow) {
 export function beachSeasonLine(rec?: Recommendation): ReasonLine | null {
   const season = rec?.beach_season;
   if (!season || season.status === "in_season") return null;
-  if (season.status === "unconfirmed")
+  if (season.status === "unconfirmed") {
+    // 「연중·상시 개방」으로 적혀 있어서 미확인이 된 경우는 따로 말합니다.
+    // 그 문구는 이용 정보에 그대로 보이고 있으므로, 아무 설명 없이 「확인하지
+    // 못했어요」만 띄우면 **화면이 스스로와 모순되는 것처럼 읽힙니다** --
+    // 적혀 있는데 왜 모른다고 하는지를 사용자가 알 수 없습니다.
+    if (season.reason_codes?.includes("beach_year_round_wording_is_not_an_opening_season"))
+      return {
+        code: "beach_year_round_wording_is_not_an_opening_season",
+        text: t("안내에 「상시 개방」으로 적혀 있지만 그것은 출입 가능을 뜻하고 해수욕장 개장 기간과는 달라요 — 방문 전 현지 공고를 확인해 주세요"),
+      };
     return {
       code: "beach_season_unconfirmed",
       // 추측하지 않습니다. 서술을 읽지 못한 것과 폐장은 다른 사실입니다.
       text: t("해수욕장 개장 기간 정보를 확인하지 못했어요 — 방문 전 현지 공고를 확인해 주세요"),
     };
+  }
   const windows = season.windows.map(seasonWindowText).join(", ");
   const stale =
     season.year_basis === "past_year" && season.stale_years

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { dateLocale, t } from "./i18n";
-import { placeDetailsMissingText, placeDetailsStatusText, placeExtraDetails, placeHomepageUrl, type PlaceDetails } from "./placeDetails";
+import { operatingHoursNeedsSeasonCaveat, placeDetailsMissingText, placeDetailsStatusText, placeExtraDetails, placeHomepageUrl, type PlaceDetails } from "./placeDetails";
 import "./placeDetails.css";
 
 function collectedDate(value: string) {
@@ -22,6 +22,11 @@ export function PlaceDetailInformation({
   const status = placeDetailsStatusText(detail?.status);
   const homepage = placeHomepageUrl(detail?.homepage);
   const extraDetails = placeExtraDetails(detail);
+  // 「상시 개방」이 개장 기간과 다른 사실임을 그 자리에서 말합니다. 이 화면에는
+  // 추천 사유 줄이 없어(RecommendationReason 은 홈·오늘에만 섭니다) 아무도
+  // 그 구분을 말해 주지 않습니다. 개장 여부를 판정하지는 않습니다 --
+  // placeDetails.operatingHoursNeedsSeasonCaveat 주석에 그 경계가 있습니다.
+  const hoursCaveat = operatingHoursNeedsSeasonCaveat(detail);
   const row = (label: string, value: ReactNode, key = label) => (
     <div className={`place-detail-item ${desktop ? "sk-detail-tr" : "sd-info-row"}`} key={key}>
       <dt className={desktop ? "sk-detail-th" : "sd-info-name"}>{label}</dt>
@@ -39,7 +44,14 @@ export function PlaceDetailInformation({
             상시 개방은 해수욕장 개장과 다른 사실입니다. */}
         {row(t("개장 기간"), detail?.opening_period)}
         {row(t("개장일"), detail?.opening_date)}
-        {row(t("운영"), detail?.opening_hours)}
+        {row(t("운영시간"), hoursCaveat
+          ? <>
+              {detail?.opening_hours}
+              <span className="pd-field-note">
+                {t("출입 가능한 시각이며 해수욕장 개장 기간과는 다릅니다")}
+              </span>
+            </>
+          : detail?.opening_hours, "운영시간")}
         {row(t("휴무일"), detail?.rest_days)}
         {row(t("주차"), detail?.parking)}
         {row(t("편의시설"), detail?.facilities)}

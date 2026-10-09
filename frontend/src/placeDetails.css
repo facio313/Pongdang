@@ -42,6 +42,17 @@
   overflow-wrap: anywhere;
   line-height: 1.7;
 }
+/* 값 아래 붙는 한 줄. 「상시 개방」처럼 그 자체로는 맞지만 옆 필드와 함께
+   읽어야 뜻이 통하는 값에 씁니다. 값과 같은 칸에 두어 어느 필드의 말인지
+   어긋나지 않게 합니다 -- 아래로 내리면 다음 행의 설명으로 읽힙니다. */
+.place-details .pd-field-note {
+  display: block;
+  font-size: var(--pd-fs-cap);
+  color: var(--pd-ink-2);
+  line-height: 1.6;
+  margin-top: 4px;
+  white-space: normal;
+}
 .place-details-copy { display: grid; align-items: start; gap: 16px; padding: 0 16px; }
 .place-details-card .place-details-copy { padding-left: 0; padding-right: 0; }
 .pd-desktop .place-details-copy { padding: 0; }
