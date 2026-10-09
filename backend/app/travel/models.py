@@ -207,7 +207,16 @@ class TravelRequest(Record):
     required: list[Condition] = Field(default_factory=list, max_length=20)
     preferred_tags: Tags = Field(default_factory=list)
     avoid: Tags = Field(default_factory=list)
+    #: 대표 활동. `activities` 의 첫 번째이며, 활동 하나만 보는 기존 호출부가
+    #: 그대로 돌도록 남겨 둡니다.
     activity: Activity = "relax"
+    #: 사용자가 **고른 활동 전부**. 비어 있으면 `activity` 하나로 봅니다.
+    #:
+    #: 예전에는 `activity` 하나만 들고 갔습니다(keywords.py 가 `activities[0]` 을
+    #: 집었습니다). 그래서 「서핑 + 휴식」을 고르면 서핑 기준으로만 장소를 줄
+    #: 세웠고, 서핑을 하지 않는 곳은 휴식으로도 좋을 수 있는데 그대로 빠졌습니다.
+    #: 나머지 선택은 라벨과 카탈로그 적합도로만 쓰여 점수에 닿지 못했습니다.
+    activities: list[Activity] = Field(default_factory=list, max_length=4)
     activity_intensity: Intensity | None = None
     max_travel_minutes: int | None = Field(default=None, ge=5, le=1440)
     mood: Mood | None = None

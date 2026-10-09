@@ -22,15 +22,23 @@ class PublishedEnvironmentReader(EnvironmentReader):
             return
         mode = "forecast" if target > self.catalog.now else "observation"
         fallback = target == self.catalog.now and mode == "observation"
-        activities = [request.activity]
+        # 고른 활동마다 하나씩 표본을 만듭니다. 어느 것을 쓸지는 `at` 이
+        # `choose` 로 정합니다 -- 여기서는 **전부** 읽어 두는 일만 합니다.
+        wanted = self.wanted_activities(request)
+        # 선택 범위 선호(바람 · 강수 등)가 고른 활동들의 지표에 없으면 그 값을
+        # 빌려 오는 활동. 후보가 아니라 **지표 출처**이므로 따로 둡니다.
+        borrowed = []
         missing = {item.metric for item in request.environment_preferences} - {
-            metric.name for metric in ACTIVITIES[request.activity].metrics
+            metric.name
+            for activity in wanted
+            for metric in ACTIVITIES[activity].metrics
         }
         for activity in ("surf", "relax"):
             names = {metric.name for metric in ACTIVITIES[activity].metrics}
-            if missing & names:
-                activities.append(activity)
+            if missing & names and activity not in wanted:
+                borrowed.append(activity)
                 missing -= names
+        activities = wanted + borrowed
         modes = [mode, "forecast"] if fallback else [mode]
         queries = [
             ConditionQuery(
@@ -69,13 +77,14 @@ class PublishedEnvironmentReader(EnvironmentReader):
             (q.spot_id, q.activity, q.mode): row
             for q, row in zip(queries, rows, strict=bool(rows))
         }
-        for sid in ids:
-            current = indexed.get((sid, request.activity, mode))
-            predicted = indexed.get((sid, request.activity, "forecast"))
+        for sid, primary in ((sid, a) for sid in ids for a in wanted):
+            current = indexed.get((sid, primary, mode))
+            predicted = indexed.get((sid, primary, "forecast"))
             if not rows:
-                sample = failure.copy()
+                sample = failure | {"activity": primary}
             elif isinstance(current, HTTPException):
                 sample = {
+                    "activity": primary,
                     "status": "query_failed",
                     "reason_codes": ["published_condition_unavailable"],
                     "metrics": [],
@@ -100,7 +109,7 @@ class PublishedEnvironmentReader(EnvironmentReader):
                 present = {metric["name"] for metric in extra_metrics}
                 mappings = {metric.get("mapping_id") for metric in extra_metrics}
                 mappings.discard(None)
-                for activity in activities[1:]:
+                for activity in borrowed:
                     extra = indexed.get((sid, activity, sample["mode"]))
                     if isinstance(extra, HTTPException) or extra is None:
                         continue
@@ -113,15 +122,16 @@ class PublishedEnvironmentReader(EnvironmentReader):
                     )
                     present.update(metric["name"] for metric in extra_metrics)
                 sample["preference_metrics"] = extra_metrics
-            self.cache[(sid, request.activity, target.isoformat())] = sample
+            self.cache[(sid, primary, target.isoformat())] = sample
 
-    async def at(self, sid, request, target):
-        key = (sid, request.activity, target.isoformat())
-        if key not in self.cache:
+    async def at(self, sid, request, target, exclude=()):
+        wanted = self.wanted_activities(request, exclude)
+        keys = [(sid, activity, target.isoformat()) for activity in wanted]
+        if any(key not in self.cache for key in keys):
             async with self.gate:
-                if key not in self.cache:
+                if any(key not in self.cache for key in keys):
                     await self.prefetch([sid], request, target)
-        return self.cache[key]
+        return self.choose([self.cache[key] for key in keys])
 
 
 def preview_sample(match):

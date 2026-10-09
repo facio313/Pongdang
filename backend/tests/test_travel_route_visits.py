@@ -32,7 +32,7 @@ class VisitEnvironment:
     def __init__(self):
         self.activities = []
 
-    async def compare(self, sid, request, start, end):
+    async def compare(self, sid, request, start, end, exclude=()):
         self.activities.append((sid, request.activity))
         return {"preference_points": None, "status": "not_selected"}
 

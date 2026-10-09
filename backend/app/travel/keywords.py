@@ -184,6 +184,10 @@ def normalize(request):
                 data["transport"] = value
     activities = choices(request, "activity")
     if activities:
+        # 고른 활동을 **전부** 들고 갑니다. 예전에는 첫 번째만 집어서,
+        # 「서핑 + 휴식」을 고르면 서핑 기준으로만 장소를 줄 세웠습니다.
+        # `activity` 는 대표값으로 남습니다(활동 하나만 보는 호출부가 있습니다).
+        data["activities"] = list(dict.fromkeys(activities))
         data["activity"] = activities[0]
     data["preferred_tags"] = list(dict.fromkeys(tags))
     data["environment_preferences"] = list(criteria.values())

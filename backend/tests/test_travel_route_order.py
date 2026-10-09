@@ -49,7 +49,7 @@ class Directions:
 
 
 class Environment:
-    async def compare(self, sid, request, start, end):
+    async def compare(self, sid, request, start, end, exclude=()):
         return {"preference_points": 0, "status": "evaluated"}
 
 

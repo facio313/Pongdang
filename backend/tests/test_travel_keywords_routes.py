@@ -390,7 +390,7 @@ class EnvironmentFixture:
     def __init__(self, preferred_id, *, missing=False):
         self.preferred_id, self.missing = preferred_id, missing
 
-    async def compare(self, sid, request, start, until=None):
+    async def compare(self, sid, request, start, until=None, exclude=()):
         points = (
             100 if sid == self.preferred_id and start.astimezone(KST).hour < 10 else 0
         )
@@ -816,3 +816,62 @@ def test_stored_generic_reservoir_matches_same_kind_in_list_and_recommendation(
     assert recommendations[0]["spot_id"] == listed[0]["id"]
     assert recommendations[0]["confirmed"]["kind"] == "reservoir"
     assert "저수지" in recommendations[0]["confirmed"]["catalog_tags"]
+
+
+def test_every_selected_activity_survives_normalization():
+    """고른 활동을 전부 들고 갑니다. 예전에는 첫 번째만 집었습니다.
+
+    그래서 「서핑 + 휴식」을 고르면 서핑 기준으로만 장소를 줄 세웠고, 서핑을
+    하지 않는 곳은 휴식으로 좋을 수 있는데 그대로 빠졌습니다. 나머지 선택은
+    라벨과 카탈로그 적합도로만 쓰여 점수에 닿지 못했습니다.
+    """
+    normalized = keywords.normalize(
+        TravelRequest(
+            keyword_selection=[{"category": "activity", "values": ["surf", "relax"]}]
+        )
+    )
+    assert normalized.activities == ["surf", "relax"]
+    # 대표값은 남습니다 -- 활동 하나만 보는 호출부가 그대로 돕니다.
+    assert normalized.activity == "surf"
+
+
+def test_no_activity_selection_leaves_the_representative_alone():
+    normalized = keywords.normalize(TravelRequest())
+    assert normalized.activities == []
+    assert normalized.activity == "relax"
+
+
+def test_the_best_selected_activity_decides_a_place():
+    """점수가 없는 활동은 셈에서 빠집니다. 결측을 0 으로 메우지 않습니다."""
+    from app.travel.environment import EnvironmentReader
+
+    surf = {"activity": "surf", "condition_score": {"score": None, "status": "blocked"}}
+    relax = {
+        "activity": "relax",
+        "condition_score": {"score": 71.0, "status": "evaluated"},
+    }
+    chosen = EnvironmentReader.choose([surf, relax])
+    assert chosen["matched_activity"] == "relax"
+    assert chosen["condition_score"]["score"] == 71.0
+
+    # 더 높은 쪽이 이깁니다.
+    better = {
+        "activity": "swim",
+        "condition_score": {"score": 88.0, "status": "evaluated"},
+    }
+    assert EnvironmentReader.choose([relax, better])["matched_activity"] == "swim"
+
+    # 전부 점수가 없으면 첫 번째를 그대로 둡니다 -- 그 상태를 화면이 읽어야
+    # 합니다(미지원 · 조회 실패 · 예보 범위 밖).
+    only = EnvironmentReader.choose([surf])
+    assert only["matched_activity"] == "surf"
+    assert only["condition_score"]["score"] is None
+
+
+def test_wanted_activities_falls_back_to_the_representative():
+    from app.travel.environment import EnvironmentReader
+
+    assert EnvironmentReader.wanted_activities(TravelRequest()) == ["relax"]
+    assert EnvironmentReader.wanted_activities(
+        TravelRequest(activity="surf", activities=["surf", "relax", "surf"])
+    ) == ["surf", "relax"]

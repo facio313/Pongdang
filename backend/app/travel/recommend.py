@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException
 
+from app.place_details.api import read_opening_seasons
 from app.regions import region_query
 from app.travel import keywords, storage, tokens
 from app.travel.catalog import Catalog, matches_visit_intent
@@ -25,6 +26,7 @@ from app.travel.published import (
     preview_sample,
     ranking_score,
 )
+from app.water_index.recommendation_api import season_view
 
 WEIGHTS = {
     "explicit": 100,
@@ -88,6 +90,36 @@ def confirmed_condition(place, condition):
     if condition.attribute == "tag":
         return True if condition.value in place["catalog_tags"] else None
     return None
+
+
+async def beach_seasons_closed(catalog, shortlist, target):
+    """후보 가운데 **개장 기간 밖으로 확인된** 해변의 spot_id.
+
+    홈·오늘과 **같은 판정**을 씁니다(`recommendation_api.season_view`). 규칙을
+    새로 쓰면 같은 해변의 개장 여부가 화면마다 달라집니다.
+
+    `unconfirmed` 는 넣지 않습니다 -- 미확인은 폐장의 증거가 아닙니다. 해수욕장
+    안내의 「연중·상시」가 개장 확인이 되지 않는 것도 그 함수가 처리하므로,
+    여기서 낱말을 다시 읽지 않습니다.
+
+    한 질의로 읽습니다. 후보 서른 곳을 하나씩 물으면 한 요청에 서른 번을
+    왕복합니다.
+    """
+    ids = [
+        row[0]["spot_id"]
+        for row in shortlist
+        if (row[0].get("place_kind") or row[0].get("type")) == "beach"
+    ]
+    if not ids:
+        return set()
+    async with catalog.reader.connection() as c:
+        rows = await read_opening_seasons(c, ids)
+    return {
+        sid
+        for sid in ids
+        if season_view(rows.get(sid), target, place_kind="beach").status
+        == "out_of_season"
+    }
 
 
 def rank_places(places, request, preference, signals, restrictions):
@@ -325,9 +357,22 @@ async def _recommend_single(
             [row[0]["spot_id"] for row in shortlist], request, target
         )
 
+    # 개장 기간 밖 해변에서는 수영을 그 장소의 후보 활동에서 뺍니다. 홈·오늘이
+    # 「해변 산책」이라고 말하는 날 추천 탭이 같은 해변을 수영 기준으로 줄
+    # 세우면, 같은 앱이 같은 장소에 대해 두 가지를 말합니다.
+    #
+    # `decide()` 전체를 옮기지는 않습니다 -- 그쪽은 **한 장소의 여러 활동**을
+    # 비교하는 규칙이고 이쪽은 **여러 장소**를 줄 세웁니다. 두 체계를 합치는
+    # 일은 따로입니다. 여기서는 같은 `season_view` 를 재사용해 같은 판정을
+    # 쓰는 것까지만 합니다.
+    #
+    # 미확인은 빼지 않습니다 -- 폐장의 증거가 아닙니다(1번과 같은 세 단계).
+    closed = await beach_seasons_closed(catalog, shortlist, target)
+
     async def read_match(row):
-        return row[0]["spot_id"], await environment.compare(
-            row[0]["spot_id"], request, target
+        sid = row[0]["spot_id"]
+        return sid, await environment.compare(
+            sid, request, target, exclude=("swim",) if sid in closed else ()
         )
 
     environment_matches = dict(
@@ -335,6 +380,23 @@ async def _recommend_single(
     )
     eligible = []
     for row in shortlist:
+        if row[0]["spot_id"] in closed and keywords.choices(request, "activity") == [
+            "swim"
+        ]:
+            # 수영만 골랐다면 그 해변은 오늘 할 일이 없습니다. 다른 활동으로
+            # 슬쩍 바꿔 추천하지 않습니다 -- 고른 것이 수영이었습니다.
+            excluded.append(
+                {
+                    "spot_id": row[0]["spot_id"],
+                    "reason": "beach_closed_season_product_rule",
+                    "evidence": [],
+                }
+            )
+            continue
+        # 표본은 고른 활동 가운데 **그 장소에서 가장 좋은 하나**입니다
+        # (environment.EnvironmentReader.at). 그래서 아래 판정은 자연히
+        # 「고른 활동이 전부 막혔을 때만 뺀다」가 됩니다 -- 서핑을 하지 않는
+        # 곳이라도 함께 고른 휴식으로 좋으면 후보에 남습니다.
         sample = preview_sample(environment_matches[row[0]["spot_id"]])
         if (
             sample.get("safety_status") == "restricted"

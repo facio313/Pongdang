@@ -95,6 +95,43 @@ async def read_opening_season(connection, spot_id):
     ).fetchone()
 
 
+async def read_opening_seasons(connection, spot_ids):
+    """여러 장소의 개장 기간 서술을 한 번에. `{spot_id: row}` 이며 없는 장소는 빠집니다.
+
+    `read_opening_season` 과 **같은 선택 규칙**입니다 -- 확정 링크가 먼저,
+    없으면 spot 직결, provider 는 한국어 행 고정. 규칙이 갈리면 같은 해변의
+    개장 판정이 화면마다 달라집니다.
+
+    추천 탭이 후보 30곳의 개장 기간을 봐야 해서 생겼습니다. 한 곳씩 물으면
+    한 요청에 서른 번을 왕복합니다.
+    """
+    ids = list(dict.fromkeys(spot_ids))
+    if not ids:
+        return {}
+    rows = await (
+        await connection.execute(
+            """
+            SELECT s.id AS spot_id,
+                   d.opening_period,d.opening_date,
+                   d.fetched_at,d.source_modified_at
+            FROM pongdang_data.spots_waterspot s
+            LEFT JOIN pongdang_data.place_detail_link l ON l.spot_id=s.id
+            LEFT JOIN LATERAL (
+              SELECT p.* FROM pongdang_data.collection_place p
+              WHERE p.id=l.place_id OR (l.place_id IS NULL AND p.spot_id=s.id
+                AND p.provider='TOURAPI_KOREAN')
+              ORDER BY p.fetched_at DESC NULLS LAST,p.id LIMIT 1
+            ) p ON true
+            JOIN pongdang_data.place_detail d
+              ON d.place_id=p.id AND d.state='active' AND d.availability='available'
+            WHERE s.id=ANY(%s)
+            """,
+            [ids],
+        )
+    ).fetchall()
+    return {row["spot_id"]: row for row in rows}
+
+
 def detail_view(row):
     supported = row["current_content_type"] in (
         KOREAN_TYPES if row["provider"] == "TOURAPI_KOREAN" else FOREIGN_TYPES

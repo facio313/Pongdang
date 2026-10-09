@@ -31,14 +31,68 @@ class EnvironmentReader:
         self.cache = {}
         self.gate = asyncio.Semaphore(4)
 
-    async def at(self, sid, request, target):
-        key = (sid, request.activity, target.isoformat())
+    @staticmethod
+    def wanted_activities(request, exclude=()):
+        """사용자가 고른 활동 전부. 비어 있으면 대표 활동 하나로 봅니다.
+
+        `exclude` 는 **그 장소에서** 뺄 활동입니다(개장 기간 밖 해변의 수영).
+        전부 빠지면 빼지 않습니다 -- 고른 것이 하나도 남지 않으면 그 장소를
+        평가할 수 없고, 제외 판정은 부르는 쪽이 따로 내려야 합니다.
+        """
+        wanted = list(dict.fromkeys(request.activities or [request.activity]))
+        kept = [a for a in wanted if a not in exclude]
+        return kept or wanted
+
+    @staticmethod
+    def choose(samples):
+        """고른 활동 가운데 **그 장소에서 가장 조건이 좋은 하나**.
+
+        고르는 일을 여기서 다시 하지 않습니다 -- `water_index.recommendation`
+        의 규칙(물놀이 우선 · 물때 · 개장 기간)은 **한 장소의 여러 활동을**
+        비교해 「오늘 뭘 할까」에 답하는 것이고, 이쪽은 **사용자가 이미 고른
+        활동들** 가운데 그 장소에서 가장 잘 맞는 하나를 찾는 것입니다.
+
+        점수가 없는 활동은 셈에서 빠집니다 -- 결측을 0 으로 메우면 「근거 없음」이
+        「조건 나쁨」으로 둔갑합니다. 전부 점수가 없으면 첫 번째를 그대로 둡니다.
+        그 상태(미지원 · 조회 실패 · 예보 범위 밖)를 화면이 읽어야 합니다.
+        """
+        usable = [
+            s
+            for s in samples
+            if (s.get("condition_score") or {}).get("score") is not None
+        ]
+        best = (
+            max(usable, key=lambda s: s["condition_score"]["score"])
+            if usable
+            else samples[0]
+        )
+        # 어느 활동으로 뽑혔는지를 남깁니다. 화면이 「이곳은 서핑 기준으로
+        # 뽑았어요」를 말할 수 있어야, 여러 활동을 고른 사용자가 그 순서를
+        # 읽을 수 있습니다.
+        return best | {"matched_activity": best.get("activity")}
+
+    async def at(self, sid, request, target, exclude=()):
+        """고른 활동 중 가장 조건이 좋은 것의 응답. 그 활동 이름이 함께 옵니다.
+
+        예전에는 `request.activity` 하나만 봤습니다. 그래서 「서핑 + 휴식」을
+        고르면 서핑 기준으로만 장소를 줄 세웠고, 서핑을 하지 않는 곳은 휴식으로
+        좋을 수 있는데 그대로 빠졌습니다.
+        """
+        return self.choose(
+            [
+                await self._one(sid, request, target, activity)
+                for activity in self.wanted_activities(request, exclude)
+            ]
+        )
+
+    async def _one(self, sid, request, target, activity):
+        key = (sid, activity, target.isoformat())
         if key not in self.cache:
             async with self.gate:
                 try:
                     q = ConditionQuery(
                         spot_id=sid,
-                        activity=request.activity,
+                        activity=activity,
                         mode="forecast" if target > self.catalog.now else "observation",
                         at=target,
                         as_of=self.catalog.now,
@@ -62,6 +116,7 @@ class EnvironmentReader:
                     self.cache[key] = result.model_dump(mode="json")
                 except ValueError:
                     self.cache[key] = {
+                        "activity": activity,
                         "status": "unknown",
                         "reason_codes": [
                             "outside_forecast_horizon_or_invalid_evidence"
@@ -72,13 +127,14 @@ class EnvironmentReader:
                     if exc.status_code not in {422, 503}:
                         raise
                     self.cache[key] = {
+                        "activity": activity,
                         "status": "query_failed",
                         "reason_codes": ["environment_query_failed"],
                         "metrics": [],
                     }
         return self.cache[key]
 
-    async def compare(self, sid, request, start, until=None):
+    async def compare(self, sid, request, start, until=None, exclude=()):
         # At most five hourly samples, including the final instant. No daily
         # forecast is treated as proof of an hourly visit condition.
         until = until or start
@@ -91,7 +147,7 @@ class EnvironmentReader:
             targets.append(until - timedelta(microseconds=1))
         if len(targets) > 6:
             raise HTTPException(422, "environment_visit_window_too_large")
-        samples = [await self.at(sid, request, at) for at in targets]
+        samples = [await self.at(sid, request, at, exclude) for at in targets]
         return compare_samples(request.environment_preferences, samples, start, until)
 
 
