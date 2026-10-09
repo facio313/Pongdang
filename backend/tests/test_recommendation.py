@@ -123,9 +123,11 @@ def test_a_beach_never_recommends_rafting_or_onsen_on_weather_alone():
 
     래프팅은 후보 집합에서 빠져 애초에 줄이 서지 않습니다. 그래도 호출자가
     직접 넣으면(API 가 activity 를 직접 물을 수 있습니다) 필수 지표 표가 기상
-    만으로 올라오는 것을 막습니다. 온천은 후보로 남아 「추천 제외 · 필수 근거
-    부족」을 그대로 보여 줍니다 -- 자료가 없다는 사실과 조건이 나쁜 것은 다른
-    사실입니다.
+    만으로 올라오는 것을 막습니다.
+
+    온천은 **장소 자격**이 막습니다. 욕조 수온을 필수에서 풀었으므로 기온만으로
+    점수가 서지만, 해변은 온천이 아닙니다. 이유도 「자료 부족」이 아니라 「이
+    장소의 활동이 아님」입니다 -- 사용자가 궁금한 것이 그쪽입니다.
     """
     decision = decide(beach())
     assert decision.choice.activity in {"swim", "surf"}
@@ -133,10 +135,10 @@ def test_a_beach_never_recommends_rafting_or_onsen_on_weather_alone():
 
     onsen = candidate(decision, "onsen")
     assert onsen.dropped
-    assert "essential_measurement_missing" in onsen.rules_applied
-    assert "bath_water_temperature" in [
-        r.metric for r in decision.reasons if r.activity == "onsen"
-    ]
+    assert "activity_not_offered_at_place" in onsen.rules_applied
+    assert "essential_measurement_missing" not in onsen.rules_applied
+    # 점수 자체는 났습니다. 빠진 이유가 점수가 아니라는 사실이 여기 남습니다.
+    assert onsen.score is not None
 
     # 필수 지표 표는 살아 있습니다. 래프팅을 들고 와도 하천 수위를 요구합니다.
     forced = decide(
@@ -470,6 +472,56 @@ def test_a_low_scoring_water_activity_no_longer_outranks_a_better_land_activity(
     assert "water_preference_not_applied" in codes(decision)
     # 가산을 받지 않았으므로 「물에 들어갈 수 있어서 골랐다」를 적지 않습니다.
     assert "water_activity_preferred" not in codes(decision)
+
+
+def test_a_registered_onsen_is_chosen_on_a_cold_day():
+    """온천 지원 근거가 있는 장소에서는 추운 날 온천이 답입니다.
+
+    바다는 수온으로 빠지고(12°C), 휴식은 기온 3°C 로 낮습니다. 예전에는 이런
+    날 온천 점수가 **외기 때문에 더 낮았고**(OUTDOOR_AIR 는 5°C 에서 0점) 애초에
+    욕조 수온이 없어 후보에서도 빠졌습니다. 둘 다 고친 결과입니다.
+    """
+    cold_day = beach(
+        swim=scored(
+            "swim",
+            water_temperature=COLD,
+            air_temperature=3.0,
+            wave_height=0.2,
+            wind_speed=3.0,
+        ),
+        surf=scored(
+            "surf",
+            water_temperature=COLD,
+            air_temperature=3.0,
+            wave_height=0.2,
+            wave_period=6.0,
+            wind_speed=3.0,
+        ),
+        relax=scored(
+            "relax", air_temperature=3.0, relative_humidity=50.0, wind_speed=3.0
+        ),
+        onsen=with_score(
+            envelope(
+                "onsen",
+                metrics=(metric("air_temperature", 3.0),),
+                support_status="supported",
+            )
+        ),
+    )
+    decision = decide(cold_day)
+    onsen = candidate(decision, "onsen")
+    assert onsen.dropped is False
+    assert decision.choice.activity == "onsen"
+    assert onsen.score > candidate(decision, "relax").score
+
+
+def test_an_onsen_without_support_evidence_is_not_offered_anywhere():
+    """지원 근거가 없으면 내륙이든 해변이든 그 장소의 활동이 아닙니다."""
+    for place in ("beach", "valley"):
+        decision = decide(beach(), place_kind=place)
+        onsen = candidate(decision, "onsen")
+        assert onsen.dropped
+        assert "activity_not_offered_at_place" in onsen.rules_applied
 
 
 def test_no_season_evidence_applies_no_season_rule():

@@ -217,6 +217,21 @@ BATH = Curve(
     ("bathing-thermal-2019",),
     "시설 실측 욕조 선호 가정; 의학적 안전선 아님",
 )
+# 온천의 외기는 OUTDOOR_AIR 를 쓸 수 없습니다. 그 곡선은 5°C 에서 0점이라
+# **추울수록 온천 점수가 내려갑니다** -- 온천에 가고 싶은 날이 정확히 그 날인데
+# 거꾸로 답하는 셈이었습니다. 야외 방문 선호와 온천 선호는 반대 방향입니다.
+#
+# 논문 근거가 없습니다. 「추우면 온천이 좋다」는 상식이지만 어느 기온에서 몇 점
+# 인지를 말해 주는 참고 구간을 찾지 못했으므로, 절점은 전부 이쪽이 정한 것이고
+# `basis` 에 그 사실을 박아 둡니다. 더운 날 0 점으로 떨어뜨리지 않는 것도
+# 의도입니다 -- 한여름에도 온천에 가는 사람이 있고, 그것을 「조건 나쁨」으로
+# 단정할 근거가 없습니다.
+ONSEN_AIR = Curve(
+    ((-10, 100), (5, 100), (15, 80), (22, 50), (28, 25), (35, 10)),
+    (),
+    "추운 날 온천 선호가 오른다는 가정; 논문 근거 없음·체감온도 아님",
+    basis="퐁당 제품 규칙(미검증)",
+)
 DEFAULT_CURVES = {
     "swim": {
         "water_temperature": WATER,
@@ -242,7 +257,10 @@ DEFAULT_CURVES = {
         "wind_speed": WIND,
         "precipitation": RAIN,
     },
-    "onsen": {"bath_water_temperature": BATH, "air_temperature": OUTDOOR_AIR},
+    # 욕조 수온은 있으면 쓰고 없으면 외기만으로 매깁니다(coverage 0.5 ·
+    # status "partial"). 시설이 관리하는 값이라 수집되지 않는 날이 대부분이고,
+    # 그것 때문에 온천을 아예 말하지 않는 쪽이 더 틀립니다.
+    "onsen": {"bath_water_temperature": BATH, "air_temperature": ONSEN_AIR},
     "rafting": {
         "river_level": None,
         "river_flow": None,

@@ -67,12 +67,20 @@ WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
 #: **두 겹을 모두 둡니다** -- 이 표는 `decide` 에 들어온 활동이 무엇이든 지키는
 #: 계약이고(API 가 activity 를 직접 물을 수 있습니다), 후보 집합은 「오늘 뭘
 #: 할까」에 무엇을 올리는지입니다. 하천 관측이 붙으면 후보 집합만 되돌립니다.
+#:
+#: 온천은 **욕조 수온을 요구하지 않습니다.** `bath_water` 관측소를 만드는 수집
+#: 경로가 없어 어떤 날도 `evaluated` 가 되지 않았고, 그래서 온천은 늘 「추천
+#: 제외 · 필수 근거 부족」 한 줄이었습니다. 하지만 그 문장은 사용자가 궁금한
+#: 것에 답하지 않습니다 -- 해변에서 온천이 아닌 이유는 자료가 없어서가 아니라
+#: **그 장소에 온천이 없어서**입니다. 그 사실은 아래 장소 자격 가드가 말하고
+#: (`activity_not_offered_at_place`), 온천 시설에서는 외기만으로도 점수가 섭니다.
+#: 욕조 수온이 들어오면 그때 점수에 함께 반영됩니다.
 ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "swim": (("water_temperature",), ("wave_height",)),
     "surf": (("water_temperature",), ("wave_height",)),
     "relax": (("air_temperature",),),
     "mudflat": (("air_temperature",),),
-    "onsen": (("bath_water_temperature",),),
+    "onsen": (("air_temperature",),),
     "rafting": (("river_level", "river_flow"),),
 }
 
@@ -130,9 +138,18 @@ RULES: tuple[Rule, ...] = (
         code="essential_measurement_missing",
         text=(
             "활동을 정의하는 지표가 없으면 후보에서 뺍니다. 바다 수영·서핑은 "
-            "수온과 파고, 담수 수영은 수온과 강수, 온천은 시설 욕조 수온, "
-            "래프팅은 하천 수위 또는 유량이 "
-            "있어야 합니다. 기상 자료만으로 그 활동을 권하지 않습니다."
+            "수온과 파고, 담수 수영은 수온과 강수, 래프팅은 하천 수위 또는 "
+            "유량이 있어야 합니다. 기상 자료만으로 그 활동을 권하지 않습니다."
+        ),
+        basis="data_contract",
+    ),
+    Rule(
+        code="activity_not_offered_at_place",
+        text=(
+            "그 장소에서 하는 활동이 아니면 후보에서 뺍니다. 온천은 해당 장소의 "
+            "온천 지원 근거가 확인될 때만 후보가 됩니다 -- 해변의 기온이 좋다는 "
+            "사실은 그 해변에 온천이 있다는 뜻이 아닙니다. 자료가 없는 것과 "
+            "그 장소의 활동이 아닌 것은 다른 사실이므로 따로 말합니다."
         ),
         basis="data_contract",
     ),
@@ -501,6 +518,20 @@ def decide(
                     activity=activity,
                     metric=None,
                 )
+            )
+        elif activity == "onsen" and evidence.support_status != "supported":
+            # 온천은 **그 장소가 온천일 때만** 후보입니다. 욕조 수온을 필수에서
+            # 풀었으므로 이 가드가 없으면 강릉 해변에 「오늘 가장 좋은 활동 =
+            # 온천」이 섭니다 -- 기온만으로 점수가 서기 때문입니다.
+            #
+            # 예전에는 욕조 수온이 없다는 사실이 우연히 같은 일을 해 주었지만,
+            # 화면에 뜨는 말이 틀렸습니다. 「시설 욕조 수온 자료가 없어요」는
+            # 사실이되 답이 아니고, 사용자가 궁금한 것은 「왜 온천이 아닌가」
+            # 입니다. 이 장소의 활동이 아니라고 말하는 쪽이 정직합니다.
+            dropped = True
+            applied.append("activity_not_offered_at_place")
+            reasons.append(
+                Reason(code="activity_not_offered_at_place", activity=activity)
             )
         elif inland and activity == "swim" and evidence.support_status != "supported":
             dropped = True

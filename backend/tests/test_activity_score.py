@@ -6,7 +6,14 @@ import pytest
 from pydantic import ValidationError
 from test_condition_score import NOW, envelope, metric, source
 
-from app.water_index.activity_score import BEACH_AIR, WIND, calculate_activity_score
+from app.water_index.activity_score import (
+    BEACH_AIR,
+    DEFAULT_CURVES,
+    ONSEN_AIR,
+    OUTDOOR_AIR,
+    WIND,
+    calculate_activity_score,
+)
 from app.water_index.condition_api import ConditionQuery, group_metric
 from app.water_index.conditions import ACTIVITIES, Criterion, calculate_conditions
 
@@ -42,11 +49,43 @@ def test_published_air_range_and_wind_intervals_with_declared_adaptation():
     assert "km/h" in WIND.criterion("m/s")
 
 
+def test_the_onsen_air_curve_runs_opposite_to_outdoor_visiting():
+    """추울수록 온천 점수가 올라야 합니다. 예전에는 OUTDOOR_AIR 를 써서 5°C 에
+    0 점이었습니다 -- 온천에 가고 싶은 날에 가장 낮은 점수를 주고 있었습니다."""
+    assert ONSEN_AIR.score(0.0) > ONSEN_AIR.score(15.0) > ONSEN_AIR.score(27.0)
+    assert OUTDOOR_AIR.score(0.0) < OUTDOOR_AIR.score(15.0) < OUTDOOR_AIR.score(27.0)
+    # 더운 날을 0 점으로 떨어뜨리지 않습니다. 한여름에도 온천에 가는 사람이
+    # 있고, 그것을 「조건 나쁨」으로 단정할 근거가 없습니다.
+    assert ONSEN_AIR.score(35.0) > 0
+    # 근거 없는 제품 규칙임이 기준 문장에 남습니다.
+    assert "미검증" in ONSEN_AIR.criterion("°C")
+    assert ONSEN_AIR.source_ids == ()
+
+
+def test_an_onsen_scores_on_air_alone_when_the_bath_is_not_measured():
+    """욕조 수온 없이도 점수가 섭니다. 다만 부분 점수임을 숨기지 않습니다.
+
+    `bath_water` 관측소를 만드는 수집 경로가 없어 욕조 수온은 사실상 늘
+    비어 있습니다. 그것 때문에 온천을 아예 말하지 않는 쪽이 더 틀립니다.
+    """
+    result = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", 3.0),))
+    )
+    assert result.score == ONSEN_AIR.score(3.0)
+    assert result.status == "partial" and result.coverage == 0.5
+    assert component(result, "bath_water_temperature").score is None
+    assert "partial_components" in result.reason_codes
+
+
 @pytest.mark.parametrize("activity", ACTIVITIES)
 def test_six_activities_compute_without_manual_criteria_and_preserve_unknown(activity):
     evidence = envelope(activity, metrics=(metric(value=25.0),))
     result = calculate_activity_score(evidence)
-    assert result.status == "partial" and result.score == 100
+    # 점수는 그 활동의 기온 곡선이 정합니다. 예전에는 여섯 활동 모두 25°C 에서
+    # 100 점이라는 사실에 기대 숫자를 적어 두었는데, 온천의 기온 곡선이
+    # 반대 방향(추울수록 높음)이 되면서 조용히 틀렸습니다.
+    expected = DEFAULT_CURVES[activity]["air_temperature"].score(25.0)
+    assert result.status == "partial" and result.score == expected
     assert result.available_components == 1
     assert result.coverage == 1 / result.total_components
     assert result.scientific_validation == "not_evaluated"
