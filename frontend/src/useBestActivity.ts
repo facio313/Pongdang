@@ -23,11 +23,8 @@ export interface ActivityCondition {
 
 /** 오늘 이 장소에서 할 활동과, 판단에 쓴 활동별 조건 응답 전부.
  *
- *  **고르는 일은 서버가 합니다**(`water-index/recommendation`). 화면은 예전에
- *  다섯 점수 중 `max` 를 골랐는데, 그러면 항목이 적어 점수가 높게 나오는
- *  「휴식」이 여름 해변에서도 1위가 되고, 해변에서 래프팅이 뽑히고, 물때는
- *  아무 영향도 주지 못했습니다. 규칙과 그 근거는 한 곳(recommendation.py)에
- *  있어야 화면이 말하는 이유와 고른 활동이 갈리지 않습니다.
+ *  서버가 필수 자료·공식 제한·운영 확인 상태를 반영해 활동을 고릅니다.
+ *  화면에서는 점수를 다시 계산하거나 순위를 바꾸지 않습니다.
  *
  *  조건 응답도 그 한 번의 조회에 함께 옵니다. 예전에는 활동마다 따로 물어
  *  홈 한 번에 여섯 번을 왕복했고, 그 응답들의 시각이 서로 달라 히어로 점수와
@@ -37,10 +34,7 @@ export interface ActivityCondition {
  *  0 점이나 「안전함」으로 바꾸지 않습니다 -- 근거가 없는 것과 조건이 나쁜 것은
  *  다른 사실입니다.
  *
- *  **`best` 는 `all` 에 없는 활동일 수 있습니다.** 휴식은 활동별 점수 목록에서
- *  빠졌지만(aiApi.listedActivities) 고르기 경쟁에는 남아, 물 활동이 전부
- *  미뤄진 날 서버가 그것을 고릅니다. 그때 `entry` 가 undefined 이므로 점수는
- *  서버가 보낸 `choice.score` 를 그대로 씁니다. */
+ *  서버와 화면 배포 시점이 다르면 목록 밖 활동을 받을 수 있어 그 조건도 보존합니다. */
 export function useBestActivity(id?: number, enabled = true) {
   const recommendation = useRecommendation(id, undefined, enabled);
   const { data, loading, error, previousData } = recommendation;
@@ -65,7 +59,7 @@ export function useBestActivity(id?: number, enabled = true) {
   // 고른 활동은 추천이 정하고, 옆에 뜨는 숫자는 그 활동의 조건 응답에서
   // 옵니다. 한 응답 안의 두 값이므로 서로 어긋나지 않습니다.
   //
-  // 고른 활동이 점수 목록에 없으면(휴식) `all` 에 줄이 없습니다. 그래도 조건
+  // 고른 활동이 점수 목록에 없으면 `all` 에 줄이 없습니다. 그래도 조건
   // 응답은 같은 조회에 함께 와 있으므로 **직접 찾아 붙입니다** -- 이것이
   // 없으면 히어로가 「마지막 업데이트」와 근거 확보율을 말하지 못하고, 점수만
   // 출처 없이 떠 있게 됩니다.

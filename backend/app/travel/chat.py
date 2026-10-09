@@ -297,6 +297,7 @@ class TravelToolSession(ToolSession):
                     "swim": r"수영|swim|泳ぎ|游泳",
                     "surf": r"서핑|surf|サーフ|冲浪|衝浪",
                     "rafting": r"래프팅|rafting|ラフティング|漂流",
+                    "walk": r"걷|걸[어을]|산책|walk|stroll|散歩|散步|水辺を歩",
                 }
                 if any(
                     activity in explicit_activities

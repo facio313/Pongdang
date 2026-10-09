@@ -145,6 +145,8 @@ def test_app():
     batch = source(
         values=[
             Value(name="air_temperature", numeric_value=24.7, unit="degC"),
+            Value(name="relative_humidity", numeric_value=55, unit="%"),
+            Value(name="wind_speed", numeric_value=2.8, unit="m/s"),
             Value(name="water_temperature", numeric_value=21.3, unit="degC"),
             Value(name="wave_height", numeric_value=0.4, unit="m"),
             Value(name="precipitation", numeric_value=0, unit="mm/1h"),

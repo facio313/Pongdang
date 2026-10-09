@@ -513,7 +513,9 @@ export function HomeDesktop() {
                 {t("AI 제안")}</span>
               <div className="hd-ai-headline">
                 {best
-                  ? t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
+                  ? best.data?.condition_score?.score_basis === "onsen_alternative"
+              ? t("오늘의 야외 조건에서는 온천으로 이동하는 대안을 권합니다")
+              : t("오늘 이 장소에서는 {activity} 가장 잘 맞습니다", { activity: withJosa(t(activities[best.activity]), "이/가") })
                   : missingChoiceHeadline(recommendation.error, true).join(" ")}
               </div>
               {/* 근거는 서버가 고른 이유를 먼저 씁니다. 그 이유가 없으면

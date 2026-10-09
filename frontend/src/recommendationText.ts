@@ -50,8 +50,14 @@ export function activityRecommendationDisplay(
     return { score: null, eligibility };
   }
   if (ranked?.needs_confirmation)
-    return { score: conditionScore(conditions), eligibility: t("개장 확인 필요") };
+    return { score: conditionScore(conditions), eligibility: t("수영 운영 확인 필요") };
   const score = conditionScore(conditions);
+  if (score !== null && conditions?.condition_score?.score_basis === "onsen_alternative")
+    return { score, eligibility: t("날씨 기반 대안") };
+  if ((ranked?.needs_confirmation || ranked?.demoted) && ranked.rules_applied.includes("beach_season_unconfirmed"))
+    return { score, eligibility: t("수영 운영 확인 필요") };
+  if (ranked?.demoted && ranked.rules_applied.includes("beach_closed_season_product_rule"))
+    return { score, eligibility: t("수영 운영 기간 밖") };
   if (score === null && conditions)
     return {
       score,
@@ -92,21 +98,12 @@ export const ALTERNATIVE_LABEL: Record<
   visit: "가까운 명소",
 };
 
-/** 히어로에 올릴 활동 이름. `relax` 는 서버 enum 이라 그대로 두고, 추천
- *  문맥에서만 갈 곳이 있는 하루로 바꿔 부릅니다.
- *
- *  휴식은 활동별 점수 목록에서 빠졌으므로(aiApi.listedActivities) 이 분기는
- *  이제 **히어로 전용 이름**입니다. 물때 구간·개장 기간 밖처럼 물 활동이 전부
- *  미뤄진 날 서버가 휴식을 고르고, 그 한 줄이 이 이름을 만듭니다.
- *
- *  개장 기간이 지난 해변에서는 「해변 산책」입니다. 새 활동을 만들지 않고
- *  **이름만** 바꿔 부릅니다 -- `Activity` 를 늘리면 점수 곡선과 필수 지표표가
- *  따라와야 하고, 근거 없는 새 곡선을 만들게 됩니다. */
+/** 휴식과 걷기는 별도 활동이며, 온천 대안은 이동할 활동이라는 점을 밝힙니다. */
 export function activityHeadline(activity: Activity, rec?: Recommendation) {
-  if (activity !== "relax") return t(activities[activity]);
-  return rec?.beach_season?.status === "out_of_season"
-    ? t("해변 산책")
-    : t("물에 들어가지 않는 하루");
+  if (activity === "walk") return t(rec?.place_kind === "beach" ? "해변 걷기" : "물길 따라 걷기");
+  if (activity === "onsen" && rec?.reasons?.some(reason => reason.code === "onsen_weather_alternative"))
+    return t("온천으로 몸 녹이기");
+  return t(activities[activity]);
 }
 
 export interface ReasonLine {
@@ -153,6 +150,17 @@ function measured(reason: RecommendationReasonData) {
 export function choiceReason(rec?: Recommendation): ReasonLine | null {
   const choice = rec?.choice;
   if (!choice) return null;
+  if (choice.activity === "onsen" && find(rec, "onsen_weather_alternative")) {
+    const factors = all(rec, "onsen_alternative_factor").map(measured).join(" · ");
+    return {
+      code: "onsen_weather_alternative",
+      text: [factors, t("온천으로 이동할 매력을 비교한 점수예요. 시설 영업과 욕조 상태는 별도로 확인해 주세요.")].filter(Boolean).join(" — "),
+    };
+  }
+  if (choice.activity === "walk" && find(rec, "walking_weather_only")) return {
+    code: "walking_weather_only",
+    text: t("기온·바람·강수 등 걷기 조건을 비교해 골랐어요. 산책로 개방과 통행 상태는 별도로 확인해 주세요."),
+  };
   const surf = find(rec, "wave_favours_surf");
   if (surf) {
     const period = find(rec, "wave_period_context");
@@ -170,11 +178,12 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
       code: swim.code,
       text: t("{waves} — 파도가 잔잔해서 바다 수영에 맞아요", { waves: measured(swim) }),
     };
+  if (find(rec, "condition_score_preferred")) return {
+    code: "condition_score_preferred",
+    text: t("필수 자료가 있는 활동의 참고 점수를 비교해 골랐어요."),
+  };
   const preferred = find(rec, "water_activity_preferred");
-  // 상대의 점수가 **화면에 있을 때만** 이 문장을 씁니다. 휴식은 활동별 점수
-  // 목록에서 빠졌으므로(aiApi.listedActivities) 「휴식 점수가 더 높지만」이라고
-  // 적으면 사용자가 그 숫자를 어디서도 찾을 수 없습니다. 온천처럼 목록에 줄이
-  // 있는 상대라면 그대로 말합니다.
+  // 이전 모델 응답도 읽되, 실제로 표시하는 활동의 점수만 비교 문구에 씁니다.
   if (
     preferred &&
     preferred.rival &&
@@ -265,6 +274,7 @@ const METRIC_NAMES: Record<string, string> = {
   river_level: "하천 수위",
   river_flow: "하천 유량",
   wind_speed: "풍속",
+  precipitation: "1시간 강수량",
 };
 
 /** 바다에 들어가는 활동. 물때 문장이 「바다 대신」이라고 말해도 되는지를

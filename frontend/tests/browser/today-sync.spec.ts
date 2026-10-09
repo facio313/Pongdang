@@ -65,7 +65,7 @@ test("활동 타일은 추천이 이미 실어 온 조건을 쓰고 따로 묻�
 }) => {
   const asked = await recordConditionQueries(page);
   await page.goto("#today");
-  await expect(page.locator(".td-act")).toHaveCount(3);
+  await expect(page.locator(".td-act")).toHaveCount(5);
   await expect(page.locator(".td-act-score").first()).not.toBeEmpty();
   // 지점 비교 줄의 조회는 타일보다 늦게 나갑니다. 다 나간 뒤에 세지 않으면
   // 이 검사는 아무것도 보지 않은 채 통과합니다.
@@ -104,7 +104,7 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
     return route.fulfill({ response, json: body });
   });
   await page.goto("#today");
-  await expect(page.locator(".td-act")).toHaveCount(3);
+  await expect(page.locator(".td-act")).toHaveCount(5);
 
   const pairs = await page.locator(".td-act").evaluateAll((nodes) =>
     nodes.map((node) => ({
@@ -117,6 +117,8 @@ test("활동 타일의 이름과 점수는 활동 id 로 짝짓는다", async ({
   const byName: Record<string, string> = {
     수영: "swim",
     서핑: "surf",
+    휴식: "relax",
+    "물길 따라 걷기": "walk",
     온천: "onsen",
   };
   for (const pair of pairs) {

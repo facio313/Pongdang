@@ -32,17 +32,17 @@ MODEL_ID = "pongdang-activity-recommendation"
 #: `Record` 의 `validate_default=True` 가 기본값을 검사하면서 추천 응답이 통째로
 #: 500 이었습니다. 단위 테스트는 `decide()` 만 봤기 때문에 잡지 못했습니다.
 #: 이제 버전을 올리면 한 줄만 고치면 되고, 어긋나면 타입 검사에서 멈춥니다.
-ModelVersion = Literal["1.1.0"]
-MODEL_VERSION: ModelVersion = "1.1.0"
+ModelVersion = Literal["1.3.0"]
+MODEL_VERSION: ModelVersion = "1.3.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
 
 #: 물에 들어가는 활동. 퐁당은 물놀이 앱이므로 **물에 들어갈 만한 날이면** 이쪽을
-#: 먼저 권합니다. 휴식·온천은 물에 못 들어갈 때의 답입니다.
+#: 먼저 권합니다. 걷기·휴식·온천은 물에 못 들어갈 때의 답입니다.
 #:
-#: 이 구분이 없으면 휴식이 거의 항상 1위가 됩니다. 휴식의 점수 항목은 기온 ·
-#: 습도 · 바람 · 강수뿐이라 날씨만 좋으면 만점에 가깝고, 수영은 수온 · 파고까지
+#: 이 구분이 없으면 휴식·걷기가 거의 항상 1위가 됩니다. 그쪽의 점수 항목은
+#: 기온·습도·바람·강수뿐이라 날씨만 좋으면 만점에 가깝고, 수영은 수온·파고까지
 #: 보기 때문에 같은 날 늘 몇 점 낮습니다.
 #:
 #: **다만 절대 우선은 아닙니다.** 예전에는 이 구분이 점수보다 앞에 있어, 수온
@@ -50,9 +50,9 @@ SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
 #: 「물이면 물」은 물에 들어갈 만한 날에만 맞는 말이고, 그렇지 않은 날 이 규칙은
 #: 추천이 아니라 고집입니다. 자격은 `WATER_PREFERENCE_MIN_SCORE` 가 정합니다.
 #:
-#: 휴식은 **고르기 경쟁에 남아** 있고, 물때 구간 · 개장 기간 밖처럼 물 활동이
-#: 전부 미뤄진 날의 답이 됩니다. 후보에서 지우면 그런 날 미뤄진 수영이 히어로로
-#: 올라와 10월 폐장 해변에 「오늘 가장 좋은 활동 = 수영」이 섭니다.
+#: 걷기·휴식은 **고르기 경쟁에 남아** 있고, 물때 구간 · 개장 기간 밖처럼 물
+#: 활동이 전부 미뤄진 날의 답이 됩니다. 후보에서 지우면 그런 날 미뤄진 수영이
+#: 히어로로 올라와 10월 폐장 해변에 「오늘 가장 좋은 활동 = 수영」이 섭니다.
 WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
 
 #: 활동마다 «이것이 없으면 그 활동을 말할 수 없는» 지표. 각 묶음에서 하나
@@ -82,6 +82,7 @@ ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "mudflat": (("air_temperature",),),
     "onsen": (("air_temperature",),),
     "rafting": (("river_level", "river_flow"),),
+    "walk": (("air_temperature",), ("wind_speed",), ("precipitation",)),
 }
 
 #: 입수 가능 수온의 하한. WATER 곡선의 18°C 절점(40점)을 그대로 씁니다 --
@@ -138,8 +139,9 @@ RULES: tuple[Rule, ...] = (
         code="essential_measurement_missing",
         text=(
             "활동을 정의하는 지표가 없으면 후보에서 뺍니다. 바다 수영·서핑은 "
-            "수온과 파고, 담수 수영은 수온과 강수, 래프팅은 하천 수위 또는 "
-            "유량이 있어야 합니다. 기상 자료만으로 그 활동을 권하지 않습니다."
+            "수온과 파고, 담수 수영은 수온과 강수, 걷기는 기온·바람·강수, "
+            "래프팅은 하천 수위 또는 유량이 있어야 합니다. 입수 활동은 기상 "
+            "자료만으로 권하지 않습니다."
         ),
         basis="data_contract",
     ),
@@ -192,9 +194,17 @@ RULES: tuple[Rule, ...] = (
         code="water_activity_preferred",
         text=(
             f"물 활동 점수가 {WATER_PREFERENCE_MIN_SCORE:g}점 이상이면 점수가 더 "
-            "높은 휴식·온천보다 먼저 권합니다. 항목 수가 적은 활동이 자동으로 "
-            "높은 점수를 받는 것을 그대로 순위로 쓰지 않기 위해서입니다. "
-            "기준 점수는 수온 점수 곡선의 절점을 그대로 쓴 값입니다."
+            "높은 걷기·휴식·온천보다 먼저 권합니다. 항목 수가 적은 활동이 "
+            "자동으로 높은 점수를 받는 것을 그대로 순위로 쓰지 않기 "
+            "위해서입니다. 기준 점수는 수온 점수 곡선의 절점을 그대로 쓴 값입니다."
+        ),
+        basis="pongdang_product_rule",
+    ),
+    Rule(
+        code="walking_weather_only",
+        text=(
+            "물길 따라 걷기는 기온·습도·바람·강수로 평가하며 수온·파고는 "
+            "점수에 넣지 않습니다. 산책로 존재·개방·노면·통행 안전은 별도 확인합니다."
         ),
         basis="pongdang_product_rule",
     ),
@@ -293,16 +303,8 @@ class Candidate(Record):
     #: 후보로 남았지만 뒤로 미뤄졌는지(물때 구간, 해수욕장 개장 기간 밖).
     #: 점수는 그대로입니다 -- 어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다.
     demoted: bool
-    #: 조건은 알지만 **할 수 있는 날인지를 모르는지**. 개장 기간을 확인하지
-    #: 못한 해수욕장 수영이 여기입니다.
-    #:
-    #: `dropped`(판단하지 않음) · `demoted`(뒤로 미룸) 의 **셋째 단계**입니다.
-    #: 미확인을 `demoted` 로 뭉치면 「미확인 ≠ 폐장」을 깨고(place_details.season
-    #: 의 세 가지 답), 아무 표시도 하지 않으면 10월 해변에 수영이 1위로 섭니다.
-    #:
-    #: 점수는 그대로 남습니다 -- 조건은 실제로 좋을 수 있고, 모르는 것은
-    #: 개장입니다. 바뀌는 것은 **물놀이 우선 가산을 받지 못한다**는 사실뿐이라,
-    #: 점수가 더 높은 휴식·온천이 그날의 답이 될 수 있습니다.
+    #: 운영 미확인은 폐장/물때로 미뤄진 상태와 별도로 보존합니다.
+    #: 원점수는 유지하되 운영을 확인한 활동 뒤에서 비교합니다.
     needs_confirmation: bool = False
     rules_applied: tuple[str, ...]
 
@@ -628,11 +630,7 @@ def decide(
             and season is not None
             and season.status == "unconfirmed"
         ):
-            # 후보에서 빼지도, 뒤로 미루지도 않습니다 -- 미확인은 폐장의 증거가
-            # 아닙니다. 다만 **물놀이 우선 가산을 거둡니다**: 할 수 있는 날인지
-            # 모르는 활동을 「물이면 물」로 다른 활동 앞에 세울 근거는 없습니다.
-            # 점수가 더 높은 휴식·온천이 그날의 답이 될 수 있고, 수영이 그래도
-            # 1위라면 그것은 점수로 이긴 것입니다(beach_season_unconfirmed 규칙).
+            # 폐장으로 판정하지 않고, 운영 확인이 필요하다는 상태를 구분합니다.
             needs_confirmation = True
             applied.append("beach_season_unconfirmed")
             reasons.append(Reason(code="beach_season_unconfirmed", activity=activity))
@@ -657,6 +655,11 @@ def decide(
     # 물때로 미뤄진 것이 가장 먼저, 그다음이 「물이면 물」, 그 안에서 점수,
     # 동점이면 `order` 순입니다. 점수만으로 줄을 세우지 않는 이유와, 그 우선이
     # 왜 조건부인지는 WATER_ACTIVITIES 주석에 있습니다.
+    #
+    # `needs_confirmation` 은 여기 들어오지 않습니다 -- 개장 미확인은 순위를
+    # 뒤로 미루는 사실이 아니라 **물놀이 우선 가산만** 거두는 사실이고, 그
+    # 판단은 `_water_preferred` 안에 있습니다. 미확인을 `demoted` 와 같은 칸에
+    # 두면 「미확인 ≠ 폐장」이 깨집니다.
     live.sort(
         key=lambda c: (
             c.demoted,
@@ -699,6 +702,10 @@ def decide(
                     threshold=land[0].score,
                 )
             )
+    if best is not None and best.activity == "walk":
+        # 걷기는 수온·파고를 보지 않습니다. 그 사실이 선택 이유에 함께 남아야
+        # 화면이 「무엇으로 매긴 점수인가」를 말할 수 있습니다.
+        reasons.append(Reason(code="walking_weather_only", activity="walk"))
 
     if (
         best is not None
@@ -712,7 +719,8 @@ def decide(
         rival_live = any(
             c.activity == rival
             and not c.dropped
-            and "beach_closed_season_product_rule" not in c.rules_applied
+            and not c.demoted
+            and not c.needs_confirmation
             for c in candidates
         )
         reasons.extend(_wave_reasons(envelopes, best.activity, rival, rival_live))
@@ -720,6 +728,8 @@ def decide(
         reasons.append(Reason(code="no_water_activity_today"))
 
     kinds: list[AlternativeKind] = []
+    if best is not None and best.activity == "onsen":
+        kinds.append("onsen")
     if sea_blocked_by_cold:
         kinds.extend(("onsen", "meal", "visit"))
     if sea_blocked_by_tide:

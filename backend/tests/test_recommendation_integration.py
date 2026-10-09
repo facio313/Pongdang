@@ -241,7 +241,7 @@ def codes(view):
     return [reason["code"] for reason in view["reasons"]]
 
 
-def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
+def test_a_warm_sea_keeps_its_evidence_but_requires_opening_confirmation(db):
     spots = places(db)
     map_station(db, spots["0"], readings(db, water=24.0, air=27.0))
     # Fixture setup reproduces the worker pass; the following HTTP reads stay read-only.
@@ -250,7 +250,12 @@ def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
         view = recommendation(client, spots["0"])
     assert view["contract_version"] == "water-recommendation.v1"
     assert view["place_kind"] == "beach"
-    assert view["choice"]["activity"] in {"swim", "surf"}
+    # 개장을 확인하지 못했으므로 수영은 물놀이 우선 가산을 잃습니다. 서핑은
+    # 해수욕장 개장과 무관하므로 가산을 그대로 들고 1순위가 됩니다.
+    assert view["choice"]["activity"] == "surf"
+    swim = next(row for row in view["ranked"] if row["activity"] == "swim")
+    assert swim["needs_confirmation"] is True and swim["demoted"] is False
+    assert swim["score"] is not None
     # 판단에 쓴 조건 응답이 함께 옵니다. 화면이 같은 자료를 다시 묻지 않습니다.
     # 개수는 후보 집합을 보고 셉니다 -- 숫자를 적어 두면 후보가 하나 드나들
     # 때마다 이 줄이 조용히 틀립니다(래프팅이 빠질 때 실제로 그랬습니다).
@@ -262,9 +267,12 @@ def test_a_warm_sea_is_chosen_and_carries_the_evidence_it_judged(db):
     )
     assert chosen["condition_score"]["score"] == view["choice"]["score"]
     assert [row["activity"] for row in view["ranked"]] == list(RECOMMENDED_ACTIVITIES)
-    # 해변에는 온천 시설이 없습니다. 점수를 만들지 않고 빼는 쪽입니다.
+    # 해변은 온천 시설이 아닙니다. 빠진 이유가 「자료 부족」이 아니라 「이
+    # 장소의 활동이 아님」이라는 사실이 여기 남습니다.
     dropped = {row["activity"] for row in view["ranked"] if row["dropped"]}
     assert "onsen" in dropped
+    onsen = next(row for row in view["ranked"] if row["activity"] == "onsen")
+    assert "activity_not_offered_at_place" in onsen["rules_applied"]
 
 
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):
@@ -319,7 +327,10 @@ def test_a_tide_far_from_its_extremes_only_says_which_way_the_water_goes(db):
         view = recommendation(client, spots["0"])
     assert view["tide"]["phase"] == "falling"
     assert "tide_phase_product_rule" not in codes(view)
-    assert kinds(view) == []
+    # 물때가 극값에서 멀면 계곡 대안을 권하지 않습니다. 이 테스트가 보는 것은
+    # 그 사실이며, 어느 활동이 뽑히는지는 수온·파고가 정합니다.
+    assert view["choice"]["activity"] == "surf"
+    assert "valley" not in kinds(view)
 
 
 def test_an_inland_place_reads_no_tide_and_never_invents_one(db):

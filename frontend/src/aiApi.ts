@@ -1,6 +1,6 @@
 import { t, dateLocale } from "./i18n.ts";
 import { forbiddenMessage } from "./authMessages.ts";
-export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅" } as const;
+export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅", walk: "물길 따라 걷기" } as const;
 export type Activity = keyof typeof activities;
 /** 추천 후보로 제시하는 활동. 서버 `models.RECOMMENDED_ACTIVITIES` 의 거울이며,
  *  응답의 `conditions` · `ranked` 에 실려 오는 집합입니다.
@@ -8,8 +8,8 @@ export type Activity = keyof typeof activities;
  *  mudflat 은 동해안에 갯벌 지형이 없어서, rafting 은 하천 수위·유량 자료가
  *  없어 어떤 날도 점수가 나오지 않아서 빠졌습니다. 지원을 끊는 것이 아니라
  *  「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도 아닙니다.
- *  activities 는 라벨 사전이므로 여섯을 그대로 둡니다. */
-export const recommendedActivities = ["swim", "surf", "relax", "onsen"] as const satisfies readonly Activity[];
+ *  activities 는 라벨 사전이므로 일곱을 그대로 둡니다. */
+export const recommendedActivities = ["swim", "surf", "relax", "walk", "onsen"] as const satisfies readonly Activity[];
 /** 「활동별 점수」에 줄을 가지는 활동. 지금은 후보 집합과 같습니다.
  *
  *  한동안 휴식을 숨겼습니다. 서버가 점수와 무관하게 「물에 들어갈 수 있으면
@@ -23,7 +23,7 @@ export const recommendedActivities = ["swim", "surf", "relax", "onsen"] as const
  *  두 상수는 그대로 둡니다. 「무엇을 고를 수 있는가」와 「무엇을 보여 주는가」는
  *  다른 질문이고, 전에 한 번 갈렸던 것처럼 또 갈릴 수 있습니다. 그때
  *  useBestActivity 는 히어로가 이 목록에 없을 수 있다는 계약을 이미 지킵니다. */
-export const listedActivities = ["swim", "surf", "relax", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
+export const listedActivities = ["swim", "surf", "relax", "walk", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
 export interface AiContext {
   spot_id?: number;
   spot_ids?: number[];

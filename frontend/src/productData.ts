@@ -111,6 +111,7 @@ export interface Conditions {
   reason_codes: string[];
 }
 export interface ConditionScore {
+  score_basis?: "activity_conditions" | "onsen_alternative";
   status: "evaluated" | "partial" | "unavailable" | "blocked";
   score: number | null;
   label: string;

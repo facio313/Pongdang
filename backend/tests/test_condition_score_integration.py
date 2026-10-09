@@ -1,6 +1,7 @@
 """Condition matching on disposable fixtures, not empirical activity validation."""
 
 from datetime import UTC, datetime, timedelta
+from typing import get_args
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +12,7 @@ from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
 from app.water_index.condition_producer import produce_conditions
-from app.water_index.models import SafetyEvidence, SupportEvidence
+from app.water_index.models import Activity, SafetyEvidence, SupportEvidence
 from app.water_index.sources import (
     AuthorityRecord,
     EvidenceBundle,
@@ -20,7 +21,7 @@ from app.water_index.sources import (
 )
 
 BASE = "/api/data/water-index"
-ACTIVITIES = ("swim", "surf", "relax", "mudflat", "onsen", "rafting")
+ACTIVITIES = get_args(Activity)
 
 
 @pytest.fixture
@@ -492,8 +493,15 @@ def test_sea_temperature_is_neither_bath_nor_river_temperature(database):
     produce_conditions(database)
     with TestClient(create_app(database)) as client:
         bath = conditions(client, spot, "onsen")
+        # 해수 수온 24°C 가 들어와 있어도 온천은 그것을 쓰지 않습니다. 욕조
+        # 수온은 여전히 비어 있고(missing_metrics), 점수 항목에도 해수 수온이
+        # 끼어들지 않습니다 -- BATH 곡선에 먹이면 24°C 가 욕조 선호로 읽힙니다.
         assert "bath_water_temperature" in bath["missing_metrics"]
-        assert all(item["name"] != "water_temperature" for item in bath["metrics"])
+        assert not any(m["name"] == "water_temperature" for m in bath["metrics"])
+        assert not any(
+            c["metric"] == "water_temperature"
+            for c in bath["condition_score"]["components"]
+        )
         result = score(
             client,
             spot,

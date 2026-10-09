@@ -176,12 +176,26 @@ _ACTIVITIES = (
     (
         "onsen",
         "온천",
-        "설정한 시설 욕조·외부 기온 조건의 일치 정도",
-        ("bath_water_temperature", "air_temperature"),
+        "시설 욕조 수온과 외기로 온천 이용 조건을 비교. 추운 날 점수가 오릅니다",
+        (
+            "bath_water_temperature",
+            "air_temperature",
+        ),
         (
             "시설 유형·실내외 구분",
             "시설 실측 욕조 수온·위생·이용 제한",
             "체류시간·대상자·노출별 외부 검증",
+        ),
+    ),
+    (
+        "walk",
+        "물길 따라 걷기",
+        "해변·계곡·호수 주변 걷기의 기상 참고 조건. 산책로 개방·통행 안전 판정 아님",
+        ("air_temperature", "relative_humidity", "wind_speed", "precipitation"),
+        (
+            "실제 산책로·보행 접근 구역",
+            "산책로 폐쇄·낙뢰·강풍·범람·해안 접근 통제",
+            "노면·경사·보행 시간·개인차별 현장 확인",
         ),
     ),
     (
@@ -229,6 +243,10 @@ def activity_metrics(activity, place_kind=None):
             )
         )
     return ACTIVITIES[activity].metrics
+
+
+def activity_score_metrics(activity, place_kind=None):
+    return activity_metrics(activity, place_kind)
 
 
 class ActivityCatalog(Record):

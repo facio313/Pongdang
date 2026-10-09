@@ -25,7 +25,6 @@ import { componentBars, scoreReason, scoreTitle } from "./scoreMeaning";
 import {
   conditionPath,
   conditionModeLabel,
-  periodPath,
   dateLabel,
   placeRegionLabel,
   scoreCoverageText,
@@ -84,10 +83,6 @@ function SectionHead({
  *  정합니다 -- 이름은 같은 파일의 라벨 사전에서 끌어옵니다. 모바일과 데스크탑이
  *  각자 배열을 들고 있다가 어긋난 적이 있어, 둘 다 그 상수를 읽습니다. */
 const ACTIVITY_ROWS = listedActivities.map((id) => ({ id, name: activities[id] }));
-const TIDE_ACTIVITIES = [
-  { name: "래프팅", icon: "rafting", mascot: "rafting" },
-  { name: "튜브 물놀이", icon: "tube", mascot: "tube" },
-] as const;
 
 function Hero({
   place,
@@ -176,7 +171,7 @@ function Hero({
             {heroScore !== null && <div className="td-score-coverage">{scoreCoverageText(best?.data)}</div>}
             <GradeChip
               score={heroScore}
-              prefix={best ? scoreTitle(best.activity) : undefined}
+              prefix={best ? scoreTitle(best.activity, best.data?.condition_score?.score_basis) : undefined}
               loading={loading}
               glass
               bare
@@ -459,59 +454,7 @@ function ActivitySection({ states }: { states: ActivityCondition[] }) {
   );
 }
 
-function OperatingRow({
-  activity,
-  id,
-  now,
-}: {
-  activity: (typeof TIDE_ACTIVITIES)[number];
-  id?: number;
-  now: string;
-}) {
-  const windows = useResource<{
-    rows: { state: string; start_at: string; end_at: string; scope: string }[];
-  }>(
-    activity.icon === "tube"
-      ? null
-      : periodPath("tides/windows", id, now, 1, activity.icon),
-  );
-  // 「운영 제한」은 운영 중도 미확인도 아닌 별개의 사실입니다. 데스크탑만
-  // 구분하고 있었고 모바일은 제한된 시간대를 「확인 필요」로 뭉뚱그렸습니다.
-  const restricted = windows.data?.rows.find((row) => row.state === "restricted");
-  const active = restricted ?? windows.data?.rows.find(
-    (row) => row.state === "official_operating_window",
-  );
-  return (
-    <div className={"td-tide-row" + (active && !restricted ? "" : " is-off")}>
-      <span className="td-badge-round">
-        <Icon name={activity.icon} size={14} />
-      </span>
-      <Mascot role={activity.mascot} size={20} />
-      <span className="td-tide-name">{t(activity.name)}</span>
-      <span className={"td-fit-chip" + (active && !restricted ? "" : " is-off")}>
-        {restricted ? t("운영 제한") : active ? t("공식 운영") : t("확인 필요")}
-      </span>
-      <span className="td-tide-when" title={active?.scope}>
-        {windows.error
-          ? t("조회 실패")
-          : active
-            ? `${tideTimeLabel(active.start_at)}–${tideTimeLabel(active.end_at)}`
-            : t("운영정보 없음")}
-      </span>
-    </div>
-  );
-}
 
-/* 「이 시각의 한계」 설명 줄(TideNote)은 물때 카드에서 내렸습니다. 관측소 ·
-   제공기관 · 거리는 그 카드가 이미 시각과 함께 적고 있어, 같은 사실이 두 층에
-   있었습니다. 되살릴 때는 카드 안 어디에도 그 값이 없는지 먼저 확인하세요. */
-
-/** 점수를 이루는 항목들.
- *
- *  데스크탑 「점수 근거」 LabelRow 와 같은 사실입니다. 모바일에서는 이 층이
- *  통째로 없었고, 대신 접기(ConditionScoreDetails) 안에만 숫자가 있었습니다 --
- *  펴 보지 않으면 무엇으로 몇 점인지 화면이 말하지 않았습니다. 히어로가 점수를
- *  크게 적는 화면이라면 그 점수가 어디서 왔는지도 같은 층에 있어야 합니다. */
 function ScoreBasisSection({
   activity,
   conditions,
@@ -545,19 +488,17 @@ function ScoreBasisSection({
 function TideSection({
   tides,
   id,
-  now,
   place,
 }: {
   tides?: TideResult;
   id?: number;
-  now: string;
   place?: Place;
 }) {
   // 고른 장소의 운영 안내(이용시간 · 개장 기간 · 휴무일). 데스크탑만 보여 주고
   // 있었습니다 -- 「물때는 좋은데 오늘 여는가」를 모바일에서는 알 수 없었습니다.
   const placeDetails = usePlaceDetails(id ? [id] : []);
   const detail = id ? placeDetails.byId.get(id) : undefined;
-  const schedule = placeOperatingSchedule(detail);
+  const schedule = placeOperatingSchedule(detail, place?.type);
   return (
     <section>
       <SectionHead label={t("물때")} />
@@ -581,14 +522,7 @@ function TideSection({
           </span>
         </div>
         <div className="td-rows td-tide-rows">
-          {TIDE_ACTIVITIES.map((activity) => (
-            <OperatingRow
-              key={activity.name}
-              activity={activity}
-              id={id}
-              now={now}
-            />
-          ))}
+
           <div className={"td-tide-row td-place-hours" + (schedule.length ? "" : " is-off")}>
             <span className="td-badge-round">
               <Icon name="pin" size={14} />
@@ -609,7 +543,7 @@ function TideSection({
               {schedule.length
                 ? schedule.map((row, index) => (
                     <span className="td-hours-line" key={`${row.label}-${index}`}>
-                      <span className="td-hours-label">{t(row.label)}</span>{row.value}
+                      <span className="td-hours-label">{t(row.label)}</span>{t(row.value)}
                     </span>
                   ))
                 : placeDetails.loading
@@ -722,7 +656,7 @@ function TodayScreen() {
           <ActivitySection states={activityStates} />
           <ScoreBasisSection activity={activity} conditions={conditions} />
           <TodayForecast id={place?.id} now={now} activity={activity} placeSettled={placeSettled} />
-          <TideSection id={place?.id} now={now} place={place} tides={tides.data} />
+          <TideSection id={place?.id} place={place} tides={tides.data} />
           <FirstSwimSection id={place?.id} />
           <QualitySection
             data={quality.data}

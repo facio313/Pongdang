@@ -20,12 +20,11 @@ from pydantic import (
 
 from app.config import Settings
 from app.data_reader import DataReader
-from app.water_index.models import AssessmentDTO, SupportDTO, Target
+from app.water_index.models import Activity, AssessmentDTO, SupportDTO, Target
 from app.water_index.registry import CONTEXT_PROFILES, DEFAULT_MODEL
 from app.water_index.storage import StorageReadError, read_projection
 
 CONTRACT_VERSION = "water-assessment.v1-draft"
-Activity = Literal["swim", "surf", "relax", "mudflat", "onsen", "rafting"]
 
 
 class QueryParams(BaseModel):

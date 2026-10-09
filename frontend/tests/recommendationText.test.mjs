@@ -14,6 +14,20 @@ import {
   tideLine,
 } from '../src/recommendationText.ts';
 
+test('walking names the place context and states the limits of its weather score', () => {
+  const rec = { place_kind: 'beach', choice: { activity: 'walk' }, reasons: [{ code: 'walking_weather_only', activity: 'walk' }] };
+  assert.equal(activityHeadline('walk', rec), '해변 걷기');
+  assert.equal(activityHeadline('walk', { place_kind: 'valley' }), '물길 따라 걷기');
+  assert.match(choiceReason(rec).text, /기온·바람·강수/);
+  assert.match(choiceReason(rec).text, /산책로 개방과 통행 상태/);
+});
+
+test('a deferred swimming score keeps its numeric evidence with an operating qualifier', () => {
+  const conditions = { condition_score: { score: 75.6, status: 'evaluated' } };
+  assert.deepEqual(activityRecommendationDisplay(conditions, { demoted: false, needs_confirmation: true, rules_applied: ['beach_season_unconfirmed'] }),
+    { score: 75.6, eligibility: '수영 운영 확인 필요' });
+});
+
 test('place details retain received evidence when missing waves prevent a recommendation', () => {
   const conditions = { activity: 'swim', condition_score: { score: 76.8, status: 'partial' } };
   const data = { choice: null, conditions: [conditions], ranked: [{ activity: 'swim', dropped: true, rules_applied: ['essential_measurement_missing'] }] };
@@ -64,7 +78,7 @@ test('an unconfirmed opening season keeps the score and says what is unknown', (
     dropped: false,
     needs_confirmation: true,
     rules_applied: ['beach_season_unconfirmed'],
-  }), { score: 93.8, eligibility: '개장 확인 필요' });
+  }), { score: 93.8, eligibility: '수영 운영 확인 필요' });
 
   // 후보에서 빠진 쪽이 먼저입니다 -- 둘이 겹치면 빠진 사실이 더 센 말입니다.
   assert.deepEqual(activityRecommendationDisplay(conditions, {
@@ -190,7 +204,7 @@ test('the runner-up is named only when its score is on screen', () => {
   // 두 상수가 또 갈릴 수 있고(recommendedActivities vs listedActivities),
   // 그때 사용자가 찾을 수 없는 점수를 가리키게 됩니다.
   assert.equal(choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'mudflat', value: 82, threshold: 96.7 })],
+    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'rafting', value: 82, threshold: 96.7 })],
   })), null);
 });
 
@@ -292,8 +306,9 @@ test('alternatives are grouped as places to go, never as a mood', () => {
   assert.deepEqual(alternativeGroups(undefined), []);
 });
 
-test('resting is named as a day out of the water, not as sitting by it', () => {
-  assert.equal(activityHeadline('relax'), '물에 들어가지 않는 하루');
+test('resting remains distinct from the separate walking activity', () => {
+  assert.equal(activityHeadline('relax'), '휴식');
+  assert.equal(activityHeadline('relax', { beach_season: { status: 'out_of_season' } }), '휴식');
   assert.equal(activityHeadline('swim'), '수영');
   assert.equal(activityHeadline('surf'), '서핑');
 });

@@ -81,7 +81,7 @@
 `unconfirmed` 를 `demoted` 로 뭉치면 「미확인 ≠ 폐장」을 깨고
 (`place_details.season` 의 세 가지 답), 아무것도 하지 않으면 10월 해변에 수영이
 1위로 선다. 점수는 그대로 남는다 — 조건은 실제로 좋을 수 있고, 모르는 것은
-개장이다. 화면은 점수 옆에 「개장 확인 필요」를 세운다.
+개장이다. 화면은 점수 옆에 「수영 운영 확인 필요」를 세운다 — 「해변 상시 개방 · 수영 운영과 별도」(`placeDetails.placeOpeningHours`)와 같은 어휘를 쓴다.
 
 **해수욕장의 「연중·상시」는 개장 확인으로 쓰지 않는다.** 관광정보가 「상시
 개방」이라 적을 때 그것은 출입 가능의 뜻이고 개장 기간이 아니다. 그대로 쓰면
@@ -98,9 +98,9 @@
 
 | 집합 | 어디 | 값 | 뜻 |
 |---|---|---|---|
-| 지원 | `conditions.ACTIVITIES` | swim · surf · relax · mudflat · onsen · rafting | API 로 직접 물으면 평가한다 |
-| 추천 후보 | `models.RECOMMENDED_ACTIVITIES` | swim · surf · relax · onsen | `decide()` 가 비교해 하나를 고른다 |
-| 점수 목록 | `frontend aiApi.listedActivities` | swim · surf · relax · onsen | 화면의 「활동별 점수」에 줄이 선다 |
+| 지원 | `conditions.ACTIVITIES` | swim · surf · relax · mudflat · onsen · rafting · walk | API 로 직접 물으면 평가한다 |
+| 추천 후보 | `models.RECOMMENDED_ACTIVITIES` | swim · surf · relax · walk · onsen | `decide()` 가 비교해 하나를 고른다 |
+| 점수 목록 | `frontend aiApi.listedActivities` | swim · surf · relax · walk · onsen | 화면의 「활동별 점수」에 줄이 선다 |
 
 - **mudflat** 은 후보에서 빠진다 — 동해안에 갯벌 **지형**이 없다.
 - **rafting** 은 후보에서 빠진다 — 어댑터가 하천 수위·유량을 공급하지 않고 그
@@ -114,6 +114,10 @@
   더 높지만」이라는 설명을 확인할 수 있다. 숫자를 지우고 설명만 남기면 확인할 길이
   없다. 히어로에서는 `activityHeadline` 이 `relax` 를 「해변 산책」·「물에 들어가지
   않는 하루」로 바꿔 부른다.
+- **walk**(물길 따라 걷기)는 기온·습도·바람·강수만 본다(`walking_weather_only`).
+  수온·파고를 보지 않으므로 맑은 날이면 거의 만점이고, 그래서 물놀이 우선이
+  조건부가 아니면 이 활동은 영원히 1위가 되거나 영원히 밀린다. 산책로 존재·개방·
+  노면·통행 안전은 점수가 말하지 않는다.
 - **onsen** 은 목록에 남는다. 시설 욕조 수온은 수집 경로가 없어 사실상 늘 비어
   있지만, 외기만으로 점수가 서고(`ONSEN_AIR`) 온천 시설에서는 추운 날의 답이 된다.
   해변에서 빠지는 이유는 자료가 아니라 **장소**다
@@ -182,10 +186,8 @@
 
 ## 「휴식」의 표기
 
-백엔드 enum `relax` 는 계약·DB·테스트가 물려 있으므로 그대로 둔다. 바뀐 것은 표현
-계층뿐이다 — 추천 문맥에서 `relax` 는 «물에 들어가지 않는 하루»로 부르고, 카페·맛집·
-명소 대안을 함께 싣는다(`recommendationText.activityHeadline`). 「물가에 앉아 있기」가
-답이 되지 않도록 **갈 곳**을 함께 말한다.
+`relax`는 화면에서도 「휴식」으로 표시하며 `walk`의 「해변 걷기」와 구분한다.
+추천된 활동의 점수와 근거를 그대로 보여 주며, 필요하면 등록된 카페·맛집·명소 대안을 함께 제시한다.
 
 ## 한 번의 조회로 끝난다
 

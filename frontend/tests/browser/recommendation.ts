@@ -82,12 +82,13 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   mudflat: "갯벌",
   onsen: "온천",
   rafting: "래프팅",
+  walk: "물길 따라 걷기",
 };
 
 /** 추천 문맥의 표기. 「휴식」은 물에 들어가지 않는 하루로 부릅니다
  *  (recommendationText.activityHeadline 과 같은 규칙). */
 export const headlineOf = (activity: string) =>
-  activity === "relax" ? "물에 들어가지 않는 하루" : ACTIVITY_LABEL[activity];
+  activity === "walk" ? "해변 걷기" : ACTIVITY_LABEL[activity];
 
 /** 저장된 취향. 추천 화면은 이 값으로 **첫 단계**를 정합니다 -- 저장된 취향이
  *  있으면 시작 화면, 없으면 취향 고르기입니다. 일회용 DB 는 앞선 검사가 남긴

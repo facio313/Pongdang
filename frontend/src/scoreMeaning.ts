@@ -27,7 +27,8 @@ const COMFORTABLE = grades.find((grade) => grade.key === "excellent")!.min;
 
 /** 무엇의 점수인지. 「퐁당 72」는 무슨 점수인지 말해 주지 않으므로 활동명을
  *  항상 붙입니다. */
-export function scoreTitle(activity: Activity) {
+export function scoreTitle(activity: Activity, basis?: ConditionScore["score_basis"]) {
+  if (basis === "onsen_alternative") return t("온천 대안 점수");
   return t("{activity} 적합도", { activity: t(activities[activity]) });
 }
 
@@ -40,6 +41,7 @@ const ACTIVITY_VERB: Record<Activity, string> = {
   mudflat: "갯벌에 나가기",
   onsen: "온천하기",
   rafting: "래프팅하기",
+  walk: "물길 따라 걷기",
 };
 // 동사가 모두 「-기」로 끝나므로 꼬리를 공백 없이 바로 이어 붙입니다.
 // 「수영하기에 좋은」 · 「갯벌에 나가기에는 권하지 않는」처럼 어느 활동에
@@ -55,7 +57,9 @@ const GRADE_TAIL: Record<string, string> = {
 /** 등급을 행동으로 옮긴 한 줄. 「양호」는 상태어일 뿐이라 가도 되는지가 읽히지
  *  않습니다. 값이 없으면(`unscored`) 문장을 지어내지 않고 null 을 돌려줍니다 --
  *  모르는 것을 「괜찮다」로 바꾸지 않기 위해서입니다. */
-export function verdictOf(activity: Activity, gradeKey: string) {
+export function verdictOf(activity: Activity, gradeKey: string, basis?: ConditionScore["score_basis"]) {
+  if (basis === "onsen_alternative" && GRADE_TAIL[gradeKey])
+    return t("온천으로 이동할 매력을 비교한 점수예요");
   const tail = GRADE_TAIL[gradeKey];
   return tail ? t(tail, { activity: t(ACTIVITY_VERB[activity]) }) : null;
 }
@@ -120,6 +124,12 @@ export function strongFactor(data?: Conditions): ScoreFactor | null {
  *  「근거가 없다」를 말합니다. 셋 다 서로 다른 사실이라 한 문장으로 합치지
  *  않습니다. */
 export function scoreReason(data?: Conditions): ScoreFactor | { text: string } {
+  if (data?.condition_score?.score_basis === "onsen_alternative") {
+    const items = scored(data);
+    if (!items.length) return { text: t("온천 대안을 비교할 기상·수온·파고 자료가 없습니다.") };
+    const best = items.reduce((high, item) => (item.score as number) > (high.score as number) ? item : high);
+    return factor(best, (label, value) => t("{label} {value} — 온천으로 이동할 매력에 반영했어요", { label, value }));
+  }
   return (
     limitingFactor(data) ??
     strongFactor(data) ?? { text: t("근거가 부족해 점수를 내지 못했어요") }

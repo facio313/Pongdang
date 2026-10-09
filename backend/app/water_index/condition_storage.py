@@ -26,10 +26,11 @@ from app.water_index.conditions import (
     ConditionProjection,
     ConditionsEnvelope,
     ConditionSummary,
+    activity_score_metrics,
     summarize_conditions,
 )
 
-MODEL_VERSION = "1.1.0"
+MODEL_VERSION = "1.3.0"
 REFRESH_SECONDS = 600
 KST = ZoneInfo("Asia/Seoul")
 RESULT_LOCK = "pongdang-condition-results"
@@ -833,7 +834,7 @@ def _unavailable(q, at, as_of, row):
             score=None,
             coverage=0.0,
             available_components=0,
-            total_components=len(definition.metrics),
+            total_components=len(activity_score_metrics(q.activity)),
             components=(),
             reason_codes=(reason, "not_a_safety_score"),
             sources=(),

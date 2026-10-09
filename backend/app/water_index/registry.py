@@ -123,7 +123,7 @@ PROFILES = MappingProxyType(
                 ]
             ),
         )
-        for activity in ("swim", "surf", "relax", "mudflat", "onsen", "rafting")
+        for activity in ("swim", "surf", "relax", "mudflat", "onsen", "rafting", "walk")
     }
 )
 # A routing label only: no inferred age, supervision, equipment or skill.

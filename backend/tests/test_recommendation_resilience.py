@@ -106,6 +106,7 @@ def assert_preserved(response, lookup, unavailable):
     assert {row["activity"]: row["score"] for row in view["ranked"]} == {
         activity: evidence.condition_score.score
         for activity, evidence in lookup.envelopes.items()
+        if activity in RECOMMENDED_ACTIVITIES
     }
     assert unavailable in view["reason_codes"]
     assert unavailable in [reason["code"] for reason in view["reasons"]]

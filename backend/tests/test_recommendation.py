@@ -27,6 +27,7 @@ from app.water_index.recommendation import (
 from app.water_index.recommendation_api import (
     Recommendation,
     RecommendationQuery,
+    season_view,
     tide_view,
 )
 
@@ -75,12 +76,91 @@ def beach(**overrides):
         ),
         # 해변에는 시설 욕조 수온이 없습니다. 그것이 현실입니다.
         "onsen": scored("onsen", air_temperature=27.0),
+        "rafting": scored("rafting", air_temperature=27.0, wind_speed=3.0),
+        "walk": scored("walk", air_temperature=27.0),
     }
     return data | overrides
 
 
 def codes(decision):
     return [reason.code for reason in decision.reasons]
+
+
+def test_autumn_weather_can_choose_a_beach_walk_instead_of_swimming():
+    """바다가 닫힌 가을 해변의 답은 걷기입니다.
+
+    수온 16°C 는 `IMMERSION_WATER_C` 아래라 수영·서핑이 **후보에서 빠집니다**.
+    남은 것 가운데 걷기가 휴식보다 높아 1위가 됩니다 -- 걷기는 바람을 보고
+    휴식은 습도까지 보므로 같은 날 점수가 갈립니다.
+    """
+    data = beach(
+        swim=scored(
+            "swim",
+            water_temperature=16.0,
+            air_temperature=17.4,
+            wind_speed=2.8,
+            wave_height=0.3,
+        ),
+        surf=scored(
+            "surf",
+            water_temperature=16.0,
+            air_temperature=17.4,
+            wind_speed=2.8,
+            wave_height=0.3,
+            wave_period=4.0,
+        ),
+        walk=scored(
+            "walk",
+            air_temperature=17.4,
+            relative_humidity=55.0,
+            wind_speed=2.8,
+            precipitation=0.0,
+        ),
+        relax=scored(
+            "relax", air_temperature=17.4, relative_humidity=55.0, wind_speed=2.8
+        ),
+    )
+    decision = decide(data, place_kind="beach", season=season("unconfirmed"))
+    assert candidate(decision, "swim").dropped
+    assert candidate(decision, "surf").dropped
+    assert decision.choice.activity == "walk"
+    # 걷기는 수온·파고를 보지 않는다는 사실이 선택 이유에 남습니다.
+    assert "walking_weather_only" in codes(decision)
+
+
+def test_a_viable_sea_still_outranks_a_perfect_walk():
+    """걷기 점수가 높아도 물에 들어갈 만하면 물입니다.
+
+    걷기의 점수 항목은 기온·습도·바람·강수뿐이라 날씨만 좋으면 거의 만점이고,
+    수영은 수온·파고까지 보므로 같은 날 늘 낮습니다. 점수만으로 줄을 세우면
+    물놀이 앱이 맑은 날마다 「걷기」를 권하게 됩니다.
+
+    기준선(`WATER_PREFERENCE_MIN_SCORE`) 위에서만 이 우선이 섭니다 -- 기준 아래의
+    사례는 test_a_low_scoring_water_activity_no_longer_outranks_a_better_land_activity.
+    """
+    decision = decide(beach(), place_kind="beach", season=season("in_season"))
+    walk = candidate(decision, "walk")
+    swim = candidate(decision, "swim")
+    assert walk.score > swim.score
+    assert swim.score >= WATER_PREFERENCE_MIN_SCORE
+    assert decision.choice.activity == "swim"
+
+
+@pytest.mark.parametrize("missing", ["air_temperature", "wind_speed", "precipitation"])
+def test_walking_never_treats_missing_weather_as_favourable(missing):
+    values = {"air_temperature": 20.0, "wind_speed": 2.0, "precipitation": 0.0}
+    del values[missing]
+    decision = decide({"walk": scored("walk", **values)}, place_kind="valley")
+    assert decision.choice is None
+    assert candidate(decision, "walk").dropped
+    assert any(r.metric == missing for r in decision.reasons)
+
+
+def test_walks_do_not_inherit_swimming_permission_or_override_a_walking_closure():
+    walking = scored("walk", air_temperature=20.0, wind_speed=2.0, precipitation=0.0)
+    assert decide({"walk": walking}, place_kind="valley").choice.activity == "walk"
+    blocked = with_score(walking.model_copy(update={"safety_status": "restricted"}))
+    assert decide({"walk": blocked}, place_kind="valley").choice is None
 
 
 def candidate(decision, activity):
@@ -205,7 +285,7 @@ def test_waves_choose_surfing_over_swimming_and_say_so():
             wind_speed=3.0,
         ),
     )
-    decision = decide(surfable)
+    decision = decide(surfable, order=("swim", "surf"))
     assert decision.choice.activity == "surf"
     wave = next(r for r in decision.reasons if r.code == "wave_favours_surf")
     assert wave.value == 1.1 and wave.unit == "m"
@@ -214,17 +294,17 @@ def test_waves_choose_surfing_over_swimming_and_say_so():
 
 
 def test_calm_water_keeps_swimming_and_does_not_blame_the_waves():
-    decision = decide(beach())
+    decision = decide(beach(), order=("swim", "surf"))
     assert decision.choice.activity == "swim"
     assert "wave_favours_swim" in codes(decision)
     assert "wave_favours_surf" not in codes(decision)
 
 
-def test_a_higher_scoring_rest_does_not_outrank_a_swimmable_sea():
+def test_a_higher_scoring_rest_can_outrank_a_swimmable_sea():
     decision = decide(beach())
     rest = candidate(decision, "relax")
     swim = candidate(decision, "swim")
-    # 휴식은 보는 항목이 적어 점수가 더 높게 나옵니다. 그래도 1위가 아닙니다.
+    # 물 활동을 고정 우선하지 않고, 필수 근거가 있는 활동을 비교합니다.
     assert rest.score > swim.score
     # 가산은 조건부입니다. 이 날 수영이 이기는 것은 기준선 위이기 때문입니다.
     assert swim.score >= WATER_PREFERENCE_MIN_SCORE
@@ -262,7 +342,7 @@ def test_the_tide_rule_defers_sea_activities_and_offers_a_valley(phase, minutes)
 
 def test_a_tide_outside_the_margin_changes_nothing():
     decision = decide(beach(), place_kind="beach", tide=tide("rising", 200))
-    assert decision.choice.activity == "swim"
+    assert decision.choice == decide(beach(), place_kind="beach").choice
     assert not candidate(decision, "swim").demoted
     assert "tide_phase_product_rule" not in codes(decision)
 
@@ -524,6 +604,22 @@ def test_an_onsen_without_support_evidence_is_not_offered_anywhere():
         assert "activity_not_offered_at_place" in onsen.rules_applied
 
 
+def test_year_round_beach_access_does_not_confirm_a_swimming_season():
+    """해수욕장의 「연중」은 출입 가능을 뜻하고 개장 기간이 아닙니다.
+
+    그대로 쓰면 `year_round` 창(1.1~12.31)으로 읽혀 10월 해변이 `in_season` 이
+    됩니다. 판정에 쓰지 않은 창은 함께 지웁니다 -- 남겨 두면 화면이 「개장
+    1.1~12.31」로 읽어 쓰지 않은 숫자를 근거처럼 보이게 합니다.
+    """
+    row = {"opening_period": "연중", "opening_date": None}
+    view = season_view(row, NOW, place_kind="beach")
+    assert view.status == "unconfirmed"
+    assert view.windows == ()
+    assert "beach_year_round_wording_is_not_an_opening_season" in view.reason_codes
+    # 장소 유형을 모르면 규칙을 적용하지 않습니다. 파서가 읽은 사실 그대로입니다.
+    assert season_view(row, NOW).status == "in_season"
+
+
 def test_no_season_evidence_applies_no_season_rule():
     plain = decide(beach(), place_kind="beach", season=None)
     assert candidate(plain, "swim").demoted is False
@@ -573,7 +669,12 @@ def test_surfing_is_untouched_by_the_beach_opening_period():
 
 def test_a_season_deferred_swim_is_not_what_the_waves_chose():
     """파도는 아무것도 고르지 않았고 달력이 골랐습니다."""
-    closed = decide(beach(), place_kind="beach", season=season("out_of_season"))
+    closed = decide(
+        beach(),
+        place_kind="beach",
+        season=season("out_of_season"),
+        order=("swim", "surf"),
+    )
     assert closed.choice is not None and closed.choice.activity == "surf"
     assert "wave_favours_surf" not in codes(closed)
 
@@ -618,7 +719,7 @@ def test_the_response_contract_serialises_with_the_current_model_version():
         reasons=decision.reasons,
         tide=None,
         alternatives=(),
-        conditions=tuple(envelopes.values()),
+        conditions=tuple(envelopes[a] for a in RECOMMENDED_ACTIVITIES),
         reason_codes=decision.reason_codes,
     )
     dumped = response.model_dump()

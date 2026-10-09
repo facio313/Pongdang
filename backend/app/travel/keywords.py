@@ -24,7 +24,7 @@ CATEGORIES = [
             {"id": "onsen", "label": "온천", "tag": "온천"},
             {"id": "surf", "label": "서핑", "tag": "서핑"},
             {"id": "swim", "label": "수영"},
-            {"id": "rafting", "label": "래프팅"},
+            {"id": "walk", "label": "물길 따라 걷기"},
         ],
     },
     {
@@ -133,9 +133,14 @@ def validate_selection(selections):
         category = LOOKUP.get(selection.category)
         if category is None or len(selection.values) > category["max_selections"]:
             raise ValueError("keyword_category_or_count_invalid")
-        if len(set(selection.values)) != len(selection.values) or not set(
-            selection.values
-        ) <= {o["id"] for o in category["options"]}:
+        allowed = {o["id"] for o in category["options"]}
+        if selection.category == "activity":
+            # Stored trips retain their original activity; it is not offered anew.
+            allowed.add("rafting")
+        if (
+            len(set(selection.values)) != len(selection.values)
+            or not set(selection.values) <= allowed
+        ):
             raise ValueError("unknown_or_duplicate_keyword")
 
 
@@ -165,6 +170,8 @@ def normalize(request):
     for selection in request.keyword_selection:
         category = LOOKUP[selection.category]
         for value in selection.values:
+            if selection.category == "activity" and value == "rafting":
+                continue
             option = next(o for o in category["options"] if o["id"] == value)
             if option.get("tag"):
                 tags.append(option["tag"])
@@ -221,17 +228,17 @@ def activity_options(request, place):
                 "Hot springs",
                 "Surfing",
                 "Swimming",
-                "Rafting",
+                "Walk by the water",
             ],
             "ja": [
                 "水辺で休む",
                 "温泉",
                 "サーフィン",
                 "水泳",
-                "ラフティング",
+                "水辺を歩く",
             ],
-            "zh-CN": ["水边休息", "温泉", "冲浪", "游泳", "漂流"],
-            "zh-TW": ["水邊休息", "溫泉", "衝浪", "游泳", "漂流"],
+            "zh-CN": ["水边休息", "温泉", "冲浪", "游泳", "水边散步"],
+            "zh-TW": ["水邊休息", "溫泉", "衝浪", "游泳", "水邊散步"],
         }
         labels = dict(zip(labels, translations[request.locale], strict=True))
     tags = set(place["catalog_tags"])
@@ -241,7 +248,8 @@ def activity_options(request, place):
         "onsen": "온천" in tags,
         "surf": bool(tags & {"해변", "서핑"}),
         "swim": "해변" in tags,
-        "rafting": kind == "river",
+        "walk": kind in {"beach", "valley", "lake", "reservoir", "river"}
+        or "해변" in tags,
     }
     # 추천 목록에 없는 활동(mudflat 등)을 요청이 들고 와도 KeyError 대신 조용히
     # 거릅니다. 지원하지 않는다는 판정이 아니라, 제안하지 않는다는 뜻입니다.

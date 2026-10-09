@@ -12,6 +12,7 @@ export type MascotRole =
   | "surf"
   | "swim"
   | "rafting"
+  | "walk"
   | "rest"
   | "hotspring"
   | "cafe"
@@ -30,6 +31,7 @@ const MASCOT_FILE: Record<MascotRole, string> = {
   surf: "surf.png",
   swim: "swimcap.png",
   rafting: "waterfall.png",
+  walk: "walk.png",
   rest: "deckchair.png",
   hotspring: "onsen.png",
   cafe: "drink.png",
@@ -66,6 +68,7 @@ const ACTIVITY_MASCOT: Record<Activity, MascotRole> = {
   surf: "surf",
   relax: "rest",
   rafting: "rafting",
+  walk: "walk",
   onsen: "hotspring",
   mudflat: "spot",
 };

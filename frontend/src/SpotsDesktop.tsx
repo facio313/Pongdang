@@ -355,7 +355,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
         </div>
         <div className="sk-detail-information">
           {classified && (classified.type === "beach" || classified.type === "valley") && <FirstSwimGuide spotId={classified.id} desktop />}
-          <PlaceDetailInformation detail={details.byId.get(spotId)} loading={details.loading} error={details.error} desktop />
+          <PlaceDetailInformation detail={details.byId.get(spotId)} placeKind={classified?.type} loading={details.loading} error={details.error} desktop />
           <PlaceDistanceInfo place={place} loading={placeLoading} />
         </div>
       </div>

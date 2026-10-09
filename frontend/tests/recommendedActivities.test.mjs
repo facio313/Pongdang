@@ -6,7 +6,7 @@
 //
 // 셋이 다시 하나로 뭉치면 「지원하지 않는다」·「권하지 않는다」·「점수를 보여
 // 주지 않는다」가 섞입니다. 갯벌은 API 가 계속 평가하므로 라벨 사전에 남아야
-// 하고, 휴식은 후보이지만 목록에는 없어야 합니다.
+// 하고, 휴식은 추천 후보와 점수 목록 모두에 남아야 합니다.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -52,6 +52,7 @@ test("휴식은 후보이면서 점수 목록에도 있다", () => {
   // 수 있어야 「휴식 점수가 더 높지만」이라는 설명을 확인할 수 있습니다.
   assert.ok(recommendedActivities.includes("relax"));
   assert.ok(listedActivities.includes("relax"));
+  assert.deepEqual(listedActivities, ["swim", "surf", "relax", "walk", "onsen"]);
 });
 
 test("목록은 후보 집합의 부분집합이다", () => {
@@ -67,4 +68,11 @@ test("온천은 욕조 수온이 없어도 목록에 남는다", () => {
   // 만으로 점수가 서고(activity_score.ONSEN_AIR) 온천 시설에서는 추운 날의
   // 답이 됩니다. 해변에서 빠지는 이유는 자료가 아니라 장소입니다.
   assert.ok(listedActivities.includes("onsen"));
+});
+
+
+test("물길 걷기는 추천 후보와 점수 목록 모두에 있다", () => {
+  assert.ok(recommendedActivities.includes("walk"));
+  assert.ok(listedActivities.includes("walk"));
+  assert.equal(activities.walk, "물길 따라 걷기");
 });

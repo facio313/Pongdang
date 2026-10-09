@@ -50,7 +50,7 @@ test("desktop today reads the same server values as mobile", { tag: "@smoke" }, 
   // 없어, 래프팅은 하천 수위·유량 자료가 없어 후보에서 빠졌고
   // (models.RECOMMENDED_ACTIVITIES), 휴식은 후보로 남지만 목록에서 뺐습니다
   // -- 날씨만 좋으면 거의 항상 1위라 추천과 어긋난 채 보였습니다.
-  await expect(page.locator(".td-activity")).toHaveCount(3);
+  await expect(page.locator(".td-activity")).toHaveCount(5);
 
   const body = page.locator(".pd-desktop");
   for (const value of INVENTED) await expect(body).not.toContainText(value);

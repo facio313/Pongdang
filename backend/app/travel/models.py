@@ -22,7 +22,7 @@ SignalKind = Literal["card", "favorite", "visit", "review"]
 DataStatus = Literal[
     "available", "no_data", "stale", "partial", "unknown", "query_failed"
 ]
-Activity = Literal["relax", "swim", "surf", "mudflat", "onsen", "rafting"]
+Activity = Literal["relax", "swim", "surf", "mudflat", "onsen", "rafting", "walk"]
 
 
 class Record(BaseModel):

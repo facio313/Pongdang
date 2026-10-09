@@ -1,15 +1,7 @@
-"""추천 후보 집합이 지원 집합·키워드 facet 과 따로 유지되는지 지킵니다.
+"""평가 지원·추천 후보·관심사 선택지는 별도 집합이며 기록 호환을 보존합니다.
 
-세 집합이 각자 다른 질문에 답합니다.
-
-- `ACTIVITIES` -- 평가할 수 있는 활동. API 로 직접 물으면 여섯 전부 답합니다.
-- `RECOMMENDED_ACTIVITIES` -- 「오늘 뭘 할까」에 올리는 활동. 동해안에 갯벌
-  지형이 없어 mudflat 이, 하천 수위·유량 자료가 없어 rafting 이 빠집니다.
-- 키워드 facet -- 사용자가 고르는 관심사. 「래프팅 코스를 짜 줘」는 점수가
-  나오든 말든 뜻이 통합니다.
-
-「지원하지 않는다」·「권하지 않는다」·「관심사로 고를 수 없다」는 서로 다른
-사실이고, 이 파일은 셋이 다시 뒤섞이지 않게 합니다.
+새 선택지에서는 래프팅 대신 물길 걷기를 제공하지만, 저장된 래프팅 코스와
+직접 평가 API는 계속 읽을 수 있습니다.
 """
 
 from types import SimpleNamespace
@@ -26,11 +18,11 @@ LOCALES = ("en", "ja", "zh-CN", "zh-TW")
 def test_recommended_is_a_subset_of_supported_and_excludes_mudflat_and_rafting():
     assert set(RECOMMENDED_ACTIVITIES) <= set(ACTIVITIES)
     assert "mudflat" not in RECOMMENDED_ACTIVITIES
-    # 래프팅은 하천 수위·유량 자료가 없어 어떤 날도 점수가 나오지 않습니다.
-    # 갯벌은 지형 때문이고 래프팅은 자료 때문입니다 -- 이유가 다릅니다.
+    # 지원 범위는 줄지 않습니다. 카탈로그는 여전히 갯벌을 평가할 수 있습니다.
+    assert "mudflat" in ACTIVITIES
     assert "rafting" not in RECOMMENDED_ACTIVITIES
-    # 지원 범위는 줄지 않습니다. 카탈로그는 여전히 둘을 평가할 수 있습니다.
-    assert {"mudflat", "rafting"} <= set(ACTIVITIES)
+    assert "rafting" in ACTIVITIES
+    assert "walk" in RECOMMENDED_ACTIVITIES
 
 
 def test_keyword_activity_options_are_supported_but_need_not_be_recommended():
@@ -79,3 +71,23 @@ def test_an_unrecommended_activity_is_dropped_rather_than_raising():
         ],
     )
     assert [row["activity"] for row in activity_options(request, place)] == ["swim"]
+
+
+@pytest.mark.parametrize("kind", ["beach", "valley", "lake", "river", "reservoir"])
+def test_walking_candidates_cover_water_places_without_asserting_access(kind):
+    request = SimpleNamespace(locale="ko", activity="walk", keyword_selection=[])
+    options = activity_options(request, {"catalog_tags": [], "kind": kind})
+    assert [row["activity"] for row in options] == ["walk"]
+    assert options[0]["status"] == "unverified"
+
+
+def test_retired_rafting_keywords_still_load_saved_trips_without_becoming_walks():
+    from app.travel.keywords import normalize
+    from app.travel.models import TravelRequest
+
+    request = TravelRequest(
+        activity="rafting",
+        keyword_selection=[{"category": "activity", "values": ["rafting"]}],
+    )
+    assert normalize(request).activity == "rafting"
+    assert activity_options(request, {"catalog_tags": [], "kind": "river"}) == []

@@ -39,7 +39,7 @@ const providers: Record<string, string> = {
   PONGDANG_FUSION: "내부 근거 통합",
 };
 const activities: Record<string, string> = {
-  swim: "수영", rafting: "래프팅", onsen: "온천", mudflat: "갯벌 체험",
+  swim: "수영", rafting: "래프팅", onsen: "온천", mudflat: "갯벌 체험", walk: "물길 따라 걷기",
   relax: "휴식", surf: "서핑",
 };
 const tasks: Record<string, string> = {

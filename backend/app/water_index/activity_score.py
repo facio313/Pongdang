@@ -103,7 +103,7 @@ class ScoreComponent(Record):
 
 class ActivityScore(Record):
     model_id: Literal["pongdang-activity-conditions"] = "pongdang-activity-conditions"
-    model_version: Literal["1.1.0"] = "1.1.0"
+    model_version: Literal["1.1.0", "1.2.0", "1.3.0"] = "1.3.0"
     label: Literal["활동 조건 참고 점수"] = "활동 조건 참고 점수"
     scientific_validation: Literal["not_evaluated"] = "not_evaluated"
     status: Literal["evaluated", "partial", "unavailable", "blocked"]
@@ -261,6 +261,13 @@ DEFAULT_CURVES = {
     # status "partial"). 시설이 관리하는 값이라 수집되지 않는 날이 대부분이고,
     # 그것 때문에 온천을 아예 말하지 않는 쪽이 더 틀립니다.
     "onsen": {"bath_water_temperature": BATH, "air_temperature": ONSEN_AIR},
+    # 걷기는 물에 들어가지 않으므로 수온·파고를 보지 않습니다.
+    "walk": {
+        "air_temperature": OUTDOOR_AIR,
+        "relative_humidity": HUMIDITY,
+        "wind_speed": WIND,
+        "precipitation": RAIN,
+    },
     "rafting": {
         "river_level": None,
         "river_flow": None,
@@ -406,13 +413,13 @@ def select_metric(metrics: list[ConditionMetric], evidence: ConditionsEnvelope):
 
 
 def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
-    from app.water_index.conditions import ConditionsEnvelope, activity_metrics
+    from app.water_index.conditions import ConditionsEnvelope, activity_score_metrics
 
     # Retain the strict time/unit/source validation for all invocation paths.
     evidence = ConditionsEnvelope.model_validate(evidence.model_dump())
     components = []
     inland = evidence.place_kind in INLAND_PLACE_KINDS
-    for definition in activity_metrics(evidence.activity, evidence.place_kind):
+    for definition in activity_score_metrics(evidence.activity, evidence.place_kind):
         name = definition.name
         curve = DEFAULT_CURVES[evidence.activity].get(name)
         if inland and evidence.activity == "swim":
@@ -433,7 +440,12 @@ def calculate_activity_score(evidence: ConditionsEnvelope) -> ActivityScore:
         components.append(
             ScoreComponent(
                 metric=name,
-                label=definition.label,
+                label={
+                    "water_temperature": "야외 수온",
+                    "wave_height": "해양 파고",
+                }.get(name, definition.label)
+                if evidence.activity == "onsen"
+                else definition.label,
                 value=value,
                 unit=definition.unit,
                 score=score,

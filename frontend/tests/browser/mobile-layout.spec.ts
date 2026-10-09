@@ -20,7 +20,7 @@ for (const width of [MOBILE_WIDTH, TABLET_WIDTH, MOBILE_MAX_WIDTH]) {
       // 히어로에는 진입이 둘입니다 -- 오늘 근거 보기와 코스 만들기(데스크탑
       // 히어로와 같은 구성). 둘 다 한 줄에 들어가고 넘치지 않아야 합니다.
       const link = actions.locator(":scope > a").first();
-      await expect(link).toHaveText("오늘 후보 활동 3가지 보기 →");
+      await expect(link).toHaveText("오늘 후보 활동 5가지 보기 →");
       await expect(actions.locator(":scope > a").nth(1)).toHaveText("코스 만들기");
       const layout = await actions.evaluate(element => {
         const cta = element.querySelector("a")!;

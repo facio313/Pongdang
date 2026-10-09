@@ -22,6 +22,48 @@ def component(result, name):
     return next(c for c in result.components if c.metric == name)
 
 
+def test_walking_uses_weather_without_water_temperature_or_waves():
+    weather = (
+        metric("air_temperature", 22.9),
+        metric("relative_humidity", 55.0),
+        metric("wind_speed", 2.8),
+        metric("precipitation", 0.0),
+    )
+    dry = calculate_activity_score(envelope("walk", metrics=weather))
+    with_water = calculate_activity_score(
+        envelope(
+            "walk",
+            metrics=(
+                *weather,
+                metric("water_temperature", 5.0),
+                metric("wave_height", 3.0),
+            ),
+        )
+    )
+    assert dry.score == 97.5
+    assert with_water.score == dry.score
+    assert {c.metric for c in dry.components} == {
+        "air_temperature",
+        "relative_humidity",
+        "wind_speed",
+        "precipitation",
+    }
+    assert dry.scientific_validation == "not_evaluated"
+
+
+def test_rain_and_strong_wind_reduce_walking_score_and_missing_rain_stays_missing():
+    def score(**values):
+        return calculate_activity_score(
+            envelope("walk", metrics=tuple(metric(k, v) for k, v in values.items()))
+        )
+
+    clear = score(air_temperature=20.0, wind_speed=2.0, precipitation=0.0)
+    wet = score(air_temperature=20.0, wind_speed=15.0, precipitation=10.0)
+    incomplete = score(air_temperature=20.0, wind_speed=2.0)
+    assert wet.score < clear.score
+    assert component(incomplete, "precipitation").score is None
+
+
 def test_published_air_range_and_wind_intervals_with_declared_adaptation():
     assert [BEACH_AIR.score(x) for x in (21, 23, 25, 30, 31.5, 33)] == [
         0,
@@ -286,15 +328,40 @@ def test_nearby_context_is_separate_from_strict_metrics_and_preserves_station_sc
     assert "nearby_station_context" in result.reason_codes
 
 
-def test_onsen_never_uses_sea_temperature_and_rafting_needs_local_flow_bounds():
+def test_onsen_outdoor_water_is_never_relabelled_as_bath_temperature():
+    """해수·하천 수온을 욕조 수온으로 대체하지 않습니다.
+
+    온천 점수는 시설 욕조 수온과 외기만 봅니다. 야외 수온 38°C 를 욕조로 읽으면
+    BATH 곡선이 만점을 주지만, 그것은 다른 물입니다.
+    """
     sea = envelope("onsen", metrics=(metric("water_temperature", 38.0),))
-    assert calculate_activity_score(sea).score is None
+    result = calculate_activity_score(sea)
+    assert not any(c.metric == "water_temperature" for c in result.components)
+    assert component(result, "bath_water_temperature").score is None
+    assert result.score is None and result.status == "unavailable"
+
+
+def test_rafting_still_needs_local_flow_bounds():
     river = calculate_activity_score(
         envelope("rafting", metrics=(metric("river_flow", 200.0),))
     )
     assert (
         river.score is None and component(river, "river_flow").status == "unconfigured"
     )
+
+
+def test_onsen_missing_inputs_remain_partial_and_expired_inputs_are_not_scored():
+    partial = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", 15.0),))
+    )
+    # 온천은 시설 욕조 수온과 외기 둘을 봅니다. 욕조가 비면 확보율 0.5 입니다.
+    assert partial.score == ONSEN_AIR.score(15.0) and partial.coverage == 0.5
+    assert partial.status == "partial"
+    assert component(partial, "bath_water_temperature").score is None
+    expired = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", None, status="stale"),))
+    )
+    assert expired.score is None
 
 
 def test_invalid_units_and_forged_available_value_are_revalidated():
