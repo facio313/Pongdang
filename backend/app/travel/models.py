@@ -23,6 +23,10 @@ DataStatus = Literal[
     "available", "no_data", "stale", "partial", "unknown", "query_failed"
 ]
 Activity = Literal["relax", "swim", "surf", "mudflat", "onsen", "rafting", "walk"]
+# KST hours: default visit start, exclusive end of the requested day period.
+# 24 means midnight after the selected date; these are scheduling defaults,
+# not evidence of a place's opening hours or activity availability.
+VISIT_TIME_WINDOWS = {"morning": (9, 12), "afternoon": (13, 18), "evening": (18, 24)}
 
 
 class Record(BaseModel):

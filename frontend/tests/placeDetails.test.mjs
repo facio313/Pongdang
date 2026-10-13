@@ -5,6 +5,7 @@ import { distanceLabel, hasPlaceCoordinates, placeDistanceKm } from '../src/plac
 
 test('stored detail reads batch stable unique positive IDs and enforce the page bound', () => {
   assert.equal(placeDetailsPath([]), null);
+  assert.equal(placeDetailsPath([8, 2], 'en'), 'place-details?spot_ids=2,8&locale=en');
   assert.equal(placeDetailsPath([NaN, Infinity, 0, -1, 3.5]), null);
   assert.equal(placeDetailsPath([8, 2, 8, 1]), 'place-details?spot_ids=1,2,8');
   const ids = placeDetailsPath(Array.from({ length: 250 }, (_, index) => index + 1)).split('=')[1].split(',');

@@ -1,3 +1,4 @@
+import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
 import { t } from "./i18n.ts";
 import { useMemo, useState } from "react";
 import { AppHeader, AppShell } from "./AppShell";
@@ -138,7 +139,7 @@ function SpotRow({
       <PlacePhoto className="sp-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
       <span className="sp-row-body">
         <span className="sp-row-head">
-          <span className="sp-row-name">{place.name}</span>
+          <span className="sp-row-name">{place.name}<CatalogVerifiedBadge recent={place.catalog_recently_verified} verifiedAt={place.catalog_verified_at} /></span>
           <span className="sp-row-category">{t(kindLabel(place))}</span>
         </span>
         <span className="sp-row-where">{placeRegionLabel(place)}</span>

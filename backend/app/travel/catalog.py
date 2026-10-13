@@ -9,7 +9,7 @@ from app.ai.tools import PLACE_COLUMNS as SOURCE_PLACE_COLUMNS
 from app.ai.tools import PLACE_JOIN as SOURCE_PLACE_JOIN
 from app.ai.tools import ToolSession, _safe_url
 from app.data_reader import DataReader
-from app.livecams.places import water_place_kind_sql
+from app.livecams.places import catalog_place_kind_sql, catalog_verification_join
 from app.place_details.api import read_place_details
 from app.regions import district_group_expression, place_search_predicate, region_query
 from app.travel.models import Evidence
@@ -25,10 +25,15 @@ PROVIDERS = {
 }
 PROVIDER_LOCALE = {p: lang for lang, providers in PROVIDERS.items() for p in providers}
 MAX_CANDIDATES = 300
-PLACE_COLUMNS = SOURCE_PLACE_COLUMNS + ",water.place_kind"
+PLACE_COLUMNS = (
+    SOURCE_PLACE_COLUMNS.replace("s.catalog_verified_at,", "")
+    + ",water.place_kind,catalog_check.catalog_verified_at,"
+    "catalog_check.catalog_verified_at IS NOT NULL AS catalog_recently_verified"
+)
 PLACE_JOIN = (
     SOURCE_PLACE_JOIN
-    + f" CROSS JOIN LATERAL (SELECT {water_place_kind_sql()} AS place_kind) water "
+    + f" CROSS JOIN LATERAL (SELECT {catalog_place_kind_sql()} AS place_kind) water "
+    + catalog_verification_join()
 )
 # KTO published v4.4 manuals, checked 2026-09-15. These classify catalogue
 # records only; they establish no opening/access/amenity/safety property.
@@ -41,6 +46,7 @@ ROLE_CODES = {
     "en": {"visit": ["75", "76", "78", "85"], "meal": ["82"], "lodging": ["80"]},
     "ja": {"visit": ["75", "76", "78", "85"], "meal": ["82"], "lodging": ["80"]},
     "zh-CN": {"visit": ["75", "76", "78", "85"], "meal": ["82"], "lodging": ["80"]},
+    "zh-TW": {"visit": ["75", "76", "78", "85"], "meal": ["82"], "lodging": ["80"]},
 }
 VISIT_KINDS = [
     "beach",
@@ -82,8 +88,9 @@ def matches_visit_intent(request, place):
         return True
     place_type = request.visit_intents[0].place_type
     category = place.get("category") or ""
-    cafe = place["evidence"].provider == "KAKAO_LOCAL" and (
-        category == "음식점 > 카페" or category.startswith("음식점 > 카페 > ")
+    cafe = place["kind"] == "cafe" or (
+        place["evidence"].provider == "KAKAO_LOCAL"
+        and (category == "음식점 > 카페" or category.startswith("음식점 > 카페 > "))
     )
     if place_type == "cafe":
         return cafe
@@ -154,10 +161,14 @@ def place_view(row, now):
         "latitude": row.get("lat"),
         "longitude": row.get("lng"),
         "catalog_locale": PROVIDER_LOCALE.get(row["provider"], "ko"),
+        "source_locale": PROVIDER_LOCALE.get(row["provider"], "ko"),
+        "display_locale": PROVIDER_LOCALE.get(row["provider"], "ko"),
+        "translation_status": "original",
         "catalog_tags": sorted(set(tags)),
         "catalog_role": catalog_role(row),
         "evidence": evidence,
         "catalog_verified_at": row.get("catalog_verified_at"),
+        "catalog_recently_verified": bool(row.get("catalog_recently_verified")),
         "opening_hours": row.get("stored_opening_hours"),
         "reservation_required": None,
         "price": None,
@@ -234,12 +245,13 @@ class Catalog:
             "lake": "water.place_kind='lake'",
             "reservoir": "water.place_kind='reservoir'",
             "valley": "water.place_kind='valley'",
-            "river": "s.type='river'",
+            "river": "water.place_kind='river'",
             # A food-service content type alone does not establish a cafe.
             # Only the explicit stored provider category establishes this subtype.
             "cafe": (
+                "(water.place_kind='cafe' OR "
                 "(p.provider='KAKAO_LOCAL' AND (p.category='음식점 > 카페' OR "
-                "p.category LIKE '음식점 > 카페 > %%'))"
+                "p.category LIKE '음식점 > 카페 > %%')))"
             ),
         }
         intent = request.visit_intents[0] if len(request.visit_intents) == 1 else None
@@ -255,14 +267,15 @@ class Catalog:
                 + ")"
             )
         if intent and intent.place_type == "restaurant":
-            where += (
-                " AND NOT (p.provider='KAKAO_LOCAL' AND "
-                "(p.category='음식점 > 카페' OR p.category LIKE '음식점 > 카페 > %%'))"
-            )
+            where += " AND NOT " + type_predicates["cafe"]
         if request.place_role != "any":
             codes = ROLE_CODES.get(request.locale, {}).get(request.place_role, [])
             kinds = (
-                VISIT_KINDS if request.place_role == "visit" else [request.place_role]
+                VISIT_KINDS
+                if request.place_role == "visit"
+                else ["meal", "cafe"]
+                if request.place_role == "meal"
+                else [request.place_role]
             )
             where += (
                 " AND ((p.provider<>'KAKAO_LOCAL' AND "
@@ -325,6 +338,53 @@ class Catalog:
                     ).fetchall()
                 )
             await self._with_stored_details(c, rows)
+        if not rows and request.locale != "ko":
+            # A separate catalogue fallback, not a guessed cross-language match.
+            # Keep the original Korean names/IDs and explicitly disclose its
+            # language. This reads the DB at most once more and calls no model.
+            fallback_rows, fallback_scope = await self.search(
+                request.model_copy(update={"locale": "ko"})
+            )
+            fallback_scope.update(
+                locale=request.locale,
+                requested_providers=providers,
+                requested_language_matched_count=total,
+                language_fallback="korean_original" if fallback_rows else "no_data",
+                source_locale="ko" if fallback_rows else None,
+            )
+            if fallback_rows:
+                from app.place_translations.service import read_place_translations
+
+                translations = {}
+                ids = [row["spot_id"] for row in fallback_rows]
+                async with self.reader.connection() as c:
+                    for offset in range(0, len(ids), 100):
+                        translations.update(
+                            await read_place_translations(
+                                c, ids[offset : offset + 100], request.locale
+                            )
+                        )
+                for row in fallback_rows:
+                    row.update(
+                        translation_status="source_fallback",
+                        requested_locale=request.locale,
+                    )
+                    translated = translations.get(row["spot_id"])
+                    if (
+                        translated
+                        and translated.get("source_provider")
+                        == row["evidence"].provider
+                        and translated.get("source_id")
+                        == row["evidence"].source_record_id
+                        and translated["original_name"] == row["name"]
+                        and translated["original_address"] == row["address"]
+                    ):
+                        row.update(translated, display_locale=request.locale)
+                fallback_scope["translated_count"] = sum(
+                    row["translation_status"] == "machine_translated"
+                    for row in fallback_rows
+                )
+            return fallback_rows, fallback_scope
         return [place_view(r, self.now) for r in rows], {
             "region_query": region or None,
             "locale": request.locale,
@@ -343,6 +403,8 @@ class Catalog:
             "role_classification": "KTO_content_type_v4.4_or_explicit_place_kind",
             "area_wide_optimum": False,
             "language_crosswalk": "unconfigured",
+            "language_fallback": None,
+            "source_locale": request.locale,
             "as_of": self.now.isoformat(),
         }
 

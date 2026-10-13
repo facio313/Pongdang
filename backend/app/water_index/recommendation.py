@@ -32,11 +32,12 @@ MODEL_ID = "pongdang-activity-recommendation"
 #: `Record` 의 `validate_default=True` 가 기본값을 검사하면서 추천 응답이 통째로
 #: 500 이었습니다. 단위 테스트는 `decide()` 만 봤기 때문에 잡지 못했습니다.
 #: 이제 버전을 올리면 한 줄만 고치면 되고, 어긋나면 타입 검사에서 멈춥니다.
-ModelVersion = Literal["1.3.0"]
-MODEL_VERSION: ModelVersion = "1.3.0"
+ModelVersion = Literal["1.4.0"]
+MODEL_VERSION: ModelVersion = "1.4.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
+WATER_ACTIVITY_PRIORITY_SCORE = 40.0
 
 #: 활동마다 «이것이 없으면 그 활동을 말할 수 없는» 지표. 각 묶음에서 하나
 #: 이상이 실제로 점수화(`evaluated`)돼야 후보가 됩니다.
@@ -60,7 +61,7 @@ ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "walk": (("air_temperature",), ("wind_speed",), ("precipitation",)),
 }
 
-#: 입수 가능 수온의 하한. WATER 곡선의 18°C 절점(40점)을 그대로 씁니다 --
+#: 추천 수온의 하한. WATER 곡선의 18°C 절점(40점)을 그대로 씁니다 --
 #: 추천을 위해 새 숫자를 만들지 않기 위해서입니다.
 IMMERSION_WATER_C = 18.0
 #: 해변 방문 선호 기온의 하한. BEACH_AIR 곡선의 21°C 절점(0점)입니다. 이
@@ -147,10 +148,19 @@ RULES: tuple[Rule, ...] = (
         basis="score_curve_knot",
     ),
     Rule(
+        code="water_activity_preferred",
+        text=(
+            "공식 제한·활동 미지원·필수 결측·저수온으로 제외되지 않고 물때로 "
+            "미뤄지지 않은 수영·서핑은 참고 점수 40점 이상일 때 우선합니다. "
+            "퐁당의 물 활동 우선 정책이며 입수 허가·안전 판정이 아닙니다."
+        ),
+        basis="pongdang_product_rule",
+    ),
+    Rule(
         code="condition_score_preferred",
         text=(
-            "필수 근거를 갖추고 운영·물때로 미뤄지지 않은 활동의 참고 점수를 "
-            "비교합니다. 수영·서핑을 걷기·휴식보다 무조건 앞세우지 않습니다. "
+            "필수 근거를 갖추고 물때로 미뤄지지 않은 활동을 먼저 비교합니다. "
+            "수영·서핑 40점 이상 우선 정책 안에서는 참고 점수를 비교합니다. "
             "활동별 선호 곡선의 제품 비교이며 공통 효용·안전의 검증값은 아닙니다."
         ),
         basis="pongdang_product_rule",
@@ -183,11 +193,9 @@ RULES: tuple[Rule, ...] = (
     Rule(
         code="beach_closed_season_product_rule",
         text=(
-            "해수욕장 개장 기간 밖에는 수영을 1순위로 올리지 않습니다. 서핑은 "
-            "개장과 무관하므로 그대로 두고, 물에 들어가지 않는 하루의 답(휴식·"
-            "해변 산책)을 앞세웁니다. 후보에서 지우지는 않아 수온·파고 점수와 "
-            "그 근거는 계속 보입니다. **관광정보의 개장 기간 서술을 읽은 것이며 "
-            "공식 개장 공고·안전 판정이 아닙니다.**"
+            "해수욕장 개장 기간 밖이라는 관광정보를 표시하지만 활동 점수·"
+            "추천 순위에는 반영하지 않습니다. 공식 통제는 별도로 우선 적용합니다. "
+            "관광정보의 개장 기간 서술은 공식 개장 공고·안전 판정이 아닙니다."
         ),
         basis="pongdang_product_rule",
     ),
@@ -195,9 +203,9 @@ RULES: tuple[Rule, ...] = (
         code="beach_season_unconfirmed",
         text=(
             "개장 기간 서술이 없거나 구간으로 읽히지 않으면 수영 점수는 바꾸지 "
-            "않고 폐장으로 단정하지도 않습니다. 다만 수영은 운영 확인 전까지 "
-            "다른 활동 뒤로 미룹니다. 기상 점수와 해변 방문 안내가 수영 운영을 "
-            "확인해 주지는 않습니다."
+            "않고 폐장으로 단정하지도 않습니다. 운영 확인 필요 상태를 표시하며 "
+            "추천 순위에는 반영하지 않습니다. 기상 점수와 해변 방문 안내가 "
+            "수영 운영을 확인해 주지는 않습니다."
         ),
         basis="data_contract",
     ),
@@ -248,11 +256,11 @@ class Candidate(Record):
     total_components: int
     #: 후보에서 빠졌는지. 점수가 낮은 것과 다른 사실입니다.
     dropped: bool
-    #: 후보로 남았지만 뒤로 미뤄졌는지(물때 구간, 해수욕장 개장 기간 밖).
+    #: 후보로 남았지만 물때 구간 때문에 뒤로 미뤄졌는지.
     #: 점수는 그대로입니다 -- 어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다.
     demoted: bool
     #: 운영 미확인은 폐장/물때로 미뤄진 상태와 별도로 보존합니다.
-    #: 원점수는 유지하되 운영을 확인한 활동 뒤에서 비교합니다.
+    #: 표시용이며 원점수와 추천 순위를 바꾸지 않습니다.
     needs_confirmation: bool = False
     rules_applied: tuple[str, ...]
 
@@ -401,6 +409,133 @@ def _essentials_present(evidence: ConditionsEnvelope, place_kind=None) -> bool:
     )
 
 
+def activity_eligibility(
+    evidence: ConditionsEnvelope,
+    *,
+    place_kind: str | None = None,
+    tide: Tide | None = None,
+    season: Season | None = None,
+) -> tuple[Candidate, tuple[Reason, ...]]:
+    """Shared eligibility over stored scores; does not recalculate or fetch data."""
+    activity = evidence.activity
+    reasons: list[Reason] = []
+    inland = (place_kind or evidence.place_kind) in INLAND_PLACE_KINDS
+    score = evidence.condition_score
+    applied: list[str] = []
+    dropped = False
+    demoted = False
+    needs_confirmation = False
+
+    if (
+        evidence.safety_status == "restricted"
+        or evidence.support_status == "unsupported"
+        or (inland and activity in {"surf", "mudflat"})
+        or score is None
+        or score.status in {"blocked", "unavailable"}
+    ):
+        dropped = True
+        applied.append("activity_blocked")
+        reasons.append(
+            Reason(
+                code="activity_blocked",
+                activity=activity,
+                metric=None,
+            )
+        )
+    elif inland and activity == "swim" and evidence.support_status != "supported":
+        dropped = True
+        applied.append("inland_swimming_authorization_unconfirmed")
+        reasons.append(
+            Reason(code="inland_swimming_authorization_unconfirmed", activity=activity)
+        )
+    elif not _essentials_present(evidence, place_kind):
+        dropped = True
+        applied.append("essential_measurement_missing")
+        missing = [
+            group[0]
+            for group in _essential_groups(evidence, place_kind)
+            if not any(_component(evidence, name) is not None for name in group)
+        ]
+        for name in missing:
+            reasons.append(
+                Reason(
+                    code="essential_measurement_missing",
+                    activity=activity,
+                    metric=name,
+                )
+            )
+
+    if not dropped and activity in SEA_ACTIVITIES:
+        water = _component(evidence, "water_temperature")
+        air = _component(evidence, "air_temperature")
+        if water is not None and water.value < IMMERSION_WATER_C:
+            dropped = True
+            applied.append("water_too_cold_for_immersion")
+            reasons.append(
+                _reason_from(
+                    "water_too_cold_for_immersion",
+                    activity,
+                    water,
+                    threshold=IMMERSION_WATER_C,
+                )
+            )
+            if air is not None and air.value < BEACH_AIR_C:
+                reasons.append(
+                    _reason_from(
+                        "air_below_beach_preference",
+                        activity,
+                        air,
+                        threshold=BEACH_AIR_C,
+                    )
+                )
+        elif (
+            not inland and tide is not None and tide.phase in {"near_high", "near_low"}
+        ):
+            demoted = True
+            applied.append("tide_phase_product_rule")
+            reasons.append(
+                Reason(
+                    code="tide_phase_product_rule",
+                    activity=activity,
+                    station_name=tide.station_name,
+                    relation=tide.spatial_relation,
+                    distance_km=tide.distance_km,
+                    minutes=tide.near_minutes(),
+                    threshold=float(TIDE_MARGIN_MINUTES),
+                )
+            )
+
+    # Season prose is display-only; official restrictions were applied above.
+    if (
+        not dropped
+        and activity == "swim"
+        and not inland
+        and season is not None
+        and season.status != "in_season"
+    ):
+        needs_confirmation = True
+        code = (
+            "beach_closed_season_product_rule"
+            if season.status == "out_of_season"
+            else "beach_season_unconfirmed"
+        )
+        applied.append(code)
+        reasons.append(Reason(code=code, activity=activity))
+
+    return Candidate(
+        activity=activity,
+        score=score.score if score else None,
+        status=score.status if score else "unavailable",
+        coverage=score.coverage if score else 0.0,
+        available_components=score.available_components if score else 0,
+        total_components=score.total_components if score else 0,
+        dropped=dropped,
+        demoted=demoted,
+        needs_confirmation=needs_confirmation,
+        rules_applied=tuple(applied),
+    ), tuple(reasons)
+
+
 def decide(
     envelopes: dict[Activity, ConditionsEnvelope],
     *,
@@ -413,169 +548,74 @@ def decide(
 
     `order` 는 동점일 때의 우선순위입니다. 점수가 같으면 앞선 활동이 이깁니다.
 
-    `season` 은 해수욕장 개장 기간 판정입니다. 없으면(내륙, 조회 실패) 계절
-    규칙을 아예 적용하지 않습니다 -- 「모름」을 「폐장」으로 바꾸지 않습니다.
+    `season` 은 표시할 해수욕장 개장 기간 정보입니다. 점수나 순위는 바꾸지
+    않으며, 정보가 없다는 사실을 폐장 또는 입수 허가로 바꾸지 않습니다.
     """
     candidates: list[Candidate] = []
     reasons: list[Reason] = []
-    sea_blocked_by_cold = False
-    sea_blocked_by_tide = False
-    season_closed = False
 
     for activity in order:
         evidence = envelopes.get(activity)
         if evidence is None:
             continue
-        inland = (place_kind or evidence.place_kind) in INLAND_PLACE_KINDS
-        score = evidence.condition_score
-        applied: list[str] = []
-        dropped = False
-        demoted = False
-        needs_confirmation = False
-
-        if (
-            (inland and activity in {"surf", "mudflat"})
-            or score is None
-            or score.status in {"blocked", "unavailable"}
-        ):
-            dropped = True
-            applied.append("activity_blocked")
-            reasons.append(
-                Reason(
-                    code="activity_blocked",
-                    activity=activity,
-                    metric=None,
-                )
-            )
-        elif inland and activity == "swim" and evidence.support_status != "supported":
-            dropped = True
-            applied.append("inland_swimming_authorization_unconfirmed")
-            reasons.append(
-                Reason(
-                    code="inland_swimming_authorization_unconfirmed", activity=activity
-                )
-            )
-        elif not _essentials_present(evidence, place_kind):
-            dropped = True
-            applied.append("essential_measurement_missing")
-            missing = [
-                group[0]
-                for group in _essential_groups(evidence, place_kind)
-                if not any(_component(evidence, name) is not None for name in group)
-            ]
-            for name in missing:
-                reasons.append(
-                    Reason(
-                        code="essential_measurement_missing",
-                        activity=activity,
-                        metric=name,
-                    )
-                )
-
-        if not dropped and activity in SEA_ACTIVITIES:
-            water = _component(evidence, "water_temperature")
-            air = _component(evidence, "air_temperature")
-            if water is not None and water.value < IMMERSION_WATER_C:
-                dropped = True
-                sea_blocked_by_cold = True
-                applied.append("water_too_cold_for_immersion")
-                reasons.append(
-                    _reason_from(
-                        "water_too_cold_for_immersion",
-                        activity,
-                        water,
-                        threshold=IMMERSION_WATER_C,
-                    )
-                )
-                if air is not None and air.value < BEACH_AIR_C:
-                    reasons.append(
-                        _reason_from(
-                            "air_below_beach_preference",
-                            activity,
-                            air,
-                            threshold=BEACH_AIR_C,
-                        )
-                    )
-            elif (
-                not inland
-                and tide is not None
-                and tide.phase in {"near_high", "near_low"}
-            ):
-                demoted = True
-                sea_blocked_by_tide = True
-                applied.append("tide_phase_product_rule")
-                reasons.append(
-                    Reason(
-                        code="tide_phase_product_rule",
-                        activity=activity,
-                        station_name=tide.station_name,
-                        relation=tide.spatial_relation,
-                        distance_km=tide.distance_km,
-                        minutes=tide.near_minutes(),
-                        threshold=float(TIDE_MARGIN_MINUTES),
-                    )
-                )
-
-        # 개장 기간은 **수영에만** 적용합니다. 서핑은 해수욕장 개장과 무관하게
-        # 하는 활동이고, 개장 기간 밖이라고 서핑을 미루면 그 또한 틀린 말입니다.
-        #
-        # 위 if-elif 체인과 별개의 `if` 입니다 -- 물때 구간과 개장 기간 밖은
-        # 동시에 성립할 수 있고, 둘 다 적용된 사실이 `rules_applied` 에 남아야
-        # 화면이 「왜 수영이 아닌가」를 온전히 말할 수 있습니다.
-        if (
-            not dropped
-            and activity == "swim"
-            and not inland
-            and season is not None
-            and season.status == "out_of_season"
-        ):
-            demoted = True
-            season_closed = True
-            applied.append("beach_closed_season_product_rule")
-            reasons.append(
-                Reason(code="beach_closed_season_product_rule", activity=activity)
-            )
-        elif (
-            not dropped
-            and activity == "swim"
-            and not inland
-            and season is not None
-            and season.status == "unconfirmed"
-        ):
-            # 폐장으로 판정하지 않고, 운영 확인이 필요하다는 상태를 구분합니다.
-            needs_confirmation = True
-            applied.append("beach_season_unconfirmed")
-            reasons.append(Reason(code="beach_season_unconfirmed", activity=activity))
-
-        candidates.append(
-            Candidate(
-                activity=activity,
-                score=score.score if score else None,
-                status=score.status if score else "unavailable",
-                coverage=score.coverage if score else 0.0,
-                available_components=score.available_components if score else 0,
-                total_components=score.total_components if score else 0,
-                dropped=dropped,
-                demoted=demoted,
-                needs_confirmation=needs_confirmation,
-                rules_applied=tuple(applied),
-            )
+        candidate, applied = activity_eligibility(
+            evidence, place_kind=place_kind, tide=tide, season=season
         )
+        candidates.append(candidate)
+        reasons.extend(applied)
+    sea_blocked_by_cold = any(
+        reason.code == "water_too_cold_for_immersion" for reason in reasons
+    )
+    sea_blocked_by_tide = any(
+        reason.code == "tide_phase_product_rule" for reason in reasons
+    )
 
     position = {activity: index for index, activity in enumerate(order)}
     live = [c for c in candidates if not c.dropped and c.score is not None]
-    # 운영·물때로 미뤄진 활동은 뒤에 둡니다. 나머지는 참고 점수와 동점
-    # 우선순위로 비교하되, 각 활동의 필수 근거 검사는 위에서 먼저 통과합니다.
+    # Tide demotion precedes the product's 40-point water-activity preference.
+    # Season confirmation is display-only and never changes this order.
     live.sort(
         key=lambda c: (
-            c.demoted or c.needs_confirmation,
+            c.demoted,
+            not (
+                c.activity in SEA_ACTIVITIES
+                and c.score >= WATER_ACTIVITY_PRIORITY_SCORE
+            ),
             -c.score,
             position[c.activity],
         )
     )
     best = live[0] if live else None
     if best is not None:
-        reasons.append(Reason(code="condition_score_preferred", activity=best.activity))
+        score_rival = next(
+            (
+                candidate
+                for candidate in sorted(live, key=lambda item: -item.score)
+                if not candidate.demoted
+                and candidate.activity not in SEA_ACTIVITIES
+                and candidate.score > best.score
+            ),
+            None,
+        )
+        if (
+            best.activity in SEA_ACTIVITIES
+            and not best.demoted
+            and best.score >= WATER_ACTIVITY_PRIORITY_SCORE
+            and score_rival is not None
+        ):
+            reasons.append(
+                Reason(
+                    code="water_activity_preferred",
+                    activity=best.activity,
+                    rival=score_rival.activity,
+                    value=best.score,
+                    threshold=WATER_ACTIVITY_PRIORITY_SCORE,
+                )
+            )
+        else:
+            reasons.append(
+                Reason(code="condition_score_preferred", activity=best.activity)
+            )
         if best.activity == "walk":
             reasons.append(Reason(code="walking_weather_only", activity="walk"))
         if best.activity == "onsen":
@@ -593,15 +633,9 @@ def decide(
         and place_kind not in INLAND_PLACE_KINDS
     ):
         rival: Activity = "surf" if best.activity == "swim" else "swim"
-        # 개장 기간 밖이라 미뤄진 수영은 「파도가 서핑을 골랐다」의 상대가 아닙니다.
-        # 그 말을 그대로 두면 화면이 틀린 이유를 댑니다 -- 파도는 아무것도 고르지
-        # 않았고 달력이 골랐습니다.
+        # Only an eligible rival can explain a wave-based choice.
         rival_live = any(
-            c.activity == rival
-            and not c.dropped
-            and not c.demoted
-            and not c.needs_confirmation
-            for c in candidates
+            c.activity == rival and not c.dropped and not c.demoted for c in candidates
         )
         reasons.extend(_wave_reasons(envelopes, best.activity, rival, rival_live))
     if best is None:
@@ -616,11 +650,6 @@ def decide(
         kinds.insert(0, "valley")
     if best is None and not kinds:
         kinds.extend(("onsen", "meal", "visit"))
-    if season_closed:
-        # 개장 기간 밖의 해변은 물에 들어가지 않는 하루입니다. 계곡은 넣지
-        # 않습니다 -- 물때처럼 「지금 몇 시간만 피하면 되는 일」이 아니라 계절
-        # 전체가 닫힌 것이고, 계곡도 같은 계절을 지납니다.
-        kinds.extend(("meal", "visit"))
     if best is not None and best.activity == "relax" and "meal" not in kinds:
         # 「휴식」은 물에 들어가지 않는 하루입니다. 물가에 앉아 있으라는 말이
         # 되지 않도록 갈 곳을 함께 제시합니다.

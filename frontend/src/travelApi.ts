@@ -6,6 +6,8 @@ import { t } from "./i18n.ts";
 // 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는 번들러
 // 없이 node 가 이 .ts 를 그대로 읽습니다(recommendationText.ts 와 같은 이유).
 import { isGuest } from "./guestStore.ts";
+import type { RankedActivity } from "./recommendationApi.ts";
+import { timeLabel } from "./productData.ts";
 
 const CONDITION_LABELS: Record<string, string> = {
   activity_support: "활동 지원 여부",
@@ -47,6 +49,8 @@ export function routeReasonsText(reasons: string[]): string {
     route_date_required: "경로를 계산할 여행 날짜를 선택해 주세요",
     route_origin_and_departure_required: "출발지와 출발 시각을 입력해 주세요",
     route_departure_in_past: "출발 시각이 지났습니다. 앞으로의 시각을 선택해 주세요",
+    visit_time_window_unreachable: "이동·체류 시간을 포함하면 지정한 방문 시간대에 맞출 수 없습니다",
+    visit_time_window_wait_applied: "지정한 방문 시간대까지 기다리는 시간을 일정에 포함했습니다",
     origin_coordinates_required: "출발지 좌표가 없어 경로를 계산할 수 없습니다",
     must_include_not_in_selected_candidates: "필수 방문 장소를 후보에 포함해 주세요",
     insufficient_verified_candidates_for_stop_count: "선택한 방문 수를 채울 수 있는 장소 근거가 부족합니다",
@@ -167,7 +171,7 @@ export interface Recommendation {
   region: string | null;
   activities: { activity: Activity; label: string; support_status?: string }[];
   unknown_conditions: string[];
-  conditions: { status: string };
+  conditions: { status: string; activity_eligibility?: RankedActivity | null };
   matched_preferences: { tag: string }[];
   evidence: { provider: string; fetched_at: string | null }[];
   transport_advice?: TransportAdvice;
@@ -175,6 +179,10 @@ export interface Recommendation {
   confirmed: {
     latitude: number | null;
     longitude: number | null;
+    catalog_recently_verified?: boolean;
+    catalog_verified_at?: string | null;
+    translation_status?: string;
+    original_name?: string;
     [key: string]: unknown;
   };
 }
@@ -314,6 +322,23 @@ export interface RouteItem {
   departure_at: string;
   latitude: number | null;
   longitude: number | null;
+  visit_timing?: {
+    part_of_day: "morning" | "afternoon" | "evening";
+    default_start_at: string;
+    window_end_at: string;
+    physical_arrival_at: string;
+    wait_minutes: number;
+    status: "default_start" | "within_window";
+  };
+}
+
+export function visitTimingText(item?: RouteItem): string {
+  const timing = item?.visit_timing;
+  if (!timing) return "";
+  const period = t({ morning: "오전", afternoon: "오후", evening: "저녁" }[timing.part_of_day]);
+  return timing.wait_minutes > 0
+    ? t("{arrival} 도착 후 {minutes}분 대기 · {period} 방문", { arrival: timeLabel(timing.physical_arrival_at), minutes: timing.wait_minutes, period })
+    : t("{period} 방문 시간대 반영", { period });
 }
 export interface RouteOrigin {
   label: string;

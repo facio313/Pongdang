@@ -2,17 +2,14 @@ import { t } from "./i18n.ts";
 import { useState } from "react";
 import { AppActions } from "./AppShell";
 import { Icon } from "./pongdangUi";
-import { kstDate, timeLabel } from "./productData";
+import { defaultRouteDeparture, isTravelDate } from "./travelDates";
 import { originFromPlace, type TransportMode } from "./travelApi";
 import { TransportSelect } from "./TransportSelect";
 import type { OriginOption, RouteCandidate, RouteRequestValue } from "./RouteRequestForm";
 
 const DEFAULT_STAY_MINUTES = 60;
 
-function defaultDeparture() {
-  const soon = new Date(Date.now() + 600000).toISOString();
-  return `${kstDate(soon)}T${timeLabel(soon)}`;
-}
+
 
 /** The checked list supplies the origin and complete visiting order. */
 export function RouteCandidatesForm({
@@ -53,9 +50,11 @@ export function RouteCandidatesForm({
       setProblem("첫 번째 장소의 좌표가 없어 경로를 계산할 수 없습니다. 순서를 바꾸거나 해당 장소를 제외해 주세요.");
       return;
     }
-    const departure = defaultDate
-      ? `${defaultDate}T${defaultDeparture().slice(11)}`
-      : defaultDeparture();
+    const departure = defaultRouteDeparture(defaultDate);
+    if (!isTravelDate(departure.slice(0, 10))) {
+      setProblem("여행 날짜는 오늘부터 7일 이내로 선택해 주세요.");
+      return;
+    }
     onSubmit({
       transport: transport ?? defaultTransport,
       origin,
@@ -70,6 +69,7 @@ export function RouteCandidatesForm({
 
   return (
     <div className="rt-form">
+      <p className="pd-note">{t("시간대를 지정하면 오전 09시·오후 13시·저녁 18시부터 방문하도록 계산합니다. 이동·체류로 시간대를 맞추지 못하면 알려드립니다.")}</p>
       <TransportSelect value={transport ?? defaultTransport} onChange={setTransport} disabled={disabled} />
       <AppActions>
         <button

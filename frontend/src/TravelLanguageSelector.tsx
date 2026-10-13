@@ -21,7 +21,7 @@ export function TravelLanguageSelector() {
         ))}
       </div>
       <p className="pd-language-note">
-        {t("화면의 메뉴·설명과 새 여행 안내에 적용합니다. 제공처의 장소명·주소와 기존 대화·코스는 원문을 유지합니다.")}
+        {t("화면의 메뉴·설명과 새 여행 안내에 적용합니다. 관광정보는 공식 외국어 정보나 저장된 번역이 있으면 사용하며, 기존 대화·코스는 그대로 유지합니다.")}
       </p>
       {!persisted && <p className="pd-language-note" role="status">{t("이 브라우저에서는 언어 선택을 저장할 수 없어 현재 탭에서만 적용합니다.")}</p>}
     </section>

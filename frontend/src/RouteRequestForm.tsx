@@ -2,7 +2,7 @@ import { t } from "./i18n.ts";
 import { useState } from "react";
 import { AppActions } from "./AppShell";
 import { Icon } from "./pongdangUi";
-import { kstDate, timeLabel } from "./productData";
+import { defaultRouteDeparture, isTravelDate, travelDates } from "./travelDates";
 import { originFromPlace, type Origin, type TransportMode } from "./travelApi";
 import { TransportSelect } from "./TransportSelect";
 import "./routeRequestForm.css";
@@ -38,10 +38,7 @@ export interface RouteRequestValue {
 
 const STAY_CHOICES = [30, 60, 90, 120];
 
-function defaultDeparture() {
-  const soon = new Date(Date.now() + 600000).toISOString();
-  return `${kstDate(soon)}T${timeLabel(soon)}`;
-}
+
 
 export function RouteRequestForm({
   places,
@@ -74,9 +71,7 @@ export function RouteRequestForm({
   const [locating, setLocating] = useState(false);
   const [problem, setProblem] = useState("");
   const [departure, setDeparture] = useState(() =>
-    defaultDate
-      ? `${defaultDate}T${defaultDeparture().slice(11)}`
-      : defaultDeparture(),
+    defaultRouteDeparture(defaultDate),
   );
   const [stay, setStay] = useState(60);
   const [ranks, setRanks] = useState<number[] | null>(null);
@@ -154,6 +149,10 @@ export function RouteRequestForm({
       setProblem("경로에 넣을 후보를 한 곳 이상 선택해 주세요.");
       return;
     }
+    if (!isTravelDate(departure.slice(0, 10))) {
+      setProblem("여행 날짜는 오늘부터 7일 이내로 선택해 주세요.");
+      return;
+    }
     onSubmit({
       transport: transport ?? defaultTransport,
       origin,
@@ -171,6 +170,7 @@ export function RouteRequestForm({
       <p className="pd-note rt-note-flush">
         {t("출발지와 이동 수단을 고르면 방문 순서와 예상 이동 시간을 계산합니다. 도보·자전거·대중교통은 출발시각별 조회를 지원하지 않습니다.")}</p>
 
+      <p className="pd-note">{t("시간대를 지정하면 오전 09시·오후 13시·저녁 18시부터 방문하도록 계산합니다. 이동·체류로 시간대를 맞추지 못하면 알려드립니다.")}</p>
       <TransportSelect value={transport ?? defaultTransport} onChange={setTransport} disabled={disabled} />
 
       <fieldset className="rt-field" disabled={disabled}>
@@ -230,6 +230,8 @@ export function RouteRequestForm({
           <input
             className="rt-input"
             type="datetime-local"
+            min={travelDates()[0].id + "T00:00"}
+            max={travelDates()[6].id + "T23:59"}
             aria-label={t("출발 날짜와 시각")}
             value={departure}
             onChange={(event) => setDeparture(event.target.value)}

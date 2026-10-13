@@ -9,6 +9,7 @@ import {
   recommendationLookupWarning,
   rejectionReason,
   tideLine,
+  waterActivityPolicy,
 } from "./recommendationText";
 import { spotLink } from "./spotsRoute";
 
@@ -58,23 +59,15 @@ export function RecommendationReason({
   const choice = detail ? undefined : choiceReason(data);
   const lookupWarning = detail ? null : recommendationLookupWarning(data);
   const rejection = lead ? undefined : rejectionReason(data);
-  // 개장 기간은 **결론 줄에도** 올립니다. 히어로가 「해변 산책 62점」만 말하고
-  // 개장 기간 밖이라는 사실을 아래로 내려 보내면, 그 한 줄을 안 읽은 사람에게는
-  // 10월 해수욕장 추천이 그대로 남습니다.
-  //
-  // 히어로는 **한 줄**입니다(가로 폭이 좁고, 그 아래 「오늘 이 활동인 이유」가
-  // 전부를 다시 말합니다). 그래서 lead 에서는 개장 기간 줄이 선택 이유를
-  // **대체**합니다 -- 개장 기간 밖인 날 그 한 줄이 「왜 이 활동인가」의 답이고,
-  // 파도나 점수 비교는 그다음입니다. detail 은 lead 바로 아래 층이라 그리지
-  // 않습니다(같은 문장이 두 번 보입니다).
+  // 개장 정보와 제품 우선 규칙은 작은 안내로 남기고 선택 이유를 가리지 않습니다.
   const season = detail ? null : beachSeasonLine(data);
   const tideInfo = tideLine(data);
   // Optional lookup failures are part of the result's limits, not detail that
   // the home summary may omit while showing a usable score.
   const tide = lead && tideInfo?.code !== "tide_lookup_unavailable" ? undefined : tideInfo;
   const groups = lead ? [] : alternativeGroups(data);
-  // lead 에서 개장 기간 줄이 섰으면 선택 이유는 그 아래 층(full)에서 말합니다.
-  const choiceLine = lead && season ? undefined : choice;
+  const choiceLine = choice;
+  const policy = detail ? null : waterActivityPolicy(data);
   const root =
     "pd-why" +
     (glass ? " is-glass" : "") +
@@ -100,7 +93,7 @@ export function RecommendationReason({
         </p>
       </div>
     );
-  if (!choiceLine && !rejection && !season && !tide && !lookupWarning && !groups.length)
+  if (!choiceLine && !policy && !rejection && !season && !tide && !lookupWarning && !groups.length)
     return null;
   return (
     <div className={root}>
@@ -110,8 +103,9 @@ export function RecommendationReason({
           {choiceLine.text}
         </p>
       )}
+      {policy && <p className="pd-why-line is-policy">{policy}</p>}
       {season && (
-        <p className={"pd-why-line is-season" + (lead ? " is-choice" : "")}>{season.text}</p>
+        <p className="pd-why-line is-season">{season.text}</p>
       )}
       {rejection && <p className="pd-why-line">{rejection.text}</p>}
       {tide && <p className="pd-why-line is-tide">{tide.text}</p>}

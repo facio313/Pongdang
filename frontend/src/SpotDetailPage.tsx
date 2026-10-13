@@ -1,3 +1,4 @@
+import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
 import { t } from "./i18n.ts";
 import { useMemo } from "react";
 import { AppHeader, AppShell } from "./AppShell";
@@ -129,6 +130,7 @@ export function SpotDetailPage({ spotId }: { spotId: number }) {
                 ) : (
                   (place?.name ?? t("장소를 찾지 못했습니다"))
                 )}
+                <CatalogVerifiedBadge recent={place?.catalog_recently_verified} verifiedAt={place?.catalog_verified_at} />
               </h1>
               <div className="sd-hero-address">
                 {place?.address ?? t("주소 없음")} · {placeRegionLabel(place)}

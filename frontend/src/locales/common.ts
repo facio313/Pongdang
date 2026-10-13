@@ -57,7 +57,7 @@ export const commonMessages: Record<string, MessageTranslations> = {
   "언어": ["Language", "语言", "言語"],
   "언어 선택": ["Choose language", "选择语言", "言語を選択"],
   "여행 안내 언어": ["Travel guidance language", "旅行指南语言", "旅行案内の言語"],
-  "화면의 메뉴·설명과 새 여행 안내에 적용합니다. 제공처의 장소명·주소와 기존 대화·코스는 원문을 유지합니다.": ["Applies to menus, descriptions and new travel guidance. Provider place names, addresses, and existing conversations and trips keep their original text.", "适用于菜单、说明和新的旅行指南。提供方的地点名称、地址以及已有对话和行程保留原文。", "メニュー、説明、新しい旅行案内に適用します。提供元の地名・住所と既存の会話・コースは原文を維持します。"],
+  "화면의 메뉴·설명과 새 여행 안내에 적용합니다. 관광정보는 공식 외국어 정보나 저장된 번역이 있으면 사용하며, 기존 대화·코스는 그대로 유지합니다.": ["Applies to menus, descriptions and new travel guidance. Available official foreign-language tourism information or saved translations are used. Existing conversations and trips remain unchanged.", "适用于菜单、说明和新的旅行指南。旅游信息优先使用已有的官方外语资料或已保存的译文，已有对话和行程保持不变。", "メニュー、説明、新しい旅行案内に適用します。観光情報は公式の外国語情報や保存済みの翻訳がある場合に使用し、既存の会話・コースはそのまま維持します。"],
   "이 브라우저에서는 언어 선택을 저장할 수 없어 현재 탭에서만 적용합니다.": ["This browser cannot save your language choice. It applies only to this tab.", "此浏览器无法保存语言选择，仅对当前标签页生效。", "このブラウザーでは言語設定を保存できないため、現在のタブにのみ適用します。"],
   "사이드 메뉴에서 변경 · 해당 언어의 수집 자료가 없으면 추천 결과가 없을 수 있습니다.": ["Change in the side menu. Recommendations may be empty if no data has been collected in this language.", "可在侧边菜单更改。若未收集到该语言的数据，可能没有推荐结果。", "サイドメニューで変更できます。この言語の収集資料がない場合、おすすめが表示されないことがあります。"],
   "사이드 메뉴 열기": ["Open side menu", "打开侧边菜单", "サイドメニューを開く"],

@@ -1,16 +1,19 @@
 """Bounded read-only access to stored place details and collection status."""
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query, Response
 
 from app.data_reader import DataReader
 
-PROVIDERS = (
-    "TOURAPI_KOREAN",
-    "tourapi_english",
-    "tourapi_japanese",
-    "tourapi_chinese_simplified",
-    "tourapi_chinese_traditional",
-)
+SOURCE_LOCALES = {
+    "TOURAPI_KOREAN": "ko",
+    "tourapi_english": "en",
+    "tourapi_japanese": "ja",
+    "tourapi_chinese_simplified": "zh-CN",
+    "tourapi_chinese_traditional": "zh-TW",
+}
+PROVIDERS = tuple(SOURCE_LOCALES)
 KOREAN_TYPES = {"12", "14", "15", "25", "28", "32", "38", "39"}
 FOREIGN_TYPES = {"75", "76", "77", "78", "79", "80", "82", "85"}
 TEXT_FIELDS = (
@@ -26,7 +29,7 @@ TEXT_FIELDS = (
 )
 
 
-async def read_place_details(connection, spot_ids):
+async def read_place_details(connection, spot_ids, *, locale="ko"):
     """Resolve confirmed links, with a direct-provider fallback before backfill."""
     if not spot_ids:
         return []
@@ -36,7 +39,8 @@ async def read_place_details(connection, spot_ids):
         await connection.execute(
             """
             SELECT s.id AS spot_id,s.name AS spot_name,
-              p.provider,p.source_id,p.category AS current_content_type,
+              p.provider,p.source_id,p.spot_id AS source_spot_id,
+              p.category AS current_content_type,
               p.source_modified_at AS current_modified_at,p.id AS place_id,
               d.id AS detail_id,d.name,d.content_type,d.availability,d.fetched_at,
               d.source_created_at,d.source_modified_at,d.catalog_modified_at,
@@ -59,7 +63,43 @@ async def read_place_details(connection, spot_ids):
             [list(PROVIDERS), list(spot_ids)],
         )
     ).fetchall()
-    return [detail_view(row) for row in rows]
+    items = [detail_view(row) for row in rows]
+    for item in items:
+        item["requested_locale"] = locale
+        if item["source_locale"] is not None and item["source_locale"] != locale:
+            item["translation_status"] = "source_fallback"
+    if locale != "ko":
+        from app.place_translations.service import read_place_translations
+
+        # Translate only the exact linked Korean source. A nearby catalogue row
+        # or another language's similarly named attraction is not that source.
+        ids = [
+            row["source_spot_id"]
+            for row in rows
+            if row["provider"] == "TOURAPI_KOREAN" and row["source_spot_id"]
+        ]
+        translations = await read_place_translations(connection, ids, locale)
+        for source, item in zip(rows, items, strict=True):
+            translated = translations.get(source["source_spot_id"])
+            if (
+                translated
+                and source["provider"] == "TOURAPI_KOREAN"
+                and translated.get("source_provider") == source["provider"]
+                and translated.get("source_id") == source["source_id"]
+            ):
+                original_overview = item["overview"]
+                item.update(
+                    {
+                        key: value
+                        for key, value in translated.items()
+                        if key != "description"
+                    },
+                    overview=translated["description"],
+                    original_overview=original_overview,
+                    display_locale=locale,
+                    translated_fields=["name", "address", "overview"],
+                )
+    return items
 
 
 async def read_opening_season(connection, spot_id):
@@ -126,6 +166,9 @@ def detail_view(row):
         "status": status,
         "provider": row["provider"],
         "source_id": row["source_id"],
+        "source_locale": SOURCE_LOCALES.get(row["provider"]),
+        "display_locale": SOURCE_LOCALES.get(row["provider"]),
+        "translation_status": "original",
         "content_type": row["content_type"] or row["current_content_type"],
         "fetched_at": row["fetched_at"],
         "source_created_at": row["source_created_at"],
@@ -147,13 +190,14 @@ def create_place_details_router(settings, *, reader=None):
         spot_ids: str = Query(
             min_length=1, max_length=2100, pattern=r"^[0-9]+(?:,[0-9]+)*$"
         ),
+        locale: Literal["ko", "en", "ja", "zh-CN", "zh-TW"] = "ko",
     ):
         raw_ids = spot_ids.split(",")
         if len(raw_ids) > 100 or any(len(v) > 18 or int(v) < 1 for v in raw_ids):
             raise HTTPException(422, "Choose 1 to 100 valid place IDs")
         ids = sorted({int(value) for value in raw_ids})
         async with reader.connection() as connection:
-            items = await read_place_details(connection, ids)
+            items = await read_place_details(connection, ids, locale=locale)
         response.headers["Cache-Control"] = "no-store"
         return {"items": items}
 

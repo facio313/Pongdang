@@ -4,10 +4,13 @@ import asyncio
 from datetime import datetime, time, timedelta
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.travel.catalog import KST
+from app.travel.models import VISIT_TIME_WINDOWS
+from app.water_index.activity_score import select_metric
 from app.water_index.condition_api import ConditionQuery, read_conditions
-from app.water_index.conditions import METRICS
+from app.water_index.conditions import METRICS, ConditionMetric, ConditionsEnvelope
 
 PREVIEW_LIMIT = 30
 DISPLAY_METRICS = ("air_temperature", "precipitation", "wave_height", "wind_speed")
@@ -16,6 +19,12 @@ DISPLAY_METRICS = ("air_temperature", "precipitation", "wave_height", "wind_spee
 def preview_time(request, now):
     if not request.dates:
         return now, "current_observation_preview"
+    if len(request.visit_intents) == 1:
+        window = VISIT_TIME_WINDOWS.get(request.visit_intents[0].part_of_day)
+        if window:
+            return datetime.combine(request.dates[0], time(window[0]), KST), (
+                "visit_time_window_preview"
+            )
     return datetime.combine(
         request.dates[0], request.departure_time or time(12), KST
     ), (
@@ -95,6 +104,52 @@ class EnvironmentReader:
         return compare_samples(request.environment_preferences, samples, start, until)
 
 
+WEATHER_GRID_METRICS = frozenset(
+    {"air_temperature", "relative_humidity", "wind_speed", "precipitation"}
+)
+
+
+def preference_metrics(sample):
+    """Retain primary evidence; add only absent weather fields from KMA grids."""
+    rows = list(sample.get("metrics", []))
+    present = {row["name"] for row in rows}
+    rows.extend(
+        row
+        for row in sample.get("context_metrics", [])
+        if row["name"] not in present
+        and row["name"] in WEATHER_GRID_METRICS
+        and row["relation"] == "containing_forecast_grid"
+    )
+    return rows
+
+
+def _preference_value(row, sample):
+    mapped = row["relation"] == "representative_station" and row.get("mapping_id")
+    if mapped and row["status"] == "available":
+        return row["value"]
+    grid = (
+        row["relation"] == "containing_forecast_grid"
+        and row["name"] in WEATHER_GRID_METRICS
+        and row.get("spatial_scope")
+        and row.get("evidence")
+        and all(source["provider"].startswith("kma_") for source in row["evidence"])
+    )
+    if not grid:
+        return None
+    try:
+        envelope = ConditionsEnvelope.model_validate(
+            {
+                key: sample[key]
+                for key in ConditionsEnvelope.model_fields
+                if key in sample
+            }
+        )
+        _, value, _ = select_metric([ConditionMetric.model_validate(row)], envelope)
+    except ValidationError:
+        return None
+    return value
+
+
 def compare_samples(criteria, samples, start, until):
     details = []
     for criterion in criteria:
@@ -102,27 +157,27 @@ def compare_samples(criteria, samples, start, until):
         for sample in samples:
             rows = [
                 m
-                for m in sample.get("preference_metrics", sample.get("metrics", []))
+                for m in sample.get("preference_metrics", preference_metrics(sample))
                 if m["name"] == criterion.metric
             ]
-            valid = [
-                m
-                for m in rows
-                if m["status"] == "available"
-                and m["relation"] == "representative_station"
-                and m.get("mapping_id")
-                and not sample.get("retained")
-            ]
-            if len(rows) != 1 or len(valid) != 1:
+            value = (
+                _preference_value(rows[0], sample)
+                if len(rows) == 1 and not sample.get("retained")
+                else None
+            )
+            if value is None:
                 reasons.extend(sample.get("reason_codes", []))
                 reasons.append("missing_stale_conflicting_or_unmapped_evidence")
                 continue
-            row = valid[0]
-            values.append(row["value"])
+            row = rows[0]
+            values.append(value)
+            reasons.extend(row.get("reason_codes", []))
             evidence.append(
                 {
-                    "mapping_id": row["mapping_id"],
+                    "mapping_id": row.get("mapping_id"),
                     "station_id": row["station_id"],
+                    "relation": row["relation"],
+                    "spatial_scope": row.get("spatial_scope"),
                     "sources": row["evidence"],
                 }
             )

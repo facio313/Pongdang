@@ -131,8 +131,8 @@ class Recommendation(Record):
     ranked: tuple[Candidate, ...]
     reasons: tuple[Reason, ...]
     tide: Tide | None
-    #: 해수욕장 개장 기간 판정. 해변이 아니거나 조회에 실패하면 `None` 입니다 --
-    #: 계곡에 「개장 기간」을 지어내지 않습니다.
+    #: 개장 정보는 표시 전용입니다. 확인된 해변의 조회 실패는 unconfirmed로
+    #: 남기고 사유 코드로 구분하며, 해변이 아니면 None입니다.
     beach_season: Season | None = None
     alternatives: tuple[Alternative, ...]
     #: 판단에 쓴 활동별 조건 응답 전부. 화면이 같은 자료를 다시 조회하지
@@ -196,7 +196,7 @@ def season_view(row, at, *, place_kind: WaterPlaceKind | None = None) -> Season:
 
     **조회 결과가 없어도 `None` 을 돌려주지 않습니다** -- 「수집된 개장 기간이
     없다」는 사실 자체를 화면이 「개장 정보 확인 필요」로 말해야 하기 때문입니다.
-    계절 규칙을 아예 적용하지 않는 경우(내륙, 조회 실패)만 `None` 입니다.
+    해변이 아닌 장소는 개장 기간 안내를 붙이지 않습니다.
 
     판정은 **KST 날짜**로 합니다. 개장 기간은 날짜 단위 사실이므로 UTC 로 재면
     자정 전후 아홉 시간이 어제·내일로 넘어갑니다.
@@ -487,6 +487,9 @@ async def read_recommendation(reader, q: RecommendationQuery, *, now=None):
                     )
                 ).fetchone()
             if place and place["place_kind"] == "beach":
+                # A failed optional read must preserve the information gap.
+                # Season prose never changes scores or recommendation ordering.
+                season = season_view(None, at, place_kind="beach")
                 async with optional_lookup(
                     unavailable,
                     "tide_lookup_unavailable",

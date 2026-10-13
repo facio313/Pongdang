@@ -38,6 +38,35 @@ LANGUAGES = {
     "chinese_simplified": "ChsService2",
     "chinese_traditional": "ChtService2",
 }
+# KTO's v4.4 manual includes the official new classification/type crosswalk.
+# These codes are shared by Korean and foreign-language catalogues. The source
+# content type stays in Place.category for detail requests and role checks.
+TOURISM_KIND_CODES = {
+    "NA010400": ("valley", {"12", "76"}),
+    "NA020100": ("river", {"12", "76"}),
+    "NA020200": ("lake", {"12", "76"}),
+    "NA020300": ("reservoir", {"12", "76"}),
+    "NA020900": ("beach", {"12", "76"}),
+    "FD050100": ("cafe", {"39", "82"}),
+}
+
+
+def tourism_kind(row):
+    code = str(row.get("lclsSystm3") or "")
+    kind, content_types = TOURISM_KIND_CODES.get(code, ("tourism", set()))
+    content_type = str(row.get("contenttypeid") or "")
+    if code:
+        return kind if content_type in content_types else "tourism"
+    # Preserve the documented legacy lake category while old records remain.
+    if content_type in {"12", "76"} and row.get("cat3") == "A01011700":
+        return (
+            "reservoir"
+            if re.search(r"저수지(?:\s*\([^)]*\))?$", str(row.get("title") or ""))
+            else "lake"
+        )
+    return "tourism"
+
+
 # Field allowlist from data.go.kr/data/15059977/openapi.do, 2026-09-14.
 # Neither the public response table nor live empty samples establish units.
 WEMO_FIELDS = {
@@ -128,11 +157,7 @@ def tourism_place(row, fetched):
     return Place(
         source_id=code,
         name=title,
-        # TourAPI's official Lake category includes lakes and reservoirs.
-        # Preserve the content type separately for detail requests.
-        kind=("reservoir" if re.search(r"저수지(?:\s*\([^)]*\))?$", title) else "lake")
-        if str(row.get("contenttypeid")) == "12" and row.get("cat3") == "A01011700"
-        else "tourism",
+        kind=tourism_kind(row),
         latitude=lat,
         longitude=lon,
         address=" ".join(str(row[k]) for k in ("addr1", "addr2") if row.get(k)),

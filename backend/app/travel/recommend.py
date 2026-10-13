@@ -336,17 +336,26 @@ async def _recommend_single(
     eligible = []
     for row in shortlist:
         sample = preview_sample(environment_matches[row[0]["spot_id"]])
+        eligibility = sample.get("activity_eligibility", {})
+        blocking_rules = set(eligibility.get("rules_applied", [])) & {
+            "water_too_cold_for_immersion",
+            "inland_swimming_authorization_unconfirmed",
+        }
         if (
             sample.get("safety_status") == "restricted"
             or sample.get("support_status") == "unsupported"
+            or blocking_rules
         ):
             excluded.append(
                 {
                     "spot_id": row[0]["spot_id"],
                     "reason": "official_restriction"
                     if sample.get("safety_status") == "restricted"
-                    else "selected_activity_unsupported",
+                    else "selected_activity_unsupported"
+                    if sample.get("support_status") == "unsupported"
+                    else "selected_activity_ineligible",
                     "evidence": sample.get("restriction_refs", []),
+                    "rules_applied": eligibility.get("rules_applied", []),
                 }
             )
         else:
@@ -393,10 +402,12 @@ async def _recommend_single(
 
     def environment_order(row):
         match = environment_matches[row[0]["spot_id"]]
+        eligibility = preview_sample(match).get("activity_eligibility", {})
         points = match["preference_points"]
         score = ranking_score(match) if comparable else None
         return (
             row[0]["spot_id"] not in required,
+            eligibility.get("demoted", False),
             points is None if request.environment_preferences else False,
             -sum(m.weight for m in row[1]) - (points or 0),
             score is None,

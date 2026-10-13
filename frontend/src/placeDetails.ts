@@ -1,4 +1,5 @@
 import { t } from "./i18n.ts";
+import type { TravelLocale } from "./travelLanguage.ts";
 
 export interface PlaceDetailEntry {
   section: string;
@@ -26,6 +27,12 @@ export interface PlaceDetails {
   contact: string | null;
   homepage: string | null;
   overview: string | null;
+  name?: string;
+  address?: string | null;
+  translation_status?: string;
+  original_name?: string;
+  original_overview?: string | null;
+  translated_fields?: string[];
   details: PlaceDetailEntry[];
 }
 
@@ -106,12 +113,12 @@ export function placeOperatingSchedule(detail?: PlaceDetails, placeKind?: string
 }
 
 /** Displayed places share one read of stored details, bounded like the list. */
-export function placeDetailsPath(ids: number[]) {
+export function placeDetailsPath(ids: number[], locale: TravelLocale = "ko") {
   const selected = [...new Set(ids)]
     .filter((id) => Number.isSafeInteger(id) && id > 0)
     .sort((a, b) => a - b)
     .slice(0, 100);
-  return selected.length ? `place-details?spot_ids=${selected.join(",")}` : null;
+  return selected.length ? `place-details?spot_ids=${selected.join(",")}${locale === "ko" ? "" : `&locale=${locale}`}` : null;
 }
 
 export function placeDetailsStatusText(status: PlaceDetails["status"] | undefined) {

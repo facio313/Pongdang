@@ -12,6 +12,8 @@ import {
   rejectionReason,
   spotConditionDisplay,
   tideLine,
+  beachSeasonLine,
+  waterActivityPolicy,
 } from '../src/recommendationText.ts';
 
 test('onsen alternative displays its computed score without implying an on-site bath', () => {
@@ -177,22 +179,14 @@ test('the waves say which of swimming and surfing today is', () => {
   assert.match(swim.text, /^파고 0\.2m — 파도가 잔잔해서 바다 수영에 맞아요$/);
 });
 
-test('the runner-up is named only when its score is on screen', () => {
-  // 휴식은 다시 표시하므로 이전 응답의 휴식 비교도 읽을 수 있습니다.
-  assert.match(choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'relax', value: 82, threshold: 96.7 })],
-  })).text, /휴식 점수가 더 높지만/);
-  assert.equal(choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'rafting', value: 82, threshold: 96.7 })],
-  })), null);
-
-  // 목록에 줄이 있는 상대(온천)라면 그대로 말합니다 -- 숨기는 것이 목적이
-  // 아니라, 가리킬 숫자가 화면에 있을 때만 가리키는 것입니다.
-  const line = choiceReason(recommendation({
-    reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'onsen', value: 82, threshold: 96.7 })],
-  }));
-  assert.match(line.text, /온천 점수가 더 높지만/);
-  assert.match(line.text, /수영을 먼저 권해요$/);
+test('water priority explanation states the policy without implying entry permission or an unseen rival score', () => {
+  for (const rival of ['relax', 'rafting', 'onsen', null]) {
+    const line = choiceReason(recommendation({
+      reasons: [reason('water_activity_preferred', { activity: 'swim', rival, value: 82, threshold: 40 })],
+    }));
+    assert.equal(line.text, '물 활동 우선 기준에 따라 수영을 먼저 제안해요.');
+    assert.doesNotMatch(line.text, /물에 들어갈 수|점수가 더 높/);
+  }
 });
 
 test('cold water is the reason the sea is out, with the threshold it used', () => {
@@ -277,4 +271,22 @@ test('resting remains distinct from the separate walking activity', () => {
   assert.equal(activityHeadline('relax', { beach_season: { status: 'out_of_season' } }), '휴식');
   assert.equal(activityHeadline('swim'), '수영');
   assert.equal(activityHeadline('surf'), '서핑');
+});
+
+
+test('water priority is disclosed as a product rule without claiming permission to enter water', () => {
+  const rec = recommendation({ reasons: [reason('water_activity_preferred', { activity: 'swim', rival: 'walk', threshold: 40 })] });
+  assert.match(choiceReason(rec).text, /물 활동 우선 기준/);
+  assert.doesNotMatch(choiceReason(rec).text, /물에 들어갈 수/);
+  assert.match(waterActivityPolicy(rec), /40점 이상/);
+  assert.equal(waterActivityPolicy(recommendation()), null);
+});
+
+test('opening data stays informational for unknown, failed and out-of-season records', () => {
+  for (const changes of [
+    { reason_codes: ['place_season_lookup_unavailable'] },
+    { beach_season: { status: 'unconfirmed', windows: [] } },
+    { beach_season: { status: 'out_of_season', windows: [] } },
+    { beach_season: { status: 'in_season', windows: [] } },
+  ]) assert.match(beachSeasonLine(recommendation(changes)).text, /추천 계산에.*포함하지 않습니다/);
 });

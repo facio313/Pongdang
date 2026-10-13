@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     ai_request_timeout_seconds: float = Field(default=60, ge=5, le=60)
     ai_max_concurrency: int = Field(default=2, ge=1, le=4)
     ai_principal_requests_per_minute: int = Field(default=6, ge=1, le=30)
+    place_translation_enabled: bool = True
+    place_translation_batch_size: int = Field(default=1, ge=1, le=3)
+    place_translation_daily_calls: int = Field(default=3, ge=0, le=10)
+    place_translation_daily_budget_microusd: int = Field(default=60000, ge=0, le=200000)
 
     @field_validator("ai_model", "ai_pricing_model", mode="before")
     @classmethod

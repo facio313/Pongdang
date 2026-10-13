@@ -32,6 +32,7 @@ def registered_jobs(settings):
     from app.ingestion.water_tour_extra import water_tour_extra_jobs
     from app.ingestion.weather import weather_jobs
     from app.place_details.collector import place_detail_jobs
+    from app.place_translations.collector import translation_jobs
     from app.refresh.service import DYNAMIC_JOBS
 
     external_jobs = (
@@ -79,7 +80,7 @@ def registered_jobs(settings):
         )
         for job in place_detail_jobs(settings) + attachment_jobs(settings)
     ]
-    return jobs
+    return jobs + translation_jobs(settings)
 
 
 def heartbeat(settings, state="running", tasks=None):

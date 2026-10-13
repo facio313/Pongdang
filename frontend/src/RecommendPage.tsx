@@ -1,4 +1,10 @@
+import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
+import { PlaceTranslationNote } from "./PlaceTranslationNote";
+import { activityRecommendationDisplay } from "./recommendationText";
+import type { RankedActivity } from "./recommendationApi";
 import { t } from "./i18n.ts";
+import { TravelDateSelect } from "./TravelDateSelect";
+import { TasteEvidenceNote } from "./TasteEvidenceNote";
 import { useEffect, useRef, useState } from "react";
 import { DataOrigin } from "./DataOrigin";
 import { RecommendDesktop } from "./RecommendDesktop";
@@ -52,6 +58,7 @@ import {
   routeReasonsText,
   travelJson,
   travelActivityLabel,
+  visitTimingText,
   type PlanInput,
   type RecommendationResult,
   type RouteResult,
@@ -121,11 +128,13 @@ function ExampleNote({ children }: { children: React.ReactNode }) {
 // ── 1. 진입 ────────────────────────────────────────────────
 
 function EntryHero({
+  date,
   regionTitle,
   savedTastes,
   onChat,
   busy,
 }: {
+  date: string;
   regionTitle: string;
   /** 서버에 **저장돼 있는** 취향 라벨. 화면에서 지금 고르는 중인 것(picked)과
    *  다른 사실이므로 따로 받습니다. */
@@ -146,8 +155,8 @@ function EntryHero({
               저장된 것을 그대로 말하고, 거기서 대화로 바로 이어 갑니다. */}
           <p className="pd-lbl">
             {saved
-              ? t("{date} · 저장한 취향 {count}개", { date: dateLabel(), count: savedTastes.length })
-              : t("{date} · 오늘 조건 반영", { date: dateLabel() })}
+              ? t("{date} · 저장한 취향 {count}개", { date: dateLabel(date), count: savedTastes.length })
+              : t("{date} · 선택 날짜 조건 반영", { date: dateLabel(date) })}
           </p>
           <h1 className="rc-hero-title">
             {saved ? (
@@ -460,6 +469,7 @@ function TasteBlocks({
             <p className="pd-lbl rc-group-lbl">
               {t("{label} · 최대 {count}개", { label: t(group.label), count: group.max_selections })}
             </p>
+            <TasteEvidenceNote category={group.id} />
             <div className="rc-tags">
               {group.options.map((option) => (
                 <button
@@ -853,12 +863,17 @@ interface CourseStopData {
    *  한 취향인지 보이지 않았습니다. */
   chips: string[];
   photo?: Photo;
+  recentlyVerified?: boolean;
+  verifiedAt?: string | null;
+  translationStatus?: string;
+  originalName?: string;
+  eligibility?: RankedActivity | null;
 }
 
 function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activity }) {
   const targetValid = conditionTargetInRange(stop.at);
   const conditions = useResource<Conditions>(targetValid ? conditionPath(stop.spotId, activity, stop.at) : null);
-  const score = conditionScore(conditions.data);
+  const score = stop.eligibility?.demoted ? null : activityRecommendationDisplay(conditions.data, stop.eligibility ?? undefined).score;
   const grade = gradeOf(score);
   // 점수를 아직 모르는 동안(첫 조회)과 값이 없는 것은 다른 사실입니다. 앞은
   // 스켈레톤, 뒤는 «–» 입니다(useResource.isInitialLoad 주석).
@@ -876,7 +891,8 @@ function CourseStop({ stop, activity }: { stop: CourseStopData; activity: Activi
               자리표시자가 이미 핀을 그리므로 이름 옆 핀 배지는 두지 않습니다. */}
           <PlacePhoto className="rc-stop-photo" name={stop.name} photo={stop.photo} />
           <div className="rc-stop-headline">
-            <div className="rc-stop-name">{stop.name}</div>
+            <div className="rc-stop-name">{stop.name}<CatalogVerifiedBadge recent={stop.recentlyVerified} verifiedAt={stop.verifiedAt} /></div>
+            <PlaceTranslationNote status={stop.translationStatus} originalName={stop.originalName} />
             <div className="rc-stop-place">{stop.place}</div>
           </div>
         </div>
@@ -965,11 +981,12 @@ function RoutePanel({ route }: { route: RouteResult }) {
               <div className="rc-route-body">
                 <div className="rc-route-name">{item.name}</div>
                 <div className="rc-route-when">
-                  {t("{arrival} 도착 · {departure} 출발", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at) })} ·{" "}
+                  {t(item.visit_timing ? "{arrival} 방문 시작 · {departure} 출발" : "{arrival} 도착 · {departure} 출발", { arrival: timeLabel(item.arrival_at), departure: timeLabel(item.departure_at) })} ·{" "}
                   {legs[index]
                     ? t("{minutes}분 이동", { minutes: legs[index].duration_minutes })
                     : t("이동시간 –")}
                 </div>
+                {item.visit_timing && <p className="pd-note">{visitTimingText(item)}</p>}
               </div>
               {leg ? (
                 <a
@@ -1041,7 +1058,7 @@ function useCourseView(dayIndex: number) {
   const firstItem = planItems(session.plan)[0];
   const firstId = firstItem?.spot_id ?? session.recommendation?.recommendations[0]?.spot_id;
   const activity = session.plan?.request.activity ?? session.recommendation?.request.activity ?? "relax";
-  const days = useConditionDays(firstId, now, activity, 5).map((day) => ({
+  const days = useConditionDays(firstId, now, activity, 7).map((day) => ({
     ...day,
     name: day.weekday,
   }));
@@ -1049,7 +1066,8 @@ function useCourseView(dayIndex: number) {
   const selectedAt = (session.plan?.days[0]?.date ?? session.plan?.request.dates[0] ?? session.recommendation?.request.dates[0] ?? day.id) + "T12:00:00+09:00";
   const firstAt = firstItem?.arrival_at ?? selectedAt;
   const firstConditions = useResource<Conditions>(conditionTargetInRange(firstAt) ? conditionPath(firstId, activity, firstAt) : null);
-  const firstScore = conditionScore(firstConditions.data);
+  const firstEligibility = session.recommendation?.recommendations.find(item => item.spot_id === firstId)?.conditions.activity_eligibility;
+  const firstScore = firstEligibility?.demoted ? null : activityRecommendationDisplay(firstConditions.data, firstEligibility ?? undefined).score;
   const rows: CourseStopData[] = session.plan
     ? session.plan.days.flatMap((savedDay) => savedDay.items.map((item) => ({
         spotId: item.spot_id,
@@ -1065,6 +1083,11 @@ function useCourseView(dayIndex: number) {
         at: selectedAt,
         time: t("후보 {count}", { count: item.rank }),
         name: item.name,
+          recentlyVerified: item.confirmed.catalog_recently_verified,
+          verifiedAt: item.confirmed.catalog_verified_at,
+          translationStatus: item.confirmed.translation_status,
+          originalName: item.confirmed.original_name,
+          eligibility: item.conditions.activity_eligibility,
         place: t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
         basis: [t("{reason} 미확인: {conditions}", { reason: item.reason, conditions: unknownConditionsText(item.unknown_conditions) || t("없음") }), !session.route?.route ? transportAdviceText(item.transport_advice) : ""].filter(Boolean).join(" "),
         chips: item.matched_preferences.map((preference) => t(preference.tag)).length
@@ -1525,11 +1548,14 @@ function RecommendScreen() {
       setPreferenceSaved(false);
     }
   };
-  const [dayIndex, setDayIndex] = useState(0);
+  const [dayIndex, setDayIndex] = useState(() => {
+    const date = session.plan?.request.dates[0] ?? session.recommendation?.request.dates[0];
+    return Math.max(0, calendarDays(new Date().toISOString(), 7).findIndex(day => day.id === date));
+  });
   const [altOpen, setAltOpen] = useState(false);
   const [proposal, setProposal] = useState<RecommendationResult | null>(null);
   const action = useAction();
-  const days = calendarDays(new Date().toISOString(), 5);
+  const days = calendarDays(new Date().toISOString(), 7);
   // 공유 코스 링크(plan_id)도 개인정보 자원입니다. 익명 방문자에게는
   // 「로그인 필요」를 알림으로 띄우지 않고, 다른 저장 자원과 같이 조용히
   // 처리합니다(authError.suppressLoginRequired).
@@ -1847,6 +1873,7 @@ function RecommendScreen() {
       />
     ) : (
       <EntryHero
+        date={days[dayIndex].id}
         regionTitle={regionTitle}
         savedTastes={savedTastes}
         onChat={() => setMode("chat")}
@@ -1877,6 +1904,10 @@ function RecommendScreen() {
           </div>
           {mode === "flow" && (
             <>
+              {!courseOpen && <div className="pd-card"><TravelDateSelect value={days[dayIndex].id} onChange={date => {
+                const index = days.findIndex(day => day.id === date);
+                if (index >= 0) setDayIndex(index);
+              }} disabled={action.busy} /></div>}
               <EntryBody
                 region={region}
                 transport={selectedTransport(requestFor())}

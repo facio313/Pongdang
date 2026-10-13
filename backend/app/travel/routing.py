@@ -5,7 +5,7 @@ import hashlib
 import itertools
 import json
 import math
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import HTTPException
 from pydantic import Field, model_validator
@@ -15,7 +15,13 @@ from app.travel.catalog import KST, Catalog, matches_visit_intent
 from app.travel.directions import DirectionError, KakaoDirections
 from app.travel.environment import EnvironmentReader
 from app.travel.mobility import course_transport_advice
-from app.travel.models import PlanInput, Record, TravelPreference, TravelRequest
+from app.travel.models import (
+    VISIT_TIME_WINDOWS,
+    PlanInput,
+    Record,
+    TravelPreference,
+    TravelRequest,
+)
 from app.travel.recommend import rank_places, request_for_visit
 
 
@@ -115,6 +121,34 @@ async def rank_route_places(catalog, places, request, preference, signals):
             if sid not in ranked
         ],
         visits,
+    )
+
+
+def visit_schedule(request, day, arrival, stay_minutes):
+    """Honor one visit's KST day period without changing physical road arrival."""
+    intent = request.visit_intents[0] if len(request.visit_intents) == 1 else None
+    window = VISIT_TIME_WINDOWS.get(intent.part_of_day) if intent else None
+    if window is None:
+        return arrival, arrival + timedelta(minutes=stay_minutes), None
+    midnight = datetime.combine(day, time(), KST)
+    default_start, window_end = (midnight + timedelta(hours=hour) for hour in window)
+    start = max(arrival, default_start)
+    end = start + timedelta(minutes=stay_minutes)
+    return (
+        start,
+        end,
+        {
+            "part_of_day": intent.part_of_day,
+            "default_start_at": default_start.isoformat(),
+            "window_end_at": window_end.isoformat(),
+            "physical_arrival_at": arrival.isoformat(),
+            "wait_minutes": math.ceil((start - arrival).total_seconds() / 60),
+            "status": "conflict"
+            if end > window_end
+            else "default_start"
+            if start == default_start
+            else "within_window",
+        },
     )
 
 
@@ -248,7 +282,7 @@ async def recommend_route(
             continue
         considered += 1
         cursor, previous, legs, items = start, 0, [], []
-        reason = None
+        reason, timing_conflict = None, None
         for sid in (*order, 0):
             edge = matrix.get((previous, sid))
             if edge is None:
@@ -272,8 +306,14 @@ async def recommend_route(
             )
             cursor = arrival
             if sid:
-                end = cursor + timedelta(minutes=body.stay_minutes)
                 visit = visit_requests[sid]
+                cursor, end, timing = visit_schedule(
+                    visit, day, cursor, body.stay_minutes
+                )
+                if timing and timing["status"] == "conflict":
+                    reason = "visit_time_window_unreachable"
+                    timing_conflict = {"spot_id": sid, "visit_timing": timing}
+                    break
                 match = await environment.compare(sid, visit, cursor, end)
                 items.append(
                     {
@@ -289,12 +329,19 @@ async def recommend_route(
                         "activities": keywords.activity_options(visit, places[sid]),
                         "preference_points": points[sid],
                         "environment_match": match,
+                        **({"visit_timing": timing} if timing else {}),
                     }
                 )
                 cursor = end
             previous = sid
         if reason:
-            rejected.append({"spot_ids": list(order), "reason": reason})
+            rejected.append(
+                {
+                    "spot_ids": list(order),
+                    "reason": reason,
+                    **(timing_conflict or {}),
+                }
+            )
             continue
         if request.return_by and cursor > datetime.combine(day, request.return_by, KST):
             rejected.append(
@@ -392,6 +439,8 @@ async def recommend_route(
             status="query_failed" if failures else "conflict",
             reason_codes=["no_verifiable_feasible_route"],
         )
+        if any(r["reason"] == "visit_time_window_unreachable" for r in rejected):
+            result["reason_codes"].append("visit_time_window_unreachable")
         return result
     winner = candidates[0]
     winner["transport"] = request.transport
@@ -493,6 +542,10 @@ def render_route(result, locale="ko"):
                 "insufficient_verified_candidates_for_stop_count": "후보가 부족해요.",
                 "no_verifiable_feasible_route": "조건에 맞는 경로를 못 찾았어요.",
                 "must_include_not_in_selected_candidates": "필수 장소를 선택해요.",
+                "visit_time_window_unreachable": (
+                    "이동과 체류 시간을 포함하면 요청한 오전·오후·저녁 시간대에 "
+                    "방문을 마칠 수 없어요. 출발 시각이나 방문 순서를 조정해 주세요."
+                ),
             }
             return " ".join(
                 reasons.get(code, "경로 계산 조건을 확인해 주세요.")
@@ -530,6 +583,21 @@ def render_route(result, locale="ko"):
         start = datetime.fromisoformat(item["arrival_at"]).astimezone(KST)
         end = datetime.fromisoformat(item["departure_at"]).astimezone(KST)
         lines.append(f"{index}. {item['name']} · {start:%H:%M}–{end:%H:%M} KST")
+        timing = item.get("visit_timing")
+        if timing and timing["wait_minutes"]:
+            waiting = timing["wait_minutes"]
+            lines.append(
+                {
+                    "ko": f"요청한 시간대에 맞춰 도착 후 {waiting}분 기다려요.",
+                    "en": (
+                        f"Wait {waiting} minutes after arrival "
+                        "for the requested period."
+                    ),
+                    "ja": f"希望の時間帯に合わせ、到着後{waiting}分待ちます。",
+                    "zh-CN": f"到达后等待{waiting}分钟，以符合所选时段。",
+                    "zh-TW": f"到達後等待{waiting}分鐘，以符合所選時段。",
+                }[locale]
+            )
     lines.append(
         {
             "ko": (

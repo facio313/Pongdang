@@ -12,23 +12,24 @@ from app.config import Settings
 from app.travel import published, storage
 from app.travel.models import RecommendationInput, TravelPreference, TravelRequest
 from app.travel.recommend import recommend
-from app.water_index.activity_score import ActivityScore
+from app.water_index.activity_score import calculate_activity_score
 
 
 def scored(sid, points, **changes):
-    return envelope(
+    evidence = envelope(
+        "relax",
         spot_id=sid,
-        condition_score=ActivityScore(
-            status="evaluated",
-            score=float(points),
-            coverage=1.0,
-            available_components=1,
-            total_components=1,
-            components=(),
-            reason_codes=(),
-            sources=(),
+        metrics=(
+            metric("air_temperature", 22.0),
+            metric("relative_humidity", 50.0),
+            metric("wind_speed", 2.0),
+            metric("precipitation", 0.0),
         ),
         **changes,
+    )
+    score = calculate_activity_score(evidence)
+    return evidence.model_copy(
+        update={"condition_score": score.model_copy(update={"score": float(points)})}
     )
 
 
@@ -64,7 +65,10 @@ def run_recommend(monkeypatch, rows, *, request=None, preference=None, count=3):
 
     async def read(reader, queries, *, now):
         calls.append(queries)
-        return [rows.get(q.spot_id, envelope(spot_id=q.spot_id)) for q in queries]
+        return [
+            rows.get(q.spot_id, envelope(q.activity, spot_id=q.spot_id))
+            for q in queries
+        ]
 
     monkeypatch.setattr(published, "read_condition_set", read)
     monkeypatch.setattr(storage, "signals", lambda *_: [])

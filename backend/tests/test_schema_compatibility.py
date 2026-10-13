@@ -1,4 +1,4 @@
-"""An older application can restart against the additive v20 schema."""
+"""Current initialization is idempotent and unknown schemas are not adopted."""
 
 from contextlib import nullcontext
 
@@ -48,17 +48,14 @@ def existing_schema(monkeypatch):
     return connection_for
 
 
-@pytest.mark.parametrize("version", [schema.VERSION, 20])
-def test_supported_existing_schema_is_accepted_without_changes(
-    existing_schema, version
-):
-    settings, statements, expected = existing_schema(version)
+def test_supported_existing_schema_is_accepted_without_changes(existing_schema):
+    settings, statements, expected = existing_schema(schema.VERSION)
 
     assert schema.initialize(settings) is False
     assert statements == expected
 
 
-@pytest.mark.parametrize("version", [0, 21])
+@pytest.mark.parametrize("version", [0, schema.VERSION + 1])
 def test_unknown_schema_is_rejected_without_changes(existing_schema, version):
     settings, statements, expected = existing_schema(version)
 

@@ -1,3 +1,4 @@
+import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
 import { t } from "./i18n.ts";
 import { useMemo } from "react";
 import { KakaoMapCanvas } from "./KakaoMapCanvas";
@@ -62,7 +63,7 @@ function ListRow({
       <PlacePhoto className="sk-row-photo" name={place.name} photo={place.photo} fallback={place.type === "valley" ? "valley" : place.type === "beach" ? "beach" : undefined} />
       <div className="sk-row-body">
         <div className="sk-row-head">
-          <b className="sk-row-name">{place.name}</b>
+          <b className="sk-row-name">{place.name}<CatalogVerifiedBadge recent={place.catalog_recently_verified} verifiedAt={place.catalog_verified_at} /></b>
           <span className="sk-row-category">{t(kindLabel(place))}</span>
         </div>
         <p className="sk-row-summary">{place.address ?? t("주소 없음")}</p>
@@ -322,6 +323,7 @@ function SpotDetailDesktop({ spotId }: { spotId: number }) {
                 ) : (
                   (place?.name ?? t("장소를 찾지 못했습니다"))
                 )}
+                <CatalogVerifiedBadge recent={place?.catalog_recently_verified} verifiedAt={place?.catalog_verified_at} />
               </h1>
               <div className="sk-detail-address">
                 {place?.address ?? t("주소 없음")} ·{" "}

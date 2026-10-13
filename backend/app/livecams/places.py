@@ -4,9 +4,10 @@ from math import isfinite
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 from app.data_reader import DataReader
+from app.ingestion.water_tour_extra import TOURISM_KIND_CODES
 from app.place_kinds import WATER_PLACE_KINDS, WaterPlaceKind
 from app.regions import (
     PLACE_REGION_JOIN,
@@ -18,12 +19,84 @@ from app.regions import (
     region_options,
 )
 
+TOURISM_PROVIDERS = (
+    "TOURAPI_KOREAN",
+    "tourapi_english",
+    "tourapi_japanese",
+    "tourapi_chinese_simplified",
+    "tourapi_chinese_traditional",
+)
+TOURISM_PROVIDER_SQL = ",".join(f"'{provider}'" for provider in TOURISM_PROVIDERS)
+CATALOG_VERIFICATION_HOURS = 48
+
+
+def tourism_detail_kind_sql(alias="s"):
+    """Read already stored official classification; never join by name/location."""
+    cases = " ".join(
+        "WHEN p.category IN ("
+        + ",".join(f"'{content_type}'" for content_type in sorted(content_types))
+        + ') AND d.details @> \'[{"section":"common",'
+        + f'"key":"lclsSystm3","value":"{code}"}}]'
+        + f"' THEN '{kind}'"
+        for code, (kind, content_types) in TOURISM_KIND_CODES.items()
+    )
+    return (
+        "(SELECT CASE "
+        + cases
+        + " ELSE NULL END FROM pongdang_data.collection_place p "
+        "JOIN pongdang_data.place_detail d ON d.place_id=p.id AND d.state='active' "
+        "AND d.content_type=p.category AND d.fetched_at<=now() "
+        "AND d.catalog_modified_at IS NOT DISTINCT FROM p.source_modified_at "
+        f"WHERE p.spot_id={alias}.id AND p.provider IN ({TOURISM_PROVIDER_SQL}) "
+        "ORDER BY p.fetched_at DESC,d.fetched_at DESC,d.id DESC LIMIT 1)"
+    )
+
+
+def catalog_verification_join(alias="s"):
+    """Only a recent item read in a completed successful catalogue is a badge.
+
+    collection_job.last_success_at includes partial pages, so it cannot establish
+    this status. Failed/running/partial latest work suppresses the badge even when
+    the previous item value is retained. No source modification date is used.
+    """
+    language = (
+        "CASE p.provider WHEN 'TOURAPI_KOREAN' THEN 'korean' "
+        "ELSE substring(p.provider FROM 9) END"
+    )
+    return (
+        " LEFT JOIN LATERAL (SELECT max(p.fetched_at) AS catalog_verified_at "
+        "FROM pongdang_data.collection_place p JOIN LATERAL ("
+        "SELECT j.* FROM pongdang_data.collection_job j WHERE j.state<>'disabled' "
+        "AND (j.task_name=CASE p.provider WHEN 'TOURAPI_KOREAN' "
+        "THEN 'tourism_places' ELSE p.provider END OR "
+        "(split_part(p.region,':',1)='51' AND j.task_name="
+        f"'tourism_gangwon_'||({language})||'_'||split_part(p.region,':',2))) "
+        "ORDER BY coalesce(j.started_at,j.finished_at) DESC NULLS LAST "
+        "LIMIT 1) j ON TRUE "
+        f"WHERE p.spot_id={alias}.id AND p.provider IN ({TOURISM_PROVIDER_SQL}) "
+        f"AND p.fetched_at>=now()-interval '{CATALOG_VERIFICATION_HOURS} hours' "
+        "AND p.fetched_at<=now() AND j.state='succeeded' "
+        "AND j.started_at<=j.finished_at AND j.finished_at>=p.fetched_at "
+        "AND j.finished_at<=now() "
+        "AND (j.task_name LIKE 'tourism_gangwon_%%' "
+        "OR j.started_at<=p.fetched_at)) catalog_check ON TRUE "
+    )
+
 
 # Classification uses provider categories, never a keyword search result alone.
 # The original IDs, types, names, addresses and coordinates stay untouched.
 def water_place_kind_sql(alias="s"):
     """Classify stored catalogues; alias is a trusted internal SQL identifier."""
-    return _WATER_PLACE_KIND_SQL.replace("s.", f"{alias}.")
+    return (
+        "(SELECT CASE WHEN kind IN ('beach','valley','lake','reservoir') "
+        "THEN kind ELSE NULL END FROM (SELECT "
+        f"{catalog_place_kind_sql(alias)} AS kind) classified_kind)"
+    )
+
+
+def catalog_place_kind_sql(alias="s"):
+    legacy = _WATER_PLACE_KIND_SQL.replace("s.", f"{alias}.")
+    return f"coalesce({tourism_detail_kind_sql(alias)},{legacy},{alias}.type)"
 
 
 _WATER_PLACE_KIND_SQL = """
@@ -57,12 +130,14 @@ CASE WHEN s.type IN ('beach','valley','lake','reservoir') THEN s.type
 """
 PLACE_SELECT = (
     "SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,"
-    "s.catalog_verified_at,"
+    "catalog_check.catalog_verified_at,"
+    "catalog_check.catalog_verified_at IS NOT NULL AS catalog_recently_verified,"
     "r.province_code AS verified_province_code,"
     "r.district_code AS verified_district_code,"
     + water_place_kind_sql()
     + " AS place_kind FROM pongdang_data.spots_waterspot s "
     + PLACE_REGION_JOIN
+    + catalog_verification_join()
 )
 
 
@@ -74,6 +149,8 @@ class PreviewPlace(BaseModel):
     region: str | None
     lat: float | None
     lng: float | None
+    catalog_recently_verified: bool = False
+    catalog_verified_at: AwareDatetime | None = None
 
 
 class CatalogPlace(PreviewPlace):
@@ -125,7 +202,8 @@ async def read_nearby_places(reader, spot_id, limit=2):
         rows = await (
             await c.execute(
                 place_catalog_cte("WHERE p.place_kind=%s")
-                + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng "
+                + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
+                "p.catalog_recently_verified,p.catalog_verified_at "
                 "FROM classified p JOIN matched m ON m.id=p.id "
                 "WHERE p.id<>%s AND p.place_kind=%s "
                 "AND p.lat BETWEEN -90 AND 90 AND p.lng BETWEEN -180 AND 180 "
@@ -194,6 +272,7 @@ async def read_places_page(
             await connection.execute(
                 catalogue
                 + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
+                "p.catalog_recently_verified,p.catalog_verified_at,"
                 "p.verified_province_code AS province_code,"
                 "p.verified_district_code AS district_code,"
                 "ARRAY(SELECT a.spot_id FROM pongdang_data.place_alias a "

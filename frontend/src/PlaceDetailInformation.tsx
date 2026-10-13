@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { dateLocale, t } from "./i18n";
 import { placeDetailsMissingText, placeDetailsStatusText, placeExtraDetails, placeHomepageUrl, placeOpeningHours, type PlaceDetails } from "./placeDetails";
 import "./placeDetails.css";
+import { PlaceTranslationNote } from "./PlaceTranslationNote";
 
 function collectedDate(value: string) {
   const date = new Date(value);
@@ -52,6 +53,8 @@ export function PlaceDetailInformation({
       </dl>
       {opening.beachAccess && <p className="pd-note">{t("해변을 방문할 수 있다는 안내이며, 수영 운영 기간·시간이나 입수 가능 여부를 뜻하지 않습니다.")}</p>}
       <div className="place-details-copy">
+        <PlaceTranslationNote status={detail?.translation_status} />
+        {detail?.translation_status === "machine_translated" && <p className="pd-note">{t("장소 이름·주소·소개만 자동번역했습니다. 운영·시설 등 이용 안내는 원문을 유지합니다.")}</p>}
         {loading && <p className="pd-note">{t("저장된 상세정보를 조회하고 있습니다.")}</p>}
         {error && <p className="pd-note" role="alert">{t("저장된 상세정보를 불러오지 못했습니다.")} {error}</p>}
         {!loading && !error && status && <p className="pd-note">{t(status)}</p>}
@@ -59,7 +62,12 @@ export function PlaceDetailInformation({
         {detail?.fetched_at && detail.refresh_pending && !detail.refresh_failed && <p className="pd-note">{t("변경된 상세정보의 수집을 기다리는 동안 이전에 저장한 정보를 표시합니다.")}</p>}
         <div className="place-details-introduction">
           <h2 className="place-details-heading">{t("소개")}</h2>
+          {detail?.translation_status === "machine_translated" && <p className="pd-note">{detail.name}{detail.address ? ` · ${detail.address}` : ""}</p>}
           <p className="place-details-overview">{detail?.overview || missing}</p>
+          {detail?.translation_status === "machine_translated" && detail.original_overview && <details>
+            <summary>{t("한국어 원문 보기")}</summary>
+            <p className="place-details-overview">{detail.original_overview}</p>
+          </details>}
         </div>
         {extraDetails.length > 0 && <section className="place-details-extra">
           <h2 className="place-details-heading">{t("추가 상세정보 {count}개", { count: extraDetails.length })}</h2>

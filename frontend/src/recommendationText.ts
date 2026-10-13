@@ -9,7 +9,7 @@ import { t } from "./i18n.ts";
 //
 // 값을 실제로 가져오는 import 는 확장자를 붙입니다. tests/*.test.mjs 는
 // 번들러 없이 node 가 이 .ts 를 그대로 읽습니다(scoreMeaning.ts 와 같은 이유).
-import { activities, listedActivities, type Activity } from "./aiApi.ts";
+import { activities, type Activity } from "./aiApi.ts";
 import { withJosa } from "./josa.ts";
 import { conditionScore, formatValue, type Conditions } from "./productData.ts";
 import type {
@@ -175,20 +175,14 @@ export function choiceReason(rec?: Recommendation): ReasonLine | null {
     text: t("필수 자료가 있는 활동의 참고 점수를 비교해 골랐어요."),
   };
   const preferred = find(rec, "water_activity_preferred");
-  // 이전 모델 응답도 읽되, 실제로 표시하는 활동의 점수만 비교 문구에 씁니다.
-  if (
-    preferred &&
-    preferred.rival &&
-    (listedActivities as readonly Activity[]).includes(preferred.rival)
-  )
+  if (preferred)
     return {
       code: preferred.code,
       // 조사는 낱말을 보고 고릅니다(josa.ts). 예전에는 여섯 활동 이름이 모두
       // 받침으로 끝난다는 사실에 기대 «을» 을 서식에 박아 두었는데, 활동이
       // 하나라도 늘면 조용히 틀립니다. 측정값과 달리 활동 이름은 받침을 판정할
       // 수 있는 낱말이라 헬퍼가 답을 냅니다.
-      text: t("{rival} 점수가 더 높지만, 오늘은 물에 들어갈 수 있어서 {activity} 먼저 권해요", {
-        rival: t(activities[preferred.rival]),
+      text: t("물 활동 우선 기준에 따라 {activity} 먼저 제안해요.", {
         activity: withJosa(t(activities[choice.activity]), "을/를"),
       }),
     };
@@ -313,30 +307,38 @@ export function seasonWindowText(window: RecommendationSeasonWindow) {
   return window.precision === "day" ? span : `${span} ${t("무렵")}`;
 }
 
-/** 해수욕장 개장 기간 한 줄. 공식 개장 공고가 아니라는 사실이 문장에 남습니다.
- *
- *  `in_season` 이면 null 입니다 -- 개장 중인 해변에 「개장 중」이라고 적는 것은
- *  화면을 늘리기만 합니다. 말해야 하는 것은 **기간 밖**과 **확인 불가**입니다. */
+/** Opening information is shown separately and does not determine the recommendation. */
 export function beachSeasonLine(rec?: Recommendation): ReasonLine | null {
+  const failed = rec?.reason_codes?.includes("place_season_lookup_unavailable");
   const season = rec?.beach_season;
-  if (!season || season.status === "in_season") return null;
-  if (season.status === "unconfirmed")
-    return {
-      code: "beach_season_unconfirmed",
-      // 추측하지 않습니다. 서술을 읽지 못한 것과 폐장은 다른 사실입니다.
-      text: t("해수욕장 개장 기간 정보를 확인하지 못했어요 — 방문 전 현지 공고를 확인해 주세요"),
-    };
+  if (failed) return {
+    code: "place_season_lookup_unavailable",
+    text: t("개장정보 조회 실패 · 추천 계산에는 포함하지 않습니다. 방문 전 현지 운영 안내를 확인해 주세요."),
+  };
+  if (!season) return null;
+  if (season.status === "unconfirmed") return {
+    code: "beach_season_unconfirmed",
+    text: t("개장정보 미확인 · 추천 계산에는 포함하지 않습니다. 방문 전 현지 운영 안내를 확인해 주세요."),
+  };
+  if (season.status === "in_season") return {
+    code: "beach_season_informational",
+    text: t("개장정보는 참고 안내이며 추천 계산에는 포함하지 않습니다. 실제 운영 여부는 현지에서 확인해 주세요."),
+  };
   const windows = season.windows.map(seasonWindowText).join(", ");
-  const stale =
-    season.year_basis === "past_year" && season.stale_years
-      ? t(" · {years}년 전 안내 기준", { years: season.stale_years })
-      : "";
+  const stale = season.year_basis === "past_year" && season.stale_years
+    ? t(" · {years}년 전 안내 기준", { years: season.stale_years }) : "";
   return {
     code: "beach_closed_season_product_rule",
-    text: windows
-      ? t("해수욕장 개장 기간이 아니에요 (개장 {windows}){stale}", { windows, stale })
-      : t("해수욕장 개장 기간이 아니에요"),
+    text: t("관광정보상 개장 기간 밖{period}{stale} · 개장정보는 추천 계산에 포함하지 않습니다. 현지 운영 안내를 확인해 주세요.", {
+      period: windows ? ` (${windows})` : "", stale,
+    }),
   };
+}
+
+export function waterActivityPolicy(rec?: Recommendation) {
+  return rec?.rules?.some(rule => rule.code === "water_activity_preferred") || find(rec, "water_activity_preferred")
+    ? t("수영·서핑은 40점 이상이면 다른 활동보다 우선합니다. 공식 제한·필수 자료·수온·물때 기준은 먼저 적용합니다.")
+    : null;
 }
 
 export interface AlternativeGroup {

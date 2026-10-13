@@ -1,4 +1,11 @@
+import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
+import { PlaceTranslationNote } from "./PlaceTranslationNote";
+import { activityRecommendationDisplay } from "./recommendationText";
+import type { RankedActivity } from "./recommendationApi";
 import { t } from "./i18n.ts";
+import { TravelDateSelect } from "./TravelDateSelect";
+import { isTravelDate } from "./travelDates";
+import { TasteEvidenceNote } from "./TasteEvidenceNote";
 import { useEffect, useMemo, useRef, useState, type PointerEventHandler } from "react";
 import { candidateCourse, moveCandidate } from "./candidateCourse";
 import { useCandidateReorder } from "./useCandidateReorder";
@@ -18,7 +25,6 @@ import { usePlacePhotos } from "./usePlacePhotos";
 import { AiSuggestion } from "./pongdangUi";
 import {
   conditionPath,
-  conditionScore,
   conditionTargetInRange,
   dataStatusText,
   dateLabel,
@@ -38,6 +44,7 @@ import {
   routeReasonsText,
   travelJson,
   travelActivityLabel,
+  visitTimingText,
   selectedTransport,
   transportAdviceText,
   transportLabel,
@@ -93,6 +100,11 @@ interface RdStepRow {
   basis?: string;
   link: string | null;
   photo?: Photo;
+  recentlyVerified?: boolean;
+  verifiedAt?: string | null;
+  translationStatus?: string;
+  originalName?: string;
+  eligibility?: RankedActivity | null;
 }
 
 /** 후보 한 줄. 데스크탑에는 카드가 없으므로(pongdangDesktop.css) 괘선 행을
@@ -123,7 +135,7 @@ function RdStep({
   const conditions = useResource<Conditions>(
     targetValid ? conditionPath(step.spotId, activity, step.at) : null,
   );
-  const score = conditionScore(conditions.data);
+  const score = step.eligibility?.demoted ? null : activityRecommendationDisplay(conditions.data, step.eligibility ?? undefined).score;
   return (
     <div className={"rd-step" + (editing && !editing.included ? " is-excluded" : "")} data-spot-id={step.spotId}>
       <span className="rd-step-number">
@@ -141,7 +153,8 @@ function RdStep({
       </span>
       <PlacePhoto className="rd-step-photo" name={step.name} photo={step.photo} />
       <div className="rd-step-body">
-        <div className="rd-step-name">{step.name}</div>
+        <div className="rd-step-name">{step.name}<CatalogVerifiedBadge recent={step.recentlyVerified} verifiedAt={step.verifiedAt} /></div>
+            <PlaceTranslationNote status={step.translationStatus} originalName={step.originalName} />
         <div className="rd-step-when">{step.when}</div>
         {step.basis && <p className="rd-note">{step.basis}</p>}
         {step.chips.length > 0 && (
@@ -218,6 +231,10 @@ function RdStepSkeletons({ count = 3 }: { count?: number }) {
 export function RecommendDesktop() {
   const { locale } = useTravelLanguage();
   const savedSession = useTravelSession();
+  const [tripDate, setTripDate] = useState(() => {
+    const saved = savedSession.plan?.request.dates[0] ?? savedSession.recommendation?.request.dates[0];
+    return saved && isTravelDate(saved) ? saved : kstDate();
+  });
   const regions = useResource<RegionCatalog>("regions");
   const [selectedRegion, setSelectedRegion] = useTravelRegionSelection();
   const region = selectedRegion ?? savedSession.plan?.request.region ?? savedSession.recommendation?.request.region ?? DEFAULT_PROVINCE;
@@ -271,7 +288,7 @@ export function RecommendDesktop() {
   const tasteKnown = savedLabels.length > 0 || hasTaste;
 
   const baseRequest = (): TravelRequest => requestInLanguage({
-    dates: [kstDate()],
+    dates: [tripDate],
     region,
     place_role: "visit",
     // 저장된 취향과 화면 표기가 같은 이름을 쓰도록 라벨로 싣습니다. 조건은
@@ -489,11 +506,16 @@ export function RecommendDesktop() {
           at: routeItem?.arrival_at ?? stepAt,
           no: index + 1,
           name: item.name,
+          recentlyVerified: item.confirmed.catalog_recently_verified,
+          verifiedAt: item.confirmed.catalog_verified_at,
+          translationStatus: item.confirmed.translation_status,
+          originalName: item.confirmed.original_name,
+          eligibility: item.conditions.activity_eligibility,
           when: routeItem
-            ? t("{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(routeItem.arrival_at), departure: timeLabel(routeItem.departure_at), minutes: calculated?.legs[routeIndex] ? t("{minutes}분 이동", { minutes: calculated.legs[routeIndex].duration_minutes }) : t("이동시간 –") })
+            ? t(routeItem.visit_timing ? "{arrival} 방문 시작 · {departure} 출발 · {minutes}" : "{arrival} 도착 · {departure} 출발 · {minutes}", { arrival: timeLabel(routeItem.arrival_at), departure: timeLabel(routeItem.departure_at), minutes: calculated?.legs[routeIndex] ? t("{minutes}분 이동", { minutes: calculated.legs[routeIndex].duration_minutes }) : t("이동시간 –") })
             : t("{region} · {activities}", { region: placeRegionLabel(item), activities: item.activities.map((activity) => travelActivityLabel(activity.activity, activity.label)).join(" · ") || t("활동 미확인") }),
           chips: item.matched_preferences.map((preference) => t(preference.tag)),
-          basis: [item.reason, !calculated ? transportAdviceText(item.transport_advice) : ""].filter(Boolean).join(" "),
+          basis: [item.reason, visitTimingText(routeItem), !calculated ? transportAdviceText(item.transport_advice) : ""].filter(Boolean).join(" "),
           link: routeItem && !(routeIndex === 0 && calculated?.origin?.spot_id === item.spot_id)
             ? kakaoRouteLink(routeIndex === 0 ? calculated?.origin : items[routeIndex - 1], [routeItem], calculated?.transport) : null,
         };
@@ -570,7 +592,8 @@ export function RecommendDesktop() {
 
   const currentRegion = (step === "chat" ? chatRequest?.region
     : step === "course" ? session.plan?.request.region ?? recommendation?.request.region : undefined) ?? region;
-  const context = `${travelRegionLabel(currentRegion, regions.data)} · ${dateLabel()}`;
+  const displayedDate = (step === "course" ? session.plan?.request.dates[0] ?? recommendation?.request.dates[0] : step === "chat" ? chatRequest?.dates[0] : undefined) ?? tripDate;
+  const context = `${travelRegionLabel(currentRegion, regions.data)} · ${dateLabel(displayedDate + "T12:00:00+09:00")}`;
   const listHeadline = candidateAction.busy ? t("후보 조회 중")
     : candidateAction.error ? t("후보 조회 실패")
     : recommendation ? t("후보 {count}곳", { count: recommendation.recommendations.length }) : t("후보 조회 전");
@@ -604,6 +627,7 @@ export function RecommendDesktop() {
     setTravelSession({ recommendation: null, plan: null, planInput: null, route: null });
     setSelectedRegion(DEFAULT_PROVINCE);
     setPicked({});
+    setTripDate(kstDate());
     reset();
     setTasteIndex(0);
     setTasteVisited(false);
@@ -631,6 +655,15 @@ export function RecommendDesktop() {
     clearSavedNotice();
     setSelectedRegion(next);
     changeRegion(next);
+  };
+
+  const onTripDate = (next: string) => {
+    if (!isTravelDate(next)) return;
+    action.cancel();
+    candidateAction.cancel();
+    clearSavedNotice();
+    setTripDate(next);
+    reset();
   };
 
   return (
@@ -741,6 +774,7 @@ export function RecommendDesktop() {
           }
         >
           <TravelRegionSelector region={region} onChange={onRegion} disabled={mutationBusy} />
+          <TravelDateSelect value={tripDate} onChange={onTripDate} disabled={mutationBusy} />
           {/* 취향 칩은 히어로 영역(rd-hero-tastes)에서 이미 보여주므로 여기서는
               다시 반복하지 않습니다. */}
           {/* 아래에 취향이나 후보가 이미 열려 있으면 여기서 다시 묻지 않습니다
@@ -826,6 +860,7 @@ export function RecommendDesktop() {
                     <div className="pd-dk-kick">
                       {t("{label} · 최대 {count}개", { label: t(group.label), count: group.max_selections })}
                     </div>
+                    <TasteEvidenceNote category={group.id} />
                     <div className="rd-tastes">
                       {group.options.map((option) => {
                         const on = values.includes(option.id);
@@ -882,7 +917,7 @@ export function RecommendDesktop() {
 
           <div className="rd-row-foot">
             <span className="rd-note">
-              {t("날짜는 오늘로 고정이며, 다른 날짜와 저장한 코스의 재알림은 모바일 추천 화면에 있습니다.")}</span>
+              {t("여행 날짜의 예보와 확인된 자료로 비교합니다. 자료가 없는 항목은 미확인으로 남깁니다.")}</span>
             {/* 「이전」은 없습니다 -- 앞의 카테고리가 위에 그대로 있어 거기서
                 바로 고칠 수 있습니다. */}
             {tasteGroup ? (

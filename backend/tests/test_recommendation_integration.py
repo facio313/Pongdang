@@ -20,6 +20,9 @@ from app.ingestion.models import Place, Reading, SourceBatch, Station, Value
 from app.ingestion.storage import store_batch
 from app.main import create_app
 from app.schema import connect, initialize
+from app.travel.catalog import Catalog
+from app.travel.models import TravelRequest
+from app.travel.published import PublishedEnvironmentReader, ranking_score
 from app.water_index import recommendation_api
 from app.water_index.condition_producer import produce_conditions
 from app.water_index.models import RECOMMENDED_ACTIVITIES
@@ -33,7 +36,7 @@ NOW = datetime.now(UTC) - timedelta(seconds=5)
 
 @pytest.fixture
 def db():
-    settings = Settings()
+    settings = Settings(_env_file=None)
     if settings.postgres_db != "pongdang_test":
         pytest.fail("Recommendation integration requires disposable pongdang_test")
     initialize(settings)
@@ -250,7 +253,7 @@ def test_a_warm_sea_keeps_its_evidence_but_requires_opening_confirmation(db):
         view = recommendation(client, spots["0"])
     assert view["contract_version"] == "water-recommendation.v1"
     assert view["place_kind"] == "beach"
-    assert view["choice"]["activity"] == "relax"
+    assert view["choice"]["activity"] == "swim"
     swim = next(row for row in view["ranked"] if row["activity"] == "swim")
     assert swim["needs_confirmation"] is True and swim["demoted"] is False
     assert swim["score"] is not None
@@ -290,6 +293,40 @@ def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):
     assert 0 < onsen["distance_km"] < 5
 
 
+@pytest.mark.parametrize("water,minutes_to_low", [(17.0, None), (24.0, 20)])
+def test_stored_today_and_travel_eligibility_share_water_and_tide_rules(
+    db, water, minutes_to_low
+):
+    spots = places(db)
+    spot_id = spots["0"]
+    map_station(db, spot_id, readings(db, water=water, air=27.0))
+    if minutes_to_low is not None:
+        map_station(
+            db, spot_id, tide_events(db, minutes_to_low=minutes_to_low), name="tide"
+        )
+    produce_conditions(db)
+    with TestClient(create_app(db)) as client:
+        today = recommendation(client, spot_id)
+    now = datetime.now(UTC)
+    travel = asyncio.run(
+        PublishedEnvironmentReader(Catalog(db, now)).compare(
+            spot_id, TravelRequest(activity="swim"), now
+        )
+    )
+    today_swim = next(row for row in today["ranked"] if row["activity"] == "swim")
+    travel_swim = travel["samples"][0]["activity_eligibility"]
+    for key in ("score", "status", "dropped", "demoted"):
+        assert today_swim[key] == travel_swim[key]
+    expected_rule = (
+        "water_too_cold_for_immersion"
+        if water < IMMERSION_WATER_C
+        else "tide_phase_product_rule"
+    )
+    assert expected_rule in today_swim["rules_applied"]
+    assert expected_rule in travel_swim["rules_applied"]
+    assert ranking_score(travel) is None
+
+
 def test_the_tide_window_defers_the_sea_and_offers_a_real_valley(db):
     spots = places(db)
     station_id = readings(db, water=24.0, air=27.0)
@@ -322,9 +359,9 @@ def test_a_tide_far_from_its_extremes_only_says_which_way_the_water_goes(db):
         view = recommendation(client, spots["0"])
     assert view["tide"]["phase"] == "falling"
     assert "tide_phase_product_rule" not in codes(view)
-    # 휴식의 장소 대안은 남지만 물때 때문에 계곡을 권하지는 않습니다.
-    assert view["choice"]["activity"] == "relax"
-    assert kinds(view) == ["meal", "visit"]
+    # 물때로 미뤄지지 않은 수영은 40점 이상 물 활동 우선 정책을 따릅니다.
+    assert view["choice"]["activity"] == "swim"
+    assert kinds(view) == []
 
 
 def test_an_inland_place_reads_no_tide_and_never_invents_one(db):

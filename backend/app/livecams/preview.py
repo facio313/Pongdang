@@ -105,7 +105,8 @@ async def read_preview_places(reader, *, q="", spot_id=None):
             return await (
                 await c.execute(
                     place_catalog_cte("WHERE place_kind IS NOT NULL AND " + search)
-                    + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng "
+                    + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
+                    "p.catalog_recently_verified,p.catalog_verified_at "
                     "FROM classified p JOIN matched m ON m.id=p.id "
                     "ORDER BY p.id LIMIT 100",
                     params,
@@ -114,7 +115,8 @@ async def read_preview_places(reader, *, q="", spot_id=None):
         # Old bookmarks and saved selections retain their original source ID.
         return await (
             await c.execute(
-                f"SELECT id,name,place_kind,address,region,lat,lng FROM "
+                f"SELECT id,name,place_kind,address,region,lat,lng,"
+                f"catalog_recently_verified,catalog_verified_at FROM "
                 f"({PLACE_SELECT}) p WHERE place_kind IS NOT NULL "
                 "AND (%s::bigint IS NULL OR id=%s) "
                 "AND " + search + " ORDER BY id LIMIT 100",

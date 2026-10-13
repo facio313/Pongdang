@@ -14,6 +14,8 @@ export interface Place {
   lng: number | null;
   type: string | null;
   catalog_verification: string | null;
+  catalog_recently_verified?: boolean;
+  catalog_verified_at?: string | null;
   photo?: PlacePhoto;
 }
 export interface ClassifiedWaterPlace extends Omit<Place, "type" | "catalog_verification"> {

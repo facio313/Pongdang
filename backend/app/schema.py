@@ -11,12 +11,13 @@ from app.config import Settings
 from app.data_reader import CATALOG
 from app.place_details.migrations import migrate_place_details
 from app.place_identity import migrate_place_identity
+from app.place_translations.migrations import migrate_place_translations
 from app.travel.migrations import migrate_travel
 from app.water_index.condition_invalidation import migrate_condition_invalidation
 from app.water_index.migrations import migrate_water_index
 
 SCHEMA = "pongdang_data"
-VERSION = 21
+VERSION = 22
 TYPES = {
     "text": "text",
     "number": "double precision",
@@ -198,6 +199,9 @@ def initialize(settings: Settings) -> bool:
             if row == (20,):
                 migrate_bounded_storage(connection)
                 return True
+            if row == (21,):
+                migrate_place_translations(connection)
+                return True
             if row != (VERSION,):
                 raise ValueError("Unrecognized Pongdang schema version")
             return False
@@ -308,6 +312,7 @@ def migrate_bounded_storage(connection):
     migrate_bounded_retention(connection)
     migrate_source_retention(connection)
     connection.execute("UPDATE pongdang_data.schema_version SET version=21 WHERE id=1")
+    migrate_place_translations(connection)
 
 
 def migrate_windy_thumbnails(connection):

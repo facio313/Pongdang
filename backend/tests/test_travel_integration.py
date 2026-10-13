@@ -750,7 +750,9 @@ def test_multilingual_catalog_and_mood_confirmation_are_explicit(travel_db):
     no_chinese = client.post(
         BASE + "/recommendations", json={"request": {"locale": "zh-TW"}}
     ).json()
-    assert no_chinese["status"] == "no_data"
+    assert no_chinese["recommendations"]
+    assert all(row["catalog_locale"] == "ko" for row in no_chinese["recommendations"])
+    assert no_chinese["candidate_scope"]["language_fallback"] == "korean_original"
     mood = client.post(
         BASE + "/mood/proposal", json={"text": "요즘 너무 지친다"}
     ).json()

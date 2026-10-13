@@ -147,14 +147,14 @@ def test_optional_failure_keeps_conditions_scores_and_other_context(
     if stage in {"place", "tide", "season", "valleys", "catalog"}:
         assert type(failure) in lookup.reader.rollbacks
     if stage == "season":
-        # 개장 기간을 읽지 못했으면 계절 규칙을 아예 적용하지 않습니다 --
-        # 조회 실패를 「폐장」으로 바꾸지 않습니다.
-        assert view["beach_season"] is None
+        # 실패는 미확인으로 표시하되 점수와 추천 순위는 바꾸지 않습니다.
+        assert view["beach_season"]["status"] == "unconfirmed"
         swim = next(row for row in view["ranked"] if row["activity"] == "swim")
         # 이 픽스처의 물때(near_low)가 이미 수영을 미뤘으므로 demoted 자체는
         # True 입니다. 계절 규칙이 적용되지 않았다는 것을 사유로 확인합니다.
         assert "beach_closed_season_product_rule" not in swim["rules_applied"]
-        assert "beach_season_unconfirmed" not in swim["rules_applied"]
+        assert "beach_season_unconfirmed" in swim["rules_applied"]
+        assert swim["needs_confirmation"] is True
     if stage == "valleys":
         assert [row["kind"] for row in view["alternatives"]] == ["meal"]
     if stage in {"catalog", "nested"}:
@@ -193,6 +193,19 @@ def test_optional_failure_does_not_override_official_restrictions(lookup):
     )
     assert view["choice"] is None
     assert all(row["dropped"] for row in view["ranked"])
+
+
+def test_season_lookup_failure_and_missing_prose_have_the_same_choice(lookup):
+    lookup.tide.return_value = None
+    lookup.season.return_value = None
+    missing = lookup.client.get(BASE, params={"spot_id": 1}).json()
+    lookup.season.side_effect = QueryCanceled()
+    failed = lookup.client.get(BASE, params={"spot_id": 1}).json()
+    assert missing["choice"] == failed["choice"]
+    assert missing["ranked"] == failed["ranked"]
+    assert missing["choice"]["activity"] == "swim"
+    assert failed["beach_season"]["status"] == "unconfirmed"
+    assert "place_season_lookup_unavailable" in failed["reason_codes"]
 
 
 @pytest.mark.parametrize("stage", ["connection", "nested"])
