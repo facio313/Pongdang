@@ -67,10 +67,10 @@ def catalog_verification_join(alias="s"):
         " LEFT JOIN LATERAL (SELECT max(p.fetched_at) AS catalog_verified_at "
         "FROM pongdang_data.collection_place p JOIN LATERAL ("
         "SELECT j.* FROM pongdang_data.collection_job j WHERE j.state<>'disabled' "
-        "AND (j.task_name=CASE p.provider WHEN 'TOURAPI_KOREAN' "
-        "THEN 'tourism_places' ELSE p.provider END OR "
-        "(split_part(p.region,':',1)='51' AND j.task_name="
-        f"'tourism_gangwon_'||({language})||'_'||split_part(p.region,':',2))) "
+        "AND j.task_name=ANY(ARRAY[CASE p.provider WHEN 'TOURAPI_KOREAN' "
+        "THEN 'tourism_places' ELSE p.provider END, "
+        "CASE WHEN split_part(p.region,':',1)='51' THEN "
+        f"'tourism_gangwon_'||({language})||'_'||split_part(p.region,':',2) END]) "
         "ORDER BY coalesce(j.started_at,j.finished_at) DESC NULLS LAST "
         "LIMIT 1) j ON TRUE "
         f"WHERE p.spot_id={alias}.id AND p.provider IN ({TOURISM_PROVIDER_SQL}) "
@@ -81,6 +81,29 @@ def catalog_verification_join(alias="s"):
         "AND (j.task_name LIKE 'tourism_gangwon_%%' "
         "OR j.started_at<=p.fetched_at)) catalog_check ON TRUE "
     )
+
+
+async def with_catalog_verification(connection, rows, *, id_key="id"):
+    """Attach badges only after candidates have been bounded by the caller."""
+    ids = sorted({row[id_key] for row in rows})
+    verified = {}
+    for offset in range(0, len(ids), 100):
+        values = await (
+            await connection.execute(
+                "SELECT s.id,catalog_check.catalog_verified_at "
+                "FROM pongdang_data.spots_waterspot s "
+                + catalog_verification_join()
+                + "WHERE s.id=ANY(%s::bigint[]) LIMIT 100",
+                [ids[offset : offset + 100]],
+            )
+        ).fetchall()
+        verified.update({row["id"]: row["catalog_verified_at"] for row in values})
+    for row in rows:
+        checked_at = verified.get(row[id_key])
+        row.update(
+            catalog_verified_at=checked_at,
+            catalog_recently_verified=checked_at is not None,
+        )
 
 
 # Classification uses provider categories, never a keyword search result alone.
@@ -130,14 +153,12 @@ CASE WHEN s.type IN ('beach','valley','lake','reservoir') THEN s.type
 """
 PLACE_SELECT = (
     "SELECT s.id,s.name,s.type,s.address,s.region,s.lat,s.lng,s.catalog_source,"
-    "catalog_check.catalog_verified_at,"
-    "catalog_check.catalog_verified_at IS NOT NULL AS catalog_recently_verified,"
+    "s.catalog_verified_at,"
     "r.province_code AS verified_province_code,"
     "r.district_code AS verified_district_code,"
     + water_place_kind_sql()
     + " AS place_kind FROM pongdang_data.spots_waterspot s "
     + PLACE_REGION_JOIN
-    + catalog_verification_join()
 )
 
 
@@ -177,6 +198,9 @@ async def read_nearby_places(reader, spot_id, limit=2):
     if not 1 <= limit <= 25:
         raise ValueError("Nearby place limit must be between 1 and 25")
     async with reader.connection() as c:
+        # These bounded catalogue reads are faster than compiling their many
+        # classification expressions. Keep the setting transaction-local.
+        await c.execute("SET LOCAL jit=off")
         reference = await (
             await c.execute(
                 f"WITH classified AS ({PLACE_SELECT}) "
@@ -203,7 +227,7 @@ async def read_nearby_places(reader, spot_id, limit=2):
             await c.execute(
                 place_catalog_cte("WHERE p.place_kind=%s")
                 + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
-                "p.catalog_recently_verified,p.catalog_verified_at "
+                "p.catalog_verified_at "
                 "FROM classified p JOIN matched m ON m.id=p.id "
                 "WHERE p.id<>%s AND p.place_kind=%s "
                 "AND p.lat BETWEEN -90 AND 90 AND p.lng BETWEEN -180 AND 180 "
@@ -224,6 +248,7 @@ async def read_nearby_places(reader, spot_id, limit=2):
                 ],
             )
         ).fetchall()
+        await with_catalog_verification(c, rows)
     return {"rows": rows, "status": "ready"}
 
 
@@ -261,6 +286,7 @@ async def read_places_page(
         params.append(kind)
     catalogue = place_catalog_cte(where)
     async with reader.connection() as connection:
+        await connection.execute("SET LOCAL jit=off")
         total = (
             await (
                 await connection.execute(
@@ -272,7 +298,7 @@ async def read_places_page(
             await connection.execute(
                 catalogue
                 + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
-                "p.catalog_recently_verified,p.catalog_verified_at,"
+                "p.catalog_verified_at,"
                 "p.verified_province_code AS province_code,"
                 "p.verified_district_code AS district_code,"
                 "ARRAY(SELECT a.spot_id FROM pongdang_data.place_alias a "
@@ -282,6 +308,7 @@ async def read_places_page(
                 [*params, page_size, (page - 1) * page_size],
             )
         ).fetchall()
+        await with_catalog_verification(connection, rows)
     for row in rows:
         if row["province_code"] is None:
             row["province_code"], row["district_code"] = administrative_codes(

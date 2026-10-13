@@ -12,7 +12,7 @@ from test_place_identity_integration import identity_db as identity_db
 from app.ingestion.models import SourceBatch
 from app.ingestion.storage import store_batch
 from app.ingestion.water_tour_extra import tourism_place
-from app.livecams.places import PLACE_SELECT
+from app.livecams.places import catalog_verification_join
 from app.main import create_app
 from app.place_details.models import DetailField, PlaceDetail
 from app.place_translations.migrations import migrate_place_translations
@@ -231,7 +231,14 @@ def test_recent_badge_requires_complete_success_and_actual_item_fetch(identity_d
 
     def row():
         with connect(identity_db) as c, c.cursor(row_factory=dict_row) as cursor:
-            return cursor.execute(PLACE_SELECT + " WHERE s.id=%s", [sid]).fetchone()
+            return cursor.execute(
+                "SELECT catalog_check.catalog_verified_at,"
+                "catalog_check.catalog_verified_at IS NOT NULL "
+                "AS catalog_recently_verified FROM pongdang_data.spots_waterspot s "
+                + catalog_verification_join()
+                + " WHERE s.id=%s",
+                [sid],
+            ).fetchone()
 
     assert row()["catalog_recently_verified"] is True
     assert row()["catalog_verified_at"] == fetched

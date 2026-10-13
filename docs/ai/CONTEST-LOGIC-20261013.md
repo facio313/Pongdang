@@ -66,3 +66,5 @@
   travel_route_visits(18), travel_rules(29), travel_visit_intents(13).
 - Git add/commit/push와 운영 DB 연결·배포는 수행하지 않았다. 상위 작업이 통합과
   배포를 담당한다. 설계 문서의 개장 계산·공통 적격성 설명도 사용자 요청과 맞췄다.
+- 위 전용 임시 PostgreSQL은 `pg_ctl -w stop` 성공 후 자기 임시 디렉터리와 함께
+  삭제했다.

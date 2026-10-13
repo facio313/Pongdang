@@ -9,7 +9,7 @@ from app.ai.tools import PLACE_COLUMNS as SOURCE_PLACE_COLUMNS
 from app.ai.tools import PLACE_JOIN as SOURCE_PLACE_JOIN
 from app.ai.tools import ToolSession, _safe_url
 from app.data_reader import DataReader
-from app.livecams.places import catalog_place_kind_sql, catalog_verification_join
+from app.livecams.places import catalog_place_kind_sql, with_catalog_verification
 from app.place_details.api import read_place_details
 from app.regions import district_group_expression, place_search_predicate, region_query
 from app.travel.models import Evidence
@@ -25,15 +25,10 @@ PROVIDERS = {
 }
 PROVIDER_LOCALE = {p: lang for lang, providers in PROVIDERS.items() for p in providers}
 MAX_CANDIDATES = 300
-PLACE_COLUMNS = (
-    SOURCE_PLACE_COLUMNS.replace("s.catalog_verified_at,", "")
-    + ",water.place_kind,catalog_check.catalog_verified_at,"
-    "catalog_check.catalog_verified_at IS NOT NULL AS catalog_recently_verified"
-)
+PLACE_COLUMNS = SOURCE_PLACE_COLUMNS + ",water.place_kind"
 PLACE_JOIN = (
     SOURCE_PLACE_JOIN
     + f" CROSS JOIN LATERAL (SELECT {catalog_place_kind_sql()} AS place_kind) water "
-    + catalog_verification_join()
 )
 # KTO published v4.4 manuals, checked 2026-09-15. These classify catalogue
 # records only; they establish no opening/access/amenity/safety property.
@@ -319,6 +314,7 @@ class Catalog:
             )
             page_params = params
         async with self.reader.connection() as c:
+            await c.execute("SET LOCAL jit=off")
             total = (
                 await (
                     await c.execute(
@@ -338,6 +334,7 @@ class Catalog:
                     ).fetchall()
                 )
             await self._with_stored_details(c, rows)
+            await with_catalog_verification(c, rows, id_key="spot_id")
         if not rows and request.locale != "ko":
             # A separate catalogue fallback, not a guessed cross-language match.
             # Keep the original Korean names/IDs and explicitly disclose its
@@ -412,6 +409,7 @@ class Catalog:
         if not ids or len(ids) > 20:
             raise HTTPException(422, "place_selection_limit")
         async with self.reader.connection() as c:
+            await c.execute("SET LOCAL jit=off")
             rows = await (
                 await c.execute(
                     "SELECT DISTINCT ON(s.id) "
@@ -447,6 +445,7 @@ class Catalog:
                     ).fetchall()
                 )
             await self._with_stored_details(c, rows)
+            await with_catalog_verification(c, rows, id_key="spot_id")
         if set(ids) != {r["spot_id"] for r in rows}:
             raise HTTPException(404, "travel_place_not_found")
         return {r["spot_id"]: place_view(r, self.now) for r in rows}

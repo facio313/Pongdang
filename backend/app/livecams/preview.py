@@ -19,7 +19,12 @@ from starlette.concurrency import run_in_threadpool
 from app.data_reader import DataReader
 from app.ingestion.webcams import WebcamMetadata
 from app.livecams.catalog import CatalogSnapshot, CatalogStore
-from app.livecams.places import PLACE_SELECT, PreviewPlace, place_catalog_cte
+from app.livecams.places import (
+    PLACE_SELECT,
+    PreviewPlace,
+    place_catalog_cte,
+    with_catalog_verification,
+)
 from app.livecams.thumbnails import source_image
 from app.livecams.windy import WindyClient, WindyError, discover, distance_km, normalize
 from app.place_kinds import WaterPlaceKind
@@ -101,28 +106,33 @@ class PreviewResult(PreviewSnapshot):
 async def read_preview_places(reader, *, q="", spot_id=None):
     search, params = place_search_predicate(q, alias="p")
     async with reader.connection() as c:
+        await c.execute("SET LOCAL jit=off")
         if spot_id is None:
-            return await (
+            rows = await (
                 await c.execute(
                     place_catalog_cte("WHERE place_kind IS NOT NULL AND " + search)
                     + "SELECT p.id,p.name,p.place_kind,p.address,p.region,p.lat,p.lng,"
-                    "p.catalog_recently_verified,p.catalog_verified_at "
+                    "p.catalog_verified_at "
                     "FROM classified p JOIN matched m ON m.id=p.id "
                     "ORDER BY p.id LIMIT 100",
                     params,
                 )
             ).fetchall()
+            await with_catalog_verification(c, rows)
+            return rows
         # Old bookmarks and saved selections retain their original source ID.
-        return await (
+        rows = await (
             await c.execute(
                 f"SELECT id,name,place_kind,address,region,lat,lng,"
-                f"catalog_recently_verified,catalog_verified_at FROM "
+                f"catalog_verified_at FROM "
                 f"({PLACE_SELECT}) p WHERE place_kind IS NOT NULL "
                 "AND (%s::bigint IS NULL OR id=%s) "
                 "AND " + search + " ORDER BY id LIMIT 100",
                 [spot_id, spot_id, *params],
             )
         ).fetchall()
+        await with_catalog_verification(c, rows)
+        return rows
 
 
 def catalog_page(snapshot, *, page=1, category=None, shuffle_seed=0):
