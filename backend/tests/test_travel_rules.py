@@ -632,7 +632,7 @@ def test_province_environment_shortlist_and_equal_scores_preserve_districts(
         def __init__(self):
             self.calls = []
 
-        async def compare(self, sid, request, target):
+        async def compare(self, sid, request, target, exclude=()):
             self.calls.append(sid)
             return {"status": "incomplete", "preference_points": None}
 

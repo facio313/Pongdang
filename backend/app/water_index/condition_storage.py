@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from psycopg import errors, sql
 from psycopg.types.json import Jsonb
 
-from app.water_index.activity_score import ActivityScore, activity_score_metadata
+from app.water_index.activity_score import ActivityScore
 from app.water_index.condition_result import (
     RESULT_COLUMNS,
     content_digest,
@@ -830,7 +830,6 @@ def _unavailable(q, at, as_of, row):
         required_evidence=definition.required_evidence,
         reason_codes=(reason,),
         condition_score=ActivityScore(
-            **activity_score_metadata(q.activity),
             status="unavailable",
             score=None,
             coverage=0.0,

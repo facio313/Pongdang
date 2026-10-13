@@ -61,7 +61,10 @@ if ! compose "$release" up -d --no-build --wait --wait-timeout 180 ||
    ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:5188/api/ready; then
   if [[ -n "$previous" && -f "$previous/compose.yaml" && "$previous" != "$release" ]]; then
     echo 'New release failed; restoring the previous application images.' >&2
-    compose "$previous" up -d --no-build --wait --wait-timeout 180
+    # The additive schema is already newer. Do not rerun the previous
+    # initializer or recreate the database while restoring application images.
+    compose "$previous" up -d --no-build --no-deps --wait --wait-timeout 180 \
+      backend collector frontend
   fi
   exit 1
 fi

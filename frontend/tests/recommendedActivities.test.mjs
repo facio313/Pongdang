@@ -42,12 +42,31 @@ test("점수 목록은 추천 후보의 부분집합이고 중복이 없다", ()
   assert.equal(new Set(listedActivities).size, listedActivities.length);
 });
 
-test("휴식도 추천 후보와 점수 목록에 유지한다", () => {
+test("휴식은 후보이면서 점수 목록에도 있다", () => {
+  // 한동안 휴식을 목록에서 숨겼습니다. 서버가 점수와 무관하게 「물에 들어갈
+  // 수 있으면 물」로 수영을 골랐기 때문에, 휴식 점수가 1위인 채 수영을 권하는
+  // 모순이 그대로 읽혔습니다.
+  //
+  // 이제 그 우선은 조건부입니다(recommendation.WATER_PREFERENCE_MIN_SCORE).
+  // 숨길 이유가 사라졌고, 오히려 휴식이 1위인데 수영을 권한 날 그 숫자를 볼
+  // 수 있어야 「휴식 점수가 더 높지만」이라는 설명을 확인할 수 있습니다.
   assert.ok(recommendedActivities.includes("relax"));
+  assert.ok(listedActivities.includes("relax"));
   assert.deepEqual(listedActivities, ["swim", "surf", "relax", "walk", "onsen"]);
 });
 
-test("온천은 자료가 없어도 목록에 남는다", () => {
+test("목록은 후보 집합의 부분집합이다", () => {
+  // 지금은 둘이 같습니다. 「무엇을 고를 수 있는가」와 「무엇을 보여 주는가」는
+  // 다른 질문이라 상수는 둘로 남겨 두지만, 목록이 후보를 넘어설 수는 없습니다 --
+  // 응답의 conditions·ranked 에 그 활동이 실려 오지 않습니다.
+  for (const activity of listedActivities)
+    assert.ok(recommendedActivities.includes(activity), activity);
+});
+
+test("온천은 욕조 수온이 없어도 목록에 남는다", () => {
+  // 시설 욕조 수온은 수집 경로가 없어 사실상 늘 비어 있습니다. 그래도 외기
+  // 만으로 점수가 서고(activity_score.ONSEN_AIR) 온천 시설에서는 추운 날의
+  // 답이 됩니다. 해변에서 빠지는 이유는 자료가 아니라 장소입니다.
   assert.ok(listedActivities.includes("onsen"));
 });
 

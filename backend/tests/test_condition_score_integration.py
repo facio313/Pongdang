@@ -493,16 +493,14 @@ def test_sea_temperature_is_neither_bath_nor_river_temperature(database):
     produce_conditions(database)
     with TestClient(create_app(database)) as client:
         bath = conditions(client, spot, "onsen")
+        # 해수 수온 24°C 가 들어와 있어도 온천은 그것을 쓰지 않습니다. 욕조
+        # 수온은 여전히 비어 있고(missing_metrics), 점수 항목에도 해수 수온이
+        # 끼어들지 않습니다 -- BATH 곡선에 먹이면 24°C 가 욕조 선호로 읽힙니다.
         assert "bath_water_temperature" in bath["missing_metrics"]
-        assert metric(bath, "water_temperature")["value"] == 24
-        assert bath["condition_score"]["score_basis"] == "onsen_alternative"
-        assert (
-            next(
-                c
-                for c in bath["condition_score"]["components"]
-                if c["metric"] == "water_temperature"
-            )["label"]
-            == "야외 수온"
+        assert not any(m["name"] == "water_temperature" for m in bath["metrics"])
+        assert not any(
+            c["metric"] == "water_temperature"
+            for c in bath["condition_score"]["components"]
         )
         result = score(
             client,

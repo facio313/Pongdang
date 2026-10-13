@@ -13,7 +13,7 @@ from app.water_index.recommendation import SEA_ACTIVITIES, activity_eligibility
 
 class PublishedEnvironmentReader(EnvironmentReader):
     async def prefetch(self, ids, request, target):
-        """One score-publication read and the same forecast fallback as details.
+        """One consistent publication and the same forecast fallback as details.
 
         No provider call, score calculation or write occurs when data is absent.
         The entire shortlist sees one publication rather than 30 different reads.
@@ -24,15 +24,23 @@ class PublishedEnvironmentReader(EnvironmentReader):
             return
         mode = "forecast" if target > self.catalog.now else "observation"
         fallback = target == self.catalog.now and mode == "observation"
-        activities = [request.activity]
+        # 고른 활동마다 하나씩 표본을 만듭니다. 어느 것을 쓸지는 `at` 이
+        # `choose` 로 정합니다 -- 여기서는 **전부** 읽어 두는 일만 합니다.
+        wanted = self.wanted_activities(request)
+        # 선택 범위 선호(바람 · 강수 등)가 고른 활동들의 지표에 없으면 그 값을
+        # 빌려 오는 활동. 후보가 아니라 **지표 출처**이므로 따로 둡니다.
+        borrowed = []
         missing = {item.metric for item in request.environment_preferences} - {
-            metric.name for metric in ACTIVITIES[request.activity].metrics
+            metric.name
+            for activity in wanted
+            for metric in ACTIVITIES[activity].metrics
         }
         for activity in ("surf", "relax"):
             names = {metric.name for metric in ACTIVITIES[activity].metrics}
-            if missing & names:
-                activities.append(activity)
+            if missing & names and activity not in wanted:
+                borrowed.append(activity)
                 missing -= names
+        activities = wanted + borrowed
         modes = [mode, "forecast"] if fallback else [mode]
         queries = [
             ConditionQuery(
@@ -47,9 +55,25 @@ class PublishedEnvironmentReader(EnvironmentReader):
             for activity in activities
         ]
         try:
-            rows = await read_condition_set(
-                self.catalog.reader, queries, now=self.catalog.now
-            )
+            if len(queries) <= 200:
+                rows = await read_condition_set(
+                    self.catalog.reader, queries, now=self.catalog.now
+                )
+            else:
+                # Multiple selected activities can exceed the existing 200-query
+                # cap. Keep bounded reads in one repeatable-read transaction so
+                # a publication between chunks cannot mix generations.
+                rows = []
+                async with self.catalog.reader.connection() as connection:
+                    for offset in range(0, len(queries), 200):
+                        rows.extend(
+                            await read_condition_set(
+                                self.catalog.reader,
+                                queries[offset : offset + 200],
+                                now=self.catalog.now,
+                                connection=connection,
+                            )
+                        )
         except (ValueError, HTTPException) as exc:
             if isinstance(exc, HTTPException) and exc.status_code != 503:
                 raise
@@ -71,13 +95,14 @@ class PublishedEnvironmentReader(EnvironmentReader):
             (q.spot_id, q.activity, q.mode): row
             for q, row in zip(queries, rows, strict=bool(rows))
         }
-        for sid in ids:
-            current = indexed.get((sid, request.activity, mode))
-            predicted = indexed.get((sid, request.activity, "forecast"))
+        for sid, primary in ((sid, a) for sid in ids for a in wanted):
+            current = indexed.get((sid, primary, mode))
+            predicted = indexed.get((sid, primary, "forecast"))
             if not rows:
-                sample = failure.copy()
+                sample = failure | {"activity": primary}
             elif isinstance(current, HTTPException):
                 sample = {
+                    "activity": primary,
                     "status": "query_failed",
                     "reason_codes": ["published_condition_unavailable"],
                     "metrics": [],
@@ -102,7 +127,9 @@ class PublishedEnvironmentReader(EnvironmentReader):
                 present = {metric["name"] for metric in extra_metrics}
                 mappings = {metric.get("mapping_id") for metric in extra_metrics}
                 mappings.discard(None)
-                for activity in activities[1:]:
+                for activity in activities:
+                    if activity == primary:
+                        continue
                     extra = indexed.get((sid, activity, sample["mode"]))
                     if isinstance(extra, HTTPException) or extra is None:
                         continue
@@ -120,11 +147,11 @@ class PublishedEnvironmentReader(EnvironmentReader):
                     present.update(metric["name"] for metric in extra_metrics)
                 sample["preference_metrics"] = extra_metrics
                 attach_eligibility(sample)
-            self.cache[(sid, request.activity, target.isoformat())] = sample
-        if request.activity in SEA_ACTIVITIES:
-            await self._attach_tides(ids, request, target)
+            self.cache[(sid, primary, target.isoformat())] = sample
+        if any(activity in SEA_ACTIVITIES for activity in wanted):
+            await self._attach_tides(ids, wanted, target)
 
-    async def _attach_tides(self, ids, request, target):
+    async def _attach_tides(self, ids, activities, target):
         """Reuse today's bounded, read-only tide context for eligible beach visits."""
         from app.water_index.recommendation_api import (
             RECOMMENDATION_CONTEXT_TIMEOUT,
@@ -134,7 +161,10 @@ class PublishedEnvironmentReader(EnvironmentReader):
         )
 
         samples = [
-            self.cache[(sid, request.activity, target.isoformat())] for sid in ids
+            self.cache[(sid, activity, target.isoformat())]
+            for sid in ids
+            for activity in activities
+            if activity in SEA_ACTIVITIES
         ]
         samples = [
             sample
@@ -155,35 +185,41 @@ class PublishedEnvironmentReader(EnvironmentReader):
             timeout=RECOMMENDATION_CONTEXT_TIMEOUT,
         ):
             async with self.catalog.reader.connection() as connection:
-                for sample in samples:
+                for sid in dict.fromkeys(sample["spot_id"] for sample in samples):
                     async with optional_lookup(
                         failures,
                         "tide_lookup_unavailable",
-                        sample["spot_id"],
+                        sid,
                         connection=connection,
                         timeout=TIDE_LOOKUP_TIMEOUT,
                     ):
                         tide = await read_tide(
-                            connection, sample["spot_id"], target, self.catalog.now
+                            connection, sid, target, self.catalog.now
                         )
-                        attach_eligibility(sample, tide=tide)
-                        sample["tide"] = tide.model_dump(mode="json") if tide else None
-                        sample["tide_lookup_status"] = (
-                            "available" if tide else "no_data"
-                        )
+                        for sample in samples:
+                            if sample["spot_id"] != sid:
+                                continue
+                            attach_eligibility(sample, tide=tide)
+                            sample["tide"] = (
+                                tide.model_dump(mode="json") if tide else None
+                            )
+                            sample["tide_lookup_status"] = (
+                                "available" if tide else "no_data"
+                            )
         for sample in samples:
             if sample["tide_lookup_status"] == "unavailable":
                 sample["reason_codes"] = list(
                     dict.fromkeys([*sample.get("reason_codes", []), *failures])
                 )
 
-    async def at(self, sid, request, target):
-        key = (sid, request.activity, target.isoformat())
-        if key not in self.cache:
+    async def at(self, sid, request, target, exclude=()):
+        wanted = self.wanted_activities(request, exclude)
+        keys = [(sid, activity, target.isoformat()) for activity in wanted]
+        if any(key not in self.cache for key in keys):
             async with self.gate:
-                if key not in self.cache:
+                if any(key not in self.cache for key in keys):
                     await self.prefetch([sid], request, target)
-        return self.cache[key]
+        return self.choose([self.cache[key] for key in keys])
 
 
 def preview_sample(match):

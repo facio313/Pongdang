@@ -104,6 +104,8 @@ class ScoreComponent(Record):
 class ActivityScore(Record):
     model_id: Literal["pongdang-activity-conditions"] = "pongdang-activity-conditions"
     model_version: Literal["1.1.0", "1.2.0", "1.3.0"] = "1.3.0"
+    # Published 1.3.0 payloads used both labels and score bases. Preserve their
+    # meaning when reading stored generations; new calculations use defaults.
     label: Literal["활동 조건 참고 점수", "온천 대안 추천 점수"] = "활동 조건 참고 점수"
     score_basis: Literal["activity_conditions", "onsen_alternative"] = (
         "activity_conditions"
@@ -220,40 +222,21 @@ BATH = Curve(
     ("bathing-thermal-2019",),
     "시설 실측 욕조 선호 가정; 의학적 안전선 아님",
 )
+# 온천의 외기는 OUTDOOR_AIR 를 쓸 수 없습니다. 그 곡선은 5°C 에서 0점이라
+# **추울수록 온천 점수가 내려갑니다** -- 온천에 가고 싶은 날이 정확히 그 날인데
+# 거꾸로 답하는 셈이었습니다. 야외 방문 선호와 온천 선호는 반대 방향입니다.
+#
+# 논문 근거가 없습니다. 「추우면 온천이 좋다」는 상식이지만 어느 기온에서 몇 점
+# 인지를 말해 주는 참고 구간을 찾지 못했으므로, 절점은 전부 이쪽이 정한 것이고
+# `basis` 에 그 사실을 박아 둡니다. 더운 날 0 점으로 떨어뜨리지 않는 것도
+# 의도입니다 -- 한여름에도 온천에 가는 사람이 있고, 그것을 「조건 나쁨」으로
+# 단정할 근거가 없습니다.
 ONSEN_AIR = Curve(
-    ((5, 100), (15, 80), (21, 40), (25, 0)),
+    ((-10, 100), (5, 100), (15, 80), (22, 50), (28, 25), (35, 10)),
     (),
-    "외부 기온이 낮을수록 따뜻한 온천으로 이동할 매력이 커진다는 제품 가정",
+    "추운 날 온천 선호가 오른다는 가정; 논문 근거 없음·체감온도 아님",
+    basis="퐁당 제품 규칙(미검증)",
 )
-ONSEN_WATER = Curve(
-    ((10, 100), (18, 80), (24, 20), (27, 0)),
-    (),
-    "야외 수온이 낮을수록 온천 대안 선호 증가; 욕조 수온이나 입수 안전 기준 아님",
-)
-ONSEN_WAVE = Curve(
-    ((0, 0), (0.3, 0), (0.8, 30), (1.5, 80), (2, 100)),
-    (),
-    "해양 파고가 높을수록 온천 대안 선호 증가; 온천 시설 상태와 별개",
-)
-ONSEN_METHODOLOGY = (
-    "온천 대안 추천 점수는 외부 기온·야외 수온이 낮고 해양 파고가 높을수록 "
-    "온천으로 이동할 매력이 커진다는 Pongdang 제품 가정입니다. 각 곡선의 "
-    "절점 사이를 선형 보간하고 확보한 항목 점수를 같은 비중으로 평균냅니다. "
-    "없는 값은 채우지 않고 확보율을 표시합니다. 욕조 수온·시설 영업·위생·"
-    "안전을 확인한 점수가 아니며, 현 장소에서 온천을 할 수 있다는 뜻도 아닙니다."
-)
-
-
-def activity_score_metadata(activity):
-    if activity == "onsen":
-        return {
-            "score_basis": "onsen_alternative",
-            "label": "온천 대안 추천 점수",
-            "methodology": ONSEN_METHODOLOGY,
-        }
-    return {}
-
-
 DEFAULT_CURVES = {
     "swim": {
         "water_temperature": WATER,
@@ -279,11 +262,11 @@ DEFAULT_CURVES = {
         "wind_speed": WIND,
         "precipitation": RAIN,
     },
-    "onsen": {
-        "air_temperature": ONSEN_AIR,
-        "water_temperature": ONSEN_WATER,
-        "wave_height": ONSEN_WAVE,
-    },
+    # 욕조 수온은 있으면 쓰고 없으면 외기만으로 매깁니다(coverage 0.5 ·
+    # status "partial"). 시설이 관리하는 값이라 수집되지 않는 날이 대부분이고,
+    # 그것 때문에 온천을 아예 말하지 않는 쪽이 더 틀립니다.
+    "onsen": {"bath_water_temperature": BATH, "air_temperature": ONSEN_AIR},
+    # 걷기는 물에 들어가지 않으므로 수온·파고를 보지 않습니다.
     "walk": {
         "air_temperature": OUTDOOR_AIR,
         "relative_humidity": HUMIDITY,
@@ -526,7 +509,6 @@ def aggregate_activity_score(components, *, activity, support_status, safety_sta
     if activity in {"onsen", "mudflat", "rafting"}:
         reasons.append("operating_conditions_require_separate_confirmation")
     return ActivityScore(
-        **activity_score_metadata(activity),
         status="blocked"
         if blocked
         else "unavailable"

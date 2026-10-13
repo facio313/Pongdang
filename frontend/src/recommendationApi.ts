@@ -47,11 +47,12 @@ export interface RankedActivity {
   total_components: number;
   /** 후보에서 빠짐. 점수가 낮은 것과 다른 사실입니다. */
   dropped: boolean;
-  /** 뒤로 미뤄짐(물때 구간, 해수욕장 개장 기간 밖). 점수는 그대로이고,
+  /** 물때 등 서버 규칙으로 뒤로 미뤄짐. 점수는 그대로이고,
    *  어느 규칙이 미뤘는지는 `rules_applied` 에 있습니다. */
   demoted: boolean;
-  /** 운영 미확인. 폐장이나 물때로 미뤄진 상태와 구분합니다. */
-  needs_confirmation?: boolean;
+  /** 서버가 확인 필요 상태를 명시하는 호환 필드. 개장정보는 별도 참고 안내이며
+   *  현재 추천 계산에 포함하지 않습니다. 클라이언트는 이 값으로 재정렬하지 않습니다. */
+  needs_confirmation: boolean;
   rules_applied: string[];
 }
 export interface RecommendationReasonData {

@@ -268,9 +268,12 @@ def test_a_warm_sea_keeps_its_evidence_but_requires_opening_confirmation(db):
     )
     assert chosen["condition_score"]["score"] == view["choice"]["score"]
     assert [row["activity"] for row in view["ranked"]] == list(RECOMMENDED_ACTIVITIES)
-    # 욕조 실측 없이도 야외 조건으로 온천 이동 대안을 비교합니다.
+    # 해변은 온천 시설이 아닙니다. 빠진 이유가 「자료 부족」이 아니라 「이
+    # 장소의 활동이 아님」이라는 사실이 여기 남습니다.
     dropped = {row["activity"] for row in view["ranked"] if row["dropped"]}
-    assert "onsen" not in dropped
+    assert "onsen" in dropped
+    onsen = next(row for row in view["ranked"] if row["activity"] == "onsen")
+    assert "activity_not_offered_at_place" in onsen["rules_applied"]
 
 
 def test_cold_water_sends_the_day_to_an_onsen_and_a_cafe(db):

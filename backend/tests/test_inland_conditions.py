@@ -5,7 +5,7 @@ from test_condition_score import NOW, envelope, metric, source
 from test_recommendation import with_score
 
 from app.ingestion.water_tour_extra import tourism_place
-from app.water_index.activity_score import calculate_activity_score
+from app.water_index.activity_score import ActivityScore, calculate_activity_score
 from app.water_index.condition_api import (
     ConditionQuery,
     context_providers,
@@ -27,7 +27,10 @@ def test_inland_profile_has_rain_and_hydrology_instead_of_sea_waves(kind):
     assert components["river_level"].status == "unconfigured"
     assert components["river_flow"].score is None
     assert score.status == "partial"
-    assert score.model_version == "1.1.0"
+    # 모델 버전은 ActivityScore 가 정합니다. 숫자를 적어 두면 버전을 올릴
+    # 때마다 이 줄이 조용히 틀립니다 -- 원격이 1.3.0 으로 올릴 때 실제로
+    # 그랬습니다.
+    assert score.model_version == ActivityScore.model_fields["model_version"].default
     allowed, requested, _ = _requested("swim", "observation", kind)
     assert "wave_height" not in allowed
     assert {"river_level", "river_flow", "precipitation"} <= requested

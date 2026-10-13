@@ -37,7 +37,22 @@ MODEL_VERSION: ModelVersion = "1.4.0"
 
 #: 바다에 들어가는 활동. 물때·수온 규칙이 이 둘에만 적용됩니다.
 SEA_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf")
-WATER_ACTIVITY_PRIORITY_SCORE = 40.0
+
+#: 물에 들어가는 활동. 퐁당은 물놀이 앱이므로 **물에 들어갈 만한 날이면** 이쪽을
+#: 먼저 권합니다. 걷기·휴식·온천은 물에 못 들어갈 때의 답입니다.
+#:
+#: 이 구분이 없으면 휴식·걷기가 거의 항상 1위가 됩니다. 그쪽의 점수 항목은
+#: 기온·습도·바람·강수뿐이라 날씨만 좋으면 만점에 가깝고, 수영은 수온·파고까지
+#: 보기 때문에 같은 날 늘 몇 점 낮습니다.
+#:
+#: **다만 절대 우선은 아닙니다.** 예전에는 이 구분이 점수보다 앞에 있어, 수온
+#: 12°C · 파고 1.8m 로 수영이 20점인 날에도 70점 온천 앞에 수영이 섰습니다.
+#: 「물이면 물」은 물에 들어갈 만한 날에만 맞는 말이고, 그렇지 않은 날 이 규칙은
+#: 추천이 아니라 고집입니다. 자격은 `WATER_PREFERENCE_MIN_SCORE` 가 정합니다.
+#:
+#: 걷기·휴식은 고르기 경쟁에 남아 물때 등으로 물 활동이 미뤄진 날의
+#: 대안이 됩니다. 해수욕장 개장 기간은 표시만 하며 이 우선순위를 바꾸지 않습니다.
+WATER_ACTIVITIES: tuple[Activity, ...] = ("swim", "surf", "rafting", "mudflat")
 
 #: 활동마다 «이것이 없으면 그 활동을 말할 수 없는» 지표. 각 묶음에서 하나
 #: 이상이 실제로 점수화(`evaluated`)돼야 후보가 됩니다.
@@ -51,12 +66,20 @@ WATER_ACTIVITY_PRIORITY_SCORE = 40.0
 #: **두 겹을 모두 둡니다** -- 이 표는 `decide` 에 들어온 활동이 무엇이든 지키는
 #: 계약이고(API 가 activity 를 직접 물을 수 있습니다), 후보 집합은 「오늘 뭘
 #: 할까」에 무엇을 올리는지입니다. 하천 관측이 붙으면 후보 집합만 되돌립니다.
+#:
+#: 온천은 **욕조 수온을 요구하지 않습니다.** `bath_water` 관측소를 만드는 수집
+#: 경로가 없어 어떤 날도 `evaluated` 가 되지 않았고, 그래서 온천은 늘 「추천
+#: 제외 · 필수 근거 부족」 한 줄이었습니다. 하지만 그 문장은 사용자가 궁금한
+#: 것에 답하지 않습니다 -- 해변에서 온천이 아닌 이유는 자료가 없어서가 아니라
+#: **그 장소에 온천이 없어서**입니다. 그 사실은 아래 장소 자격 가드가 말하고
+#: (`activity_not_offered_at_place`), 온천 시설에서는 외기만으로도 점수가 섭니다.
+#: 욕조 수온이 들어오면 그때 점수에 함께 반영됩니다.
 ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
     "swim": (("water_temperature",), ("wave_height",)),
     "surf": (("water_temperature",), ("wave_height",)),
     "relax": (("air_temperature",),),
     "mudflat": (("air_temperature",),),
-    "onsen": (("air_temperature", "water_temperature", "wave_height"),),
+    "onsen": (("air_temperature",),),
     "rafting": (("river_level", "river_flow"),),
     "walk": (("air_temperature",), ("wind_speed",), ("precipitation",)),
 }
@@ -64,6 +87,16 @@ ESSENTIAL_METRICS: dict[Activity, tuple[tuple[str, ...], ...]] = {
 #: 추천 수온의 하한. WATER 곡선의 18°C 절점(40점)을 그대로 씁니다 --
 #: 추천을 위해 새 숫자를 만들지 않기 위해서입니다.
 IMMERSION_WATER_C = 18.0
+#: 물놀이 우선 가산을 받기 위한 최소 점수. **같은 절점의 반대쪽 좌표**입니다 --
+#: `IMMERSION_WATER_C` 가 WATER 곡선 18°C 절점의 x 라면 이쪽은 그 y(40점)입니다.
+#: 여기서도 새 숫자를 만들지 않습니다.
+#:
+#: 수온 하나로 거르는 `IMMERSION_WATER_C` 와 역할이 다릅니다. 그쪽은 「바다에
+#: 들어갈 수 있는가」를 수온만으로 묻고 아니면 후보에서 뺍니다. 이쪽은 파고 ·
+#: 바람 · 강수까지 합쳐진 **총점**을 묻고, 모자라면 빼는 대신 「물이면 물」
+#: 가산만 거둡니다. 수온 20°C 라도 파고 2m 에 비가 오면 총점이 이 선 아래로
+#: 내려가고, 그런 날 수영을 온천 앞에 세울 근거는 없습니다.
+WATER_PREFERENCE_MIN_SCORE = 40.0
 #: 해변 방문 선호 기온의 하한. BEACH_AIR 곡선의 21°C 절점(0점)입니다. 이
 #: 값만으로 활동을 빼지는 않고(아침 20°C 에 수온 24°C 인 날이 있습니다)
 #: 문장에 함께 싣습니다.
@@ -105,10 +138,19 @@ RULES: tuple[Rule, ...] = (
         code="essential_measurement_missing",
         text=(
             "활동을 정의하는 지표가 없으면 후보에서 뺍니다. 바다 수영·서핑은 "
-            "수온과 파고, 담수 수영은 수온과 강수, 온천 대안은 기온·야외 수온·"
-            "파고 중 하나 이상의 자료, "
-            "걷기는 기온·바람·강수, 기존 래프팅 평가는 하천 수위 또는 유량이 "
-            "있어야 합니다. 입수 활동은 기상 자료만으로 권하지 않습니다."
+            "수온과 파고, 담수 수영은 수온과 강수, 걷기는 기온·바람·강수, "
+            "래프팅은 하천 수위 또는 유량이 있어야 합니다. 입수 활동은 기상 "
+            "자료만으로 권하지 않습니다."
+        ),
+        basis="data_contract",
+    ),
+    Rule(
+        code="activity_not_offered_at_place",
+        text=(
+            "그 장소에서 하는 활동이 아니면 후보에서 뺍니다. 온천은 해당 장소의 "
+            "온천 지원 근거가 확인될 때만 후보가 됩니다 -- 해변의 기온이 좋다는 "
+            "사실은 그 해변에 온천이 있다는 뜻이 아닙니다. 자료가 없는 것과 "
+            "그 장소의 활동이 아닌 것은 다른 사실이므로 따로 말합니다."
         ),
         basis="data_contract",
     ),
@@ -174,13 +216,15 @@ RULES: tuple[Rule, ...] = (
         basis="pongdang_product_rule",
     ),
     Rule(
-        code="onsen_weather_alternative",
+        code="water_preference_not_applied",
         text=(
-            "추운 기온·낮은 야외 수온·높은 파고를 바탕으로 온천으로 이동할 "
-            "대안 매력을 비교합니다. 욕조 수온 미수집만으로 이 대안을 제외하지 "
-            "않으며 시설 영업·욕조 상태·안전은 확인한 것으로 표시하지 않습니다."
+            f"물 활동 점수가 {WATER_PREFERENCE_MIN_SCORE:g}점에 못 미치면 위 "
+            "우선을 적용하지 않고 점수순으로 줄을 세웁니다. 물놀이 앱이라는 "
+            "사실은 물에 들어갈 만한 날에 물을 먼저 권하라는 뜻이며, 조건이 "
+            "나쁜 날까지 물을 앞세우라는 뜻이 아닙니다. 후보에서 빼지는 않으므로 "
+            "점수로 1위가 되면 그대로 1위입니다."
         ),
-        basis="pongdang_product_rule",
+        basis="score_curve_knot",
     ),
     Rule(
         code="no_water_activity_today",
@@ -448,6 +492,10 @@ def activity_eligibility(
         reasons.append(
             Reason(code="inland_swimming_authorization_unconfirmed", activity=activity)
         )
+    elif activity == "onsen" and evidence.support_status != "supported":
+        dropped = True
+        applied.append("activity_not_offered_at_place")
+        reasons.append(Reason(code="activity_not_offered_at_place", activity=activity))
     elif not _essentials_present(evidence, place_kind):
         dropped = True
         applied.append("essential_measurement_missing")
@@ -578,29 +626,41 @@ def decide(
         key=lambda c: (
             c.demoted,
             not (
-                c.activity in SEA_ACTIVITIES
-                and c.score >= WATER_ACTIVITY_PRIORITY_SCORE
+                c.activity in WATER_ACTIVITIES and c.score >= WATER_PREFERENCE_MIN_SCORE
             ),
             -c.score,
             position[c.activity],
         )
     )
     best = live[0] if live else None
+    for candidate in live:
+        if (
+            candidate.activity in WATER_ACTIVITIES
+            and candidate.score < WATER_PREFERENCE_MIN_SCORE
+        ):
+            reasons.append(
+                Reason(
+                    code="water_preference_not_applied",
+                    activity=candidate.activity,
+                    value=candidate.score,
+                    threshold=WATER_PREFERENCE_MIN_SCORE,
+                )
+            )
     if best is not None:
         score_rival = next(
             (
                 candidate
                 for candidate in sorted(live, key=lambda item: -item.score)
                 if not candidate.demoted
-                and candidate.activity not in SEA_ACTIVITIES
+                and candidate.activity not in WATER_ACTIVITIES
                 and candidate.score > best.score
             ),
             None,
         )
         if (
-            best.activity in SEA_ACTIVITIES
+            best.activity in WATER_ACTIVITIES
             and not best.demoted
-            and best.score >= WATER_ACTIVITY_PRIORITY_SCORE
+            and best.score >= WATER_PREFERENCE_MIN_SCORE
             and score_rival is not None
         ):
             reasons.append(
@@ -609,7 +669,7 @@ def decide(
                     activity=best.activity,
                     rival=score_rival.activity,
                     value=best.score,
-                    threshold=WATER_ACTIVITY_PRIORITY_SCORE,
+                    threshold=WATER_PREFERENCE_MIN_SCORE,
                 )
             )
         else:
@@ -618,14 +678,6 @@ def decide(
             )
         if best.activity == "walk":
             reasons.append(Reason(code="walking_weather_only", activity="walk"))
-        if best.activity == "onsen":
-            reasons.append(Reason(code="onsen_weather_alternative", activity="onsen"))
-            score = envelopes["onsen"].condition_score
-            for component in score.components:
-                if component.status == "evaluated" and component.score is not None:
-                    reasons.append(
-                        _reason_from("onsen_alternative_factor", "onsen", component)
-                    )
 
     if (
         best is not None

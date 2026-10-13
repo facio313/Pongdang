@@ -326,20 +326,24 @@ async def _recommend_single(
         )
 
     async def read_match(row):
-        return row[0]["spot_id"], await environment.compare(
-            row[0]["spot_id"], request, target
-        )
+        sid = row[0]["spot_id"]
+        return sid, await environment.compare(sid, request, target)
 
     environment_matches = dict(
         await asyncio.gather(*(read_match(row) for row in shortlist))
     )
     eligible = []
     for row in shortlist:
+        # 표본은 고른 활동 가운데 **그 장소에서 가장 좋은 하나**입니다
+        # (environment.EnvironmentReader.at). 그래서 아래 판정은 자연히
+        # 「고른 활동이 전부 막혔을 때만 뺀다」가 됩니다 -- 서핑을 하지 않는
+        # 곳이라도 함께 고른 휴식으로 좋으면 후보에 남습니다.
         sample = preview_sample(environment_matches[row[0]["spot_id"]])
         eligibility = sample.get("activity_eligibility", {})
         blocking_rules = set(eligibility.get("rules_applied", [])) & {
             "water_too_cold_for_immersion",
             "inland_swimming_authorization_unconfirmed",
+            "activity_not_offered_at_place",
         }
         if (
             sample.get("safety_status") == "restricted"
@@ -562,6 +566,7 @@ def request_for_visit(request, intent):
         visit_intents=[intent.model_dump(mode="json")],
         keyword_selection=selections,
         activity=activity,
+        activities=[activity],
         place_role={"cafe": "meal", "restaurant": "meal", "lodging": "lodging"}.get(
             intent.place_type, "visit"
         ),

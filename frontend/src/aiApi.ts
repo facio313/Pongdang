@@ -2,9 +2,18 @@ import { t, dateLocale } from "./i18n.ts";
 import { forbiddenMessage } from "./authMessages.ts";
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅", walk: "물길 따라 걷기" } as const;
 export type Activity = keyof typeof activities;
-/** 서버 RECOMMENDED_ACTIVITIES와 같은 추천 후보. 기존 활동 라벨은 기록 호환용으로 유지합니다. */
-export const recommendedActivities = ["swim", "surf", "relax", "onsen", "walk"] as const satisfies readonly Activity[];
-/** 추천하는 다섯 활동을 모두 표시하고, 각 활동의 점수 의미를 함께 안내합니다. */
+/** 추천 후보로 제시하는 활동. 서버 `models.RECOMMENDED_ACTIVITIES` 의 거울이며,
+ *  응답의 `conditions` · `ranked` 에 실려 오는 집합입니다.
+ *
+ *  mudflat 은 동해안에 갯벌 지형이 없어서, rafting 은 하천 수위·유량 자료가
+ *  없어 어떤 날도 점수가 나오지 않아서 빠졌습니다. 지원을 끊는 것이 아니라
+ *  「오늘 뭘 할까」의 후보에서 빼는 것입니다 -- 0 점도, 「나쁨」도 아닙니다.
+ *  activities 는 라벨 사전이므로 일곱을 그대로 둡니다. */
+export const recommendedActivities = ["swim", "surf", "relax", "walk", "onsen"] as const satisfies readonly Activity[];
+/** 활동별 점수에는 휴식을 포함한 후보 모두를 표시합니다. 서버의 물 활동
+ *  우선은 40점 이상인 후보에 적용하는 제품 규칙이며 입수 허가가 아닙니다.
+ *  각 점수와 별도로 이 규칙을 안내하여 추천 순서의 근거를 확인할 수 있게 합니다.
+ *  후보 집합과 표시 집합은 역할이 다르므로 상수는 별도로 유지합니다. */
 export const listedActivities = ["swim", "surf", "relax", "walk", "onsen"] as const satisfies readonly (typeof recommendedActivities)[number][];
 export interface AiContext {
   spot_id?: number;

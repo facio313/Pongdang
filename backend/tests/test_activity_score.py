@@ -6,13 +6,62 @@ import pytest
 from pydantic import ValidationError
 from test_condition_score import NOW, envelope, metric, source
 
-from app.water_index.activity_score import BEACH_AIR, WIND, calculate_activity_score
+from app.water_index.activity_score import (
+    BEACH_AIR,
+    DEFAULT_CURVES,
+    ONSEN_AIR,
+    OUTDOOR_AIR,
+    WIND,
+    calculate_activity_score,
+)
 from app.water_index.condition_api import ConditionQuery, group_metric
-from app.water_index.conditions import ACTIVITIES, Criterion, calculate_conditions
+from app.water_index.conditions import (
+    ACTIVITIES,
+    ConditionsEnvelope,
+    Criterion,
+    calculate_conditions,
+)
 
 
 def component(result, name):
     return next(c for c in result.components if c.metric == name)
+
+
+@pytest.mark.parametrize(
+    "activity,label,basis",
+    [
+        ("swim", "활동 조건 참고 점수", "activity_conditions"),
+        ("onsen", "온천 대안 추천 점수", "onsen_alternative"),
+    ],
+)
+def test_stored_130_scores_preserve_prior_labels_and_basis(activity, label, basis):
+    evidence = envelope(activity, metrics=(metric("air_temperature", 3.0),))
+    score = calculate_activity_score(evidence).model_dump(mode="json")
+    score.update(
+        model_version="1.3.0",
+        label=label,
+        score_basis=basis,
+        methodology="Stored methodology remains attached to the original score.",
+    )
+    payload = evidence.model_dump(mode="json") | {"condition_score": score}
+
+    # Stored reads validate the whole envelope, including the nested score.
+    restored = ConditionsEnvelope.model_validate(payload)
+    assert restored.condition_score.model_dump(mode="json") == score
+    assert restored.model_dump(mode="json") == payload
+
+
+def test_current_score_defaults_and_strict_payload_validation_stay_intact():
+    evidence = envelope("onsen", metrics=(metric("air_temperature", 3.0),))
+    score = calculate_activity_score(evidence).model_dump(mode="json")
+    assert score["score_basis"] == "activity_conditions"
+    assert score["label"] == "활동 조건 참고 점수"
+    payload = evidence.model_dump(mode="json")
+    for changes in ({"score_basis": "unrecognized"}, {"unexpected_field": True}):
+        with pytest.raises(ValidationError):
+            ConditionsEnvelope.model_validate(
+                payload | {"condition_score": score | changes}
+            )
 
 
 def test_walking_uses_weather_without_water_temperature_or_waves():
@@ -84,12 +133,43 @@ def test_published_air_range_and_wind_intervals_with_declared_adaptation():
     assert "km/h" in WIND.criterion("m/s")
 
 
+def test_the_onsen_air_curve_runs_opposite_to_outdoor_visiting():
+    """추울수록 온천 점수가 올라야 합니다. 예전에는 OUTDOOR_AIR 를 써서 5°C 에
+    0 점이었습니다 -- 온천에 가고 싶은 날에 가장 낮은 점수를 주고 있었습니다."""
+    assert ONSEN_AIR.score(0.0) > ONSEN_AIR.score(15.0) > ONSEN_AIR.score(27.0)
+    assert OUTDOOR_AIR.score(0.0) < OUTDOOR_AIR.score(15.0) < OUTDOOR_AIR.score(27.0)
+    # 더운 날을 0 점으로 떨어뜨리지 않습니다. 한여름에도 온천에 가는 사람이
+    # 있고, 그것을 「조건 나쁨」으로 단정할 근거가 없습니다.
+    assert ONSEN_AIR.score(35.0) > 0
+    # 근거 없는 제품 규칙임이 기준 문장에 남습니다.
+    assert "미검증" in ONSEN_AIR.criterion("°C")
+    assert ONSEN_AIR.source_ids == ()
+
+
+def test_an_onsen_scores_on_air_alone_when_the_bath_is_not_measured():
+    """욕조 수온 없이도 점수가 섭니다. 다만 부분 점수임을 숨기지 않습니다.
+
+    `bath_water` 관측소를 만드는 수집 경로가 없어 욕조 수온은 사실상 늘
+    비어 있습니다. 그것 때문에 온천을 아예 말하지 않는 쪽이 더 틀립니다.
+    """
+    result = calculate_activity_score(
+        envelope("onsen", metrics=(metric("air_temperature", 3.0),))
+    )
+    assert result.score == ONSEN_AIR.score(3.0)
+    assert result.status == "partial" and result.coverage == 0.5
+    assert component(result, "bath_water_temperature").score is None
+    assert "partial_components" in result.reason_codes
+
+
 @pytest.mark.parametrize("activity", ACTIVITIES)
 def test_six_activities_compute_without_manual_criteria_and_preserve_unknown(activity):
     evidence = envelope(activity, metrics=(metric(value=25.0),))
     result = calculate_activity_score(evidence)
-    assert result.status == "partial"
-    assert result.score == (0 if activity == "onsen" else 100)
+    # 점수는 그 활동의 기온 곡선이 정합니다. 예전에는 여섯 활동 모두 25°C 에서
+    # 100 점이라는 사실에 기대 숫자를 적어 두었는데, 온천의 기온 곡선이
+    # 반대 방향(추울수록 높음)이 되면서 조용히 틀렸습니다.
+    expected = DEFAULT_CURVES[activity]["air_temperature"].score(25.0)
+    assert result.status == "partial" and result.score == expected
     assert result.available_components == 1
     assert result.coverage == 1 / result.total_components
     assert result.scientific_validation == "not_evaluated"
@@ -291,16 +371,16 @@ def test_nearby_context_is_separate_from_strict_metrics_and_preserves_station_sc
 
 
 def test_onsen_outdoor_water_is_never_relabelled_as_bath_temperature():
+    """해수·하천 수온을 욕조 수온으로 대체하지 않습니다.
+
+    온천 점수는 시설 욕조 수온과 외기만 봅니다. 야외 수온 38°C 를 욕조로 읽으면
+    BATH 곡선이 만점을 주지만, 그것은 다른 물입니다.
+    """
     sea = envelope("onsen", metrics=(metric("water_temperature", 38.0),))
     result = calculate_activity_score(sea)
-    assert result.score == 0
-    assert result.score_basis == "onsen_alternative"
-    assert component(result, "water_temperature").label == "야외 수온"
-    assert not any(c.metric == "bath_water_temperature" for c in result.components)
-    bath = calculate_activity_score(
-        envelope("onsen", metrics=(metric("bath_water_temperature", 38.0),))
-    )
-    assert bath.score is None
+    assert not any(c.metric == "water_temperature" for c in result.components)
+    assert component(result, "bath_water_temperature").score is None
+    assert result.score is None and result.status == "unavailable"
 
 
 def test_rafting_still_needs_local_flow_bounds():
@@ -312,36 +392,14 @@ def test_rafting_still_needs_local_flow_bounds():
     )
 
 
-def test_onsen_alternative_gets_stronger_as_air_water_cool_and_waves_rise():
-    def score(air, water, wave):
-        return calculate_activity_score(
-            envelope(
-                "onsen",
-                metrics=(
-                    metric("air_temperature", air),
-                    metric("water_temperature", water),
-                    metric("wave_height", wave),
-                ),
-            )
-        )
-
-    warm = score(25.0, 27.0, 0.3)
-    cold = score(8.0, 12.0, 1.8)
-    assert warm.score == 0 and cold.score == 93.7
-    assert score(15.0, 27.0, 0.3).score > warm.score
-    assert score(25.0, 12.0, 0.3).score > warm.score
-    assert score(25.0, 27.0, 1.8).score > warm.score
-    assert cold.status == "evaluated" and cold.available_components == 3
-    assert cold.scientific_validation == "not_evaluated"
-
-
 def test_onsen_missing_inputs_remain_partial_and_expired_inputs_are_not_scored():
     partial = calculate_activity_score(
         envelope("onsen", metrics=(metric("air_temperature", 15.0),))
     )
-    assert partial.score == 80 and partial.coverage == 1 / 3
+    # 온천은 시설 욕조 수온과 외기 둘을 봅니다. 욕조가 비면 확보율 0.5 입니다.
+    assert partial.score == ONSEN_AIR.score(15.0) and partial.coverage == 0.5
     assert partial.status == "partial"
-    assert component(partial, "water_temperature").score is None
+    assert component(partial, "bath_water_temperature").score is None
     expired = calculate_activity_score(
         envelope("onsen", metrics=(metric("air_temperature", None, status="stale"),))
     )

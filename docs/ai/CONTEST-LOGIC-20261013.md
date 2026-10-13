@@ -42,3 +42,27 @@
 - root 담당 프런트에서 시즌 안내 전용 정책, 물 활동 우선의 비안전 설명, 여행 적격성 사유를 표시한다.
 - 관광 카탈로그·경로/시간대 담당자의 별도 변경과 최종 통합은 root가 확인한다.
 - 실제 운영 버전과 로컬 소스가 달랐던 감사 관찰은 원인 미확인 상태다. 이번 변경을 운영에 반영하거나 운영이 변경되었다고 주장하지 않는다.
+
+
+## 새 main 통합 검증 (2026-10-13)
+
+- `ec8b0df`의 다중 활동 선택과 온천 장소 지원 검사, 40점 미만 물 활동의
+  우선 미적용 사유를 보존했다. 개장 정보는 사용자 요청에 따라 점수·순위·후보
+  제외 계산에서 계속 제외하며, 공통 `activity_eligibility()`를 유지했다.
+- 다중 활동별 캐시를 분리하고 같은 장소의 조석은 한 번 읽어 수영·서핑 모두에
+  적용했다. 유효한 다른 선택 활동이 있으면 저수온·물때·결측·보존 자료가 그 활동을
+  가리지 않는다. 방문별 요청은 이전 방문의 `activities` 배열을 상속하지 않는다.
+- 30개 장소 × 선택 활동 네 개 × 관측/예보로 저장 조회 200개 상한을 넘으면
+  기존 읽기 전용 REPEATABLE READ 연결 하나에서 최대 200개씩 분할한다.
+  미래 날짜는 예보만 읽고 관측 대체를 하지 않는 계약을 유지한다.
+- 독립 PostgreSQL 18, loopback58283, `pongdang_test`에서 명시 파일과 10개 관련
+  테스트 파일을 `ops/verify_local.py`로 검사했다. 첫 실행209개 중208개 통과,
+  신규 분할조회 테스트의 기본 관측 fixture가 예보 입력에 섞여 실패했다.
+  해당 fixture를 의도한 빈 근거로 명시한 뒤 관련27개가 모두 통과했다.
+  총209개 고유 테스트의 최종 결과는 통과이며 Ruff/format도 통과했다.
+- 관련 테스트: recommendation(38), recommendation_integration(11),
+  recommendation_resilience(14), travel_eligibility(27),
+  travel_keywords_routes(33), travel_published(14), travel_route_order(12),
+  travel_route_visits(18), travel_rules(29), travel_visit_intents(13).
+- Git add/commit/push와 운영 DB 연결·배포는 수행하지 않았다. 상위 작업이 통합과
+  배포를 담당한다. 설계 문서의 개장 계산·공통 적격성 설명도 사용자 요청과 맞췄다.

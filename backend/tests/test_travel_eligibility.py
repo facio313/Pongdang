@@ -301,3 +301,130 @@ def test_visit_preview_uses_the_requested_visit_time_without_changing_departure(
     target, basis = preview_time(request, NOW)
     assert target.hour == hour and basis == "visit_time_window_preview"
     assert request.departure_time.hour == 8
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {
+            "activity_eligibility": {
+                "dropped": True,
+                "rules_applied": ["water_too_cold_for_immersion"],
+            }
+        },
+        {"activity_eligibility": {"dropped": False, "demoted": True}},
+        {"retained": True},
+        {"condition_score": {"score": 99.0, "status": "partial"}},
+    ],
+)
+def test_multiple_selected_activities_use_the_eligible_complete_score(changes):
+    from app.travel.environment import EnvironmentReader
+
+    swim = {
+        "activity": "swim",
+        "condition_score": {"score": 99.0, "status": "evaluated"},
+        **changes,
+    }
+    walking = {
+        "activity": "walk",
+        "condition_score": {"score": 60.0, "status": "evaluated"},
+    }
+    assert EnvironmentReader.choose([swim, walking])["matched_activity"] == "walk"
+
+
+def test_multiple_selected_activities_keep_an_unknown_alternative_to_a_restriction():
+    from app.travel.environment import EnvironmentReader
+
+    restricted = {
+        "activity": "swim",
+        "safety_status": "restricted",
+        "condition_score": None,
+    }
+    unknown = {"activity": "walk", "status": "unknown", "condition_score": None}
+    assert EnvironmentReader.choose([restricted, unknown])["matched_activity"] == "walk"
+
+
+@pytest.mark.parametrize("future,chunk_sizes", [(False, [200, 40]), (True, [120])])
+def test_multiple_selected_activities_keep_bounded_reads_in_one_snapshot(
+    monkeypatch, future, chunk_sizes
+):
+    catalog = Catalog(30)
+    catalog.reader = Reader()
+    calls = []
+
+    async def read(_reader, queries, *, now, connection=None):
+        calls.append((queries, connection))
+        assert len(queries) <= 200
+        return [
+            envelope(q.activity, spot_id=q.spot_id, mode=q.mode, at=q.at, metrics=())
+            for q in queries
+        ]
+
+    monkeypatch.setattr(published, "read_condition_set", read)
+    request = TravelRequest(activities=["swim", "surf", "walk", "relax"])
+    reader = published.PublishedEnvironmentReader(catalog)
+    target = NOW + timedelta(days=1) if future else NOW
+    asyncio.run(reader.prefetch(list(range(1, 31)), request, target))
+    assert [len(queries) for queries, _ in calls] == chunk_sizes
+    if not future:
+        assert all(connection is catalog.reader for _, connection in calls)
+    else:
+        assert all(
+            q.mode == "forecast" and q.as_of is None for qs, _ in calls for q in qs
+        )
+    assert len(reader.cache) == 120
+    assert {
+        reader.cache[(1, activity, target.isoformat())]["activity"]
+        for activity in request.activities
+    } == set(request.activities)
+    asyncio.run(reader.at(1, request, target))
+    assert len(calls) == len(chunk_sizes)
+
+
+def test_selected_swim_and_surf_share_one_tide_read_and_keep_both_eligibilities(
+    monkeypatch,
+):
+    catalog = Catalog(1)
+    catalog.reader = Reader()
+    tide_calls = []
+    water = {
+        "swim": beach_sample(1),
+        "surf": scored(
+            "surf",
+            water_temperature=24.0,
+            air_temperature=27.0,
+            wave_height=1.1,
+            wave_period=9.0,
+            wind_speed=3.0,
+        ).model_copy(update={"spot_id": 1, "place_kind": "beach"}),
+    }
+
+    async def read(_reader, queries, *, now):
+        return [water[q.activity] for q in queries]
+
+    async def read_tide(_connection, sid, at, as_of):
+        tide_calls.append(sid)
+        return tide("near_high", 20)
+
+    monkeypatch.setattr(published, "read_condition_set", read)
+    monkeypatch.setattr(recommendation_api, "read_tide", read_tide)
+    request = TravelRequest(activity="swim", activities=["swim", "surf"])
+    reader = published.PublishedEnvironmentReader(catalog)
+    asyncio.run(reader.prefetch([1], request, NOW))
+    assert tide_calls == [1]
+    for activity in request.activities:
+        sample = reader.cache[(1, activity, NOW.isoformat())]
+        assert sample["activity"] == activity
+        assert sample["activity_eligibility"]["demoted"] is True
+        assert sample["tide"]["phase"] == "near_high"
+
+
+def test_a_visit_resets_inherited_multiple_activities():
+    from app.travel.keywords import normalize
+    from app.travel.models import VisitIntent
+    from app.travel.recommend import request_for_visit
+
+    request = TravelRequest(activity="surf", activities=["surf", "swim"])
+    cafe = normalize(request_for_visit(request, VisitIntent(place_type="cafe")))
+    assert cafe.activity == "relax"
+    assert cafe.activities == ["relax"]
