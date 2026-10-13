@@ -219,3 +219,38 @@ def test_v11_upgrade_is_additive_idempotent_and_never_fetches(db, monkeypatch):
         assert connection.execute(
             "SELECT count(*) FROM pongdang_data.windy_catalog_revision"
         ).fetchone() == (0,)
+
+
+def test_stored_only_home_never_fetches_or_writes_when_catalog_missing(db):
+    provider = Client()
+    provider.error = AssertionError("Home must never contact Windy")
+    http = app_client(service(provider))
+    response = http.post("/api/data/livecams/preview", json={"stored_only": True})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "WEBCAM_CATALOG_EMPTY"
+    assert provider.calls == []
+    with schema.connect(db) as connection:
+        for table in ("windy_catalog_revision", "windy_api_budget", "windy_thumbnail"):
+            assert connection.execute(
+                f"SELECT count(*) FROM pongdang_data.{table}"
+            ).fetchone() == (0,)
+
+
+def test_stored_only_home_ignores_provider_budget_and_preserves_player(db):
+    original = service().query()
+    provider = Client()
+    provider.error = AssertionError("Home must never contact Windy")
+    http = app_client(service(provider, windy_webcams_daily_budget=0))
+    response = http.post("/api/data/livecams/preview", json={"stored_only": True})
+    assert response.status_code == 200
+    assert (
+        response.json()["rows"][0]["timelapse_player"]
+        == original.rows[0].timelapse_player
+    )
+    assert provider.calls == []
+    assert (
+        http.post(
+            "/api/data/livecams/preview", json={"stored_only": True, "spot_id": 1}
+        ).status_code
+        == 422
+    )

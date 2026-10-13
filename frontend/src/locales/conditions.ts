@@ -2070,6 +2070,9 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
   ],
   "근처 라이브캠 없음": ["No live cam nearby", "附近没有实时摄像头", "近くにライブカメラなし"],
   "라이브캠 없음": ["No live cams available", "暂无实时摄像头", "ライブカメラなし"],
+  "저장된 물 풍경": ["Saved water views", "已保存的水景", "保存された水辺の風景"],
+  "저장된 웹캠 목록이 없습니다.": ["No saved webcams yet.", "暂无已保存的摄像头。", "保存されたカメラはまだありません。"],
+  "저장된 웹캠을 보여드립니다. 선택하면 제공사 플레이어로 연결합니다.": ["Saved webcams. Select one to open the provider’s player.", "显示已保存的摄像头。选择后打开提供方播放器。", "保存済みのカメラです。選ぶと提供元のプレーヤーが開きます。"],
   "다른 지역 물 풍경": ["Water views from other areas", "其他地区的水景", "ほかの地域の水辺の風景"],
   "근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.": [
     "No nearby live cams can be opened, so these water views are from other areas.",

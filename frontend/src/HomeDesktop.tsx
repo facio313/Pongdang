@@ -340,7 +340,7 @@ export function HomeDesktop() {
   const taste = useTastePreference();
   const tags = taste.savedIds.map(taste.labelOf);
   const favoriteCourse = useFavoriteCourse();
-  const webcams = useNearbyWebcams(placeSettled ? undefined : place?.id);
+  const webcams = useNearbyWebcams();
   const cameras = webcams.rows
     .flatMap((camera) => {
       const player = previewPlayerUrl(camera, webcams.result!.valid_until, webcams.now);
@@ -351,15 +351,7 @@ export function HomeDesktop() {
         : [];
     })
     .slice(0, 3);
-  const camsEmptyNote = placeSettled
-    ? t("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.")
-    : webcams.catalogFallback
-      ? t("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.")
-      : webcams.radiusKm && place?.name
-      ? t("{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.", {
-          place: place.name, radius: Math.round(webcams.radiusKm),
-        })
-      : t("근처에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.");
+  const camsEmptyNote = t("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.");
   return (
     <DesktopShell>
       <HomeHero
@@ -644,17 +636,9 @@ export function HomeDesktop() {
           있었습니다 -- 데스크탑만 지어내고 있었습니다. */}
       <LabelRow
         kick={t("라이브캠")}
-        title={
-          webcams.catalogFallback
-            ? t("다른 지역 물 풍경")
-            : place?.name && !placeSettled
-              ? t("{place} 근처 라이브캠", { place: place.name })
-              : t("지금 바다 보기")
-        }
+        title={t("저장된 물 풍경")}
         chip={<StateChip kind={webcams.result ? "live" : "no_data"} />}
-        desc={webcams.catalogFallback
-          ? t("근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.")
-          : t("지금 이 순간의 바다, 그 풍경을 직접 느껴보세요")}
+        desc={t("저장된 웹캠을 보여드립니다. 선택하면 제공사 플레이어로 연결합니다.")}
         link={{ href: "#livecam", label: t("전체 화면으로") }}
       >
         <div className="hd-cams">
@@ -687,7 +671,7 @@ export function HomeDesktop() {
               <div className="hd-cam-frame is-empty">
                 <img src={mascotUrl("empty")} alt="" width={46} height={46} />
                 <div className="hd-cam-empty-title">
-                  {webcams.loading ? t("조회 중") : webcams.error ? t("조회 실패") : webcams.catalogFallback ? t("라이브캠 없음") : t("근처 라이브캠 없음")}
+                  {webcams.loading ? t("조회 중") : webcams.error ? t("조회 실패") : t("라이브캠 없음")}
                 </div>
                 <div className="hd-cam-empty-note">
                   {webcams.error ??
@@ -700,9 +684,7 @@ export function HomeDesktop() {
         <p className="hd-row-note" role={webcams.error ? "alert" : "status"}>
           {webcams.error ?? (webcams.loading ? t("물 풍경을 고르는 중입니다.")
             : !cameras.length ? camsEmptyNote
-              : webcams.catalogFallback
-                ? t("대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다.")
-                : t("고른 장소 근처의 물 풍경입니다. 대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다."))}{" "}
+              : t("대표 이미지는 저장된 사진이며 실시간 영상이 아닙니다."))}{" "}
           {/* 유효기간이 지나 원본 페이지로 물러선 사실을 적습니다. 모바일은
               적는데 이 화면은 말없이 링크만 바꿨습니다. */}
           {webcams.expired && t("원본 페이지로 연결합니다. ")}

@@ -44,6 +44,7 @@ const errors: Record<string, string> = {
   WEBCAM_REQUEST_IN_PROGRESS: '다른 웹캠 조회가 진행 중입니다. 잠시 후 다시 시도해 주세요.',
   WEBCAM_COORDINATES_MISSING: '좌표 없음 · 이 장소의 주변 카메라를 검색할 수 없습니다.',
   WEBCAM_PLACE_NOT_FOUND: '선택한 해수욕장·계곡을 찾을 수 없습니다.',
+  WEBCAM_CATALOG_EMPTY: '저장된 웹캠 목록이 없습니다.',
   WEBCAM_CATALOG_UNAVAILABLE: '저장된 웹캠 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 };
 /** Keep structured app copy so an already-visible error follows language changes. */
@@ -125,7 +126,7 @@ export function shuffleWebcams(): number {
  *  valid_until을 따릅니다. 공식 플레이어 URL 자체의 만료 시각은 아닙니다. */
 const catalogMemory = new Map<string, PreviewResult>();
 subscribeResourceRefresh(() => catalogMemory.clear());
-export function loadWebcamCatalog(base: string, page: number, category: WebcamCategory | '', shuffleSeed = 0, fetcher: typeof fetch = fetch): Promise<PreviewResult> {
+export function loadWebcamCatalog(base: string, page: number, category: WebcamCategory | '', shuffleSeed = 0, fetcher: typeof fetch = fetch, storedOnly = false): Promise<PreviewResult> {
   const key = JSON.stringify([base, page, category, shuffleSeed, resourceRefreshGeneration()]);
   const known = catalogMemory.get(key);
   if (known && ((known.storage === 'database' && known.valid_until === null)
@@ -136,7 +137,7 @@ export function loadWebcamCatalog(base: string, page: number, category: WebcamCa
     // lookup is still running. Queue different catalog requests so this browser
     // does not hit the backend's single-lookup lock; exact requests still share.
     const previous = [...pendingCatalog.values()].at(-1);
-    const request = () => requestPreview(base, { page, shuffle_seed: shuffleSeed, ...(category ? { category } : {}) }, AbortSignal.timeout(180000), fetcher);
+    const request = () => requestPreview(base, { page, shuffle_seed: shuffleSeed, ...(category ? { category } : {}), ...(storedOnly ? { stored_only: true } : {}) }, AbortSignal.timeout(180000), fetcher);
     pending = (previous ? previous.catch(() => undefined).then(request) : request())
       .then(result => { catalogMemory.set(key, result); return result; })
       .finally(() => { pendingCatalog.delete(key); });

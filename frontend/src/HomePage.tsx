@@ -678,18 +678,8 @@ function RouteCard() {
   );
 }
 
-function LivecamModule({
-  spotId,
-  placeName,
-  placeSettled = false,
-}: {
-  /** 지금 보고 있는 장소. 주변 카메라를 먼저 찾습니다. */
-  spotId?: number;
-  placeName?: string;
-  /** 기준 장소가 영영 정해지지 않는 상태(useProductData). */
-  placeSettled?: boolean;
-}) {
-  const nearby = useNearbyWebcams(placeSettled ? undefined : spotId);
+function LivecamModule() {
+  const nearby = useNearbyWebcams();
   const { result, error, expired, now } = nearby;
   const loading = nearby.loading;
   const cameras = nearby.rows.flatMap(camera => {
@@ -697,26 +687,14 @@ function LivecamModule({
     const href = player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
     return href ? [{ camera, href, label: player ? t(player === camera.live_player ? "실시간 안내 · 미검증" : "타임랩스") : t("원본 보기") }] : [];
   }).slice(0, 3);
-  const emptyNote = placeSettled
-    ? t("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.")
-    : nearby.catalogFallback
-      ? t("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.")
-      : nearby.radiusKm && placeName
-      ? t("{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.", {
-          place: placeName, radius: Math.round(nearby.radiusKm),
-        })
-      : t("근처에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.");
+  const emptyNote = t("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.");
   return (
     <div className="pd-card">
       <div className="hm-card-top">
         <div className="hm-card-top hm-card-top-tight">
           <Mascot role="livecam" size={28} />
           <div className="pd-card-title">
-            {nearby.catalogFallback
-              ? t("다른 지역 물 풍경")
-              : placeName && !placeSettled
-                ? t("{place} 근처 라이브캠", { place: placeName })
-                : t("라이브캠 물멍")}
+            {t("저장된 물 풍경")}
           </div>
         </div>
         <a className="pd-state-chip pd-tap" href="#livecam">{t("전체 라이브캠")}</a>
@@ -740,7 +718,7 @@ function LivecamModule({
             <div className="hm-cam-thumb hm-cam-empty">
               <Mascot role="empty" size={40} />
               <span className="hm-cam-empty-title">
-                {loading ? t("조회 중") : error ? t("조회 실패") : nearby.catalogFallback ? t("라이브캠 없음") : t("근처 라이브캠 없음")}
+                {loading ? t("조회 중") : error ? t("조회 실패") : t("라이브캠 없음")}
               </span>
             </div>
             <span className="hm-cam-label">{error ?? emptyNote}</span>
@@ -749,7 +727,7 @@ function LivecamModule({
       </div>
       <p className="pd-note" role={error ? "alert" : "status"}>
         {error || (loading ? t("물 풍경을 고르는 중입니다.") : cameras.length
-          ? nearby.catalogFallback ? t("근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.") : ""
+          ? t("저장된 웹캠을 보여드립니다. 선택하면 제공사 플레이어로 연결합니다.")
           : emptyNote)}{" "}
         {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. ")}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
@@ -817,7 +795,7 @@ function HomeScreen() {
           <TasteBanner best={best} recommendation={recommendation} />
           <TastePicksCard />
           <RouteCard />
-        <LivecamModule spotId={place?.id} placeName={place?.name} placeSettled={placeSettled} />
+        <LivecamModule />
       </AppShell>
     </article>
   );

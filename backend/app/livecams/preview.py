@@ -49,11 +49,15 @@ class PreviewRequest(BaseModel):
     page: int = Field(default=1, ge=1, le=5)
     category: Category | None = None
     shuffle_seed: int = Field(default=0, ge=0, le=2**32 - 1, strict=True)
+    stored_only: bool = False
 
     @model_validator(mode="after")
     def separate_scopes(self):
         if self.spot_id is not None and (
-            self.page != 1 or self.category is not None or self.shuffle_seed != 0
+            self.page != 1
+            or self.category is not None
+            or self.shuffle_seed != 0
+            or self.stored_only
         ):
             raise ValueError("Place queries do not support catalog options")
         return self
@@ -184,13 +188,18 @@ class PreviewService:
     def reserve(self):
         self.catalog.reserve()
 
-    def query(self, place=None, *, refresh=False):
+    def query(self, place=None, *, refresh=False, stored_only=False):
         try:
             if place is not None:
                 return self.query_place(place)
-            snapshot, cached = self.catalog.get_or_fetch(
-                self.fetch_catalog, refresh=refresh
-            )
+            if stored_only:
+                snapshot, cached = self.catalog.read(), True
+                if snapshot is None:
+                    raise HTTPException(404, "WEBCAM_CATALOG_EMPTY")
+            else:
+                snapshot, cached = self.catalog.get_or_fetch(
+                    self.fetch_catalog, refresh=refresh
+                )
             thumbnails = self.catalog.thumbnails.metadata(
                 [row.provider_camera_id for row in snapshot.rows]
             )
@@ -373,7 +382,11 @@ def create_preview_router(
             place = found[0]
         response.headers["Cache-Control"] = "no-store"
         try:
-            snapshot = await run_in_threadpool(service.query, place)
+            snapshot = (
+                await run_in_threadpool(service.query, place, stored_only=True)
+                if body.stored_only
+                else await run_in_threadpool(service.query, place)
+            )
             if place:
                 return PreviewResult(**snapshot.model_dump(), page_size=50)
             return catalog_page(
