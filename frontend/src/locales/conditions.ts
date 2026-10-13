@@ -2069,6 +2069,18 @@ export const conditionsMessages: Record<string, MessageTranslations> = {
     "現在は{timing}です — 海の代わりに近くの場所をおすすめします。{disclaimer}"
   ],
   "근처 라이브캠 없음": ["No live cam nearby", "附近没有实时摄像头", "近くにライブカメラなし"],
+  "라이브캠 없음": ["No live cams available", "暂无实时摄像头", "ライブカメラなし"],
+  "다른 지역 물 풍경": ["Water views from other areas", "其他地区的水景", "ほかの地域の水辺の風景"],
+  "근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.": [
+    "No nearby live cams can be opened, so these water views are from other areas.",
+    "附近没有可打开的实时摄像头，因此为您展示其他地区的水景。",
+    "近くに開けるライブカメラがないため、ほかの地域の水辺の風景を表示しています。",
+  ],
+  "열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.": [
+    "No live cams can be opened. Please check the full list again.",
+    "暂无可打开的实时摄像头。请在完整列表中再次查看。",
+    "開けるライブカメラがありません。一覧から再度ご確認ください。",
+  ],
   "전체 라이브캠": ["All live cams", "全部实时摄像头", "すべてのライブカメラ"],
   "{place} 근처 라이브캠": ["Live cams near {place}", "{place} 附近的实时摄像头", "{place} 近くのライブカメラ"],
   "{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.": [

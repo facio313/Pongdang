@@ -33,33 +33,69 @@ function fixtureCamera(index: number, category = "beach") {
   };
 }
 
-/** 홈의 「근처 라이브캠」을 위한 장소 기준 목(mock).
- *
- *  홈은 전국 목록을 더 이상 보지 않습니다. 고른 장소의 좌표에서 설정된 반경 안의
- *  카메라만 묻고(`POST livecams/preview` + `spot_id`), 거리순으로 보여 줍니다 --
- *  예전에는 강릉 경포를 보고 있는데 청학동 웹캠이 떴습니다.
- */
+const homePlace = {
+  id: 41, name: "OFFLINE TEST 기준 해변", place_kind: "beach",
+  address: "강원특별자치도 강릉시", region: "강릉시", lat: 37.8, lng: 128.9,
+};
+
+type HomeCameraOptions = {
+  catalogRows?: ReturnType<typeof fixtureCamera>[];
+  nearbyFailure?: { status: number; detail: string };
+  noPlace?: boolean;
+  beforePlaceReply?: () => Promise<void>;
+  beforeNearbyReply?: () => Promise<void>;
+};
+
+/** 장소 조회와 전국 목록을 구분해, 성공한 빈 주변 조회만 대체 목록을 여는지 봅니다. */
 async function mockNearbyCameras(
   page: Page,
-  rows: ReturnType<typeof fixtureCamera>[],
-  radiusKm: number | null = 10,
+  nearbyRows: ReturnType<typeof fixtureCamera>[],
+  options: HomeCameraOptions = {},
 ) {
   const requests: { spot_id?: number; page?: number; shuffle_seed?: number }[] = [];
   await page.context().route(/https:\/\/(?:[^/]+\.)?windy\.com\//, (route) => route.fulfill({
     contentType: "text/html", body: "<!doctype html><title>Offline Windy player fixture</title>",
   }));
+  // 현재 홈은 default-place의 place/rows를 사용합니다. 다른 기능의 자료 유무가
+  // 웹캠 회귀 테스트의 기준 장소를 바꾸지 않도록 이 경로를 명시적으로 고정합니다.
+  await page.route("**/api/**", (route) => route.fulfill({ status: 503, json: { detail: "OFFLINE_TEST" } }));
+  await page.route("**/api/data/water-index/default-place", async (route) => {
+    await options.beforePlaceReply?.();
+    await route.fulfill({ json: {
+      place: options.noPlace ? null : homePlace,
+      rows: options.noPlace ? [] : [homePlace],
+      display_name: homePlace.name,
+      status: options.noPlace ? "no_places" : "preferred",
+      message: options.noPlace ? "수집된 해수욕장이 없습니다." : "기준 해변",
+    } });
+  });
   await page.route("**/api/data/livecams/thumbnails/*", (route) => route.fulfill({ status: 404 }));
   await page.route("**/api/data/livecams/preview", async (route) => {
-    const body = route.request().postDataJSON() as { spot_id?: number };
+    const body = route.request().postDataJSON() as { spot_id?: number; page?: number; shuffle_seed?: number };
     requests.push(body);
+    const nearby = body.spot_id !== undefined;
+    if (nearby) {
+      expect(body).toEqual({ spot_id: homePlace.id });
+      await options.beforeNearbyReply?.();
+      if (options.nearbyFailure) {
+        return route.fulfill({ status: options.nearbyFailure.status, json: { detail: options.nearbyFailure.detail } });
+      }
+    } else {
+      expect(Object.keys(body).sort()).toEqual(["page", "shuffle_seed"]);
+      expect(body.page).toBe(1);
+      expect(Number.isInteger(body.shuffle_seed)).toBe(true);
+      expect(body.shuffle_seed).toBeGreaterThanOrEqual(0);
+      expect(body.shuffle_seed).toBeLessThanOrEqual(4294967295);
+    }
+    const rows = nearby ? nearbyRows : options.catalogRows ?? [];
     await route.fulfill({ json: {
       contract_version: "livecams.preview.v1",
-      scope: body.spot_id ? "place" : "korea_list",
-      place: null,
+      scope: nearby ? "place" : "korea_list",
+      place: nearby ? homePlace : null,
       rows,
       total: rows.length,
       truncated: false,
-      radius_km: radiusKm,
+      radius_km: nearby ? 10 : null,
       fetched_at: "2026-01-01T00:00:00Z",
       storage: "database",
       valid_until: null,
@@ -68,9 +104,9 @@ async function mockNearbyCameras(
       page_size: 25,
       has_more: false,
       category: null,
-      shuffle_seed: null,
-      matched_total: rows.length,
-      matching_status: "available",
+      shuffle_seed: body.shuffle_seed ?? null,
+      matched_total: nearby ? rows.length : 0,
+      matching_status: nearby ? "available" : "not_requested",
     } });
   });
   return requests;
@@ -209,16 +245,100 @@ test("home asks only for cameras near the reference place and orders them by dis
     .toHaveAttribute("href", "#livecam");
 });
 
-test("a home with no camera in range says so instead of showing another region", async ({ page }) => {
+for (const width of [390, 1440]) {
+  test(`home at ${width}px labels a fallback catalog and reuses it in the full list`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const catalogRows = [11, 12, 13, 14].map(index => fixtureCamera(index));
+    const requests = await mockNearbyCameras(page, [], { catalogRows });
+    await page.goto("");
+    const cards = page.locator(width < 1080 ? "a.hm-cam" : "a.hd-cam");
+    await expect(cards).toHaveCount(3);
+    await expect(page.getByText("다른 지역 물 풍경", { exact: true })).toBeVisible();
+    await expect(page.getByText("근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.")).toBeVisible();
+    for (const [index, camera] of catalogRows.slice(0, 3).entries()) {
+      await expect(cards.nth(index)).toContainText(camera.title);
+      await expect(cards.nth(index)).toHaveAttribute("href", camera.live_player ?? camera.timelapse_player ?? camera.public_page);
+      await expect(cards.nth(index)).toHaveAttribute("target", "_blank");
+    }
+    expect(requests.some(request => request.spot_id === homePlace.id)).toBe(true);
+    expect(requests.filter(request => request.page !== undefined)).toHaveLength(1);
+    const beforeNavigation = requests.length;
+    await page.getByRole("link", { name: width < 1080 ? "전체 라이브캠" : "전체 화면으로 →", exact: true }).click();
+    await expect(page.locator(".lc-catalog-table tbody tr")).toHaveCount(4);
+    await expect(page.locator(".lc-catalog-table tbody tr").first()).toContainText(catalogRows[0].title);
+    expect(requests).toHaveLength(beforeNavigation);
+    expect(requests.filter(request => request.page !== undefined)).toHaveLength(1);
+  });
+}
+
+test("home falls back when nearby records have no allowed player or public URL", async ({ page }) => {
+  const unusable = {
+    ...fixtureCamera(1),
+    live_player: "https://example.com/unsafe-player",
+    timelapse_player: null,
+    public_page: "https://windy.com/webcams/9999999999",
+  };
+  const requests = await mockNearbyCameras(page, [unusable], { catalogRows: [fixtureCamera(11)] });
+  await page.goto("");
+  await expect(page.locator("a.hm-cam")).toHaveCount(1);
+  await expect(page.locator("a.hm-cam")).toContainText("OFFLINE TEST 물 풍경 11");
+  await expect(page.getByText("다른 지역 물 풍경", { exact: true })).toBeVisible();
+  expect(requests.filter(request => request.page !== undefined)).toHaveLength(1);
+});
+
+test("home states when both nearby and fallback catalogs have no playable camera", async ({ page }) => {
   const requests = await mockNearbyCameras(page, []);
   await page.goto("");
-  await expect(page.locator(".hm-cam.is-empty")).toContainText("근처 라이브캠 없음");
-  // 전국 목록으로 물러서지 않습니다 -- 물러서면 「근처」라고 말할 수 없는 것을
-  // 근처 자리에 놓게 됩니다.
-  for (const body of requests) expect(body.page).toBeUndefined();
-  await expect(page.locator(".home-page")).not.toContainText("OFFLINE TEST 물 풍경");
-  await expect(page.getByRole("link", { name: "전체 라이브캠", exact: false }).first())
-    .toHaveAttribute("href", "#livecam");
+  await expect(page.locator(".hm-cam.is-empty")).toContainText("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.");
+  await expect(page.locator("a.hm-cam")).toHaveCount(0);
+  expect(requests.filter(request => request.page !== undefined)).toHaveLength(1);
+  await expect(page.getByRole("link", { name: "전체 라이브캠", exact: true })).toHaveAttribute("href", "#livecam");
+});
+
+for (const failure of [
+  { status: 401, detail: "UNAUTHORIZED", message: "로그인 또는 접근 권한을 확인해 주세요." },
+  { status: 429, detail: "WINDY_HTTP_429", message: "Windy 요청 한도에 도달했습니다." },
+  { status: 503, detail: "WEBCAM_CATALOG_UNAVAILABLE", message: "저장된 웹캠 목록을 불러오지 못했습니다." },
+]) {
+  test(`home preserves a ${failure.status} nearby error without requesting a fallback`, async ({ page }) => {
+    const requests = await mockNearbyCameras(page, [], { nearbyFailure: failure, catalogRows: [fixtureCamera(11)] });
+    await page.goto("");
+    await expect(page.locator(".hm-cam.is-empty")).toContainText(failure.message);
+    await expect(page.locator("a.hm-cam")).toHaveCount(0);
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.every(request => request.spot_id === homePlace.id)).toBe(true);
+    await expect(page.getByText("다른 지역 물 풍경", { exact: true })).toHaveCount(0);
+  });
+}
+
+test("home waits for a place and the nearby response before requesting a fallback", async ({ page }) => {
+  let releasePlace!: () => void;
+  let releaseNearby!: () => void;
+  const placePending = new Promise<void>(resolve => { releasePlace = resolve; });
+  const nearbyPending = new Promise<void>(resolve => { releaseNearby = resolve; });
+  const requests = await mockNearbyCameras(page, [], {
+    catalogRows: [fixtureCamera(11)],
+    beforePlaceReply: () => placePending,
+    beforeNearbyReply: () => nearbyPending,
+  });
+  await page.goto("");
+  await expect(page.locator(".hm-cam.is-empty")).toBeVisible();
+  expect(requests).toHaveLength(0);
+  releasePlace();
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  await expect(page.locator(".hm-cam-empty-title")).toHaveText("조회 중");
+  expect(requests.every(request => request.spot_id === homePlace.id)).toBe(true);
+  releaseNearby();
+  await expect(page.locator("a.hm-cam")).toHaveCount(1);
+  expect(requests.filter(request => request.page !== undefined)).toHaveLength(1);
+});
+
+test("home without a reference place does not request nearby or fallback cameras", async ({ page }) => {
+  const requests = await mockNearbyCameras(page, [], { noPlace: true, catalogRows: [fixtureCamera(11)] });
+  await page.goto("");
+  await expect(page.locator(".hm-cam.is-empty")).toContainText("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.");
+  expect(requests).toHaveLength(0);
+  await expect(page.locator("a.hm-cam")).toHaveCount(0);
 });
 
 test("stored thumbnails use local lazy images and failed or unsafe sources never retry the catalog", async ({ page }) => {
@@ -286,10 +406,7 @@ test("stored catalogs remain playable after ten minutes and clicks never reload 
   ]);
 });
 
-test("the webcam list requests the catalog itself now that home no longer holds one", async ({ page }) => {
-  // 예전에는 홈이 전국 목록을 먼저 물어 두고, 이 화면이 그 요청이 끝나기를
-  // 기다렸습니다. 이제 홈은 고른 장소 근처만 보므로 기다릴 것이 없습니다 --
-  // 이 화면이 자기 목록을 한 번 묻습니다.
+test("direct entry to the webcam list requests its catalog once", async ({ page }) => {
   const { requests, providerRequests } = await mockCatalog(page);
   await page.goto("#livecam");
   await expect(page.getByRole("heading", { name: "물 풍경 웹캠", exact: true })).toBeVisible();

@@ -3,7 +3,7 @@ import { t } from "./i18n";
 import { useState } from 'react';
 import { date } from './data';
 import { previewPlayerUrl, safeWebcamUrl } from './livecamApi';
-import { cameraCategories, newWebcamShuffleSeed, webcamCategories, type WebcamCategory } from './livecamPreviewApi';
+import { cameraCategories, sessionWebcamShuffleSeed, shuffleWebcams, webcamCategories, type WebcamCategory } from './livecamPreviewApi';
 import { useWebcamCatalog } from './useWebcamCatalog';
 import { WebcamThumbnail } from './WebcamThumbnail';
 import './livecamHub.css';
@@ -11,7 +11,7 @@ import './livecamHub.css';
 export function LivecamPreviewPage() {
   const [page, setPage] = useState(1);
   const [category, setCategory] = useState<WebcamCategory | ''>('');
-  const [shuffleSeed, setShuffleSeed] = useState(newWebcamShuffleSeed);
+  const [shuffleSeed, setShuffleSeed] = useState(sessionWebcamShuffleSeed);
   const { result, error, loading, expired, now } = useWebcamCatalog(page, category, shuffleSeed);
   const pages = result ? Math.min(5, Math.max(1, Math.ceil(result.total / result.page_size))) : 1;
   return <article className="livecam-hub">
@@ -25,7 +25,7 @@ export function LivecamPreviewPage() {
       <label>{t("카메라 분류")}<select aria-label={t("카메라 분류")} value={category} disabled={loading} onChange={event => { setCategory(event.target.value as WebcamCategory | ''); setPage(1); }}>
         <option value="">{t("물 관련 전체")}</option>{Object.entries(webcamCategories).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
       </select></label>
-      <button disabled={loading} onClick={() => { setShuffleSeed(newWebcamShuffleSeed); setPage(1); }}>{t("다른 풍경 보기")}</button>
+      <button disabled={loading} onClick={() => { setShuffleSeed(shuffleWebcams()); setPage(1); }}>{t("다른 풍경 보기")}</button>
     </div>
     {loading && <p role="status">{t("물 풍경 카메라를 불러오는 중… 첫 조회에는 잠시 시간이 걸립니다.")}</p>}
     {error && <p role="alert">{t(error)}</p>}

@@ -683,15 +683,12 @@ function LivecamModule({
   placeName,
   placeSettled = false,
 }: {
-  /** 지금 보고 있는 장소. 이 장소 **근처**의 카메라만 보여 줍니다. */
+  /** 지금 보고 있는 장소. 주변 카메라를 먼저 찾습니다. */
   spotId?: number;
   placeName?: string;
   /** 기준 장소가 영영 정해지지 않는 상태(useProductData). */
   placeSettled?: boolean;
 }) {
-  // 장소 근처를 조회합니다. 예전에는 전국 목록 1페이지를 그대로 보여 줘서,
-  // 강릉 경포를 보고 있는데 청학동 · 소하1동 웹캠이 떴습니다 -- 그러면 이 카드가
-  // 이 장소에 대해 말하는 것이 하나도 없습니다(useNearbyWebcams).
   const nearby = useNearbyWebcams(placeSettled ? undefined : spotId);
   const { result, error, expired, now } = nearby;
   const loading = nearby.loading;
@@ -700,12 +697,11 @@ function LivecamModule({
     const href = player ?? safeWebcamUrl(camera.public_page, camera.provider_camera_id);
     return href ? [{ camera, href, label: player ? t(player === camera.live_player ? "실시간 안내 · 미검증" : "타임랩스") : t("원본 보기") }] : [];
   }).slice(0, 3);
-  // 반경 안에 없으면 전국 목록으로 물러서지 않습니다 -- 물러서면 「근처」라고
-  // 말할 수 없는 것을 근처 자리에 놓게 됩니다. 어디 기준 몇 km 인지 함께 적어
-  // 두면 「없음」이 왜 없음인지가 읽힙니다.
   const emptyNote = placeSettled
     ? t("기준 장소를 정하지 못해 근처 라이브캠을 찾지 못했습니다.")
-    : nearby.radiusKm && placeName
+    : nearby.catalogFallback
+      ? t("열 수 있는 라이브캠이 없습니다. 전체 목록에서 다시 확인해 주세요.")
+      : nearby.radiusKm && placeName
       ? t("{place} 기준 {radius}km 안에 열 수 있는 라이브캠이 없습니다. 다른 해변을 골라 보세요.", {
           place: placeName, radius: Math.round(nearby.radiusKm),
         })
@@ -716,14 +712,13 @@ function LivecamModule({
         <div className="hm-card-top hm-card-top-tight">
           <Mascot role="livecam" size={28} />
           <div className="pd-card-title">
-            {placeName && !placeSettled
-              ? t("{place} 근처 라이브캠", { place: placeName })
-              : t("라이브캠 물멍")}
+            {nearby.catalogFallback
+              ? t("다른 지역 물 풍경")
+              : placeName && !placeSettled
+                ? t("{place} 근처 라이브캠", { place: placeName })
+                : t("라이브캠 물멍")}
           </div>
         </div>
-        {/* 「다른 풍경 보기」는 전국 목록을 다시 섞는 손잡이였습니다. 근처
-            카메라는 섞을 것이 없으므로(반경 안의 전부입니다) 전체 목록으로
-            가는 길만 둡니다. */}
         <a className="pd-state-chip pd-tap" href="#livecam">{t("전체 라이브캠")}</a>
       </div>
       <div className="hm-cam-row">
@@ -745,7 +740,7 @@ function LivecamModule({
             <div className="hm-cam-thumb hm-cam-empty">
               <Mascot role="empty" size={40} />
               <span className="hm-cam-empty-title">
-                {loading ? t("조회 중") : t("근처 라이브캠 없음")}
+                {loading ? t("조회 중") : error ? t("조회 실패") : nearby.catalogFallback ? t("라이브캠 없음") : t("근처 라이브캠 없음")}
               </span>
             </div>
             <span className="hm-cam-label">{error ?? emptyNote}</span>
@@ -753,9 +748,9 @@ function LivecamModule({
         )}
       </div>
       <p className="pd-note" role={error ? "alert" : "status"}>
-        {/* 카메라가 있는 경우의 안내 문장은 내렸습니다. 조회 중 · 송출 없음은
-            사실이므로 남깁니다. */}
-        {error || (loading ? t("물 풍경을 고르는 중입니다.") : cameras.length ? "" : emptyNote)}{" "}
+        {error || (loading ? t("물 풍경을 고르는 중입니다.") : cameras.length
+          ? nearby.catalogFallback ? t("근처에 열 수 있는 라이브캠이 없어 다른 지역의 물 풍경을 보여드립니다.") : ""
+          : emptyNote)}{" "}
         {expired && t("목록 유효기간이 지나 원본 페이지로 연결합니다. ")}
         {/* 문단 안에 흐르는 인라인 링크입니다. min-height 는 인라인 요소에
             듣지 않으므로, 줄 높이를 깨지 않고 히트박스만 넓히는 .pd-tap 을
