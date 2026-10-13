@@ -2,7 +2,8 @@
 
 import asyncio
 import json
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -13,6 +14,7 @@ from app.config import Settings
 from app.data_reader import DataReader
 from app.ingestion.models import Place, SourceBatch
 from app.ingestion.storage import store_batch
+from app.ingestion.worker import run_due
 from app.place_translations.collector import (
     due_sources,
     translate_batch,
@@ -270,7 +272,37 @@ def test_separate_and_global_ceilings_both_stop_model_calls(
     result = asyncio.run(run_batch(settings, calls)) if expected_calls else first
     assert len(calls) == expected_calls
     assert result["error"] == reason
-    assert result["next_run_seconds"] >= 600
+    assert "next_run_seconds" not in result
+
+
+@pytest.mark.parametrize(
+    ("state", "error"),
+    [
+        ("succeeded", ""),
+        ("failed", "ai_rate_limited"),
+        ("partial", "TRANSLATION_DAILY_BUDGET"),
+        ("partial", "AI_GLOBAL_BUDGET"),
+    ],
+)
+def test_worker_waits_a_full_day_before_translating_again(translation_db, state, error):
+    settings, _ = translation_db
+    calls = []
+
+    def process():
+        calls.append(True)
+        return dict(state=state, error=error, received=0, inserted=0)
+
+    job = replace(translation_jobs(settings)[0], process=process)
+    assert run_due(settings, [job])[0]["state"] == state
+    with connect(settings) as c:
+        interval, finished, next_run = c.execute(
+            "SELECT interval_seconds,finished_at,next_run_at "
+            "FROM pongdang_data.collection_job WHERE task_name='place_translations'"
+        ).fetchone()
+    assert interval == 86400
+    assert next_run - finished == timedelta(days=1)
+    assert run_due(settings, [job]) == []
+    assert calls == [True]
 
 
 def test_disabled_or_unconfigured_worker_does_not_read_or_call():

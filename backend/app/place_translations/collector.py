@@ -2,8 +2,7 @@
 
 import asyncio
 import hashlib
-from datetime import UTC, datetime, timedelta
-from math import ceil
+from datetime import UTC, datetime
 from time import monotonic
 
 from psycopg.rows import dict_row
@@ -258,7 +257,7 @@ async def translate_batch(settings, *, provider=None, now=None):
     finally:
         if owned_provider:
             await provider.aclose()
-    result = dict(
+    return dict(
         received=received,
         inserted=inserted,
         state="failed"
@@ -268,12 +267,6 @@ async def translate_batch(settings, *, provider=None, now=None):
         else "succeeded",
         error=failures[0] if failures else wait_reason,
     )
-    if wait_reason in {"TRANSLATION_DAILY_BUDGET", "AI_GLOBAL_BUDGET"}:
-        tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
-            days=1
-        )
-        result["next_run_seconds"] = max(600, ceil((tomorrow - now).total_seconds()))
-    return result
 
 
 def record_overage(settings, day, amount):
@@ -289,7 +282,7 @@ def translation_jobs(settings):
     return [
         Job(
             "place_translations",
-            3600,
+            86400,
             process=lambda: asyncio.run(translate_batch(settings)),
             enabled=settings.place_translation_enabled
             and settings.ai_effective_provider == "openai"
