@@ -285,6 +285,9 @@ class PreviewService:
             search = batch.webcam_searches[0]
             truncated, radius = search.truncated, search.radius_km
             now = datetime.fromtimestamp(self.clock(), UTC)
+            thumbnails = self.catalog.thumbnails.metadata(
+                [camera.provider_camera_id for camera in cameras]
+            )
             rows = []
             for camera in cameras:
                 if not water_camera(camera):
@@ -297,6 +300,7 @@ class PreviewService:
                 rows.append(
                     PreviewCamera(
                         **camera.model_dump(),
+                        **thumbnails.get(camera.provider_camera_id, {}),
                         distance_km=distance,
                         relationship="nearby"
                         if distance is not None and camera.country_code == "KR"

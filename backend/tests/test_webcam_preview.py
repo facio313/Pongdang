@@ -228,6 +228,44 @@ def test_place_lookup_uses_collected_coordinates_and_only_nearby_relationship():
     assert response.json()["shuffle_seed"] is None
 
 
+def test_place_preview_reuses_saved_thumbnail_without_capturing(monkeypatch):
+    saved_at = datetime(2026, 9, 28, 5, 29, 2, tzinfo=UTC)
+    s = service(Client([camera(), camera(webcamId=43)]))
+    with schema.connect(s.settings) as connection:
+        connection.execute(
+            "INSERT INTO pongdang_data.windy_thumbnail "
+            "(camera_id,status,attempted_at,saved_at,storage_key,media_type,"
+            "sha256,byte_size) VALUES ('42','saved',%s,%s,%s,'image/jpeg',%s,1)",
+            [saved_at, saved_at, f"aa/{'a' * 64}.jpg", "a" * 64],
+        )
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Place previews must not capture thumbnails")
+
+    monkeypatch.setattr(s.catalog.thumbnails, "capture", forbidden)
+    monkeypatch.setattr(s.catalog.thumbnails, "downloader", forbidden)
+
+    async def read(_reader, **kwargs):
+        return [place()]
+
+    http = app_client(s, read)
+    for cached in (False, True):
+        response = http.post("/api/data/livecams/preview", json={"spot_id": 7})
+        assert response.status_code == 200
+        result = response.json()
+        assert result["cached"] is cached
+        saved, missing = result["rows"]
+        assert saved["thumbnail_url"] == "/api/data/livecams/thumbnails/42"
+        assert saved["thumbnail_saved_at"] == "2026-09-28T05:29:02Z"
+        assert missing["thumbnail_url"] is None
+        assert missing["thumbnail_saved_at"] is None
+    assert s.client.calls == [(37.8, 128.9, 2.0)]
+    with schema.connect(s.settings) as connection:
+        assert connection.execute(
+            "SELECT camera_id,status,saved_at FROM pongdang_data.windy_thumbnail"
+        ).fetchall() == [("42", "saved", saved_at)]
+
+
 def test_collected_water_place_picker_does_not_require_windy_key_or_provider_calls():
     reads = []
 
