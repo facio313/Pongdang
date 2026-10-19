@@ -19,10 +19,7 @@ def read_normalized(connection, now, *, forecast_only=False, current_only=False)
     """Bound effective source targets, not repeated issue cycles or expired data."""
     with connection.cursor(row_factory=dict_row) as cursor:
         rows = cursor.execute(
-            "WITH forecast_names AS (SELECT snapshot_id,"
-            "array_agg(name ORDER BY name) AS names FROM "
-            "pongdang_data.conditions_observationmetric WHERE mode='forecast' "
-            "GROUP BY snapshot_id), applicable AS (SELECT s.id,s.provider,"
+            "WITH applicable AS (SELECT s.id,s.provider,"
             "s.station_id,s.observed_at,s.fetched_at,s.ingestion_version,"
             # Match forecast_from_normalized's identity before applying the
             # bound. Separate KMA issue cycles are revisions of one target.
@@ -33,7 +30,13 @@ def read_normalized(connection, now, *, forecast_only=False, current_only=False)
             "ELSE jsonb_build_array(s.provider,s.station_id,s.source_record_id) "
             "END AS selection_key "
             "FROM pongdang_data.conditions_observationsnapshot s "
-            "LEFT JOIN forecast_names fm ON fm.snapshot_id=s.id "
+            # Use the snapshot index after filtering source targets, rather
+            # than aggregating every retained forecast metric on each pass.
+            "LEFT JOIN LATERAL (SELECT snapshot_id,"
+            "array_agg(name ORDER BY name) AS names FROM "
+            "pongdang_data.conditions_observationmetric "
+            "WHERE snapshot_id=s.id AND mode='forecast' GROUP BY snapshot_id) "
+            "fm ON true "
             "WHERE s.state<>'superseded' AND s.fetched_at<=%s "
             "AND (s.issued_at IS NULL OR s.issued_at<=%s) "
             "AND s.valid_until>%s AND s.observed_at<%s "
