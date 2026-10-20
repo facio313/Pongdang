@@ -293,7 +293,7 @@ def test_cafe_sql_applies_positive_category_before_bounded_read():
         async def connection(self):
             yield self
 
-        async def execute(self, sql, params):
+        async def execute(self, sql, params=None):
             queries.append((sql, params))
             return self
 
@@ -311,8 +311,9 @@ def test_cafe_sql_applies_positive_category_before_bounded_read():
         )
     )
     assert rows == []
-    assert "p.provider='KAKAO_LOCAL' AND (p.category='음식점 > 카페'" in queries[0][0]
-    assert "p.category LIKE '음식점 > 카페 > %%'" in queries[0][0]
+    assert queries[0] == ("SET LOCAL jit=off", None)
+    assert "p.provider='KAKAO_LOCAL' AND (p.category='음식점 > 카페'" in queries[1][0]
+    assert "p.category LIKE '음식점 > 카페 > %%'" in queries[1][0]
     assert scope["candidate_limit"] == 300
     assert scope["sql_page_size"] == 100
 
@@ -466,7 +467,10 @@ def test_public_recommendations_preserve_beach_valley_cafe_from_real_sql(
     ]
 
 
-def test_luna_decision_queries_both_requested_visits_and_renders_real_sql(travel_db):
+@pytest.mark.parametrize("corrected", [False, True])
+def test_luna_decision_queries_both_requested_visits_and_renders_real_sql(
+    travel_db, corrected
+):
     config, _, _, _ = travel_db
     store_batch(
         config,
@@ -492,8 +496,9 @@ def test_luna_decision_queries_both_requested_visits_and_renders_real_sql(travel
             "ai_api_key": SecretStr("offline-test-key"),
         }
     )
+    script = [decision(action="recommend", clarification="place")] if corrected else []
     provider = ScriptedProvider(
-        [decision(action="recommend", changes={"visit_intents": VISITS})]
+        [*script, decision(action="recommend", changes={"visit_intents": VISITS})]
     )
     account = MemoryBudget()
     response = asyncio.run(
@@ -518,14 +523,16 @@ def test_luna_decision_queries_both_requested_visits_and_renders_real_sql(travel
     assert response.provider == "openai", response.reason_codes
     assert not response.fallback
     assert response.features == ["travel_recommend"]
-    assert len(provider.bodies) == 1
+    assert len(provider.bodies) == 1 + int(corrected)
     assert provider.bodies[0]["tools"] == []
     assert "오전 · 해변" in response.answer and "격리 해변" in response.answer
     assert "오후 · 계곡" in response.answer and "격리 오후 계곡" in response.answer
     groups = response.travel_results["recommendation_groups"]
     assert [group["intent"]["place_type"] for group in groups] == ["beach", "valley"]
     assert all(group["result"]["recommendations"] for group in groups)
-    assert [turn.kind for turn in response.model_trace] == ["attempt", "scope", "tool"]
-    assert response.model_trace[1].plan["changes"]["visit_intents"] == [
+    assert [turn.kind for turn in response.model_trace] == (
+        ["attempt", "retry"] if corrected else []
+    ) + ["attempt", "scope", "tool"]
+    assert response.model_trace[-2].plan["changes"]["visit_intents"] == [
         {**intent, "activity": None} for intent in VISITS
     ]

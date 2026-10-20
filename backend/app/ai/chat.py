@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.routing import APIRoute
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from app.ai import budget
 from app.ai.provider import ProviderError, ResponsesProvider, encode_body
@@ -377,6 +377,34 @@ def unique_object(pairs):
     return result
 
 
+def validation_details(error, plan_type):
+    """Expose schema locations/rules, never model text or rejected input values."""
+    rules = {
+        "read_intent_requires_read_action",
+        "rejected_request_cannot_schedule_reads",
+        "relevant_request_cannot_be_rejected",
+        "clarification_required_only_for_clarify",
+        "duplicate_read_feature",
+        "general_read_has_no_place",
+        "temperature_filter_requires_conditions",
+        "empty_place_query",
+        "coordinate_pair_required",
+    }
+    issues = []
+    for item in error.errors(include_input=False, include_url=False)[:8]:
+        location = item["loc"]
+        field = location[0] if location else None
+        rule = str(item.get("ctx", {}).get("error", ""))
+        issues.append(
+            {
+                "field": field if field in plan_type.model_fields else "$",
+                "type": item["type"],
+                **({"rule": rule} if rule in rules else {}),
+            }
+        )
+    return {"schema": plan_type.__name__, "issues": issues}
+
+
 def parse_response(raw, *, plan_type=ResponsePlan, allow_tools=True):
     if raw.get("status") != "completed":
         detail = raw.get("incomplete_details") or {}
@@ -437,9 +465,20 @@ def parse_response(raw, *, plan_type=ResponsePlan, allow_tools=True):
         )
     try:
         value = json.loads(text, object_pairs_hook=unique_object)
-        return output, [], plan_type.model_validate(value)
     except ValueError:
-        raise ProviderError("ai_output_unverified") from None
+        raise ProviderError(
+            "ai_output_unverified",
+            details={
+                "schema": plan_type.__name__,
+                "issues": [{"type": "invalid_json"}],
+            },
+        ) from None
+    try:
+        return output, [], plan_type.model_validate(value)
+    except ValidationError as exc:
+        raise ProviderError(
+            "ai_output_unverified", details=validation_details(exc, plan_type)
+        ) from None
 
 
 def validate_plan(plan, session, request):
@@ -865,7 +904,8 @@ async def converse(
                                 )
                             except ProviderError as exc:
                                 if (
-                                    exc.code != "ai_empty_output"
+                                    exc.code
+                                    not in {"ai_empty_output", "ai_output_unverified"}
                                     or scope_retries >= 1
                                     or calls >= settings.ai_max_model_calls
                                 ):
@@ -879,6 +919,27 @@ async def converse(
                                         plan=exc.details,
                                     )
                                 )
+                                if exc.code == "ai_output_unverified":
+                                    # Reinterpret the original request, not the
+                                    # invalid output. No domain read is allowed
+                                    # until the corrected decision also validates.
+                                    inputs.append(
+                                        {
+                                            "role": "developer",
+                                            "content": (
+                                                "The previous request interpretation "
+                                                "failed server validation. Return one "
+                                                "complete corrected intent from the "
+                                                "original USER_INPUT and context. "
+                                                "Keep the same relevance and evidence "
+                                                "rules; do not invent missing values. "
+                                                "clarification must be non-null only "
+                                                "for action=clarify; read must be null "
+                                                "unless action=read. Validation: "
+                                                + json.dumps(exc.details)
+                                            ),
+                                        }
+                                    )
                                 # No domain reads have run. The next iteration
                                 # reserves another paid attempt under the same
                                 # daily budget, call count and request deadline.
@@ -1132,6 +1193,14 @@ async def converse(
             model is None,
             ",".join(reasons),
         )
+        for turn in trace:
+            if turn.error == "ai_output_unverified" and turn.kind in {"retry", "error"}:
+                LOG.info(
+                    "request_id=%s stage=%s validation=%s",
+                    request_id,
+                    turn.name,
+                    json.dumps(turn.plan, ensure_ascii=True),
+                )
     if any(
         code in reasons
         for code in (
@@ -1157,6 +1226,9 @@ async def converse(
         session,
     )
     if check_scope and (scope_denied or not scope_accepted):
+        # A failed interpretation did not replace the user's selected places.
+        # Keep them as untrusted context so the next turn can re-read them.
+        response.context = request.context.model_copy(deep=True)
         response.status = "out_of_scope" if scope_denied else "unavailable"
         response.answer = OUT_OF_SCOPE if scope_denied else SCOPE_UNAVAILABLE
         response.clarification = None

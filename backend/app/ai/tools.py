@@ -30,7 +30,7 @@ from app.livecams.service import CameraEnvelope, read_cameras
 from app.quality.api import QualityQuery
 from app.quality.models import ComparisonEnvelope
 from app.quality.storage import read_analyses
-from app.regions import PLACE_REGION_JOIN, place_search_predicate
+from app.regions import PLACE_REGION_JOIN, place_search_predicate, region_query
 from app.tides.service import tide_event
 from app.tides.storage import read_windows
 from app.twin.api import SpatialQuery, spatial_view
@@ -74,6 +74,25 @@ class SearchArgs(StrictArgs):
     query: str = Field(min_length=1, max_length=80, strict=True)
     activity: Activity = "swim"
     limit: int = Field(default=5, strict=True, ge=1, le=8)
+
+
+def search_place_predicate(query):
+    """Keep an explicit administrative prefix separate from the place name.
+
+    Stored names precede addresses, so one substring cannot match a natural
+    'district place' query. Never discard the district or infer it from a name.
+    Unknown/ambiguous regions retain the existing literal-search behavior.
+    """
+    parts = query.split()
+    for end in range(len(parts), 0, -1):
+        region = " ".join(parts[:end])
+        if region_query(region):
+            predicate, params = place_search_predicate(region)
+            if end < len(parts):
+                predicate += " AND position(lower(%s) in lower(s.name))>0"
+                params.append(" ".join(parts[end:]))
+            return predicate, params
+    return place_search_predicate(query)
 
 
 class TimeArgs(StrictArgs):
@@ -611,7 +630,7 @@ class ToolSession:
         query = args.query.strip()
         if not query or query in {"%", "_"}:
             raise ToolError("region_or_place_required")
-        predicate, params = place_search_predicate(query)
+        predicate, params = search_place_predicate(query)
         async with self.reader.connection() as c:
             rows = await (
                 await c.execute(

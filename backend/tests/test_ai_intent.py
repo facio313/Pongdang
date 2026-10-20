@@ -378,10 +378,11 @@ def test_disabled_model_cannot_silently_skip_the_relevance_check(settings):
 def test_malformed_or_tool_call_scope_responses_never_authorize_reads(
     settings, raw, code
 ):
-    response, session, _, _ = run(settings, [raw])
+    response, session, provider, _ = run(settings, [raw, raw])
     assert response.status == "unavailable"
     assert code in response.reason_codes
     assert not session.prepared and not session.calls
+    assert len(provider.bodies) == (2 if code == "ai_output_unverified" else 1)
 
 
 def test_relevant_ambiguous_weekend_asks_before_reading(settings):
