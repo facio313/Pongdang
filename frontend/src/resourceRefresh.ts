@@ -7,6 +7,8 @@ export function resourceRefreshInterval(data: unknown, receivedAt = Date.now()):
   if (typeof data !== "object" || data === null) return RESOURCE_REFRESH_INTERVAL;
   const record = data as Record<string, unknown>;
   const projection = record.projection as { status?: string; refresh_after?: string | null } | undefined;
+  const score = record.condition_score as { reason_codes?: string[] } | undefined;
+  if (score?.reason_codes?.includes("condition_projection_pending")) return 30000;
   const missingTarget = Array.isArray(record.reason_codes)
     && record.reason_codes.includes("condition_projection_unavailable_for_target");
   if (record.refresh_pending === true || (projection?.status === "pending" && !missingTarget) || projection?.status === "refreshing") return 30000;
@@ -16,7 +18,7 @@ export function resourceRefreshInterval(data: unknown, receivedAt = Date.now()):
     : RESOURCE_REFRESH_INTERVAL;
   for (const key of ["conditions", "rows"]) {
     if (Array.isArray(record[key])) for (const item of record[key]) {
-      if (typeof item === "object" && item !== null && "projection" in item)
+      if (typeof item === "object" && item !== null)
         interval = Math.min(interval, resourceRefreshInterval(item, receivedAt));
     }
   }

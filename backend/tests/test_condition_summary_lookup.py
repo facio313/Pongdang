@@ -17,6 +17,7 @@ from app.schema import connect, initialize
 from app.water_index.condition_api import ConditionQuery
 from app.water_index.condition_result import RESULT_COLUMNS
 from app.water_index.condition_storage import (
+    MODEL_VERSION,
     _copy_result_batch,
     _create_result_stage,
     _unavailable,
@@ -74,11 +75,11 @@ def test_summary_lookup_keeps_valid_predecessors_and_historical_boundaries(datab
         revision = projection_revision(connection)
         generations = []
         for offset, source_revision, published, model in (
-            (5, revision, True, "1.0.0"),
-            (4, revision - 1, True, "1.0.0"),
-            (3, revision, False, "1.0.0"),
+            (5, revision, True, MODEL_VERSION),
+            (4, revision - 1, True, MODEL_VERSION),
+            (3, revision, False, MODEL_VERSION),
             (2, revision, True, "other-model"),
-            (1, revision, True, "1.0.0"),
+            (1, revision, True, MODEL_VERSION),
         ):
             generations.append(
                 connection.execute(

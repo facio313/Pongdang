@@ -17,6 +17,19 @@ const ids = rows => rows.map(row => row.id);
 const withTemperatures = values => new Map(values.map((value, index) =>
   [index + 1, summary(index + 1, { value }, { numeric_value: value })]));
 
+test('real stored photos are preferred without inventing temperatures or image URLs', () => {
+  const candidates = places.map(place => ({ ...place,
+    photo: place.id <= 4 ? { id: place.id, url: `/api/data/attachments/${place.id}/file` }
+      : place.id === 5 ? { id: 5, url: 'https://provider.invalid/unverified.jpg' } : undefined,
+  }));
+  const data = withTemperatures([20, 21, 22, 23, 24, 20, 21, 22, 23]);
+  for (const seed of [0, 1, 17, 300]) {
+    const selected = selectHomeBeaches(candidates, data, seed);
+    assert.deepEqual(ids(selected).sort(), [1, 2, 3, 4]);
+    assert.equal(new Set(selected.map(row => row.temperature.value)).size, 4);
+  }
+});
+
 test('four different temperatures are chosen whenever at least four values exist', () => {
   const data = withTemperatures([20, 20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 24]);
   for (const seed of [0, 1, 17, 300]) {

@@ -165,6 +165,15 @@ def test_new_restriction_immediately_hides_old_score(database):
         assert pending["projection"]["status"] == "pending"
         assert pending["projection"]["retention_allowed"] is False
         assert pending["condition_score"]["score"] is None
+        assert pending["reason_codes"] == ["condition_projection_pending"]
+        summary = client.get(
+            "/api/data/water-index/conditions/summary",
+            params={"spot_ids": str(spot), "activity": "swim"},
+        ).json()["rows"][0]
+        assert (
+            "condition_projection_pending" in summary["condition_score"]["reason_codes"]
+        )
+        assert summary["retention_allowed"] is False
         assert produce_conditions(database) > 0
         blocked = client.get("/api/data/water-index/conditions", params=params).json()
         assert blocked["safety_status"] == "restricted"

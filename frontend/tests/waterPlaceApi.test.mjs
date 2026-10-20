@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { waterPlacesPath } from "../src/waterPlaceApi.ts";
+import { setTravelLanguage } from "../src/travelLanguage.ts";
 
 test("the default place request is the first 100-row page for all Gangwon", () => {
   const path = new URL(waterPlacesPath(), "https://example.test/");
@@ -9,6 +10,20 @@ test("the default place request is the first 100-row page for all Gangwon", () =
   assert.equal(path.searchParams.has("district"), false);
   assert.equal(path.searchParams.get("page"), "1");
   assert.equal(path.searchParams.get("page_size"), "100");
+  assert.equal(path.searchParams.get("locale"), "ko");
+});
+
+test("catalogue requests and cache keys follow the selected language", () => {
+  try {
+    for (const locale of ["en", "ja", "zh-CN", "ko"]) {
+      setTravelLanguage(locale);
+      const path = new URL(waterPlacesPath(), "https://example.test/");
+      assert.equal(path.searchParams.get("locale"), locale);
+      assert.equal(path.searchParams.get("province"), "gangwon");
+    }
+  } finally {
+    setTravelLanguage("ko");
+  }
 });
 
 test("free text and administrative filters travel as distinct query parameters", () => {

@@ -1,4 +1,5 @@
 import type { ClassifiedWaterPlace } from "./productData";
+import { getTravelLanguage } from "./travelLanguage.ts";
 
 export const DEFAULT_PROVINCE = "gangwon";
 export const WATER_PLACE_PAGE_SIZE = 100;
@@ -32,6 +33,7 @@ export function waterPlacesPath(search = "", query: WaterPlaceQuery = {}) {
     province: DEFAULT_PROVINCE,
     page: String(query.page ?? 1),
     page_size: String(query.pageSize ?? WATER_PLACE_PAGE_SIZE),
+    locale: getTravelLanguage().locale,
   });
   if (query.district) params.set("district", query.district);
   if (query.kind) params.set("kind", query.kind);

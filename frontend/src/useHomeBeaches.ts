@@ -11,14 +11,15 @@ export function useHomeBeaches() {
   const catalog = useResource<WaterPlacePage>(waterPlacesPath("", { kind: "beach" }));
   const places = useMemo(() => productPlaces(catalog.data?.rows ?? []).rows, [catalog.data]);
   const summaries = useConditionSummaries(places.map(place => place.id));
-  const selected = useMemo(() => summaries.settled
-    ? selectHomeBeaches(places, summaries.byId, seed) : undefined,
-  [places, summaries.byId, summaries.settled, seed]);
-  // Only the four selected cards need photos; summaries use at most four 25-row reads.
-  const photos = usePlacePhotos(selected);
+  // One bounded metadata read lets us prefer real place photos before drawing
+  // cards. Only the selected cards download image files.
+  const photos = usePlacePhotos(catalog.data ? places : undefined);
+  const selected = useMemo(() => summaries.settled && !photos.loading
+    ? selectHomeBeaches(photos.rows ?? [], summaries.byId, seed) : undefined,
+  [photos.rows, photos.loading, summaries.byId, summaries.settled, seed]);
   return {
-    rows: photos.rows,
-    loading: catalog.loading || !summaries.settled,
-    error: catalog.error ?? summaries.error,
+    rows: selected,
+    loading: catalog.loading || !summaries.settled || photos.loading,
+    error: catalog.error ?? summaries.error ?? photos.error,
   };
 }

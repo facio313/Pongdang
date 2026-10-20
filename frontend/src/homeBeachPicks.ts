@@ -1,5 +1,6 @@
 import { selectSummaryTemperature, type TemperatureReading } from "./firstSwimTemperature.ts";
 import type { ConditionSummary } from "./productData.ts";
+import { placePhotoUrl, type PlacePhoto } from "./placePhotos.ts";
 
 let sessionSeed: number | undefined;
 /** Share the draw across desktop/mobile remounts; a page reload starts a new draw. */
@@ -7,7 +8,7 @@ export function homeBeachShuffleSeed() {
   return sessionSeed ??= crypto.getRandomValues(new Uint32Array(1))[0];
 }
 
-export function selectHomeBeaches<T extends { id: number; type: string | null }>(
+export function selectHomeBeaches<T extends { id: number; type: string | null; photo?: PlacePhoto }>(
   places: T[], summaries: ReadonlyMap<number, ConditionSummary>, seed: number,
 ): (T & { temperature: TemperatureReading })[] {
   const unique = new Map(places.filter(place => place.type === "beach").map(place => [place.id, place]));
@@ -28,6 +29,9 @@ export function selectHomeBeaches<T extends { id: number; type: string | null }>
     const other = Math.floor(random() * (index + 1));
     [candidates[index], candidates[other]] = [candidates[other], candidates[index]];
   }
+  // Preserve the random order within each group, but do not select a generic
+  // image when a real, locally served photo can represent that temperature.
+  candidates.sort((a, b) => Number(Boolean(placePhotoUrl("", b.photo))) - Number(Boolean(placePhotoUrl("", a.photo))));
   // Show at most one beach per displayed temperature, even if fewer than four remain.
   const selected: typeof candidates = [];
   const temperatures = new Set<number>();

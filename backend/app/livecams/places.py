@@ -28,6 +28,13 @@ TOURISM_PROVIDERS = (
 )
 TOURISM_PROVIDER_SQL = ",".join(f"'{provider}'" for provider in TOURISM_PROVIDERS)
 CATALOG_VERIFICATION_HOURS = 48
+PlaceLocale = Literal["ko", "en", "ja", "zh-CN", "zh-TW"]
+FOREIGN_PLACE_PROVIDERS = {
+    "en": "tourapi_english",
+    "ja": "tourapi_japanese",
+    "zh-CN": "tourapi_chinese_simplified",
+    "zh-TW": "tourapi_chinese_traditional",
+}
 
 
 def tourism_detail_kind_sql(alias="s"):
@@ -265,7 +272,15 @@ def place_catalog_cte(where):
 
 
 async def read_places_page(
-    reader, *, q="", province=None, district=None, kind=None, page=1, page_size=100
+    reader,
+    *,
+    q="",
+    province=None,
+    district=None,
+    kind=None,
+    page=1,
+    page_size=100,
+    locale: PlaceLocale = "ko",
 ):
     # Enforce the bound for internal callers too. Every page is read in one
     # read-only repeatable-read transaction with its count.
@@ -273,6 +288,18 @@ async def read_places_page(
         raise ValueError("Invalid place page")
     search, params = place_search_predicate(q, alias="p")
     where = "WHERE place_kind IS NOT NULL AND " + search
+    # Language catalogues have distinct source IDs. Filter before counting and
+    # paging so foreign originals cannot crowd Korean places/photos off page 1.
+    # Keep originals and explicit detail/bookmark IDs intact; do not merge places
+    # based on a translated name alone.
+    if locale == "ko":
+        where += " AND (p.catalog_source IS NULL OR p.catalog_source<>ALL(%s))"
+        params.append(list(FOREIGN_PLACE_PROVIDERS.values()))
+    else:
+        if locale not in FOREIGN_PLACE_PROVIDERS:
+            raise ValueError("Unsupported place locale")
+        where += " AND p.catalog_source=%s"
+        params.append(FOREIGN_PLACE_PROVIDERS[locale])
     if province or district:
         predicate, region_params = administrative_predicate(
             province=province or "gangwon", district=district, alias="p"
@@ -345,6 +372,7 @@ def create_places_router(settings, *, reader=None):
         kind: WaterPlaceKind | None = None,
         page: int = Query(1, ge=1, le=10000),
         page_size: int = Query(100, ge=1, le=100),
+        locale: PlaceLocale = "ko",
     ):
         return await read_places_page(
             reader,
@@ -354,6 +382,7 @@ def create_places_router(settings, *, reader=None):
             kind=kind,
             page=page,
             page_size=page_size,
+            locale=locale,
         )
 
     return router

@@ -64,6 +64,7 @@ test('unfinished calculations refresh sooner than complete or truly empty reads'
     { refresh_pending: true }, { projection: { status: 'pending' } },
     { conditions: [{ projection: { status: 'refreshing' } }] },
     { rows: [{ projection: { status: 'ready' } }, { projection: { status: 'pending' } }] },
+    { rows: [{ condition_score: { reason_codes: ['condition_projection_pending'] } }] },
   ]) assert.equal(resourceRefreshInterval(value), 30000);
 });
 

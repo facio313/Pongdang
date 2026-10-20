@@ -811,6 +811,7 @@ def _unavailable(q, at, as_of, row):
     reason = (
         "condition_projection_pending"
         if row["latest_generation_id"] is None
+        or row["published_source_revision"] < row["invalidated_revision"]
         else "condition_projection_unavailable_for_target"
     )
     definition = ACTIVITIES[q.activity]
@@ -881,6 +882,7 @@ async def read_condition_set(reader, queries, *, now=None, connection=None):
                 "ORDER BY id DESC LIMIT 1) "
                 "SELECT q.ordinal,p.id AS place_id,p.name,r.revision,"
                 "r.invalidated_revision,latest.id AS latest_generation_id,"
+                "latest.source_revision AS published_source_revision,"
                 "g.id AS projection_generation_id,g.source_revision,"
                 "g.computed_at,s.* "
                 "FROM wanted q "
@@ -995,6 +997,7 @@ async def read_condition_summaries(reader, queries, *, now=None, connection=None
                 "ORDER BY id DESC LIMIT 1) "
                 "SELECT q.ordinal,p.id AS place_id,p.name,r.revision,"
                 "r.invalidated_revision,latest.id AS latest_generation_id,"
+                "latest.source_revision AS published_source_revision,"
                 "s.generation_id,g.source_revision,s.place_name,s.support_status,"
                 "s.safety_status,s.condition_score,s.water_temperature,"
                 "s.expires_at,s.retained FROM wanted q CROSS JOIN revision r "

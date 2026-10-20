@@ -187,7 +187,7 @@ def test_stored_official_detail_classifies_old_foreign_records_without_recollect
     )
     assert [row["spot_id"] for row in rows] == [sid]
     page = TestClient(create_app(identity_db)).get(
-        "/api/data/places", params={"kind": "beach"}
+        "/api/data/places", params={"kind": "beach", "locale": "en"}
     )
     assert [row["id"] for row in page.json()["rows"]] == [sid]
 
@@ -247,7 +247,7 @@ def test_recent_badge_requires_complete_success_and_actual_item_fetch(identity_d
     assert travel["catalog_verified_at"] == fetched
     with TestClient(create_app(identity_db)) as client:
         for path in (
-            "/api/data/places",
+            "/api/data/places?locale=en",
             f"/api/data/livecams/preview/places?spot_id={sid}",
         ):
             response = client.get(path)
