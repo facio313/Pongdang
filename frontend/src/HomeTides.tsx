@@ -1,3 +1,4 @@
+import { dataNowIso, isArchiveMode } from "./archiveRuntime.ts";
 import { useEffect, useState } from "react";
 import { t } from "./i18n";
 import { formatValue, periodPath, tideTimeLabel, type TideResult } from "./productData";
@@ -8,9 +9,10 @@ import "./homeTides.css";
 
 /** Read a two-day horizon every 30 minutes; advance the displayed events each minute. */
 export function HomeTides({ id, placeSettled }: { id?: number; placeSettled: boolean }) {
-  const [now, setNow] = useState(() => new Date().toISOString());
+  const [now, setNow] = useState(() => dataNowIso());
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date().toISOString()), 60_000);
+    if (isArchiveMode()) return;
+    const timer = window.setInterval(() => setNow(dataNowIso()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
   const queryAt = new Date(Math.floor(Date.parse(now) / RESOURCE_REFRESH_INTERVAL) * RESOURCE_REFRESH_INTERVAL).toISOString();

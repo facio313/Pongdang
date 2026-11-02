@@ -1,0 +1,597 @@
+#!/usr/bin/python3
+"""Switch only Pongdang between a saved real-data website and its live stack.
+
+Install root:root 0755 at /usr/local/libexec/pongdang-mode. No image is built or
+pulled. Archive metadata and the database backup are prepared independently.
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import datetime as dt
+import fcntl
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+import urllib.request
+from pathlib import Path
+
+STATE = Path("/home/cks/.local/share/pongdang-archive")
+DEPLOY = Path("/home/cks/.local/share/pongdang-deploy")
+ENV_FILE = Path("/home/cks/.config/pongdang/production.env")
+RETIREMENTS = Path("/etc/monitor/alert-retirements.json")
+MONITOR_LOCK = Path("/run/monitor-collector/collector.lock")
+DOCKER = ("docker", "-H", "unix:///run/user/1001/docker.sock")
+VOLUME = "pongdang_postgres_data"
+SERVICES = ("collector", "backend", "frontend", "initialize", "db")
+TIMERS = ("pongdang-ci-watch.timer", "pongdang-deploy-watch.timer")
+TARGETS = frozenset({"container/pongdang-backend", "container/pongdang-db"})
+SHA = re.compile(r"[0-9a-f]{40}\Z")
+
+
+class ModeError(RuntimeError):
+    """A precondition or bounded operation failed; never include secret output."""
+
+
+def now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def read_json(path: Path) -> dict:
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_size > 65536:
+        raise ModeError(f"Invalid metadata file: {path.name}")
+    data = json.loads(path.read_text())
+    if not isinstance(data, dict):
+        raise ModeError(f"Invalid metadata object: {path.name}")
+    return data
+
+
+def atomic_json(path: Path, value: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+@contextlib.contextmanager
+def locked(path: Path):
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ModeError("Lock is not a regular file")
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
+class Controller:
+    def __init__(
+        self,
+        state=STATE,
+        deploy=DEPLOY,
+        env_file=ENV_FILE,
+        retirements=RETIREMENTS,
+        monitor_lock=MONITOR_LOCK,
+        runner=subprocess.run,
+    ):
+        self.state, self.deploy = Path(state), Path(deploy)
+        self.env_file, self.retirements = Path(env_file), Path(retirements)
+        self.monitor_lock, self.runner = Path(monitor_lock), runner
+        self.marker = self.state / "active.json"
+        self.runtime = read_json(self.state / "runtime.json")
+        self.preparation = read_json(self.state / "preparation.json")
+        self.release = Path(self.runtime["release_dir"])
+        self.compose_file = Path(self.runtime["compose_file"])
+        self.backup_file = Path(self.runtime["backup_file"])
+        self._validate_paths()
+
+    def _validate_paths(self):
+        if (
+            not SHA.fullmatch(self.release.name)
+            or self.release.resolve().parent != (self.deploy / "releases").resolve()
+            or not (self.release / "compose.yaml").is_file()
+            or self.compose_file.resolve().parent != self.state.resolve()
+            or not self.compose_file.is_file()
+            or self.backup_file.resolve().parent != self.state.resolve()
+            or not Path(self.runtime["public_dir"]).is_dir()
+            or not self.env_file.is_file()
+        ):
+            raise ModeError("Archive paths do not match the saved Pongdang deployment")
+        if self.preparation.get("release") != str(self.release):
+            raise ModeError("Prepared release does not match archive runtime")
+        if not isinstance(self.runtime.get("frontend_image"), str):
+            raise ModeError("Saved frontend image is missing")
+        preview = self.runtime.get("preview_url", "http://127.0.0.1:15188/api/ready")
+        if not re.fullmatch(r"http://127\.0\.0\.1:[0-9]{2,5}/api/ready", preview):
+            raise ModeError("Preview must be an explicit loopback readiness URL")
+        for timer in TIMERS:
+            saved = self.preparation.get("timers", {}).get(timer, {})
+            if saved.get("is-active") not in {"active", "inactive"} or saved.get(
+                "is-enabled"
+            ) not in {"enabled", "disabled"}:
+                raise ModeError("Original watchdog timer states are missing")
+
+    def run(self, command, *, stdin=None, check=True, timeout=240):
+        environment = {
+            **os.environ,
+            "RELEASE_SHA": self.release.name,
+            "COMPOSE_PROJECT_NAME": "pongdang",
+        }
+        result = self.runner(
+            list(command),
+            stdin=stdin,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+            timeout=timeout,
+            check=False,
+        )
+        if check and result.returncode:
+            # Compose/pg_restore output may contain production connection data.
+            raise ModeError(
+                f"{command[0]} operation failed (exit {result.returncode}); no secret output printed"
+            )
+        return result
+
+    def docker(self, *args, **kwargs):
+        return self.run((*DOCKER, *args), **kwargs)
+
+    def compose(self, live, *args, timeout=240):
+        if live:
+            prefix = (
+                *DOCKER,
+                "compose",
+                "--project-name",
+                "pongdang",
+                "--env-file",
+                str(self.env_file),
+                "-f",
+                str(self.release / "compose.yaml"),
+            )
+        else:
+            prefix = (
+                *DOCKER,
+                "compose",
+                "--project-name",
+                "pongdang-archive",
+                "-f",
+                str(self.compose_file),
+            )
+        return self.run((*prefix, *args), timeout=timeout)
+
+    def up(self, live, *services):
+        self.compose(
+            live,
+            "up",
+            "-d",
+            "--no-build",
+            "--pull",
+            "never",
+            "--no-deps",
+            "--wait",
+            "--wait-timeout",
+            "180",
+            *services,
+        )
+
+    def container(self, service):
+        if service not in SERVICES:
+            raise ModeError("Container is outside the Pongdang mode allowlist")
+        result = self.docker(
+            "container",
+            "inspect",
+            f"pongdang-{service}",
+            "--format",
+            "{{json .Config.Labels}}",
+            check=False,
+        )
+        if result.returncode:
+            # A daemon failure must not be mistaken for a missing container.
+            self.docker("info", "--format", "{{.ServerVersion}}")
+            names = self.docker(
+                "container",
+                "ls",
+                "-a",
+                "--filter",
+                f"name=^/pongdang-{service}$",
+                "--format",
+                "{{.Names}}",
+            )
+            if names.stdout.strip():
+                raise ModeError("Pongdang container inspection failed")
+            return None
+        labels = json.loads(result.stdout)
+        allowed = (
+            {"pongdang", "pongdang-archive"} if service == "frontend" else {"pongdang"}
+        )
+        if (
+            not isinstance(labels, dict)
+            or labels.get("com.docker.compose.project") not in allowed
+            or labels.get("com.docker.compose.service") != service
+        ):
+            raise ModeError(
+                f"Refusing container from another project: pongdang-{service}"
+            )
+        return labels
+
+    def remove(self, *services):
+        # Validate the complete selection before stopping the first container.
+        present = [
+            service for service in services if self.container(service) is not None
+        ]
+        for service in present:
+            self.docker(
+                "container", "stop", "--time", "30", f"pongdang-{service}", timeout=60
+            )
+            self.docker("container", "rm", f"pongdang-{service}")
+
+    def volume_exists(self):
+        result = self.docker(
+            "volume", "inspect", VOLUME, "--format", "{{json .Labels}}", check=False
+        )
+        if result.returncode:
+            self.docker("info", "--format", "{{.ServerVersion}}")
+            found = self.docker(
+                "volume", "ls", "--filter", f"name=^{VOLUME}$", "--format", "{{.Name}}"
+            )
+            if found.stdout.strip():
+                raise ModeError("Pongdang volume inspection failed")
+            return False
+        labels = json.loads(result.stdout)
+        if (
+            not isinstance(labels, dict)
+            or labels.get("com.docker.compose.project") != "pongdang"
+            or labels.get("com.docker.compose.volume") != "postgres_data"
+        ):
+            raise ModeError("Refusing database volume with unexpected ownership labels")
+        return True
+
+    def verify_backup(self):
+        metadata = read_json(self.state / "database-backup.json")
+        if (
+            metadata.get("file") != self.backup_file.name
+            or metadata.get("verified_restore_list") is not True
+            or metadata.get("verified_restore_stream") is not True
+            or metadata.get("postgres_image") != "postgres:18-alpine"
+            or not re.fullmatch(r"[0-9a-f]{64}", str(metadata.get("sha256", "")))
+        ):
+            raise ModeError(
+                "Backup must have verified pg_restore list/stream and SHA-256"
+            )
+        info = self.backup_file.lstat()
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_size != metadata.get("bytes")
+            or info.st_size == 0
+        ):
+            raise ModeError("Backup size/type does not match its verification record")
+        with self.backup_file.open("rb") as handle:
+            checksum = hashlib.file_digest(handle, "sha256").hexdigest()
+        if checksum != metadata["sha256"]:
+            raise ModeError("Backup checksum mismatch; no container or volume changed")
+
+    def ready(self, archive, url="http://127.0.0.1:5188/api/ready"):
+        with urllib.request.urlopen(url, timeout=10) as response:
+            if response.status != 200:
+                raise ModeError("Pongdang readiness did not return HTTP 200")
+            data = json.loads(response.read(65536))
+        if data.get("status") != "ok":
+            raise ModeError("Pongdang readiness is not OK")
+        if archive:
+            if data.get("mode") != "archive" or data.get("live_data") is not False:
+                raise ModeError("Readiness is not the prepared archive website")
+        elif data.get("mode") == "archive":
+            raise ModeError("Live readiness still points to the archive website")
+
+    def set_retirements(self, archived):
+        previous = (
+            read_json(self.retirements)
+            if self.retirements.exists()
+            else {"schemaVersion": 1, "targets": []}
+        )
+        if (
+            set(previous) != {"schemaVersion", "targets"}
+            or previous["schemaVersion"] != 1
+            or not isinstance(previous["targets"], list)
+            or any(not isinstance(item, str) for item in previous["targets"])
+        ):
+            raise ModeError("Existing Monitor retirement configuration is invalid")
+        targets = list(previous["targets"])
+        updated = (
+            targets + sorted(TARGETS - set(targets))
+            if archived
+            else [item for item in targets if item not in TARGETS]
+        )
+        if updated != targets:
+            backup = self.state / (
+                "monitor-retirements-before-"
+                + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+                + ".json"
+            )
+            atomic_json(backup, previous)
+            atomic_json(self.retirements, {"schemaVersion": 1, "targets": updated})
+
+    def watchdogs(self, restore=False):
+        for timer in TIMERS:
+            if not restore:
+                self.run(("systemctl", "disable", "--now", timer))
+                continue
+            saved = self.preparation["timers"][timer]
+            self.run(
+                (
+                    "systemctl",
+                    "enable" if saved["is-enabled"] == "enabled" else "disable",
+                    timer,
+                )
+            )
+            self.run(
+                (
+                    "systemctl",
+                    "start" if saved["is-active"] == "active" else "stop",
+                    timer,
+                )
+            )
+
+    @contextlib.contextmanager
+    def monitoring_transition(self):
+        with locked(self.monitor_lock):
+            try:
+                yield
+            finally:
+                # Do not let a cached stopped-container sample escape the lock.
+                self.run(("systemctl", "start", "monitor-container-exporter.service"))
+
+    def write_marker(self, **values):
+        previous = read_json(self.marker) if self.marker.exists() else {}
+        atomic_json(
+            self.marker,
+            {
+                **previous,
+                "mode": "archive",
+                "release_dir": str(self.release),
+                "backup_file": str(self.backup_file),
+                "updated_at": now(),
+                **values,
+            },
+        )
+
+    def return_to_archive(self):
+        self.watchdogs()
+        self.set_retirements(True)
+        with self.monitoring_transition():
+            self.remove(*SERVICES)
+            self.up(False, "frontend")
+        self.ready(True)
+        self.write_marker(phase="archive", last_resume_failed=True)
+
+    def archive(self, remove_database_volume=False):
+        self.verify_backup()
+        last_live = self.state / "last-live.json"
+        if remove_database_volume and last_live.exists():
+            # A later backup timestamp does not prove writes stopped before it.
+            # Reusing an archive generation after live operation may discard
+            # newer real data. A new, quiesced preparation is required instead.
+            raise ModeError(
+                "Prepare a new archive generation with writes stopped before deleting a database used live"
+            )
+        self.docker(
+            "image", "inspect", self.runtime["frontend_image"], "--format", "{{.Id}}"
+        )
+        already_archived = self.marker.exists()
+        if already_archived:
+            self.ready(True)
+        else:
+            self.ready(
+                True,
+                self.runtime.get("preview_url", "http://127.0.0.1:15188/api/ready"),
+            )
+        for service in SERVICES:
+            self.container(service)
+        volume_present = self.volume_exists()
+        self.compose(False, "config", "--quiet")
+        self.write_marker(phase="activating")
+        self.watchdogs()
+        self.set_retirements(True)
+        try:
+            with self.monitoring_transition():
+                self.remove(*SERVICES)
+                self.up(False, "frontend")
+            self.ready(True)
+        except Exception as error:
+            if already_archived or not volume_present:
+                # Never create an empty live database as a rollback for a
+                # failed static redeploy, especially after its volume was removed.
+                self.write_marker(
+                    phase="activation_failed",
+                    volume_removed=not volume_present,
+                    last_archive_failed=True,
+                )
+                raise ModeError(
+                    "Static redeployment failed; backup and any existing volume preserved; no live database created"
+                ) from error
+            # The volume has not been deleted. Recover the old web/API if the
+            # prepared static deployment unexpectedly fails during activation.
+            try:
+                with self.monitoring_transition():
+                    self.remove("frontend")
+                    self.up(True, "db")
+                    self.up(True, "backend")
+                    self.up(True, "frontend")
+                self.ready(False)
+                self.set_retirements(False)
+                self.write_marker(
+                    phase="activation_failed_live_web", last_archive_failed=True
+                )
+            except (
+                ModeError,
+                OSError,
+                ValueError,
+                KeyError,
+                subprocess.SubprocessError,
+            ):
+                self.write_marker(phase="activation_failed", last_archive_failed=True)
+            raise ModeError(
+                "Archive activation failed; database volume retained; inspect mode status"
+            ) from error
+        self.write_marker(phase="archive", volume_removed=not volume_present)
+        if remove_database_volume and self.volume_exists():
+            # Only the named database volume is removable, and only after the
+            # saved real-data website has passed readiness.
+            self.docker("volume", "rm", VOLUME)
+            self.write_marker(volume_removed=True)
+
+    def resume(self):
+        if not self.marker.exists():
+            self.ready(False)
+            return
+        self.verify_backup()
+        marker = read_json(self.marker)
+        if marker.get("restore_state") == "restoring":
+            raise ModeError(
+                "Previous restore was interrupted; preserve the volume for inspection"
+            )
+        for service in SERVICES:
+            self.container(service)
+        have_volume = self.volume_exists()
+        if have_volume and marker.get("restore_state") == "failed":
+            raise ModeError(
+                "Previous restore failed; preserved volume requires explicit inspection"
+            )
+        if (
+            have_volume
+            and marker.get("volume_removed") is True
+            and marker.get("restore_state") != "complete"
+        ):
+            raise ModeError(
+                "An unexpected volume appeared after archive deletion; refusing to reuse it"
+            )
+        self.watchdogs()
+        self.write_marker(phase="resuming")
+        try:
+            if not have_volume:
+                self.write_marker(restore_state="restoring")
+            self.up(True, "db")
+            if not have_volume:
+                self.volume_exists()
+                try:
+                    with self.backup_file.open("rb") as backup:
+                        self.docker(
+                            "exec",
+                            "-i",
+                            "pongdang-db",
+                            "sh",
+                            "-ceu",
+                            'exec pg_restore --single-transaction --exit-on-error --no-owner --no-privileges -U "$POSTGRES_USER" -d "$POSTGRES_DB"',
+                            stdin=backup,
+                            timeout=7200,
+                        )
+                except Exception:
+                    self.write_marker(restore_state="failed")
+                    raise
+                self.write_marker(restore_state="complete", volume_removed=False)
+            self.up(True, "backend")
+            with self.monitoring_transition():
+                self.remove("frontend")
+                atomic_json(
+                    self.state / "last-live.json",
+                    {"started_at": now(), "release_sha": self.release.name},
+                )
+                self.up(True, "frontend")
+            self.ready(False)
+            self.up(True, "collector")
+            self.set_retirements(False)
+            self.marker.unlink()
+            self.watchdogs(restore=True)
+        except Exception as error:
+            try:
+                self.return_to_archive()
+            except Exception as rollback_error:
+                self.write_marker(phase="resume_failed_rollback_failed")
+                raise ModeError(
+                    "Resume and static-web rollback failed; backup and volumes were preserved"
+                ) from rollback_error
+            raise ModeError(
+                "Resume failed; archive website restored, backup and database volume preserved"
+            ) from error
+
+    def status(self):
+        marker = read_json(self.marker) if self.marker.exists() else None
+        return {
+            "mode": "archive" if marker else "live",
+            "state": marker,
+            "release_sha": self.release.name,
+            "database_volume_present": self.volume_exists(),
+            "backup_file": str(self.backup_file),
+            "containers": {
+                service: self.container(service) is not None for service in SERVICES
+            },
+        }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("status", "archive", "resume"))
+    parser.add_argument(
+        "--remove-database-volume",
+        action="store_true",
+        help="Archive only: delete the verified Pongdang database volume after static readiness",
+    )
+    arguments = parser.parse_args()
+    if os.geteuid() != 0:
+        parser.error("Run this locally as root")
+    if arguments.remove_database_volume and arguments.command != "archive":
+        parser.error("--remove-database-volume is only valid with archive")
+    try:
+        controller = Controller()
+        with locked(STATE / "mode.lock"), locked(DEPLOY / "deploy.lock"):
+            if arguments.command == "status":
+                print(json.dumps(controller.status(), ensure_ascii=False, indent=2))
+            elif arguments.command == "archive":
+                controller.archive(arguments.remove_database_volume)
+                print(
+                    "Pongdang archive website ready; live data collection is stopped."
+                )
+            else:
+                controller.resume()
+                print("Pongdang live website and real-data collector ready.")
+    except (
+        ModeError,
+        OSError,
+        ValueError,
+        KeyError,
+        subprocess.SubprocessError,
+    ) as error:
+        print(
+            str(error)
+            if isinstance(error, ModeError)
+            else "Mode operation failed; no production details printed.",
+            file=sys.stderr,
+        )
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

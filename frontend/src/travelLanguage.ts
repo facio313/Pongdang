@@ -1,3 +1,4 @@
+import { isArchiveMode } from "./archiveRuntime.ts";
 import { useSyncExternalStore } from "react";
 import type { TravelRequest } from "./travelApi";
 
@@ -15,6 +16,7 @@ function isTravelLocale(value: unknown): value is TravelLocale {
 }
 
 type LanguageState = { locale: TravelLocale; persisted: boolean };
+const archiveLanguage: LanguageState = { locale: "ko", persisted: false };
 let state: LanguageState | undefined;
 const listeners = new Set<() => void>();
 
@@ -29,11 +31,13 @@ function readLanguage(): LanguageState {
 }
 
 export function getTravelLanguage(): LanguageState {
+  if (isArchiveMode()) return archiveLanguage;
   state ??= readLanguage();
   return state;
 }
 
 export function setTravelLanguage(locale: TravelLocale) {
+  if (isArchiveMode()) return;
   let persisted = true;
   try {
     window.localStorage.setItem(TRAVEL_LANGUAGE_KEY, locale);

@@ -15,6 +15,8 @@ import { RecommendPage } from "./RecommendPage";
 import { MapPage } from "./MapPage";
 import { SpotsPage } from "./SpotsPage";
 import { useI18n } from "./i18n";
+import { ArchiveNotice, ArchiveUnavailablePage } from "./ArchiveNotice";
+import { isArchiveMode } from "./archiveRuntime.ts";
 
 // 확정된 제품 화면 5개. 하단 공용 탭바(appTabBar.tsx)·데스크탑 상단 네비와 같은
 // 키를 씁니다(appNav.ts). 저장한 코스는 지도 탭 안(#map?view=course)에서 봅니다.
@@ -83,6 +85,7 @@ export default function App() {
   }, []);
   return (
     <DataOrigin.Provider value="data">
+      <ArchiveNotice />
       <a
         className="skip-link"
         href="#main-content"
@@ -94,7 +97,9 @@ export default function App() {
         {t("본문으로 이동")}
       </a>
       <main id="main-content" tabIndex={-1}>
-        {screen.kind === "product" ? (
+        {isArchiveMode() && screen.kind === "route" && ["ai", "livecam", "first-swim", "favorites", "travel-history"].includes(screen.route.page) ? (
+          <ArchiveUnavailablePage />
+        ) : screen.kind === "product" ? (
           <Fragment key={window.location.hash}>{productPages[screen.key].render()}</Fragment>
         ) : screen.kind === "dev" ? (
           <DevIndexPage />

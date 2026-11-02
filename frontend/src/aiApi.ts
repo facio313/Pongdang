@@ -1,3 +1,4 @@
+import { isArchiveMode, readArchiveData } from "./archiveRuntime.ts";
 import { t, dateLocale } from "./i18n.ts";
 import { forbiddenMessage } from "./authMessages.ts";
 export const activities = { swim: "수영", surf: "서핑", relax: "휴식", mudflat: "갯벌", onsen: "온천", rafting: "래프팅", walk: "물길 따라 걷기" } as const;
@@ -115,6 +116,7 @@ export class AiRequestError extends Error {
   constructor(code: string, message: string) { super(message); this.name = "AiRequestError"; this.code = code; }
 }
 export async function requestJson<T>(base: string, path: string, signal: AbortSignal, body?: unknown): Promise<T> {
+  if (isArchiveMode()) return readArchiveData<T>(base, path, body === undefined ? "GET" : "POST", signal);
   const response = await fetch(`${base}api/data/${path}`, {
     method: body === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store", signal,
     ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),

@@ -1,3 +1,4 @@
+import { isArchiveMode, readArchiveData } from "./archiveRuntime.ts";
 import { forbiddenMessage } from "./authMessages.ts";
 import { aiReasonTexts, type Activity } from "./aiApi.ts";
 import type { ModelTraceTurn } from "./aiApi";
@@ -430,6 +431,7 @@ export async function travelJson<T>(
   signal?: AbortSignal,
   fetcher: typeof fetch = fetch,
 ): Promise<T> {
+  if (isArchiveMode()) return readArchiveData<T>(base, path, method, signal, fetcher);
   const response = await fetcher(`${base}api/data/${travelPath(path)}`, {
     method,
     credentials: "same-origin",

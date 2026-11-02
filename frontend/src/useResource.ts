@@ -1,3 +1,4 @@
+import { isArchiveMode } from "./archiveRuntime.ts";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { travelJson } from "./travelApi.ts";
 import { queueResourceRead } from "./resourceQueue.ts";
@@ -146,7 +147,7 @@ function readResource(base: string, key: string, resourceKey: string, path: stri
 export function loadResource<T>(base: string, path: string, revision = 0, generation = resourceRefreshGeneration()): Promise<ResourceRead<T>> {
   const resourceKey = `data:${path}:${revision}`;
   const entry = cache.get(resourceKey);
-  if (entry && conditionDataInRange(path, entry.data) && entry.generation === generation && Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at)) {
+  if (entry && conditionDataInRange(path, entry.data) && entry.generation === generation && (isArchiveMode() || Date.now() - entry.at < resourceRefreshInterval(entry.data, entry.at))) {
     return Promise.resolve({ data: entry.data as T, refreshError: entry.refreshError });
   }
   return readResource(base, `${resourceKey}:${generation}`, resourceKey, path, generation) as Promise<ResourceRead<T>>;
@@ -179,6 +180,7 @@ export function useResource<T>(path: ResourcePath, revision = 0) {
       const next = await loadResource<T>(import.meta.env.BASE_URL, path, revision, generation);
       if (!alive) return;
       setResult({ key, resourceKey, ...(next as { data?: T; error?: string }) });
+      if (isArchiveMode()) return;
       const refreshed = cache.get(resourceKey);
       timer = setTimeout(() => { void refresh(); }, !next.error && refreshed
         ? Math.max(1, resourceRefreshInterval(refreshed.data, refreshed.at) - (Date.now() - refreshed.at))

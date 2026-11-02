@@ -1,3 +1,23 @@
+# 현재 운영: 대회 종료 후 정적 보관 모드 — 완료 · 2026-11-02 16:38 KST
+
+- 사용자 승인: 수집 중단, 실제 화면 자료만 웹으로 제공, DB 컨테이너와 **DB 볼륨까지 삭제**해 공간 회수. 추후 한 명령으로 실제 DB 서비스 복구. 기존 로그인 보호·다른 앱·공용 SSO·dev refs 유지. 이후 사용자 요청으로 이번 보관 모드 변경의 커밋·push를 승인받음.
+- https://pongdang.site/ 운영 중. 앱은 `pongdang-frontend`만 실행(healthy, 약 4.65MiB / 상한 64MiB). 기존 `pongdang-domain-auth`/`pongdang-oauth2` 로그인 보호 유지. backend/collector/db/initialize 컨테이너와 `pongdang_postgres_data` 볼륨은 제거 완료.
+- 실제 한국어 장소 201개·사진 189개·API 응답 1,238개를 보관. 기준시각 2026-11-02 16:20 KST, 원본 점수·관측시각은 변경하지 않음. 웹 전체 약 82.2MiB. 표는 각 첫 100행, 시간별 상세 차트는 기본 경포 장소 중심. 없는 자료는 보관 범위 밖으로 표시하고 실제 API로 우회하지 않음.
+- 보관 배너·기준시각 표시. AI·실시간 웹캠·저장·수집·자동 새로고침 중단. 일반 지도 SDK/지도 타일은 기존 공개 웹처럼 표시. 목업 데이터를 만들지 않음.
+- 복구용 최신 전체 DB: `/home/cks/.local/share/pongdang-archive/database-20261102-final.dump` (185,408,814 bytes, 약 176.8MiB), SHA-256 `9b0a892d3eacbaf12dfabeb2deebe098d7b96ab57cd8e0dddd978d1d63d449c8`. backend/collector 제거 후 DB만 임시 기동하여 2026-11-02T16:31:44.605915+09:00 이후 쓰기가 없는 상태로 백업. pg_restore 목록·전체 스트림 읽기·SHA 검증 성공 후 DB/볼륨 제거. 원본 첨부파일 볼륨과 현재 release 이미지·운영 환경 파일은 복구를 위해 보존.
+- **정식 서비스 재가동:** `sudo /usr/local/sbin/pongdang-mode resume` (동일 설치본 `/usr/local/libexec/pongdang-mode`). 백업 검증 → 새 DB 볼륨 생성/전체 백업 복원 → backend/웹 readiness → collector 시작 → CI·배포 타이머·모니터 대상 복구. 기존 볼륨이 있으면 덮어쓰지 않음. 실패하면 정적 웹으로 돌아가며 백업/볼륨 보존. 상태: `sudo /usr/local/sbin/pongdang-mode status`.
+- 운영 상태·구성: `/home/cks/.local/share/pongdang-archive/{runtime.json,active.json,database-backup.json,compose.yaml,nginx.conf}`; 공개 파일 `/home/cks/.local/share/pongdang-archive/snapshot-20261102/`. 복구 후 재보관하려면 새 쓰기 중지 백업·스냅샷 세대를 준비해야 하며 기존 보관본으로 새 DB를 삭제하는 것은 거부함.
+- `pongdang-ci-watch.timer`, `pongdang-deploy-watch.timer` disabled/inactive. 인증서 갱신 timer 유지. 설치된 deploy gate는 active.json이 있으면 자동/수동 main 배포를 거부하여 DB가 뜻하지 않게 다시 켜지지 않음. Monitor retirements에는 정확히 backend/db 두 대상만 추가했고 재가동 시 제거함.
+- 검증: 프런트 lint·Node 310개·타입 검사, exporter 7개·mode 13개·배포 차단 1개 회귀 검사 통과. 1440/390px 주요 화면·사진·6개월 뒤 보관시각/점수·지도 높이 확인. 공개 도메인 홈페이지/readiness/manifest 200, 실제 지도 SDK/타일 정상. 실제 DB 복원 시험은 실행하지 않았으며 명령 모형과 백업 스트림 검증을 구분함.
+- DB 볼륨 약 10.67GiB 제거, 이번 작업 중 임시 복사본 정리 포함 디스크 여유 약 11GiB 증가. 최종 호스트 디스크 42% 사용/133GiB 여유. 불필요한 preview 컨테이너·임시 Node·첫 중복 백업은 제거함.
+- 백업 기준 운영 release는 `404b49742009f873de2007c7c072b60ed7d99be0`이다. 보관 모드 소스·복구 문서는 main에 커밋·push하며 dev/origin/dev `549c0b55242539be59252ac2c89ab6ab47fa55ea`는 유지한다. 기존 사용자 CURRENT 수정과 기타 변경은 별도로 보존한다.
+- SSH 메일 별도 완료: Monitor 성공 로그인 기록은 유지하고 메일에서 제외. 실패/거부 반복 경고 유지. `/home/cks/Monitor/docs/ai/ssh-mail-off-20261102.md` 참고.
+
+- 새 서버에서는 Git clone 외에 비공개 백업·첨부파일·운영 환경·SSO/TLS 설정을 이관하고 서버 기반 구성을 준비해야 한다. 다른 에이전트는 `docs/archive-recovery.md`를 시작점으로 삼는다. 현재 서버 밖 백업 사본의 존재는 확인하지 않았다.
+
+
+---
+
 # Luna 관련성 판단·복수 방문 조회 · 2026-10-01
 
 - 배포 승인/진행: 사용자가 이번 변경의 커밋·main 병합·푸시·배포를 명시적으로 요청했다. 기존 `fix/finale`의 Luna 관련성/방문별 조회·기록·혼합 경로 수정과 모델6 전환을 릴리스한다. 기본 호출 한도도 로컬과 동일한 하루 30회/예약 USD0.60으로 맞췄다. `main`은 기존 작업 트리에서 fast-forward하며, 원격의 두 브랜치 기준은 `1e0a45f`다. `dev`/`origin/dev`의 `0f824a9ccecbd7ed5332919c99b03920b769000c`와 기존 임시 산출물을 보존한다. 별도 서버 설정·공유 SSO·데이터 변경 없이 두 이미지 CI 성공 후 기존 watcher/gate 반영을 확인한다. 완료 여부는 후속 실행 결과로 갱신한다.

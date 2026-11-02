@@ -1,3 +1,4 @@
+import { dataNow } from "./archiveRuntime.ts";
 import { t, dateLocale } from "./i18n.ts";
 import type { Activity } from "./aiApi";
 import type { PlacePhoto } from "./placePhotos";
@@ -500,16 +501,16 @@ export type RowPage<T> = { rows: T[]; total: number; status?: string };
  *  실제와 다른 사실이 됩니다. 그 자리는 그대로 `timeLabel(new Date())` 입니다. */
 export const SESSION_NOW_STEP = 600000;
 export const sessionNow = () =>
-  new Date(Math.floor(Date.now() / SESSION_NOW_STEP) * SESSION_NOW_STEP).toISOString();
+  new Date(Math.floor(dataNow() / SESSION_NOW_STEP) * SESSION_NOW_STEP).toISOString();
 
-export const kstDate = (value: Date | string = new Date()) =>
+export const kstDate = (value: Date | string = new Date(dataNow())) =>
   new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
-export const dateLabel = (value: Date | string = new Date()) =>
+export const dateLabel = (value: Date | string = new Date(dataNow())) =>
   new Intl.DateTimeFormat(dateLocale(), {
     timeZone: "Asia/Seoul",
     month: "long",
@@ -630,7 +631,7 @@ export function summariesExpiry(rows: ConditionSummary[]): number | undefined {
     .filter(Number.isFinite);
   return expiries.length ? Math.min(...expiries) : undefined;
 }
-export function conditionTargetInRange(at: string | undefined, now = Date.now()) {
+export function conditionTargetInRange(at: string | undefined, now = dataNow()) {
   const target = at ? Date.parse(at) : NaN;
   if (!Number.isFinite(target) || !Number.isFinite(now)) return false;
   const today = Date.parse(`${kstDate(new Date(now))}T00:00:00+09:00`);

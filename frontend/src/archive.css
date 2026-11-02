@@ -1,0 +1,35 @@
+.pd-archive-notice {
+  position: sticky;
+  top: 0;
+  z-index: 110;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: #fff5d8;
+  color: #543d0a;
+  border-bottom: 1px solid #dfc776;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pd-archive-notice small { flex-basis: 100%; font-size: 12px; }
+.pd-archive-unavailable { max-width: 720px; margin: 40px auto; padding: 24px; }
+.pd-archive-unavailable nav { display: flex; gap: 24px; margin-top: 24px; }
+
+/* Map panels own their scrolling; the notice must not add another viewport. */
+#root:has(> .pd-archive-notice):has(> main .is-fullscreen) {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+#root:has(> .pd-archive-notice) > main:has(.is-fullscreen) {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.pd-archive-notice ~ main .pd-app.is-fullscreen { height: 100%; }
+.pd-archive-notice ~ main .pd-frame.is-fullscreen {
+  height: calc(100% - var(--pd-frame-gap));
+}

@@ -1,3 +1,4 @@
+import { isArchiveMode } from "./archiveRuntime.ts";
 import { TRAVEL_LANGUAGES, setTravelLanguage, useTravelLanguage } from "./travelLanguage";
 import "./travelLanguage.css";
 import { t } from "./i18n";
@@ -13,6 +14,7 @@ export function TravelLanguageSelector() {
             type="button"
             key={language.locale}
             lang={language.locale}
+            disabled={isArchiveMode()}
             aria-pressed={locale === language.locale}
             onClick={() => setTravelLanguage(language.locale)}
           >
@@ -21,9 +23,9 @@ export function TravelLanguageSelector() {
         ))}
       </div>
       <p className="pd-language-note">
-        {t("화면의 메뉴·설명과 새 여행 안내에 적용합니다. 관광정보는 공식 외국어 정보나 저장된 번역이 있으면 사용하며, 기존 대화·코스는 그대로 유지합니다.")}
+        {isArchiveMode() ? "보관 화면은 저장한 한국어 실제 자료만 제공합니다." : t("화면의 메뉴·설명과 새 여행 안내에 적용합니다. 관광정보는 공식 외국어 정보나 저장된 번역이 있으면 사용하며, 기존 대화·코스는 그대로 유지합니다.")}
       </p>
-      {!persisted && <p className="pd-language-note" role="status">{t("이 브라우저에서는 언어 선택을 저장할 수 없어 현재 탭에서만 적용합니다.")}</p>}
+      {!persisted && !isArchiveMode() && <p className="pd-language-note" role="status">{t("이 브라우저에서는 언어 선택을 저장할 수 없어 현재 탭에서만 적용합니다.")}</p>}
     </section>
   );
 }
@@ -42,7 +44,7 @@ export function TravelLanguageNote() {
   return (
     <p className="pd-language-current">
       {t("여행 안내 언어")}: <b lang={locale}>{language.label}</b>
-      <span>{t("사이드 메뉴에서 변경 · 해당 언어의 수집 자료가 없으면 추천 결과가 없을 수 있습니다.")}</span>
+      <span>{isArchiveMode() ? "한국어 보관 자료" : t("사이드 메뉴에서 변경 · 해당 언어의 수집 자료가 없으면 추천 결과가 없을 수 있습니다.")}</span>
     </p>
   );
 }

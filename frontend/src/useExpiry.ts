@@ -1,3 +1,4 @@
+import { dataNow, isArchiveMode } from "./archiveRuntime.ts";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /** Expiry changes the display immediately; it never triggers an API request. */
@@ -7,13 +8,14 @@ export function useExpiry(expiries: (number | undefined)[]) {
   ))].sort((left, right) => left - right).join(",");
   const deadlines = useMemo(() => key ? key.split(",").map(Number) : [], [key]);
   const snapshot = useCallback(() => {
-    const now = Date.now();
+    const now = dataNow();
     return deadlines.findLast((deadline) => deadline <= now);
   }, [deadlines]);
   const subscribe = useCallback((listener: () => void) => {
+    if (isArchiveMode()) return () => {};
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
-      const now = Date.now();
+      const now = dataNow();
       const next = deadlines.find((deadline) => deadline > now);
       if (next === undefined) return;
       timer = setTimeout(() => {

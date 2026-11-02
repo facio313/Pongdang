@@ -1,3 +1,4 @@
+import { isArchiveMode } from "./archiveRuntime.ts";
 import { t } from "./i18n.ts";
 import { useState } from "react";
 import { TravelLanguageSelector } from "./TravelLanguageSelector";
@@ -28,7 +29,7 @@ export function DataWorkspace({ page }: { page: "data" | "info" }) {
             <option value="data">{t("Pongdang 수집 데이터")}</option>
           </select>
         </label>
-        <strong>{t("Pongdang 자체 DB · 실제 자료 · 읽기 전용")}</strong>
+        <strong>{isArchiveMode() ? "실제 수집 자료 보관본 · 읽기 전용" : t("Pongdang 자체 DB · 실제 자료 · 읽기 전용")}</strong>
         <details>
           <summary>{t("언어 선택")}</summary>
           <TravelLanguageSelector />
@@ -53,11 +54,11 @@ export function DataWorkspace({ page }: { page: "data" | "info" }) {
       </header>
       <div className="toolbar">
         <span>
-          {summary.data
+          {isArchiveMode() ? "보관 자료 · 표에 보존된 행만 검색·조회" : summary.data
             ? t("Pongdang DB 연결됨")
             : summary.loading
               ? t("DB 연결 확인 중")
-              : t("DB 조회 불가")}{" "}{t("· Pongdang 자체 DB / pongdang_data · 읽기 전용 · KST")}</span>
+              : t("DB 조회 불가")}{" "}{isArchiveMode() ? "· DB 중지 · KST" : t("· Pongdang 자체 DB / pongdang_data · 읽기 전용 · KST")}</span>
         <span>{t("현황 조회: {time}", { time: date(summaryData?.queried_at) })}</span>
         <button
           disabled={summary.loading}

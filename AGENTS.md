@@ -1,5 +1,12 @@
 # Pongdang
 
+- Production has used a real-data static archive since 2026-11-02. Read
+  `docs/archive-recovery.md` before operating the server. Ordinary Git pushes
+  must preserve archive mode; only an explicit service-resumption request
+  authorizes `sudo /usr/local/sbin/pongdang-mode resume`. The archived DB volume
+  was intentionally removed after backup. Code in Git is not the private backup
+  or the environment/SSO configuration required to rebuild a new host.
+
 - Pongdang is the independent competition project. Multtara is archived legacy:
   never import its modules, require its repository, connect to its database,
   attach its Docker networks or reuse its credentials in this application.

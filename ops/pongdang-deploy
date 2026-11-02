@@ -23,6 +23,14 @@ mkdir -p "$state/releases"
 exec 9>"$state/deploy.lock"
 flock -w 1200 9
 
+# An explicit archive deployment must not be replaced by a routine main build.
+# The mode controller holds this same lock and removes the marker only after
+# the restored live stack is healthy.
+if [[ -e /home/cks/.local/share/pongdang-archive/active.json ]]; then
+  echo 'Pongdang is in archive mode; use pongdang-mode resume before deploying.' >&2
+  exit 1
+fi
+
 if [[ ! -d "$repository" ]]; then
   git init --bare "$repository"
 fi

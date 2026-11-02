@@ -1,3 +1,4 @@
+import { dataNowIso } from "./archiveRuntime.ts";
 import { CatalogVerifiedBadge } from "./CatalogVerifiedBadge";
 import { PlaceTranslationNote } from "./PlaceTranslationNote";
 import { activityRecommendationDisplay } from "./recommendationText";
@@ -1054,7 +1055,7 @@ function RoutePanel({ route }: { route: RouteResult }) {
  *  useResource 의 기억이 하나로 합쳐 주므로 요청이 두 번 나가지 않습니다. */
 function useCourseView(dayIndex: number) {
   const session = useTravelSession();
-  const [now] = useState(() => new Date().toISOString());
+  const [now] = useState(() => dataNowIso());
   const firstItem = planItems(session.plan)[0];
   const firstId = firstItem?.spot_id ?? session.recommendation?.recommendations[0]?.spot_id;
   const activity = session.plan?.request.activity ?? session.recommendation?.request.activity ?? "relax";
@@ -1550,12 +1551,12 @@ function RecommendScreen() {
   };
   const [dayIndex, setDayIndex] = useState(() => {
     const date = session.plan?.request.dates[0] ?? session.recommendation?.request.dates[0];
-    return Math.max(0, calendarDays(new Date().toISOString(), 7).findIndex(day => day.id === date));
+    return Math.max(0, calendarDays(dataNowIso(), 7).findIndex(day => day.id === date));
   });
   const [altOpen, setAltOpen] = useState(false);
   const [proposal, setProposal] = useState<RecommendationResult | null>(null);
   const action = useAction();
-  const days = calendarDays(new Date().toISOString(), 7);
+  const days = calendarDays(dataNowIso(), 7);
   // 공유 코스 링크(plan_id)도 개인정보 자원입니다. 익명 방문자에게는
   // 「로그인 필요」를 알림으로 띄우지 않고, 다른 저장 자원과 같이 조용히
   // 처리합니다(authError.suppressLoginRequired).

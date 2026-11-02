@@ -4,6 +4,13 @@
 Python 3.14 / FastAPI, PostgreSQL 18을 사용합니다.
 레거시 Multtara 저장소·DB·네트워크·인증정보를 사용하지 않습니다.
 
+현재 운영 서버는 **실제 수집 자료를 보존한 정적 보관 모드**입니다. DB와 수집기는
+중지·제거되어 있으며 아래의 일반 개발용 Compose 명령을 운영 서버에서 실행하면
+안 됩니다. 재가동 요청 시에는 `sudo /usr/local/sbin/pongdang-mode resume`를 사용합니다.
+[현재 서버 재가동·새 서버 재구축 안내](docs/archive-recovery.md)에 실제 DB 백업,
+첨부파일, 비공개 설정의 위치와 복구 순서를 기록했습니다. Git만으로 실제 데이터와
+비밀키가 복원되지는 않습니다.
+
 ## 실제 데이터 수집
 
 `collector → 공식 API → pongdang_data → /api/data → frontend` 경로로 동작합니다.

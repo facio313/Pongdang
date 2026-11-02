@@ -1,3 +1,4 @@
+import { dataNowIso } from "./archiveRuntime.ts";
 import { InlineLanguageSelector } from "./TravelLanguageSelector";
 import { t } from "./i18n";
 import { useEffect, useState } from "react";
@@ -24,7 +25,7 @@ function Cell({ value, column }: { value: unknown; column: string }) {
   return <>{String(value)}</>;
 }
 export function FeatureDataPage({ page, spotId: initialSpotId, activity: initialActivity, from: initialFrom, until: initialUntil }: { page: FeaturePage; spotId?: number; activity: Activity; from: string | null; until: string | null }) {
-  const [now] = useState(() => new Date().toISOString());
+  const [now] = useState(() => dataNowIso());
   const [spotId, setSpotId] = useState(initialSpotId);
   const [activity, setActivity] = useState(initialActivity);
   const [from, setFrom] = useState(() => localInput(initialFrom ?? now));

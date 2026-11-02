@@ -1,3 +1,4 @@
+import { ARCHIVE_READ_ONLY, isArchiveMode } from "./archiveRuntime.ts";
 import { t } from "./i18n.ts";
 import { resourceRefreshGeneration, subscribeResourceRefresh } from "./resourceRefresh.ts";
 export type PreviewPlace = { id: number; name: string; place_kind: 'beach' | 'valley' | 'lake' | 'reservoir'; address: string | null; region: string | null; lat: number | null; lng: number | null };
@@ -81,6 +82,7 @@ export async function requestWebcamPreview(base: string, spotId: number | undefi
   return requestPreview(base, spotId === undefined ? {} : { spot_id: spotId }, signal, fetcher);
 }
 async function requestPreview(base: string, body: object, signal: AbortSignal, fetcher: typeof fetch): Promise<PreviewResult> {
+  if (isArchiveMode()) throw new Error(ARCHIVE_READ_ONLY);
   let response: Response;
   try {
     response = await fetcher(`${base}api/data/livecams/preview`, {
