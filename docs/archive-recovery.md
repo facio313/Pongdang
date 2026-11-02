@@ -59,6 +59,7 @@ DB 백업과 운영 환경 파일은 Git에 추가하지 않는다.
 | 웹캠 썸네일 | Docker 볼륨 `pongdang_windy_thumbnail_data` — 기존 실제 파일, 현재 서버에 보존 |
 | 운영 환경 | `/home/cks/.config/pongdang/production.env` — DB·제공처·AI·로그인 연결 설정, 비공개로 별도 전달 |
 | 기존 로그인·TLS | Pongdang ingress, `pongdang-domain-auth`/`pongdang-oauth2` 및 이들이 사용하는 사설 설정·인증서. 공용 SSO와의 연결을 별도로 유지 |
+| 배포 감시 인증 | 새 호스트의 `cks`가 기존 watcher의 GitHub 조회·CI 요청을 수행할 수 있는 비공개 인증 설정. 인증값은 Git이나 이 문서에 저장하지 않음 |
 
 최신 DB 백업의 SHA-256은 다음과 같다.
 
@@ -96,7 +97,9 @@ DB 백업만 옮기면 DB가 참조하는 원본 사진 파일까지 옮겨지�
 4. 실제 데이터 백업과 대응하는 live 릴리스
    `404b49742009f873de2007c7c072b60ed7d99be0`를 Git 이력에서 준비한다.
    위치는 `/home/cks/.local/share/pongdang-deploy/releases/<SHA>`이며
-   `current` 링크도 이 릴리스를 가리키게 한다. 저장된 이미지
+   `current` 링크도 이 릴리스를 가리키게 한다. 배포 상태 디렉터리는 `cks` 소유로
+   준비하고 `deploy.lock`도 `cks` 소유·0600으로 만들어 root 제어 도구와 기존
+   `cks` 배포 게이트가 같은 잠금을 사용할 수 있게 한다. 저장된 이미지
    `pongdang-backend:<SHA>`, `pongdang-frontend:<SHA>`, `postgres:18-alpine`을
    가져오거나 해당 릴리스와 운영 Compose 빌드 인자로 준비한다.
    CPU 아키텍처가 다르면 새 호스트에 맞게 이미지를 다시 만들어야 한다.
